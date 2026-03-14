@@ -3071,6 +3071,7 @@ function CatatanInput({evId, initial, onSave, btnColor, placeholder, label}){
 }
 
 
+function WKKehadiran({ev,upd,showT,setDelegTarget,role}){
   const isAjudan=role==="ajudan_walikota";
   const locked=isKehadiranLocked(ev);
   if(locked)return <div><KehadiranLockedBanner/></div>;
