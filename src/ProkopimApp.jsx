@@ -3028,6 +3028,48 @@ function KehadiranLockedBanner(){
   </div>;
 }
 
+// ── Komponen catatan terkontrol (moved before first usage) ──────────
+function CatatanInput({evId, initial, onSave, btnColor, placeholder, label}){
+  const NAVY="#0A1628";
+  const [val, setVal] = React.useState(initial||"");
+  const [saved, setSaved] = React.useState(false);
+  React.useEffect(()=>{ setVal(initial||""); },[evId, initial]);
+  const handleSave = ()=>{
+    onSave(val);
+    setSaved(true);
+    setTimeout(()=>setSaved(false), 2000);
+  };
+  return (
+    <div>
+      {label&&<label style={{display:"block",fontSize:12,color:"#64748B",fontWeight:600,marginBottom:4}}>{label}</label>}
+      <textarea
+        value={val}
+        onChange={e=>{ setVal(e.target.value); setSaved(false); }}
+        rows={3}
+        placeholder={placeholder||"Ketik catatan..."}
+        style={{width:"100%",padding:"10px 12px",borderRadius:10,
+          border:"1.5px solid "+(saved?"#6EE7B7":"#E2E8F0"),
+          fontSize:13,color:"#0F172A",resize:"vertical",
+          background:saved?"#F0FDF4":"white",
+          boxSizing:"border-box",transition:"border-color 0.2s,background 0.2s",
+          outline:"none"}}
+        onKeyDown={e=>{ if((e.ctrlKey||e.metaKey)&&e.key==="Enter") handleSave(); }}
+      />
+      <div style={{display:"flex",alignItems:"center",gap:8,marginTop:6}}>
+        <button
+          onClick={e=>{e.stopPropagation();handleSave();}}
+          style={{padding:"9px 20px",borderRadius:9,border:"none",
+            background:saved?"#059669":(btnColor||NAVY),
+            color:"white",cursor:"pointer",fontSize:12,fontWeight:700,
+            transition:"background 0.2s",flexShrink:0}}>
+          {saved?"✓ Tersimpan":"Simpan Catatan"}
+        </button>
+        <span style={{fontSize:10,color:"#94A3B8"}}>Ctrl+Enter untuk simpan cepat</span>
+      </div>
+    </div>
+  );
+}
+
 function WKKehadiran({ev,upd,showT,setDelegTarget,role}){
   const isAjudan=role==="ajudan_walikota";
   const locked=isKehadiranLocked(ev);
