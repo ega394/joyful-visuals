@@ -3028,48 +3028,6 @@ function KehadiranLockedBanner(){
   </div>;
 }
 
-// ── Komponen catatan terkontrol (moved before first usage) ──────────
-function CatatanInput({evId, initial, onSave, btnColor, placeholder, label}){
-  const NAVY="#0A1628";
-  const [val, setVal] = React.useState(initial||"");
-  const [saved, setSaved] = React.useState(false);
-  React.useEffect(()=>{ setVal(initial||""); },[evId, initial]);
-  const handleSave = ()=>{
-    onSave(val);
-    setSaved(true);
-    setTimeout(()=>setSaved(false), 2000);
-  };
-  return (
-    <div>
-      {label&&<label style={{display:"block",fontSize:12,color:"#64748B",fontWeight:600,marginBottom:4}}>{label}</label>}
-      <textarea
-        value={val}
-        onChange={e=>{ setVal(e.target.value); setSaved(false); }}
-        rows={3}
-        placeholder={placeholder||"Ketik catatan..."}
-        style={{width:"100%",padding:"10px 12px",borderRadius:10,
-          border:"1.5px solid "+(saved?"#6EE7B7":"#E2E8F0"),
-          fontSize:13,color:"#0F172A",resize:"vertical",
-          background:saved?"#F0FDF4":"white",
-          boxSizing:"border-box",transition:"border-color 0.2s,background 0.2s",
-          outline:"none"}}
-        onKeyDown={e=>{ if((e.ctrlKey||e.metaKey)&&e.key==="Enter") handleSave(); }}
-      />
-      <div style={{display:"flex",alignItems:"center",gap:8,marginTop:6}}>
-        <button
-          onClick={e=>{e.stopPropagation();handleSave();}}
-          style={{padding:"9px 20px",borderRadius:9,border:"none",
-            background:saved?"#059669":(btnColor||NAVY),
-            color:"white",cursor:"pointer",fontSize:12,fontWeight:700,
-            transition:"background 0.2s",flexShrink:0}}>
-          {saved?"✓ Tersimpan":"Simpan Catatan"}
-        </button>
-        <span style={{fontSize:10,color:"#94A3B8"}}>Ctrl+Enter untuk simpan cepat</span>
-      </div>
-    </div>
-  );
-}
-
 function WKKehadiran({ev,upd,showT,setDelegTarget,role}){
   const isAjudan=role==="ajudan_walikota";
   const locked=isKehadiranLocked(ev);
@@ -3213,7 +3171,1634 @@ function AdminRKKehadiran({ev,upd,showT,setDelegTarget}){
 const AppCtx = React.createContext({});
 
 
+// ── AppCtx: provides App-scope deps to components outside App ──
 
+// ==================== EVENT CARD (mobile) ====================
+function EventCard({ev}){
+  const {expandedId,setExp,role,user,isMobile,getHari,fmt,fmtShort,todayStr,handleUndanganUpload,handleSambutanDocx,handleSambutanUpload,updAndSync,storageDelete,showT,upd,setDelegTarget,setTab,setForm,setEditId,setPenugasanEv,setEvaluasiEv,rejectTexts,setRT,askConfirm,deleteAndSync,makeICS,PersonilBanner}=React.useContext(AppCtx);
+  const exp=expandedId===ev.id;const hariEv=getHari(ev.tanggal);const isToday=ev.tanggal===todayStr();
+  const isPending=ev.alur==="menunggu_kasubbag"||ev.alur==="menunggu_kabag";
+  const isDraft=ev.alur==="draft"||ev.alur==="ditolak";
+  // Status waktu
+  const nowDt=new Date();
+  const evDt=new Date(ev.tanggal+"T"+(ev.jam||"00:00"));
+  const isPast=ev.alur==="disetujui"&&evDt<nowDt;
+  const isUpcoming=ev.alur==="disetujui"&&evDt>=nowDt;
+  const borderColor=isPending?"#F59E0B":isDraft?"#94A3B8":ev.alur==="ditolak"?"#EF4444":isToday&&isUpcoming?NAVY:"transparent";
+  const cardBg="white";
+  const cardOpacity=isPast?0.72:1;
+  return <div id={"ev-"+ev.id} className="ev-card" style={{background:cardBg,borderRadius:16,marginBottom:10,boxShadow:"0 2px 12px rgba(0,0,0,0.07),0 0 0 1px rgba(0,0,0,0.04)",border:"1.5px solid "+borderColor,overflow:"hidden",opacity:cardOpacity}}>
+    {ev.catatanPimpinan&&<div style={{background:"linear-gradient(90deg,#EEF2FF,#F5F3FF)",padding:"6px 14px",fontSize:11,color:"#4338CA",fontWeight:600,borderBottom:"1px solid #E0E7FF",display:"flex",alignItems:"center",gap:5}}>
+      <span style={{fontSize:12}}>💬</span>{ev.catatanPimpinan}
+    </div>}
+    {/* Banner penugasan — semua role yang terlibat penugasan */}
+    {["kabag","ajudan_walikota","ajudan_wakilwalikota","kasubbag_protokol","kasubbag_komdokpim","timkom","staf","admin_rk"].includes(role)&&ev.alur==="disetujui"&&<PersonilBanner ev={ev} role={role} user={user} setPenugasanEv={setPenugasanEv} setEvaluasiEv={setEvaluasiEv}/>}
+    <div onClick={()=>setExp(exp?null:ev.id)} style={{padding:"14px",cursor:"pointer",userSelect:"none"}}>
+      <div style={{display:"flex",alignItems:"flex-start",gap:11}}>
+        {/* Date badge */}
+        <div style={{background:isToday?"linear-gradient(145deg,"+NAVY+",#1E3254)":"#F6F8FC",borderRadius:12,padding:"8px 7px",textAlign:"center",minWidth:46,flexShrink:0,boxShadow:isToday?"0 4px 12px rgba(10,22,40,0.25)":"none"}}>
+          <div style={{fontSize:8,color:isToday?"rgba(212,175,90,0.9)":"#94A3B8",fontWeight:800,textTransform:"uppercase",letterSpacing:1}}>{hariEv.slice(0,3)}</div>
+          <div style={{fontSize:18,fontWeight:900,color:isToday?"white":"#1E293B",lineHeight:1.1}}>{ev.tanggal.slice(8)}</div>
+          <div style={{fontSize:9,color:isToday?"rgba(255,255,255,0.6)":"#94A3B8",fontWeight:500,marginTop:1}}>{ev.jam}</div>
+        </div>
+        {/* Info */}
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{display:"flex",alignItems:"center",gap:4,flexWrap:"wrap",marginBottom:5}}>
+            <JenisBadge j={ev.jenisKegiatan}/><StatusPill alur={ev.alur} hapus={ev.alurHapus}/>
+            {isPast&&<span style={{fontSize:9,background:"#E2E8F0",color:"#64748B",borderRadius:4,padding:"1px 5px",fontWeight:700,letterSpacing:0.3}}>SELESAI</span>}
+            {isPending&&<span style={{fontSize:9,background:"#FEF3C7",color:"#92400E",borderRadius:4,padding:"1px 5px",fontWeight:700,letterSpacing:0.3}}>DIPROSES</span>}
+            {isUpcoming&&!isToday&&<span style={{fontSize:9,background:"#EFF6FF",color:"#1D4ED8",borderRadius:4,padding:"1px 5px",fontWeight:700,letterSpacing:0.3}}>{relativeDate(ev.tanggal)||"AKAN DATANG"}</span>}
+            {isToday&&isUpcoming&&<span style={{fontSize:9,background:"linear-gradient(90deg,#0A1628,#1B4080)",color:"#C9A84C",borderRadius:4,padding:"1px 5px",fontWeight:700,letterSpacing:0.3}}>HARI INI</span>}
+            {ev.untukPimpinan.includes("walikota")&&<span style={{fontSize:9,padding:"2px 6px",borderRadius:10,background:"rgba(10,22,40,0.07)",color:NAVY,fontWeight:700}}>WK{ev.besertaIstriWK?" + Istri":""}</span>}
+            {(ev.untukPimpinan.includes("wakilwalikota")||ev.delegasiKeWWK)&&<span style={{fontSize:9,padding:"2px 6px",borderRadius:10,background:"#ECFDF5",color:GREEN,fontWeight:700}}>{ev.delegasiKeWWK?"→WWK":"WWK"}{ev.besertaIstriWWK?" + Istri":""}</span>}
+          </div>
+          <div style={{fontSize:14,fontWeight:700,color:"#0F1C2E",lineHeight:1.35,marginBottom:3,letterSpacing:"-0.1px"}}>{ev.namaAcara}</div>
+          <div style={{fontSize:12,color:"#64748B",display:"flex",alignItems:"center",gap:4}}>
+            <span>{ev.penyelenggara}</span>
+            {ev.lokasi&&<><span style={{color:"#CBD5E1"}}>·</span><span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:130}}>{ev.lokasi}</span></>}
+          </div>
+        </div>
+        {/* Chevron */}
+        <div style={{color:"#CBD5E1",fontSize:11,flexShrink:0,transition:"transform 0.25s cubic-bezier(0.34,1.56,0.64,1)",transform:exp?"rotate(180deg)":"none",marginTop:4}}>▼</div>
+      </div>
+    </div>
+    {exp&&<ExpandedDetail ev={ev} hariEv={hariEv}/>}
+  </div>;
+};
+
+// ==================== DESKTOP TABLE ROW ====================
+function TableView({evList}){
+  const {expandedId,setExp,role,user,isMobile,getHari,fmt,fmtShort,todayStr,handleUndanganUpload,handleSambutanDocx,handleSambutanUpload,updAndSync,storageDelete,showT,upd,setDelegTarget,setTab,setForm,setEditId,setPenugasanEv,setEvaluasiEv,rejectTexts,setRT,askConfirm,deleteAndSync,makeICS,PersonilBanner}=React.useContext(AppCtx);
+  return <div style={{background:"white",borderRadius:12,boxShadow:"0 1px 8px rgba(0,0,0,0.07)",overflow:"hidden"}}>
+  <table className="ev-table">
+    <thead><tr>
+      <th>Tanggal</th><th>Pukul</th><th style={{minWidth:220}}>Nama Acara</th><th>Jenis</th><th>Penyelenggara</th><th>Lokasi</th><th>Pakaian</th><th>Status</th><th>Aksi</th>
+    </tr></thead>
+    <tbody>
+      {evList.map(ev=>{
+        const exp=expandedId===ev.id;const hariEv=getHari(ev.tanggal);const isToday=ev.tanggal===todayStr();
+        return <><tr key={ev.id} id={"ev-"+ev.id} className="card-row" style={{cursor:"pointer"}} onClick={()=>setExp(exp?null:ev.id)}>
+          <td><div style={{fontWeight:700,fontSize:12,color:isToday?NAVY:"#334155",whiteSpace:"nowrap"}}>{hariEv}, {fmtShort(ev.tanggal)}</div>{(isToday||relativeDate(ev.tanggal))&&<span style={{fontSize:10,color:isToday?"#2563eb":"#64748B",fontWeight:700}}>{isToday?"Hari ini":relativeDate(ev.tanggal)}</span>}</td>
+          <td><span style={{fontWeight:700,fontSize:13,color:NAVY}}>{ev.jam}</span></td>
+          <td><div style={{fontWeight:700,fontSize:13,color:"#0F2040",lineHeight:1.3}}>{ev.namaAcara}</div>
+            <div style={{display:"flex",gap:4,marginTop:3,flexWrap:"wrap"}}>
+              {ev.untukPimpinan.includes("walikota")&&<span style={{fontSize:9,padding:"1px 5px",borderRadius:10,background:"#EBF0FA",color:NAVY,fontWeight:700}}>WK</span>}
+              {(ev.untukPimpinan.includes("wakilwalikota")||ev.delegasiKeWWK)&&<span style={{fontSize:9,padding:"1px 5px",borderRadius:10,background:"#ecfdf5",color:GREEN,fontWeight:700}}>{ev.delegasiKeWWK?"Deleg.WWK":"WWK"}</span>}
+            </div>
+          </td>
+          <td><JenisBadge j={ev.jenisKegiatan}/></td>
+          <td style={{fontSize:12,color:"#475569",maxWidth:140,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ev.penyelenggara}</td>
+          <td style={{fontSize:12,color:"#475569",maxWidth:130,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ev.lokasi||<span style={{color:"#cbd5e1"}}>-</span>}</td>
+          <td style={{fontSize:11,color:"#475569",whiteSpace:"nowrap"}}>{ev.pakaian}</td>
+          <td><StatusPill alur={ev.alur} hapus={ev.alurHapus}/></td>
+          <td><button onClick={e=>{e.stopPropagation();setExp(exp?null:ev.id);}} style={{padding:"5px 10px",borderRadius:7,border:"1.5px solid #e2e8f0",background:exp?"#EBF0FA":"white",color:exp?NAVY:"#64748b",cursor:"pointer",fontSize:11,fontWeight:700,whiteSpace:"nowrap"}}>{exp?"Tutup":"Detail"}</button></td>
+        </tr>
+        {exp&&<tr key={ev.id+"_exp"}><td colSpan={9} style={{padding:0,background:"#fafbfc",borderBottom:"2px solid #EBF0FA"}}>
+          <div style={{padding:"16px 20px"}}><ExpandedDetail ev={ev} hariEv={hariEv}/></div>
+        </td></tr>}</>
+      })}
+    </tbody>
+  </table>
+</div>;
+}
+// ==================== EXPANDED DETAIL ====================
+function ExpandedDetail({ev,hariEv}){
+  const {role,user,isMobile,handleUndanganUpload,handleSambutanDocx,handleSambutanUpload,updAndSync,storageDelete,showT,upd,setDelegTarget,setTab,setForm,setEditId,setPenugasanEv,setEvaluasiEv,rejectTexts,setRT,askConfirm,deleteAndSync,makeICS,getNamaByUsername,setExp}=React.useContext(AppCtx);
+  return <div>
+    <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":ev.jenisKegiatan==="Sambutan"?"1fr 1fr":"1fr",gap:"0 24px",marginBottom:14}}>
+      <div>
+        <div style={{display:"flex",flexDirection:"column",gap:5}}>
+          {[{i:"Tgl",l:"Tanggal",v:hariEv+", "+fmt(ev.tanggal)},{i:"Jam",l:"Waktu",v:ev.jam+" WITA"},{i:"Org",l:"Penyelenggara",v:ev.penyelenggara},{i:"Tel",l:"Kontak",v:ev.kontak},{i:"No",l:"Bukti Undangan",v:ev.buktiUndangan},{i:"Bj",l:"Pakaian",v:ev.pakaian},{i:"Ket",l:"Catatan",v:ev.catatan}].filter(f=>f.v).map(f=>(
+            <div key={f.l} style={{display:"flex",gap:8,padding:"6px 10px",background:"#f8fafc",borderRadius:8}}>
+              <div style={{minWidth:80,fontSize:10,color:"#94a3b8",fontWeight:700,textTransform:"uppercase"}}>{f.l}</div>
+              <div style={{fontSize:12,color:"#1e293b",flex:1}}>{f.v}</div>
+            </div>
+          ))}
+          {ev.lokasi&&<div style={{display:"flex",gap:8,padding:"6px 10px",background:"#f0f9ff",borderRadius:8,border:"1px solid #bae6fd",alignItems:"center"}}>
+            <div style={{minWidth:80,fontSize:10,color:"#0284c7",fontWeight:700,textTransform:"uppercase"}}>Lokasi</div>
+            <div style={{flex:1,fontSize:12,color:"#0c4a6e",fontWeight:600}}>{ev.lokasi}</div>
+            <a href={"https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(ev.lokasi)} target="_blank" rel="noopener noreferrer" style={{padding:"5px 10px",borderRadius:7,background:"#1a73e8",color:"white",textDecoration:"none",fontSize:11,fontWeight:700,flexShrink:0}}>Maps</a>
+          </div>}
+          <div style={{marginTop:4}}>
+            <UndanganBlock ev={ev} canEdit={role==="admin_rk"&&ev.alur!=="disetujui"} onUpload={(file,name)=>handleUndanganUpload(ev.id,file,name).then(()=>showT("Berkas undangan diupload"))} onRemove={()=>{if(ev.undanganFile&&!ev.undanganFile.startsWith("data:"))storageDelete("undangan",ev.undanganFile).catch(e=>console.warn("Sync:",e?.message||e));updAndSync(ev.id,{undanganFile:null,undanganNama:""}); }}/>
+          </div>
+        </div>
+        <div style={{display:"flex",gap:7,marginTop:8}}>
+          <a href={makeICS(ev)} download={(ev.namaAcara||"jadwal")+".ics"} style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:6,padding:"9px",borderRadius:9,border:"1.5px solid #e2e8f0",background:"white",color:"#334155",textDecoration:"none",fontSize:12,fontWeight:700}}>
+            <span style={{fontSize:14}}>&#x1F4C5;</span>Simpan .ics
+          </a>
+          <a href={"https://calendar.google.com/calendar/render?action=TEMPLATE&text="+encodeURIComponent(ev.namaAcara||"")+"&dates="+((ev.tanggal||"").replace(/-/g,"")+"T"+(ev.jam||"0800").replace(":","")+"00")+"/"+((ev.tanggal||"").replace(/-/g,"")+"T"+String(parseInt((ev.jam||"08:00").split(":")[0])+2).padStart(2,"0")+(ev.jam||"08:00").split(":")[1]+"00")+"&location="+encodeURIComponent(ev.lokasi||"")+"&details="+encodeURIComponent("Penyelenggara: "+(ev.penyelenggara||"")+"%0APakaian: "+(ev.pakaian||""))} target="_blank" rel="noopener noreferrer" style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:6,padding:"9px",borderRadius:9,border:"none",background:"#1a73e8",color:"white",textDecoration:"none",fontSize:12,fontWeight:700}}>
+            <span style={{fontSize:14}}>&#x1F4C6;</span>Google Cal
+          </a>
+        </div>
+      </div>
+      {ev.jenisKegiatan==="Sambutan"&&<div>
+        <SambutanBlock ev={ev} canUpload={role==="timkom"||role==="kasubbag_komdokpim"} onUploadDocx={(f)=>handleSambutanDocx(ev.id,f,ev)} onUploadPdf={(f,name)=>handleSambutanUpload(ev.id,f,name).then(()=>showT("Naskah sambutan (PDF) diupload"))} onRemove={()=>{if(ev.sambutanFile&&!ev.sambutanFile.startsWith("data:"))storageDelete("sambutan",ev.sambutanFile).catch(e=>console.warn("Sync:",e?.message||e));if(ev.sambutanDocx&&!ev.sambutanDocx.startsWith("data:")&&!ev.sambutanDocx.startsWith("blob:"))storageDelete("sambutan",ev.sambutanDocx).catch(e=>console.warn("Sync:",e?.message||e));updAndSync(ev.id,{sambutanFile:null,sambutanNama:"",sambutanDocx:null,sambutanDocxNama:""});showT("Naskah sambutan dihapus","warn");}}/>
+      </div>}
+    </div>
+
+    {/* KONFIRMASI KEHADIRAN — Admin RK bisa isi untuk WK dan WWK */}
+    {role==="admin_rk"&&ev.alur==="disetujui"&&<AdminRKKehadiran ev={ev} upd={upd} showT={showT} setDelegTarget={setDelegTarget}/>}
+    {/* REKAN KERJA — tampilkan untuk staf & timkom yang ditugaskan */}
+    {["staf","timkom"].includes(role)&&(ev.personil||[]).includes(user.username)&&ev.alur==="disetujui"&&<div style={{marginBottom:12,padding:"11px 14px",borderRadius:11,background:"linear-gradient(90deg,#ECFDF5,#F0FDF4)",border:"1.5px solid #6EE7B7"}}>
+      <div style={{fontSize:10,fontWeight:800,color:"#065F46",letterSpacing:1,textTransform:"uppercase",marginBottom:8,display:"flex",alignItems:"center",gap:5}}>
+        🎯 Tim Bertugas di Acara Ini
+      </div>
+      <div style={{display:"flex",flexDirection:"column",gap:5}}>
+        {(ev.personil||[]).map(un=>{
+          const isMe=un===user.username;
+          const u=loadUsers().find(x=>x.username===un);
+          const nama=u?.nama||un;
+          const roleLabel=(u?.role||"").replace(/_/g," ");
+          return <div key={un} style={{display:"flex",alignItems:"center",gap:9,padding:"6px 10px",borderRadius:8,background:isMe?"#D1FAE5":"white",border:"1px solid "+(isMe?"#A7F3D0":"#E2E8F0")}}>
+            <div style={{width:28,height:28,borderRadius:8,background:isMe?"#059669":NAVY,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:800,color:"white",flexShrink:0}}>{nama.slice(0,1)}</div>
+            <div style={{flex:1}}>
+              <div style={{fontSize:12,fontWeight:isMe?800:600,color:isMe?"#065F46":"#1E293B"}}>{nama}{isMe?" — Anda":""}</div>
+              <div style={{fontSize:10,color:"#94A3B8",textTransform:"capitalize"}}>{roleLabel}</div>
+            </div>
+          </div>;
+        })}
+        {ev.catatanPenugasan&&<div style={{marginTop:5,padding:"6px 10px",background:"#EEF2FF",borderRadius:8,fontSize:11,color:"#4338CA",fontStyle:"italic"}}>💬 Catatan: {ev.catatanPenugasan}</div>}
+      </div>
+    </div>}
+    {/* ADMIN RK ACTIONS — hierarki: Primary → Secondary → Destructive */}
+    {role==="admin_rk"&&<div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:8}}>
+      {/* ── DRAFT: Kirim (primary) + Edit (secondary) ── */}
+      {ev.alur==="draft"&&<>
+        <button onClick={()=>{upd(ev.id,{alur:"menunggu_kasubbag"});showT("Dikirim ke Kasubbag");
+          loadUsers().filter(u=>(u.role==="kasubbag_protokol")&&u.noWA).forEach(u=>sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"submit",submittedBy:user?.nama}));sendPush({targetRole:"kasubbag_protokol",title:"📋 Jadwal Baru Masuk",body:ev.namaAcara+" — "+ev.jam+" WITA",url:"/",tag:"submit-"+ev.id});sendPush({targetRole:"kasubbag_komdokpim",title:"📋 Jadwal Baru Masuk",body:ev.namaAcara+" — "+ev.jam+" WITA",url:"/",tag:"submit-"+ev.id});}}
+          style={{width:"100%",padding:"12px",borderRadius:10,border:"none",background:NAVY,color:"white",cursor:"pointer",fontSize:13,fontWeight:800,boxShadow:"0 4px 12px rgba(10,22,40,0.25)"}}>
+          📤 Kirim ke Kasubbag
+        </button>
+        <button onClick={()=>{setForm({tanggal:ev.tanggal,jam:ev.jam,namaAcara:ev.namaAcara,penyelenggara:ev.penyelenggara,kontak:ev.kontak||"",buktiUndangan:ev.buktiUndangan||"",pakaian:ev.pakaian,jenisKegiatan:ev.jenisKegiatan,catatan:ev.catatan||"",lokasi:ev.lokasi||"",untukPimpinan:ev.untukPimpinan,undanganFile:ev.undanganFile||null,undanganNama:ev.undanganNama||""});setEditId(ev.id);setTab("form");}}
+          style={{width:"100%",padding:"10px",borderRadius:10,border:"1.5px solid "+NAVY,background:"white",color:NAVY,cursor:"pointer",fontSize:13,fontWeight:700}}>
+          ✏️ Edit Jadwal
+        </button>
+      </>}
+      {/* ── DITOLAK: wajib edit dulu, baru bisa kirim ulang ── */}
+      {ev.alur==="ditolak"&&<>
+        {/* Banner alasan penolakan */}
+        <div style={{background:"#FEF2F2",border:"1.5px solid #FECACA",borderRadius:10,padding:"12px 14px",display:"flex",gap:10,alignItems:"flex-start",marginBottom:2}}>
+          <span style={{fontSize:18,flexShrink:0}}>❌</span>
+          <div>
+            <div style={{fontSize:12,fontWeight:800,color:"#991B1B",marginBottom:3}}>Dikembalikan oleh Kabag</div>
+            <div style={{fontSize:12,color:"#7F1D1D",lineHeight:1.5}}>{ev.catatanTolak||"Perlu diperbaiki"}</div>
+          </div>
+        </div>
+        {/* Pilihan tindakan */}
+        <div style={{background:"#FAFAFA",borderRadius:10,border:"1px solid #E2E8F0",overflow:"hidden"}}>
+          <div style={{padding:"10px 14px",fontSize:11,color:"#64748B",fontWeight:600,borderBottom:"1px solid #E2E8F0",background:"white"}}>
+            Pilih tindakan untuk jadwal ini:
+          </div>
+          {/* Opsi 1: Edit & Kirim Ulang */}
+          <button onClick={()=>{setForm({tanggal:ev.tanggal,jam:ev.jam,namaAcara:ev.namaAcara,penyelenggara:ev.penyelenggara,kontak:ev.kontak||"",buktiUndangan:ev.buktiUndangan||"",pakaian:ev.pakaian,jenisKegiatan:ev.jenisKegiatan,catatan:ev.catatan||"",lokasi:ev.lokasi||"",untukPimpinan:ev.untukPimpinan,besertaIstriWK:ev.besertaIstriWK||false,besertaIstriWWK:ev.besertaIstriWWK||false,undanganFile:ev.undanganFile||null,undanganNama:ev.undanganNama||""});setEditId(ev.id);setTab("form");}}
+            style={{width:"100%",padding:"14px",border:"none",borderBottom:"1px solid #E2E8F0",background:"white",cursor:"pointer",display:"flex",alignItems:"center",gap:12,textAlign:"left"}}>
+            <span style={{width:36,height:36,borderRadius:9,background:"#EFF6FF",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>✏️</span>
+            <div>
+              <div style={{fontSize:13,fontWeight:700,color:"#1D4ED8"}}>Edit & Kirim Ulang</div>
+              <div style={{fontSize:11,color:"#64748B",marginTop:1}}>Perbaiki jadwal lalu kirim kembali ke Kasubbag</div>
+            </div>
+            <span style={{marginLeft:"auto",fontSize:16,color:"#94A3B8"}}>›</span>
+          </button>
+          {/* Opsi 2: Hapus */}
+          <button onClick={()=>askConfirm("Hapus Jadwal?","Jadwal '"+ev.namaAcara+"' akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.",()=>{deleteAndSync(ev.id);showT("Jadwal dihapus","warn");},"Hapus","#DC2626")}
+            style={{width:"100%",padding:"14px",border:"none",background:"white",cursor:"pointer",display:"flex",alignItems:"center",gap:12,textAlign:"left"}}>
+            <span style={{width:36,height:36,borderRadius:9,background:"#FEF2F2",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>🗑️</span>
+            <div>
+              <div style={{fontSize:13,fontWeight:700,color:"#DC2626"}}>Hapus Jadwal</div>
+              <div style={{fontSize:11,color:"#64748B",marginTop:1}}>Hapus permanen, tidak bisa dikembalikan</div>
+            </div>
+            <span style={{marginLeft:"auto",fontSize:16,color:"#94A3B8"}}>›</span>
+          </button>
+        </div>
+      </>}
+      {/* ── DISETUJUI: Ajukan Pembatalan (destructive, terpisah) ── */}
+      {ev.alur==="disetujui"&&!ev.alurHapus&&ev.submittedBy===user?.username&&<>
+        <div style={{height:1,background:"#E2E8F0",margin:"4px 0"}}/>
+        <button onClick={()=>{upd(ev.id,{alurHapus:"menunggu_kasubbag"});showT("Permintaan pembatalan dikirim","warn");}}
+          style={{width:"100%",padding:"9px",borderRadius:9,border:"1.5px solid #FECACA",background:"#FFF5F5",color:"#991B1B",cursor:"pointer",fontSize:12,fontWeight:700}}>
+          Ajukan Pembatalan Jadwal
+        </button>
+      </>}
+    </div>}
+
+    {/* KASUBBAG — Primary: Verifikasi | Destructive: Tolak (terpisah visual) */}
+    {(role==="kasubbag_protokol"||role==="kasubbag_komdokpim")&&<div style={{display:"flex",flexDirection:"column",gap:8}}>
+      {ev.alur==="menunggu_kasubbag"&&!ev.alurHapus&&<>
+        {/* PRIMARY */}
+        <button onClick={()=>{upd(ev.id,{alur:"menunggu_kabag"});showT("Diteruskan ke Kabag");
+          loadUsers().filter(u=>u.role==="kabag"&&u.noWA).forEach(u=>sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"kasubbag_approve"}));sendPush({targetRole:"kabag",title:"✅ Menunggu Persetujuan Anda",body:ev.namaAcara+" — "+ev.jam+" WITA",url:"/",tag:"approve-"+ev.id});}}
+          style={{width:"100%",padding:"13px",borderRadius:10,border:"none",background:"#10B981",color:"white",cursor:"pointer",fontSize:13,fontWeight:800,boxShadow:"0 4px 12px rgba(16,185,129,0.3)"}}>
+          ✅ Verifikasi & Teruskan ke Kabag
+        </button>
+        {/* DESTRUCTIVE — dipisah garis */}
+        <div style={{display:"flex",alignItems:"center",gap:8,margin:"2px 0"}}>
+          <div style={{flex:1,height:1,background:"#E2E8F0"}}/>
+          <span style={{fontSize:10,color:"#94A3B8",fontWeight:600}}>atau tolak</span>
+          <div style={{flex:1,height:1,background:"#E2E8F0"}}/>
+        </div>
+        <div style={{borderRadius:10,border:"1.5px solid #FECACA",overflow:"hidden"}}>
+          <textarea placeholder="Tulis alasan penolakan (wajib)..." value={rejectTexts[ev.id]||""} onChange={e=>setRT(p=>({...p,[ev.id]:e.target.value}))} rows={2} style={{width:"100%",padding:"9px 11px",border:"none",resize:"none",color:"#334155",background:"#FFF5F5",fontSize:13,boxSizing:"border-box"}}/>
+          <button onClick={()=>{if(!(rejectTexts[ev.id]||"").trim()){showT("Tulis alasan penolakan dulu","warn");return;}askConfirm("Tolak & Kembalikan ke Admin RK?","Jadwal '"+ev.namaAcara+"' akan dikembalikan dengan catatan penolakan.",()=>{upd(ev.id,{alur:"ditolak",catatanTolak:rejectTexts[ev.id]||"Perlu perbaikan",_requiresEdit:true});showT("Dikembalikan ke Admin RK","warn");{const _ur=loadUsers().find(u=>u.username===ev.submittedBy);if(_ur?.noWA)sendWA({to:_ur.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,penyelenggara:ev.penyelenggara,event:"rejected",catatanTolak:rejectTexts[ev.id]||"",submittedBy:getNamaByUsername(ev.submittedBy)});}sendPush({targetRole:"admin_rk",title:"❌ Jadwal Dikembalikan",body:ev.namaAcara+": "+(rejectTexts[ev.id]||"Perlu diperbaiki"),url:"/",tag:"rejected-"+ev.id});},"Tolak","#991B1B");}}
+            style={{width:"100%",padding:"10px",border:"none",background:"#FEE2E2",color:"#991B1B",cursor:"pointer",fontSize:12,fontWeight:700}}>
+            ✕ Tolak & Kembalikan ke Admin RK
+          </button>
+        </div>
+      </>}
+      {ev.alurHapus==="menunggu_kasubbag"&&<><div style={{background:"#fff1f2",borderRadius:9,padding:"9px 12px",fontSize:13,color:"#e11d48"}}>Staf mengajukan pembatalan jadwal ini</div>
+        <div style={{display:"flex",gap:8}}><button onClick={()=>{upd(ev.id,{alurHapus:"menunggu_kabag"});showT("Diteruskan ke Kabag","warn");}} style={{flex:1,padding:"10px",borderRadius:10,border:"none",background:"#e11d48",color:"white",cursor:"pointer",fontSize:12,fontWeight:700}}>Setuju ke Kabag</button><button onClick={()=>{upd(ev.id,{alurHapus:null});showT("Ditolak");}} style={{flex:1,padding:"10px",borderRadius:10,border:"1.5px solid #94a3b8",background:"white",color:"#334155",cursor:"pointer",fontSize:12,fontWeight:700}}>Tolak Hapus</button></div></>}
+      {ev.alur==="disetujui"&&<button onClick={()=>setPenugasanEv(ev)} style={{width:"100%",padding:"10px",borderRadius:10,border:"1.5px dashed #cbd5e1",background:"#f8fafc",color:"#475569",cursor:"pointer",fontSize:12,fontWeight:700}}>
+        {(!ev.personil||ev.personil.length===0)?"👥 Tugaskan Personil":"👥 Edit Penugasan ("+(ev.personil?.length||0)+" personil)"}
+      </button>}
+    </div>}
+
+    {/* KABAG */}
+    {role==="kabag"&&<div style={{display:"flex",flexDirection:"column",gap:7}}>
+      {ev.alur==="menunggu_kabag"&&!ev.alurHapus&&<>
+        {/* PRIMARY */}
+        <button onClick={()=>{upd(ev.id,{alur:"disetujui"});showT("Jadwal disetujui & dipublikasi");
+          {const _u=loadUsers().find(u=>u.username===ev.submittedBy);if(_u?.noWA)sendWA({to:_u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"approved",submittedBy:getNamaByUsername(ev.submittedBy)});}sendPush({targetRole:"admin_rk",title:"✅ Jadwal Disetujui",body:ev.namaAcara+" sudah dipublikasi",url:"/",tag:"approved-"+ev.id});loadUsers().filter(u=>(u.role==="ajudan_walikota"||u.role==="ajudan_wakilwalikota")&&u.noWA).forEach(u=>{const isWK=u.role==="ajudan_walikota"&&(ev.untukPimpinan||[]).includes("walikota");const isWWK=u.role==="ajudan_wakilwalikota"&&((ev.untukPimpinan||[]).includes("wakilwalikota")||ev.delegasiKeWWK);if(isWK||isWWK)sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"approved"});});}}
+          style={{width:"100%",padding:"13px",borderRadius:10,border:"none",background:NAVY,color:"white",cursor:"pointer",fontSize:14,fontWeight:800,boxShadow:"0 4px 14px rgba(10,22,40,0.3)"}}>
+          ✅ Setujui & Publikasi
+        </button>
+        {/* DESTRUCTIVE — dipisah garis */}
+        <div style={{display:"flex",alignItems:"center",gap:8,margin:"2px 0"}}>
+          <div style={{flex:1,height:1,background:"#E2E8F0"}}/>
+          <span style={{fontSize:10,color:"#94A3B8",fontWeight:600}}>atau tolak</span>
+          <div style={{flex:1,height:1,background:"#E2E8F0"}}/>
+        </div>
+        <div style={{borderRadius:10,border:"1.5px solid #FECACA",overflow:"hidden"}}>
+          <textarea placeholder="Tulis alasan penolakan (wajib)..." value={rejectTexts[ev.id]||""} onChange={e=>setRT(p=>({...p,[ev.id]:e.target.value}))} rows={2} style={{width:"100%",padding:"9px 11px",border:"none",resize:"none",color:"#334155",background:"#FFF5F5",fontSize:13,boxSizing:"border-box"}}/>
+          <button onClick={()=>{if(!(rejectTexts[ev.id]||"").trim()){showT("Tulis alasan penolakan dulu","warn");return;}askConfirm("Tolak Jadwal?","Jadwal '"+ev.namaAcara+"' akan dikembalikan ke Admin RK.",()=>{upd(ev.id,{alur:"ditolak",catatanTolak:rejectTexts[ev.id]||"Perlu perbaikan",_requiresEdit:true});showT("Ditolak","warn");{const _ur=loadUsers().find(u=>u.username===ev.submittedBy);if(_ur?.noWA)sendWA({to:_ur.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,penyelenggara:ev.penyelenggara,event:"rejected",catatanTolak:rejectTexts[ev.id]||"",submittedBy:getNamaByUsername(ev.submittedBy)});}sendPush({targetRole:"admin_rk",title:"❌ Jadwal Ditolak Kabag",body:ev.namaAcara+": "+(rejectTexts[ev.id]||"Perlu diperbaiki"),url:"/",tag:"rejected-"+ev.id});},"Tolak","#991B1B");}}
+            style={{width:"100%",padding:"10px",border:"none",background:"#FEE2E2",color:"#991B1B",cursor:"pointer",fontSize:12,fontWeight:700}}>
+            ✕ Tolak & Kembalikan ke Admin RK
+          </button>
+        </div>
+      </>}
+      {ev.alurHapus==="menunggu_kabag"&&<><div style={{background:"#fff1f2",borderRadius:9,padding:"9px 12px",fontSize:13,color:"#e11d48"}}>Permintaan penghapusan (sudah disetujui Kasubbag)</div>
+        <div style={{display:"flex",gap:8}}><button onClick={()=>askConfirm("Hapus Jadwal Permanen?","Tindakan ini tidak dapat dibatalkan. Jadwal '"+ev.namaAcara+"' akan dihapus selamanya.",()=>{deleteAndSync(ev.id);setExp(null);showT("Jadwal dihapus");},"Hapus Permanen")} style={{flex:1,padding:"10px",borderRadius:10,border:"none",background:"#e11d48",color:"white",cursor:"pointer",fontSize:12,fontWeight:700}}>Hapus Permanen</button><button onClick={()=>{upd(ev.id,{alurHapus:null});showT("Ditolak");}} style={{flex:1,padding:"10px",borderRadius:10,border:"1.5px solid #94a3b8",background:"white",color:"#334155",cursor:"pointer",fontSize:12,fontWeight:700}}>Tolak Hapus</button></div></>}
+    </div>}
+
+    {/* TIMKOM / KASUBBAG_KOMINFO PENUGASAN */}
+    {(role==="timkom"||role==="kasubbag_komdokpim")&&ev.alur==="disetujui"&&<div style={{marginBottom:8}}>
+      <button onClick={()=>setPenugasanEv(ev)} style={{width:"100%",padding:"10px",borderRadius:10,border:"1.5px dashed #7dd3fc",background:"#f0f9ff",color:"#0369a1",cursor:"pointer",fontSize:12,fontWeight:700}}>
+        {(!ev.personil||ev.personil.length===0)?"👥 Tugaskan Personil":"👥 Edit Penugasan ("+(ev.personil?.length||0)+" personil)"}
+      </button>
+    </div>}
+
+    {/* WALI KOTA */}
+    {(role==="walikota"||(role==="ajudan_walikota"&&ev.untukPimpinan.includes("walikota")))&&ev.alur==="disetujui"&&ev.untukPimpinan.includes("walikota")&&<WKKehadiran ev={ev} upd={upd} showT={showT} setDelegTarget={setDelegTarget} role={role}/>}
+
+    {/* WAKIL WALI KOTA — dan ajudan bisa input kehadiran WWK */}
+    {(role==="wakilwalikota"||(role==="ajudan_wakilwalikota"&&(ev.untukPimpinan.includes("wakilwalikota")||ev.delegasiKeWWK)))&&ev.alur==="disetujui"&&(ev.untukPimpinan.includes("wakilwalikota")||ev.delegasiKeWWK)&&<WWKKehadiran ev={ev} upd={upd} showT={showT} setDelegTarget={setDelegTarget} role={role}/>}
+  </div>;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FITUR 3: TIMELINE VISUAL
+// ═══════════════════════════════════════════════════════════════
+function TimelineView({evList}){
+  const {expandedId,setExp,getHari,todayStr}=React.useContext(AppCtx);
+  const [showPast,setShowPast]=React.useState(false);
+  const now=new Date();
+  const nowStr=now.toISOString().slice(0,16).replace("T"," ");
+  const toMin=t=>{const[h,m]=(t||"00:00").split(":");return parseInt(h)*60+parseInt(m);};
+  const nowMin=now.getHours()*60+now.getMinutes();
+
+  // Pisah upcoming (termasuk sekarang) dan past, sort masing-masing
+  const upcoming=[...evList.filter(e=>(e.tanggal+" "+e.jam)>=nowStr)]
+    .sort((a,b)=>(a.tanggal+a.jam).localeCompare(b.tanggal+b.jam));
+  const past=[...evList.filter(e=>(e.tanggal+" "+e.jam)<nowStr)]
+    .sort((a,b)=>(b.tanggal+b.jam).localeCompare(a.tanggal+a.jam)); // terbaru di atas
+
+  const fmtTgl=t=>{
+    const d=new Date(t+"T00:00:00");
+    const hr=getHari(t);
+    const day=d.getDate();
+    const bulan=["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"][d.getMonth()];
+    const thn=d.getFullYear();
+    return hr.slice(0,3)+", "+day+" "+bulan+" "+thn;
+  };
+
+  const renderCard=(ev,i,arr)=>{
+    const evMin=toMin(ev.jam);
+    const isPast=(ev.tanggal+" "+ev.jam)<nowStr;
+    const isNow=ev.tanggal===todayStr()&&Math.abs(evMin-nowMin)<60;
+    const isFuture=!isPast&&!isNow;
+    const isToday=ev.tanggal===todayStr();
+    // Tampilkan pemisah tanggal jika berbeda dari item sebelumnya
+    const prevTgl=i>0?arr[i-1].tanggal:null;
+    const showDateSep=ev.tanggal!==prevTgl;
+
+    return <React.Fragment key={ev.id}>
+      {/* Pemisah tanggal */}
+      {showDateSep&&<div style={{display:"flex",alignItems:"center",gap:8,margin:"10px 0 8px",marginLeft:-4}}>
+        <div style={{width:20,height:20,borderRadius:"50%",background:isToday?"linear-gradient(135deg,#0A1628,#1E3254)":"#E8EDF4",
+          border:"2px solid "+(isToday?"#C9A84C":"#CBD5E1"),display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+          <div style={{width:6,height:6,borderRadius:"50%",background:isToday?"#C9A84C":"#94A3B8"}}/>
+        </div>
+        <span style={{fontSize:11,fontWeight:800,color:isToday?"#0A1628":"#64748B",letterSpacing:0.3,
+          background:isToday?"linear-gradient(90deg,#FEF9EC,transparent)":isPast?"transparent":"#F8FAFF",
+          padding:isToday?"3px 8px":"0",borderRadius:6,
+          borderLeft:isToday?"3px solid #C9A84C":"none",paddingLeft:isToday?"8px":"0"}}>
+          {isToday?"● HARI INI — "+fmtTgl(ev.tanggal):fmtTgl(ev.tanggal)}
+        </span>
+      </div>}
+      <div style={{position:"relative",marginBottom:i<arr.length-1?6:0,animation:"upSpring 0.35s ease both",animationDelay:(i*0.04)+"s"}}>
+        {/* Dot */}
+        <div style={{position:"absolute",left:-22,top:16,width:12,height:12,borderRadius:"50%",
+          background:isNow?"linear-gradient(135deg,#C9A84C,#E8C86A)":isPast?"#E2E8F0":NAVY,
+          border:"2px solid white",
+          boxShadow:isNow?"0 0 0 4px rgba(201,168,76,0.2)":"0 0 0 3px #F0F4FA",
+          zIndex:2}}/>
+        {isNow&&<div style={{position:"absolute",left:-46,top:12,fontSize:8,fontWeight:800,color:"#C9A84C",
+          letterSpacing:0.5,transform:"rotate(-90deg)",transformOrigin:"center"}}>NOW</div>}
+        <div onClick={()=>setExp(expandedId===ev.id?null:ev.id)} style={{
+          background:"white",borderRadius:14,padding:"11px 14px",cursor:"pointer",
+          border:"1.5px solid "+(isNow?"#C9A84C":isPast?"#F1F5F9":"#E8EDF4"),
+          boxShadow:isNow?"0 4px 16px rgba(201,168,76,0.15)":"0 1px 4px rgba(0,0,0,0.04)",
+          transition:"all 0.15s ease"}}>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            {/* Jam box */}
+            <div style={{background:isNow?"linear-gradient(135deg,#0A1628,#1E3254)":isPast?"#F8FAFC":"#F0F4FF",
+              borderRadius:9,padding:"5px 8px",textAlign:"center",minWidth:44,flexShrink:0}}>
+              <div style={{fontSize:13,fontWeight:900,color:isNow?"#C9A84C":isPast?"#94A3B8":"#0A1628",lineHeight:1}}>{ev.jam}</div>
+              <div style={{fontSize:8,color:isNow?"rgba(201,168,76,0.7)":isPast?"#CBD5E1":"#94A3B8",fontWeight:700,marginTop:1}}>WITA</div>
+            </div>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontSize:13,fontWeight:700,color:isPast?"#94A3B8":"#0F172A",lineHeight:1.3,
+                overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ev.namaAcara}</div>
+              <div style={{fontSize:11,color:isPast?"#CBD5E1":"#64748B",marginTop:2,
+                overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                {ev.penyelenggara}{ev.lokasi?" · "+ev.lokasi:""}
+              </div>
+            </div>
+            {isNow&&<span style={{fontSize:9,background:"linear-gradient(90deg,#0A1628,#1B4080)",color:"#C9A84C",
+              borderRadius:4,padding:"2px 7px",fontWeight:800,flexShrink:0,animation:"pulse 2s ease infinite"}}>Berlangsung</span>}
+            {isFuture&&<span style={{fontSize:11,color:"#CBD5E1",flexShrink:0}}>▼</span>}
+          </div>
+        </div>
+        {expandedId===ev.id&&<div style={{marginTop:4}}><ExpandedDetail ev={ev} hariEv={getHari(ev.tanggal)}/></div>}
+      </div>
+    </React.Fragment>;
+  };
+
+  return <div style={{position:"relative",paddingLeft:28}}>
+    {/* Garis vertikal */}
+    <div style={{position:"absolute",left:11,top:0,bottom:0,width:2,background:"linear-gradient(to bottom,#0A1628 0%,#E2E8F0 40%,#F1F5F9 100%)",borderRadius:2}}/>
+
+    {/* Empty state */}
+    {upcoming.length===0&&<div style={{textAlign:"center",padding:"40px 20px",color:"#94A3B8"}}>
+      <div style={{fontSize:36,marginBottom:8}}>✅</div>
+      <div style={{fontSize:13,fontWeight:600,color:"#475569"}}>Tidak ada agenda mendatang</div>
+    </div>}
+
+    {/* Agenda mendatang */}
+    {upcoming.map((ev,i)=>renderCard(ev,i,upcoming))}
+
+    {/* Tombol lihat agenda lampau */}
+    {past.length>0&&<div style={{marginTop:16,marginBottom:4}}>
+      <button onClick={()=>setShowPast(p=>!p)} style={{
+        display:"flex",alignItems:"center",gap:8,width:"100%",padding:"10px 14px",
+        borderRadius:12,border:"1.5px dashed #CBD5E1",background:"#F8FAFC",
+        color:"#64748B",cursor:"pointer",fontSize:12,fontWeight:700,
+        transition:"all 0.15s"}}>
+        <div style={{width:12,height:12,borderRadius:"50%",background:"#CBD5E1",flexShrink:0}}/>
+        <span style={{flex:1,textAlign:"left"}}>
+          {showPast?"▲ Sembunyikan":"▼ Lihat"} {past.length} agenda yang sudah berlalu
+        </span>
+        <span style={{fontSize:10,background:"#E2E8F0",borderRadius:20,padding:"2px 8px",color:"#94A3B8"}}>
+          {past.length}
+        </span>
+      </button>
+      {showPast&&<div style={{marginTop:8,opacity:0.8}}>
+        {past.map((ev,i)=>renderCard(ev,i,past))}
+      </div>}
+    </div>}
+  </div>;
+}
+
+export default function App(){
+  const width=useWindowWidth();const isMobile=width<768;
+  const[user,setUser]=useState(null);const role=user?.role||null;
+  const[loginForm,setLF]=useState({username:"",password:""});const[loginErr,setLE]=useState("");const[showPass,setShowPass]=useState(false);
+  const[bioLoading,setBioLoading]=useState(false);const[bioErr,setBioErr]=useState("");
+  const[events,setEvents]=useState([]);const[dbReady,setDbReady]=useState(false);const[dbError,setDbError]=useState("");
+  const[tab,setTab]=useState("jadwal");const[form,setForm]=useState(emptyForm);const[editId,setEditId]=useState(null);
+  const[toast,setToast]=useState(null);const[confirmDlg,setConfirmDlg]=useState(null);const[showOnboarding,setShowOnboarding]=useState(false);const[filterDate,setFDate]=useState("");const[filterFrom,setFilterFrom]=useState("");const[filterTo,setFilterTo]=useState("");const[showRangeFilter,setShowRangeFilter]=useState(false);const[searchQ,setSearchQ]=useState("");const[showSearch,setShowSearch]=useState(false);
+  const[showAI,setShowAI]=useState(false);const[showReport,setShowReport]=useState(false);const[showSummary,setShowSummary]=useState(false);const[showAdmin,setShowAdmin]=useState(false);const[showProfile,setShowProfile]=useState(false);const[showLaporan,setShowLaporan]=useState(false);const[showBroadcast,setShowBroadcast]=useState(false);
+  const[showForgot,setShowForgot]=useState(false);const[showRegister,setShowRegister]=useState(false);const[pendingRegs,setPendingRegs]=useState(()=>loadPendingRegs());
+  const[loginLoading,setLoginLoading]=useState(false);const[loginPhase,setLoginPhase]=useState("");
+  const[delegTarget,setDelegTarget]= useState(null);const[expandedId,setExp]=useState(null);const[rejectTexts,setRT]=useState({});const[catatanInput,setCatatanInput]=useState({});const[penugasanEv,setPenugasanEv]=useState(null);const[notifPenugasan,setNotifPenugasan]=useState([]);const[evaluasiEv,setEvaluasiEv]=useState(null);const[showMobMenu,setMobMenu]=useState(false);const[showNotifCenter,setShowNotifCenter]=useState(false);
+  const undanganRef=useRef({});
+  // ── UX & Security States ──
+  const[sessionWarn,setSessionWarn]=useState(false);
+  const[isOffline,setIsOffline]=useState(!navigator.onLine);
+  const[showScrollTop,setShowScrollTop]=useState(false);
+  const[lockSeconds,setLockSeconds]=useState(0);
+  const[pullRefreshing,setPullRefreshing]=useState(false);
+  const[morningDismissed,setMorningDismissed]=useState(false);
+  const[viewMode,setViewMode]=useState("cards");
+
+  // Session restore dilakukan di boot() useEffect di atas
+
+  const doLogin=async()=>{
+    setLE("");
+    const lockLeft=isLoginLocked();
+    if(lockLeft>0){setLE("Terlalu banyak percobaan. Silakan tunggu "+Math.ceil(lockLeft/60)+" menit lagi.");setLockSeconds(lockLeft);return;}
+    if(!loginForm.username.trim()||!loginForm.password){setLE("Silakan isi username dan password Anda.");return;}
+    const users=loadUsers();
+    const candidate=users.find(u=>u.username===loginForm.username.toLowerCase().trim());
+    if(!candidate){recordLoginAttempt(false);setLE("Username atau password tidak sesuai. Silakan coba lagi.");return;}
+    const ok=await verifyPassword(loginForm.password,candidate.password);
+    if(!ok){recordLoginAttempt(false);const att=getLoginAttempts();const remain=LOGIN_MAX_ATTEMPTS-att.count;if(remain>0&&remain<=2)setLE("Password tidak sesuai. "+remain+" percobaan tersisa sebelum akun dikunci sementara.");else setLE("Username atau password tidak sesuai. Silakan coba lagi.");return;}
+    recordLoginAttempt(true);touchActivity();
+    setLoginLoading(true);
+    setLoginPhase("Memverifikasi identitas...");
+    await new Promise(r=>setTimeout(r,600));
+    setLoginPhase("Memuat data jadwal...");
+    await new Promise(r=>setTimeout(r,700));
+    setLoginPhase("Menyiapkan dashboard...");
+    await new Promise(r=>setTimeout(r,500));
+    setLoginLoading(false);
+    setUser(candidate);setTab(["ajudan_walikota","ajudan_wakilwalikota"].includes(candidate.role)?"ajudan":["kabag","kasubbag_protokol","kasubbag_komdokpim"].includes(candidate.role)?"dashboard":candidate.role==="mitra_kerja"?"mitra":"jadwal");
+    try{const seen=JSON.parse(localStorage.getItem("jp_seen_onboarding")||"{}");if(!seen[candidate.username]){setShowOnboarding(true);}}catch{}
+    try{localStorage.setItem("jp_session",JSON.stringify({username:candidate.username}));}catch{}
+    registerPush(candidate.username,candidate.role);
+  };
+  const doBioLogin=async()=>{
+    const un=loginForm.username.toLowerCase().trim();if(!un){setLE("Silakan isi username terlebih dahulu.");return;}
+    const u=loadUsers().find(u=>u.username===un);if(!u){setLE("Username tidak ditemukan.");return;}
+    if(!bioIsRegistered(un)){setBioErr("Biometrik belum didaftarkan untuk akun ini. Login dengan password terlebih dahulu, lalu daftarkan biometrik di Pengaturan Akun.");return;}
+    setBioLoading(true);setBioErr("");
+    try{
+      await bioAuthenticate(un);touchActivity();
+      setLoginLoading(true);setLoginPhase("Memverifikasi biometrik...");
+      await new Promise(r=>setTimeout(r,600));
+      setLoginPhase("Memuat data jadwal...");
+      await new Promise(r=>setTimeout(r,700));
+      setLoginPhase("Menyiapkan dashboard...");
+      await new Promise(r=>setTimeout(r,500));
+      setLoginLoading(false);
+      setUser(u);setTab("jadwal");try{localStorage.setItem("jp_session",JSON.stringify({username:un}));}catch{}registerPush(un,u.role);}
+    catch(e){setBioErr("Verifikasi biometrik gagal. Silakan coba lagi atau gunakan password.");}
+    setBioLoading(false);
+  };
+  const doLogout=(reason)=>{setUser(null);setSessionWarn(false);try{localStorage.removeItem("jp_session");}catch{}if(reason==="timeout")setLE("Sesi Anda berakhir karena tidak aktif selama 12 jam. Silakan login kembali.");};
+
+  useEffect(()=>{
+    // Load users DAN events bersamaan dari Supabase
+    const boot=async()=>{
+      // 1. Init users (Supabase → localStorage → default)
+      await initUsers().catch(e=>console.warn("initUsers error:",e));
+      // 2. Restore session setelah users tersedia
+      try{
+        const s=localStorage.getItem("jp_session");
+        if(s){const d=JSON.parse(s);const u=loadUsers().find(u=>u.username===d.username);if(u)setUser(u);}
+      }catch{}
+      // 3. Load events
+      if(SUPA_OK){
+        try{const rows=await dbLoadAll();setEvents(rows&&rows.length>0?rows:seed);}
+        catch(err){setDbError(err.message);setEvents(seed);}
+      } else {setEvents(seed);}
+      setDbReady(true);
+    };
+    boot();
+  },[]);
+
+  useEffect(()=>{setSearchQ("");setShowSearch(false);},[tab]);
+
+  // ── UX: Keyboard Shortcuts ──
+  useEffect(()=>{
+    const onKey=e=>{
+      // Escape → tutup modal/drawer teratas
+      if(e.key==="Escape"){
+        if(confirmDlg){setConfirmDlg(null);return;}
+        if(showMobMenu){setMobMenu(false);return;}
+        if(showProfile){setShowProfile(false);return;}
+        if(showAdmin){setShowAdmin(false);return;}
+        if(showReport){setShowReport(false);return;}
+        if(showSummary){setShowSummary(false);return;}
+        if(showBroadcast){setShowBroadcast(false);return;}
+        if(showLaporan){setShowLaporan(false);return;}
+        if(showAI){setShowAI(false);return;}
+        if(showForgot){setShowForgot(false);return;}
+        if(showRegister){setShowRegister(false);return;}
+        if(penugasanEv){setPenugasanEv(null);return;}
+        if(evaluasiEv){setEvaluasiEv(null);return;}
+        if(showNotifCenter){setShowNotifCenter(false);return;}
+        if(showSearch){setShowSearch(false);setSearchQ("");return;}
+      }
+      // Ctrl+K atau / → buka search (jika tidak sedang mengetik di input)
+      if((e.key==="k"&&(e.ctrlKey||e.metaKey))||(e.key==="/"&&!["INPUT","TEXTAREA","SELECT"].includes(document.activeElement?.tagName))){
+        e.preventDefault();setShowSearch(true);
+      }
+    };
+    window.addEventListener("keydown",onKey);
+    return()=>window.removeEventListener("keydown",onKey);
+  },[confirmDlg,showMobMenu,showProfile,showAdmin,showReport,showSummary,showBroadcast,showLaporan,showAI,showForgot,showRegister,penugasanEv,evaluasiEv,showNotifCenter,showSearch]);
+
+  // ── KEAMANAN: Session Timeout Watcher (12 jam) ──
+  useEffect(()=>{
+    if(!user)return;
+    const evts=["mousedown","mousemove","keydown","scroll","touchstart","click"];
+    const onActivity=()=>{touchActivity();setSessionWarn(false);};
+    evts.forEach(e=>window.addEventListener(e,onActivity,{passive:true}));
+    const checker=setInterval(()=>{
+      const idle=Date.now()-_lastActivity;
+      if(idle>SESSION_TIMEOUT_MS){doLogout("timeout");}
+      else if(idle>SESSION_TIMEOUT_MS-5*60*1000){setSessionWarn(true);}
+      else{setSessionWarn(false);}
+    },30000);
+    return()=>{evts.forEach(e=>window.removeEventListener(e,onActivity));clearInterval(checker);};
+  },[user]);
+
+  // ── UX: Online/Offline Detection ──
+  useEffect(()=>{
+    const goOn=()=>setIsOffline(false);const goOff=()=>setIsOffline(true);
+    window.addEventListener("online",goOn);window.addEventListener("offline",goOff);
+    return()=>{window.removeEventListener("online",goOn);window.removeEventListener("offline",goOff);};
+  },[]);
+
+  // ── UX: Scroll-to-top visibility ──
+  useEffect(()=>{
+    const onScroll=()=>setShowScrollTop(window.scrollY>400);
+    window.addEventListener("scroll",onScroll,{passive:true});
+    return()=>window.removeEventListener("scroll",onScroll);
+  },[]);
+
+  // ── KEAMANAN: Lockout countdown timer ──
+  useEffect(()=>{
+    if(lockSeconds<=0)return;
+    const t=setInterval(()=>{const left=isLoginLocked();setLockSeconds(left);if(left<=0){clearInterval(t);setLE("");}},1000);
+    return()=>clearInterval(t);
+  },[lockSeconds]);
+
+  // ── UX: Pull-to-refresh (mobile) ──
+  useEffect(()=>{
+    if(!user||!isMobile)return;
+    let startY=0,pulling=false;
+    const onTS=e=>{if(window.scrollY<=0){startY=e.touches[0].clientY;pulling=true;}};
+    const onTM=e=>{
+      if(!pulling)return;
+      const diff=e.touches[0].clientY-startY;
+      if(diff>90&&!pullRefreshing){
+        pulling=false;setPullRefreshing(true);
+        (async()=>{
+          try{if(SUPA_OK){const rows=await dbLoadAll();if(rows&&rows.length>0)setEvents(rows);}}catch{}
+          setTimeout(()=>{setPullRefreshing(false);showT("Data diperbarui ✓");},600);
+        })();
+      }
+    };
+    const onTE=()=>{pulling=false;};
+    window.addEventListener("touchstart",onTS,{passive:true});
+    window.addEventListener("touchmove",onTM,{passive:true});
+    window.addEventListener("touchend",onTE,{passive:true});
+    return()=>{window.removeEventListener("touchstart",onTS);window.removeEventListener("touchmove",onTM);window.removeEventListener("touchend",onTE);};
+  },[user,isMobile,pullRefreshing]);
+
+  // ── Realtime: poll Supabase setiap 10 detik ──
+  React.useEffect(()=>{
+    if(!SUPA_OK||!user)return;
+    const poll=async()=>{
+      try{
+        const rows=await dbLoadAll();
+        if(rows&&rows.length>0){
+          setEvents(prev=>{
+            const prevStr=JSON.stringify(prev.map(e=>e.id+e.alur+(e.alurHapus||"")));
+            const newStr=JSON.stringify(rows.map(e=>e.id+e.alur+(e.alurHapus||"")));
+            return prevStr===newStr?prev:rows;
+          });
+        }
+      }catch{}
+    };
+    const interval=setInterval(poll,10000);
+    return ()=>clearInterval(interval);
+  },[user]);
+
+  const showT=(msg,type="ok")=>{if(type==="ok")haptic(40);else if(type==="warn")haptic(80);else if(type==="error")haptic([50,30,50]);setToast({msg,type});setTimeout(()=>setToast(null),type==="error"?5000:type==="warn"?4000:3000);};
+  _toast.fn=showT; // bridge for components without showT prop
+  const updAndSync=useCallback((id,patch)=>{setEvents(p=>{const next=p.map(e=>e.id===id?{...e,...patch}:e);const ev=next.find(e=>e.id===id);if(ev)dbUpsert(ev).catch(console.error);return next;});},[]);
+  const askConfirm=(title,body,onConfirm,confirmLabel="Ya, Lanjutkan",confirmColor="#DC2626")=>{
+    setConfirmDlg({title,body,onConfirm,confirmLabel,confirmColor});
+  };
+
+  const deleteAndSync=useCallback((id)=>{setEvents(p=>{const ev=p.find(e=>e.id===id);if(ev?.sambutanFile&&!ev.sambutanFile.startsWith("data:"))storageDelete("sambutan",ev.sambutanFile).catch(e=>console.warn("Sync:",e?.message||e));if(ev?.undanganFile&&!ev.undanganFile.startsWith("data:"))storageDelete("undangan",ev.undanganFile).catch(e=>console.warn("Sync:",e?.message||e));dbDelete(id).catch(console.error);return p.filter(e=>e.id!==id);});},[]);
+  const upd=(id,patch)=>updAndSync(id,patch);
+  const getNamaByUsername=un=>loadUsers().find(u=>u.username===un)?.nama||un;
+
+  // ── DOCX → PDF via /api/sambutan ──
+  const handleSambutanDocx=useCallback(async(evId,file,ev)=>{
+    // 1. Baca DOCX sebagai base64
+    const docxBase64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result.split(",")[1]);r.onerror=rej;r.readAsDataURL(file);});
+    // 2. Kirim ke /api/sambutan
+    const resp=await fetch("/api/sambutan",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({docxBase64,namaAcara:ev.namaAcara,tanggal:ev.tanggal,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi||""})
+    });
+    if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error||"Gagal konversi");}
+    const {pdfBase64,fileName}=await resp.json();
+    // 3. Upload ke Supabase storage
+    const pdfName=fileName+".pdf";
+    const docxName=fileName+".docx";
+    let pdfUrl=null,docxUrl=null;
+    if(SUPA_OK){
+      // Upload PDF
+      const pdfBlob=new Blob([Uint8Array.from(atob(pdfBase64),ch=>ch.charCodeAt(0))],{type:"application/pdf"});
+      const pdfFile=new File([pdfBlob],pdfName,{type:"application/pdf"});
+      pdfUrl=await storageUpload("sambutan",evId+"/pdf",pdfFile).catch(()=>null);
+      // Upload DOCX asli
+      const docxFile=new File([file],docxName,{type:"application/vnd.openxmlformats-officedocument.wordprocessingml.document"});
+      docxUrl=await storageUpload("sambutan",evId+"/docx",docxFile).catch(()=>null);
+    }
+    // Fallback ke data-URI jika storage belum aktif
+    if(!pdfUrl) pdfUrl="data:application/pdf;base64,"+pdfBase64;
+    if(!docxUrl) docxUrl=URL.createObjectURL(file);
+    updAndSync(evId,{sambutanFile:pdfUrl,sambutanNama:pdfName,sambutanDocx:docxUrl,sambutanDocxNama:docxName});
+    return {pdfBase64,pdfUrl};
+  },[updAndSync]);
+
+  const handleSambutanUpload=useCallback(async(evId,file,name)=>{
+    if(SUPA_OK){const url=await storageUpload("sambutan",evId,file);if(url){updAndSync(evId,{sambutanFile:url,sambutanNama:name});return;}}
+    const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=rej;r.readAsDataURL(file);});updAndSync(evId,{sambutanFile:b64,sambutanNama:name});
+  },[updAndSync]);
+
+  // ── Simpan penugasan personil ──
+  // ── Simpan evaluasi pasca kegiatan ──
+  const saveEvaluasi=(evId, entry)=>{
+    const ev=events.find(e=>e.id===evId);
+    const existing=ev?.evaluasi||{};
+    const updated={...existing,[user.username]:entry};
+    upd(evId,{evaluasi:updated});
+    showT("Evaluasi berhasil dikirim ✓");
+  };
+
+    const savePenugasan=async(evId,personilArr,catatanPenugasan)=>{
+    upd(evId,{personil:personilArr,catatanPenugasan});
+    setPenugasanEv(null);
+    showT("Penugasan disimpan untuk "+personilArr.length+" personil ✓");
+    // Kirim notifikasi push + WA ke masing-masing personil
+    const ev=events.find(e=>e.id===evId);
+    for(const un of personilArr){
+      const u=loadUsers().find(x=>x.username===un);
+      if(u){
+        await sendPush({targetRole:u.role,title:"📋 Anda Ditugaskan",body:ev?.namaAcara+" · "+ev?.tanggal+" "+ev?.jam+" WITA"+(catatanPenugasan?" · "+catatanPenugasan:""),url:"/",tag:"penugasan-"+evId+"-"+un});
+        // WA langsung ke personil (selalu, bukan hanya darurat)
+        if(u.noWA){
+          // Kirim WA penugasan langsung hanya jika:
+          // - Event BUKAN besok (jadwal hari ini/lusa → langsung), ATAU
+          // - Event besok tapi sudah lewat 16:10 WITA (batch sudah jalan)
+          const _nowWITA=new Date(Date.now()+8*60*60*1000);
+          const _h=_nowWITA.getUTCHours(),_m=_nowWITA.getUTCMinutes();
+          const _totalMin=_h*60+_m;
+          const _tmrw=new Date(Date.now()+8*60*60*1000+24*60*60*1000).toISOString().slice(0,10);
+          const _isBatchWindow=_totalMin>=7*60+25&&_totalMin<16*60+10;
+          const _skipWA=ev?.tanggal===_tmrw&&_isBatchWindow;
+          if(!_skipWA){
+            const _rekan=(ev?.personil||[]).filter(x=>x!==un).map(x=>{const _xu=loadUsers().find(lu=>lu.username===x);return _xu?.nama||x;});
+            sendWA({to:u.noWA,namaAcara:ev?.namaAcara,tanggal:ev?.tanggal,jam:ev?.jam,penyelenggara:ev?.penyelenggara,lokasi:ev?.lokasi,event:"penugasan",namaPersonil:u.nama,catatanPenugasan:catatanPenugasan||"",rekanBertugas:_rekan});
+          }
+        }
+      }
+    }
+    // ── WA darurat ke staf jika acara < 6 jam lagi ──────────────────────
+    if(ev&&personilArr.length>0){
+      try{
+        await fetch("/api/notif-penugasan",{
+          method:"POST",
+          headers:{"Content-Type":"application/json","Authorization":"Bearer "+(window.__CRON_SECRET||"")},
+          body:JSON.stringify({
+            evId,
+            namaAcara:ev.namaAcara,
+            tanggal:ev.tanggal,
+            jam:ev.jam,
+            lokasi:ev.lokasi||"",
+            pakaian:ev.pakaian||"",
+            penyelenggara:ev.penyelenggara||"",
+            catatanPenugasan:catatanPenugasan||"",
+            personil:personilArr,
+            pimpinan:ev.untukPimpinan||[],
+            delegasiKeWWK:ev.delegasiKeWWK||false,
+          })
+        });
+      }catch(e){console.warn("notif-penugasan API error:",e);}
+    }
+  };
+
+  // ── Cek jadwal belum ditugaskan (notif H-12) ──
+  React.useEffect(()=>{
+    if(!["kasubbag_protokol","kasubbag_komdokpim","timkom"].includes(role))return;
+    const now=new Date();
+    const unassigned=events.filter(ev=>{
+      if(ev.alur!=="disetujui")return false;
+      const evTime=new Date(ev.tanggal+"T"+ev.jam);
+      const hoursLeft=(evTime-now)/(1000*60*60);
+      return hoursLeft>0&&hoursLeft<=12&&(!ev.personil||ev.personil.length===0);
+    });
+    setNotifPenugasan(unassigned);
+  },[events,role]);
+
+  const handleUndanganUpload=useCallback(async(evId,file,name)=>{
+    if(SUPA_OK){const url=await storageUpload("undangan",evId,file);if(url){updAndSync(evId,{undanganFile:url,undanganNama:name});return;}}
+    const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=rej;r.readAsDataURL(file);});updAndSync(evId,{undanganFile:b64,undanganNama:name});
+  },[updAndSync]);
+
+  const getVisible=()=>{
+    if(tab==="tayang"){
+      const ws=weekStart(),we=weekEnd();
+      return events.filter(e=>{
+        if(e.alur!=="disetujui")return false;
+        if(filterDate==="range")return(!filterFrom||e.tanggal>=filterFrom)&&(!filterTo||e.tanggal<=filterTo);
+        if(filterDate==="week")return e.tanggal>=ws&&e.tanggal<=we;
+        if(filterDate)return e.tanggal===filterDate;
+        return true;
+      }).sort((a,b)=>(a.tanggal+a.jam).localeCompare(b.tanggal+b.jam));
+    }
+    let base=events;
+    // Staf: lihat semua jadwal disetujui sebagai konteks agenda mendatang
+    // Admin RK: lihat draft milik sendiri + semua disetujui
+    if(role==="staf"){
+      const base=events.filter(e=>e.alur==="disetujui");
+      const filtered=filterDate?base.filter(e=>e.tanggal===filterDate):base;
+      return filtered.sort((a,b)=>(a.tanggal+a.jam).localeCompare(b.tanggal+b.jam));
+    }
+    if(role==="admin_rk"){
+      const base=events.filter(e=>e.alur==="disetujui"||e.submittedBy===user.username);
+      const filtered=filterDate?base.filter(e=>e.tanggal===filterDate):base;
+      return filtered.sort((a,b)=>(a.tanggal+a.jam).localeCompare(b.tanggal+b.jam));
+    }
+    if(role==="walikota")base=events.filter(e=>e.untukPimpinan.includes("walikota")&&e.alur==="disetujui");
+    else if(role==="wakilwalikota")base=events.filter(e=>e.alur==="disetujui"&&(e.untukPimpinan.includes("wakilwalikota")||e.delegasiKeWWK));
+    else if(role==="ajudan_walikota"||role==="ajudan_wakilwalikota")base=events.filter(e=>e.alur==="disetujui");
+    else if(role==="timkom")base=events.filter(e=>e.alur!=="ditolak");
+    else if(role==="mitra_kerja")base=events.filter(e=>e.alur==="disetujui");
+    else if(role==="kasubbag_protokol"||role==="kasubbag_komdokpim")
+      base=tab==="semua"?events:tab==="tayang"?events.filter(e=>e.alur==="disetujui"):events.filter(e=>e.alur==="menunggu_kasubbag"||(e.alurHapus&&e.alur==="disetujui"));
+    else if(role==="kabag")
+      base=tab==="semua"?events:tab==="tayang"?events.filter(e=>e.alur==="disetujui"):events.filter(e=>e.alur==="menunggu_kabag"||(e.alurHapus==="menunggu_kabag"));
+    if(filterDate==="range"&&(filterFrom||filterTo)){
+      base=base.filter(e=>(!filterFrom||e.tanggal>=filterFrom)&&(!filterTo||e.tanggal<=filterTo));
+    }else if(filterDate==="week"){
+      const ws=weekStart(),we=weekEnd();base=base.filter(e=>e.tanggal>=ws&&e.tanggal<=we);
+    }else if(filterDate){
+      base=base.filter(e=>e.tanggal===filterDate);
+    }
+    // Urutkan: yang belum lewat (mulai besok s/d mendatang) duluan, lalu lampau di bawah
+    const nowStr=new Date().toISOString().slice(0,16).replace("T"," ");
+    const upcoming2=base.filter(e=>(e.tanggal+" "+e.jam)>=nowStr).sort((a,b)=>(a.tanggal+a.jam).localeCompare(b.tanggal+b.jam));
+    const past2=base.filter(e=>(e.tanggal+" "+e.jam)<nowStr).sort((a,b)=>(b.tanggal+b.jam).localeCompare(a.tanggal+a.jam));
+    return [...upcoming2,...past2];
+  };
+  const pendingList=events.filter(e=>{
+    if(role==="kasubbag_protokol"||role==="kasubbag_komdokpim")return e.alur==="menunggu_kasubbag"||(e.alurHapus==="menunggu_kasubbag");if(role==="kabag")return e.alur==="menunggu_kabag"||(e.alurHapus==="menunggu_kabag");
+    if(role==="timkom")return e.alur==="disetujui"&&!e.sambutanFile&&e.jenisKegiatan==="Sambutan";
+    if(role==="walikota")return e.untukPimpinan.includes("walikota")&&e.alur==="disetujui"&&!e.statusWK;
+    if(role==="wakilwalikota")return e.alur==="disetujui"&&(e.untukPimpinan.includes("wakilwalikota")||e.delegasiKeWWK)&&!e.statusWWK;
+    return false;
+  });
+  const [pendingExpandTarget,setPendingExpandTarget]=React.useState(null);
+  const goToPending=()=>{
+    if(!pendingList.length)return;
+    const targetId=pendingList[0].id;
+    if(role==="walikota"||role==="wakilwalikota")setTab("jadwal");
+    else if(role==="ajudan_walikota"||role==="ajudan_wakilwalikota")setTab("ajudan");
+    else if(KASUBBAG_ROLES.includes(role)||role==="kabag")setTab("jadwal");
+    else if(role==="admin_rk")setTab("draft");
+    else setTab("jadwal");
+    setFDate("");
+    setExp(targetId);
+    setPendingExpandTarget(targetId);
+    setTimeout(()=>{
+      const el=document.getElementById("ev-"+targetId);
+      if(el)el.scrollIntoView({behavior:"smooth",block:"center"});
+    },400);
+  };
+
+  const submit=async()=>{
+    if(!form.namaAcara||!form.tanggal||!form.jam){showT("Nama acara, tanggal & jam wajib diisi.","error");return;}if(!form.untukPimpinan||!form.untukPimpinan.length){showT("Pilih tujuan undangan (Wali Kota dan/atau Wakil Wali Kota) sebelum menyimpan.","error");return;}
+    const conflict=hasConflict(events,{...form,id:editId||0,alur:"disetujui"});
+    if(editId!==null){const evSebelum=events.find(e=>e.id===editId);setEvents(p=>{const next=p.map(e=>e.id===editId?{...e,...form}:e);const u=next.find(e=>e.id===editId);if(u)dbUpsert(u).catch(console.error);return next;});
+      // Jika jadwal sebelumnya ditolak → otomatis kirim ulang ke Kasubbag
+      if(evSebelum?.alur==="ditolak"){
+        upd(editId,{alur:"menunggu_kasubbag",catatanTolak:"",_requiresEdit:false});
+        showT("Jadwal diperbaiki & dikirim ulang ke Kasubbag","ok");
+        loadUsers().filter(u=>(u.role==="kasubbag_protokol")&&u.noWA).forEach(u=>sendWA({to:u.noWA,namaAcara:form.namaAcara,tanggal:form.tanggal,jam:form.jam,penyelenggara:form.penyelenggara,lokasi:form.lokasi,event:"submit",submittedBy:user?.nama}));
+        sendPush({targetRole:"kasubbag_protokol",title:"📋 Jadwal Dikirim Ulang",body:form.namaAcara,url:"/",tag:"resubmit-"+editId});sendPush({targetRole:"kasubbag_komdokpim",title:"📋 Jadwal Dikirim Ulang",body:form.namaAcara,url:"/",tag:"resubmit-"+editId});
+      } else {
+        showT("Jadwal diperbarui");
+      }
+      setEditId(null);
+      // Notif WA jika jadwal sudah disetujui (tayang) yang diedit
+      if(evSebelum?.alur==="disetujui"){const _allU=loadUsers();const _editor=user?.nama||user?.username||"Admin";// Notif ke ajudan yang relevan
+        _allU.filter(u=>(u.role==="ajudan_walikota"||u.role==="ajudan_wakilwalikota")&&u.noWA).forEach(u=>{const _isWK=u.role==="ajudan_walikota"&&(evSebelum.untukPimpinan||[]).includes("walikota");const _isWWK=u.role==="ajudan_wakilwalikota"&&((evSebelum.untukPimpinan||[]).includes("wakilwalikota")||evSebelum.delegasiKeWWK);if(_isWK||_isWWK)sendWA({to:u.noWA,namaAcara:form.namaAcara,tanggal:form.tanggal,jam:form.jam,penyelenggara:form.penyelenggara,lokasi:form.lokasi,event:"jadwal_diubah",namaEditor:_editor});});// Notif ke personil yang ditugaskan
+        (evSebelum.personil||[]).forEach(un=>{const _u=_allU.find(x=>x.username===un);if(_u?.noWA)sendWA({to:_u.noWA,namaAcara:form.namaAcara,tanggal:form.tanggal,jam:form.jam,penyelenggara:form.penyelenggara,lokasi:form.lokasi,event:"jadwal_diubah",namaEditor:_editor});});
+      }
+    }
+    else{const n={...form,id:Date.now(),alur:"draft",submittedBy:user?.username,catatanTolak:"",statusWK:null,statusWWK:null,perwakilanWK:"",perwakilanWWK:"",delegasiKeWWK:false,besertaIstriWK:!!form.besertaIstriWK,besertaIstriWWK:!!form.besertaIstriWWK,sambutanFile:null,sambutanNama:"",catatanPimpinan:"",tersembunyi:false,alurHapus:null};setEvents(p=>[...p,n]);dbUpsert(n).catch(console.error);if(conflict)showT("Potensi tabrakan jadwal!","warn");else showT("Draft disimpan. Kirim ke Kasubbag.");
+      // ── Notif WA ke Ajudan jika undangan masuk setelah 16.00 WITA ───
+      const jamWITA=new Date().getUTCHours()+8;const jamLokal=jamWITA>=24?jamWITA-24:jamWITA;
+      if(jamLokal>=16){
+        const tgtRoles=[];
+        if((form.untukPimpinan||[]).includes("walikota"))tgtRoles.push("ajudan_walikota");
+        if((form.untukPimpinan||[]).includes("wakilwalikota"))tgtRoles.push("ajudan_wakilwalikota");
+        const allU=loadUsers();
+        for(const tRole of tgtRoles){
+          const ajudan=allU.filter(u=>u.role===tRole&&u.noWA);
+          const labelPim=tRole==="ajudan_walikota"?"Wali Kota":"Wakil Wali Kota";
+          for(const aj of ajudan){
+            // undangan_sore: diganti dengan cron notif-ajudan (16:00 WITA)
+          }
+          await sendPush({targetRole:tRole,title:"🔔 Undangan Baru Masuk",body:form.namaAcara+" · "+form.tanggal+" "+form.jam+" WITA — Mohon konfirmasi ke "+labelPim,url:"/",tag:"undangan-sore-"+Date.now()});sendPush({targetRole:"kasubbag_protokol",title:"📋 Undangan Sore Masuk",body:form.namaAcara+" — "+form.tanggal+" "+form.jam+" WITA",url:"/",tag:"undangan-sore-ksbg-"+Date.now()});sendPush({targetRole:"kasubbag_komdokpim",title:"📋 Undangan Sore Masuk",body:form.namaAcara+" — "+form.tanggal+" "+form.jam+" WITA",url:"/",tag:"undangan-sore-ksbg2-"+Date.now()});
+        }
+      }
+    }
+    setForm(emptyForm);setTab(role==="admin_rk"?"draft":"jadwal");
+  };
+
+  // Palet konsisten: semua pakai navy, hanya aksen yang berbeda per peran
+const TH={
+  walikota:        {g:"linear-gradient(160deg,#0A1628 0%,#1A2F50 100%)",a:GOLD},
+  wakilwalikota:   {g:"linear-gradient(160deg,#0A1628 0%,#0D2B1E 100%)",a:"#6EE7B7"},
+  ajudan_walikota: {g:"linear-gradient(160deg,#0A1628 0%,#1E293B 100%)",a:"#93C5FD"},
+  ajudan_wakilwalikota:{g:"linear-gradient(160deg,#0A1628 0%,#1E293B 100%)",a:"#86EFAC"},
+  timkom:          {g:"linear-gradient(160deg,#0A1628 0%,#1A2F50 100%)",a:"#A5B4FC"},
+  staf:            {g:"linear-gradient(160deg,#0A1628 0%,#1A2F50 100%)",a:GOLD},
+  admin_rk:        {g:"linear-gradient(160deg,#0A1628 0%,#1A2F50 100%)",a:"#FCD34D"},
+  kasubbag_protokol:   {g:"linear-gradient(160deg,#0A1628 0%,#1A2F50 100%)",a:"#FDE68A"},
+  kasubbag_komdokpim:  {g:"linear-gradient(160deg,#0A1628 0%,#1A2F50 100%)",a:"#7DD3FC"},
+  kabag:           {g:"linear-gradient(160deg,#0A1628 0%,#1A2F50 100%)",a:"#6EE7B7"},
+};
+  const th=TH[role]||TH.staf;
+  const roleInfo=ALL_ROLE_DEFS.find(r=>r.key===role)||{icon:"circle",label:"",key:""};
+  const kabagNama=loadUsers().find(u=>u.role==="kabag")?.nama||"Kabag Protokol & Komunikasi Pimpinan";
+  const canReport=ROLES_WITH_REPORT.includes(role);
+  const isStafAny=STAF_ROLES.includes(role);
+  const isKasubbagAny=KASUBBAG_ROLES.includes(role);
+  const listEvents=(()=>{
+    const base=getVisible();
+    if(!searchQ.trim())return base;
+    const q=searchQ.trim().toLowerCase();
+    return base.filter(e=>
+      (e.namaAcara||"").toLowerCase().includes(q)||
+      (e.penyelenggara||"").toLowerCase().includes(q)||
+      (e.lokasi||"").toLowerCase().includes(q)||
+      (e.catatan||"").toLowerCase().includes(q)||
+      (e.pakaian||"").toLowerCase().includes(q)||
+      (e.tanggal||"").includes(q)
+    );
+  })();
+  const showForm=tab==="form"&&role==="admin_rk";
+  const showPenugasan=tab==="penugasan";
+
+  const CSS=`
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
+    html,body{margin:0;padding:0;width:100%;overflow-x:hidden;-webkit-text-size-adjust:100%;background:#0A1628;scroll-behavior:smooth;}
+    *{box-sizing:border-box;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif;}
+    input,select,textarea,button{font-family:inherit;}
+    input[type=text],input[type=password],input[type=date],input[type=time],input[type=email],select,textarea{font-size:16px!important;-webkit-appearance:none;appearance:none;}
+    a{-webkit-tap-highlight-color:transparent;color:inherit;}
+    button{-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
+    ::-webkit-scrollbar{width:4px;height:4px;}
+    ::-webkit-scrollbar-track{background:transparent;}
+    ::-webkit-scrollbar-thumb{background:rgba(0,0,0,0.15);border-radius:4px;}
+
+    /* ── Reduced Motion ── */
+    @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:0.01ms!important;animation-iteration-count:1!important;transition-duration:0.01ms!important;}}
+
+    /* ── Keyframes ── */
+    @keyframes up{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes upSpring{0%{opacity:0;transform:translateY(20px) scale(0.97)}60%{transform:translateY(-3px) scale(1.005)}100%{opacity:1;transform:translateY(0) scale(1)}}
+    @keyframes slideIn{from{opacity:0;transform:translateX(-12px)}to{opacity:1;transform:translateX(0)}}
+    @keyframes slideDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes sheetUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
+    @keyframes tapIn{0%{transform:scale(1)}50%{transform:scale(0.95)}100%{transform:scale(1)}}
+    @keyframes gentleShake{0%,100%{transform:translateX(0)}15%,45%,75%{transform:translateX(-4px)}30%,60%,90%{transform:translateX(4px)}}
+    @keyframes toastIn{0%{opacity:0;transform:translateY(-20px) translateX(-50%) scale(0.92)}60%{transform:translateY(4px) translateX(-50%) scale(1.02)}100%{opacity:1;transform:translateY(0) translateX(-50%) scale(1)}}
+    @keyframes toastProgress{0%{width:100%}100%{width:0%}}
+    @keyframes pullSpin{to{transform:rotate(360deg)}}
+
+    /* ── Nav ── */
+    .nav-btn{transition:all 0.18s cubic-bezier(0.34,1.56,0.64,1);border-radius:10px!important;}
+    .nav-btn:hover{background:rgba(255,255,255,0.13)!important;opacity:1!important;transform:translateX(3px);}
+    .nav-btn:active{transform:scale(0.97)!important;}
+    .sidebar-link{transition:all 0.18s ease;}
+    .sidebar-link:hover{background:rgba(255,255,255,0.11)!important;}
+
+    /* ── Cards ── */
+    .ev-card{transition:transform 0.18s cubic-bezier(0.34,1.56,0.64,1),box-shadow 0.18s ease;animation:upSpring 0.35s ease both;}
+    .ev-card:active{transform:scale(0.985)!important;}
+    .card-row{transition:background 0.12s;}
+    .card-row:hover{background:#F5F8FF!important;}
+
+    /* ── Buttons ── */
+    .btn-ios{transition:all 0.15s cubic-bezier(0.34,1.56,0.64,1);}
+    .btn-ios:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(10,22,40,0.22);}
+    .btn-ios:active{transform:scale(0.96)!important;}
+    .btn-primary{transition:all 0.15s ease;}
+    .btn-primary:hover{opacity:0.88;transform:translateY(-1px);}
+    .btn-primary:active{transform:scale(0.97);}
+    button:disabled{opacity:0.5;cursor:not-allowed!important;transform:none!important;}
+
+    /* ── Table ── */
+    table.ev-table{width:100%;border-collapse:collapse;font-size:13px;}
+    table.ev-table thead th{background:#F6F9FE;color:#64748B;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;padding:11px 14px;text-align:left;border-bottom:1.5px solid #E4EAF2;white-space:nowrap;}
+    table.ev-table tbody td{padding:12px 14px;border-bottom:1px solid #F0F4FA;vertical-align:middle;}
+    table.ev-table tbody tr{transition:background 0.15s ease;}
+    table.ev-table tbody tr:hover td{background:#F5F8FF;}
+    table.ev-table tbody tr:last-child td{border-bottom:none;}
+
+    /* ── Chips & Badges ── */
+    .chip{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:0.3px;white-space:nowrap;}
+    .chip-wk{background:rgba(10,22,40,0.08);color:#0A1628;}
+    .chip-wwk{background:#ECFDF5;color:#0D6B4F;}
+    .badge-pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:10.5px;font-weight:700;white-space:nowrap;}
+
+    /* ── Modals ── */
+    .modal-overlay{position:fixed;inset:0;z-index:8100;background:rgba(5,12,25,0.65);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:flex;align-items:flex-end;justify-content:center;animation:fadeIn 0.2s ease;}
+    @media(min-width:768px){.modal-overlay{align-items:center;padding:24px;}}
+    .modal-box{background:white;border-radius:24px 24px 0 0;width:100%;max-width:600px;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 -8px 40px rgba(0,0,0,0.2);animation:sheetUp 0.32s cubic-bezier(0.34,1.3,0.64,1);}
+    @media(min-width:768px){.modal-box{border-radius:20px;animation:up 0.25s cubic-bezier(0.34,1.3,0.64,1);box-shadow:0 24px 60px rgba(0,0,0,0.25);}}
+    .modal-handle{width:36px;height:4px;background:#E2E8F0;border-radius:4px;margin:10px auto 0;flex-shrink:0;}
+
+    /* ── Forms ── */
+    .form-section{background:white;border-radius:16px;padding:20px;box-shadow:0 2px 16px rgba(0,0,0,0.06);border:1px solid #E8EDF4;margin-bottom:14px;}
+    .form-section h3{margin:0 0 14px;font-size:14px;font-weight:800;color:#0A1628;letter-spacing:-0.2px;}
+    input:focus,select:focus,textarea:focus{outline:none;border-color:#0A1628!important;box-shadow:0 0 0 3px rgba(10,22,40,0.07)!important;transition:border-color 0.2s,box-shadow 0.2s;}
+    button:focus-visible{outline:2px solid ${GOLD};outline-offset:2px;}
+    input,select,textarea{transition:border-color 0.2s ease,box-shadow 0.2s ease;}
+
+    /* ── iOS Tab Bar ── */
+    .ios-tab-bar{position:fixed;bottom:0;left:0;right:0;z-index:300;background:rgba(248,250,255,0.88);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);border-top:0.5px solid rgba(0,0,0,0.1);padding-bottom:env(safe-area-inset-bottom,0px);display:flex;}
+    .ios-tab-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 4px 6px;border:none;background:transparent;cursor:pointer;-webkit-tap-highlight-color:transparent;gap:3px;transition:transform 0.15s cubic-bezier(0.34,1.56,0.64,1);}
+    .ios-tab-btn:active{transform:scale(0.88);}
+    .ios-tab-icon{font-size:22px;line-height:1;transition:transform 0.2s cubic-bezier(0.34,1.56,0.64,1);}
+    .ios-tab-btn.active .ios-tab-icon{transform:scale(1.1);}
+    .ios-tab-label{font-size:10px;font-weight:600;letter-spacing:0.1px;}
+
+    /* ── Session Timeout Warning ── */
+    .session-warn{position:fixed;top:0;left:0;right:0;z-index:10000;background:linear-gradient(135deg,#D97706,#B45309);color:white;padding:12px 20px;text-align:center;font-size:13px;font-weight:700;animation:slideDown 0.3s ease;display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;}
+    .session-warn button{background:white;color:#92400E;border:none;border-radius:8px;padding:6px 16px;font-weight:700;font-size:12px;cursor:pointer;transition:transform 0.1s;}
+    .session-warn button:active{transform:scale(0.95);}
+
+    /* ── Offline Banner ── */
+    .offline-banner{position:fixed;bottom:70px;left:50%;transform:translateX(-50%);z-index:9990;background:rgba(239,68,68,0.95);color:white;padding:8px 20px;border-radius:20px;font-size:12px;font-weight:700;box-shadow:0 4px 20px rgba(0,0,0,0.2);animation:upSpring 0.3s ease;display:flex;align-items:center;gap:8px;}
+
+    /* ── Scroll-to-top ── */
+    .scroll-top-btn{position:fixed;bottom:76px;right:14px;z-index:250;width:38px;height:38px;border-radius:50%;border:none;background:rgba(10,22,40,0.8);color:white;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 12px rgba(0,0,0,0.25);transition:all 0.2s ease;backdrop-filter:blur(10px);}
+    .scroll-top-btn:active{transform:scale(0.88);}
+
+    /* ── Pull-to-refresh ── */
+    .pull-refresh-bar{position:fixed;top:0;left:0;right:0;z-index:9998;display:flex;align-items:center;justify-content:center;padding:10px;background:linear-gradient(135deg,#0A1628,#1B4080);animation:slideDown 0.25s ease;}
+    .pull-refresh-spinner{width:20px;height:20px;border:2.5px solid rgba(255,255,255,0.25);border-top-color:#C9A84C;border-radius:50%;animation:pullSpin 0.7s linear infinite;}
+  `;
+
+  // ── LOGIN LOADING SCREEN (harus SEBELUM if(!user) agar tidak ter-override) ──
+  if(loginLoading)return(
+    <div style={{position:"fixed",inset:0,zIndex:9999,background:"linear-gradient(160deg,"+NAVY+" 0%,#142238 60%,#0D1F35 100%)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:0,overflow:"hidden"}}>
+      <style>{CSS}</style>
+      {/* Lingkaran dekoratif latar */}
+      <div style={{position:"absolute",width:400,height:400,borderRadius:"50%",border:"1px solid rgba(201,168,76,0.08)",top:"50%",left:"50%",transform:"translate(-50%,-50%)"}}/>
+      <div style={{position:"absolute",width:260,height:260,borderRadius:"50%",border:"1px solid rgba(201,168,76,0.12)",top:"50%",left:"50%",transform:"translate(-50%,-50%)"}}/>
+      {/* Logo */}
+      <img src="/logo_tarakan.png" alt="" style={{height:80,width:"auto",objectFit:"contain",filter:"drop-shadow(0 4px 24px rgba(201,168,76,0.35))",marginBottom:20,animation:"pulse 2s ease infinite"}} onError={e=>e.target.style.display="none"}/>
+      {/* Nama sistem */}
+      <div style={{color:"white",fontSize:20,fontWeight:800,letterSpacing:"1px",marginBottom:4}}>Prokopim Tarakan</div>
+      <div style={{color:"rgba(201,168,76,0.7)",fontSize:11,fontWeight:500,letterSpacing:"2px",textTransform:"uppercase",marginBottom:32}}>Sistem Informasi Jadwal Pimpinan</div>
+      {/* Spinner emas */}
+      <div style={{width:44,height:44,position:"relative",marginBottom:20}}>
+        <div style={{position:"absolute",inset:0,border:"3px solid rgba(201,168,76,0.15)",borderTopColor:"#C9A84C",borderRadius:"50%",animation:"spin 0.9s linear infinite"}}/>
+      </div>
+      {/* Fase loading */}
+      <div style={{color:"#C9A84C",fontSize:13,fontWeight:600,letterSpacing:"0.5px",marginBottom:40,minHeight:20,animation:"pulse 1.2s ease infinite"}}>{loginPhase}</div>
+      {/* Tagline di bawah */}
+      <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"28px 20px 32px",textAlign:"center",background:"linear-gradient(to top,rgba(0,0,0,0.5),transparent)"}}>
+        <div style={{color:"rgba(255,255,255,0.45)",fontSize:10,fontWeight:500,letterSpacing:"1.5px",textTransform:"uppercase",marginBottom:8}}>Motto Pelayanan</div>
+        <div style={{color:"rgba(255,255,255,0.75)",fontSize:13,fontWeight:600,fontStyle:"italic",lineHeight:1.6}}>
+          "Berikan yang terbaik, untuk kota kita"
+        </div>
+        <div style={{color:"#C9A84C",fontSize:12,fontWeight:800,letterSpacing:"2px",marginTop:6}}>#TARAKANHIBOT</div>
+      </div>
+    </div>
+  );
+
+  // ==================== LOGIN ====================
+  if(!user){
+    const features=[
+      ["📋","Approval Berjenjang","Staf → Kasubbag → Kabag"],
+      ["🤖","AI Auto-Isi","Scan undangan, form terisi otomatis"],
+      ["📊","Briefing & Statistik","Ringkasan pagi + rekap kinerja tim"],
+      ["⏱️","Timeline Realtime","Jadwal visual dengan penanda waktu"],
+      ["🔔","Notifikasi WA & Push","Update instan ke seluruh tim"],
+      ["🔐","Keamanan Berlapis","Biometrik, sesi otomatis, anti brute-force"],
+    ];
+
+    // Warna tema
+    const BG="hsl(215,30%,10%)";
+    const CARD="hsl(215,35%,14%)";
+    const CARD2="hsl(215,30%,16%)";
+    const GOLD2="hsl(42,78%,55%)";
+    const GOLD_LIGHT="hsl(42,85%,70%)";
+    const SEC="hsl(215,25%,20%)";
+    const MUTED="hsl(215,15%,55%)";
+    const BORDER="hsl(215,20%,22%)";
+    const FG="hsl(210,20%,90%)";
+    const inpStyle={
+      width:"100%",height:48,padding:"0 14px",borderRadius:10,
+      border:"1.5px solid "+BORDER,
+      background:"hsla(215,25%,20%,0.5)",
+      color:FG,fontSize:14,outline:"none",boxSizing:"border-box",
+      fontFamily:"'Plus Jakarta Sans',sans-serif",
+    };
+    return(
+    <div style={{minHeight:"100vh",width:"100%",background:BG,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:isMobile?"flex-start":"center",padding:isMobile?"0":"24px",overflowY:"auto",position:"relative",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
+      <style>{CSS+`
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes slideRight{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:translateX(0)}}
+        @keyframes pulseGlow{0%,100%{box-shadow:0 0 40px -10px hsla(42,78%,55%,0.2)}50%{box-shadow:0 0 40px -10px hsla(42,78%,55%,0.45)}}
+        @keyframes focusBorder{to{border-color:hsl(42,78%,55%)}}
+        .login-inp:focus{border-color:hsl(42,78%,55%)!important;box-shadow:0 0 0 3px hsla(42,78%,55%,0.15)!important;}
+        .login-btn-primary{background:hsl(42,78%,55%);color:hsl(215,30%,10%);border:none;font-weight:800;font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;transition:all 0.2s;}
+        .login-btn-primary:hover{background:hsl(42,85%,70%);box-shadow:0 4px 20px hsla(42,78%,55%,0.4);transform:translateY(-1px);}
+        .login-btn-primary:active{transform:scale(0.97);}
+        .login-btn-outline{background:transparent;border:1.5px solid hsla(215,20%,60%,0.25);color:${MUTED};font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;transition:all 0.2s;}
+        .login-btn-outline:hover{border-color:hsla(42,78%,55%,0.4);color:${FG};}
+        .feat-item{animation:fadeUp 0.6s ease both;}
+        .login-card{animation:slideRight 0.6s ease both;}
+      `}</style>
+
+      {/* Dekorasi latar — lingkaran blur */}
+      <div style={{position:"fixed",top:"-10%",right:"-5%",width:400,height:400,borderRadius:"50%",background:"hsla(42,78%,55%,0.03)",filter:"blur(80px)",pointerEvents:"none"}}/>
+      <div style={{position:"fixed",bottom:"-15%",left:"-10%",width:500,height:500,borderRadius:"50%",background:"hsla(42,78%,55%,0.02)",filter:"blur(100px)",pointerEvents:"none"}}/>
+
+      {/* ── MOBILE LAYOUT ── */}
+      {isMobile&&<>
+        {/* Hero strip */}
+        <div style={{width:"100%",background:"hsla(215,35%,14%,0.9)",backdropFilter:"blur(20px)",borderBottom:"1px solid "+BORDER,padding:"28px 24px 22px"}}>
+          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:14}}>
+            <img src="/logo_tarakan.png" alt="Logo" style={{height:48,width:"auto",objectFit:"contain",filter:"drop-shadow(0 2px 8px rgba(0,0,0,0.5))",flexShrink:0}} onError={e=>e.target.style.display="none"}/>
+            <div>
+              <div style={{color:GOLD2,fontSize:9,letterSpacing:2.5,textTransform:"uppercase",fontWeight:700,marginBottom:3}}>Pemerintah Kota Tarakan</div>
+              <div style={{color:FG,fontSize:15,fontWeight:800,lineHeight:1.3}}>Protokol &amp; Komunikasi Pimpinan</div>
+            </div>
+          </div>
+          <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+            {features.map(([ic,t])=><span key={t} style={{background:"hsla(42,78%,55%,0.12)",border:"1px solid hsla(42,78%,55%,0.3)",borderRadius:20,padding:"3px 10px",fontSize:10,color:GOLD2,fontWeight:700}}>{ic} {t}</span>)}
+          </div>
+        </div>
+
+        {/* Login card mobile */}
+        <div style={{width:"100%",flex:1,padding:"28px 24px 40px",display:"flex",flexDirection:"column",background:BG}}>
+          <div style={{marginBottom:24}}>
+            <div style={{backgroundImage:"linear-gradient(135deg,"+GOLD2+","+GOLD_LIGHT+")",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",fontSize:22,fontWeight:800,marginBottom:4}}>Masuk ke Sistem</div>
+            <div style={{fontSize:13,color:MUTED}}>Masukkan kredensial akun Anda</div>
+          </div>
+
+          <div style={{marginBottom:14}}>
+            <label style={{display:"block",fontSize:11,color:MUTED,fontWeight:700,marginBottom:6,letterSpacing:1.2,textTransform:"uppercase"}}>Username</label>
+            <input className="login-inp" type="text" value={loginForm.username} onChange={e=>setLF(p=>({...p,username:e.target.value}))} onKeyDown={e=>e.key==="Enter"&&doLogin()} placeholder="Masukkan username" autoCapitalize="none" autoCorrect="off" style={inpStyle}/>
+          </div>
+          <div style={{marginBottom:16}}>
+            <label style={{display:"block",fontSize:11,color:MUTED,fontWeight:700,marginBottom:6,letterSpacing:1.2,textTransform:"uppercase"}}>Password</label>
+            <div style={{position:"relative"}}>
+              <input className="login-inp" type={showPass?"text":"password"} value={loginForm.password} onChange={e=>setLF(p=>({...p,password:e.target.value}))} onKeyDown={e=>e.key==="Enter"&&doLogin()} placeholder="Masukkan password" style={{...inpStyle,paddingRight:44}}/>
+              <button onClick={()=>setShowPass(p=>!p)} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:MUTED,fontSize:18,padding:4}}>{showPass?"👁️":"👁️‍🗨️"}</button>
+            </div>
+          </div>
+
+          {loginErr&&<div style={{background:"hsla(0,84%,60%,0.15)",borderRadius:9,padding:"10px 13px",marginBottom:12,fontSize:13,color:"hsl(0,84%,75%)",fontWeight:600,border:"1px solid hsla(0,84%,60%,0.3)",animation:"gentleShake 0.4s ease"}}>
+            {loginErr}
+            {lockSeconds>0&&<div style={{marginTop:6,fontSize:11,opacity:0.8}}>⏳ Coba lagi dalam {Math.floor(lockSeconds/60)}:{String(lockSeconds%60).padStart(2,"0")}</div>}
+          </div>}
+          {(bioErr||bioLoading)&&<div style={{background:"hsla(210,80%,55%,0.12)",borderRadius:9,padding:"10px 13px",marginBottom:12,fontSize:13,color:"hsl(210,80%,75%)",fontWeight:600,border:"1px solid hsla(210,80%,55%,0.25)"}}>{bioLoading?"Memverifikasi biometrik...":bioErr}</div>}
+
+          <button className="login-btn-primary" onClick={doLogin} disabled={lockSeconds>0} style={{width:"100%",height:48,borderRadius:12,fontSize:15,fontWeight:800,marginBottom:10,animation:lockSeconds>0?"none":"pulseGlow 3s ease infinite"}}>{lockSeconds>0?"Dikunci Sementara":"Masuk"}</button>
+          <button className="login-btn-outline" onClick={()=>setShowForgot(true)} style={{width:"100%",height:44,borderRadius:12,fontSize:13,fontWeight:600,marginBottom:8}}>🔑 Lupa Password?</button>
+          <button onClick={()=>setShowRegister(true)} style={{width:"100%",height:42,borderRadius:12,border:"1.5px dashed rgba(201,168,76,0.5)",background:"transparent",color:GOLD2,cursor:"pointer",fontSize:13,fontWeight:600,marginBottom:8,display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+              <span>📝</span> Belum punya akun? Daftar di sini
+            </button>
+
+          {bioSupported()&&<>
+            <button className="login-btn-outline" onClick={doBioLogin} disabled={bioLoading} style={{width:"100%",height:44,borderRadius:12,fontSize:13,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",gap:8,marginBottom:8}}>
+              <span style={{fontSize:18}}>🔐</span>{bioLoading?"Memproses...":"Login Biometrik / PIN"}
+            </button>
+            {loginForm.username&&!bioIsRegistered(loginForm.username.toLowerCase().trim())&&
+              <div style={{background:"hsla(42,78%,55%,0.1)",borderRadius:8,padding:"8px 11px",fontSize:12,color:GOLD2,display:"flex",gap:6,alignItems:"flex-start",marginBottom:8,border:"1px solid hsla(42,78%,55%,0.2)"}}>
+                <span>⚠️</span><span>Biometrik belum aktif. Login dulu lalu aktifkan di <strong>Pengaturan Akun</strong>.</span>
+              </div>}
+          </>}
+
+          <div style={{marginTop:"auto",paddingTop:24,textAlign:"center",color:MUTED,fontSize:10,letterSpacing:1.5,opacity:0.5}}>v1.0 · Prokopim Tarakan · 2026</div>
+        </div>
+      </>}
+
+      {/* ── DESKTOP LAYOUT ── */}
+      {!isMobile&&<div style={{width:"100%",maxWidth:960,display:"flex",gap:0,borderRadius:20,overflow:"hidden",boxShadow:"0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px "+BORDER,animation:"pulseGlow 3s ease infinite"}}>
+        {/* Left panel hero */}
+        <div style={{flex:1,background:"linear-gradient(160deg,hsla(215,35%,14%,0.95),hsla(215,30%,11%,0.98))",backdropFilter:"blur(20px)",padding:"48px 44px",display:"flex",flexDirection:"column",justifyContent:"space-between",borderRight:"1px solid "+BORDER}}>
+          <div>
+            <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:32}}>
+              <img src="/logo_tarakan.png" alt="Logo" style={{height:64,width:"auto",objectFit:"contain",filter:"drop-shadow(0 2px 12px rgba(0,0,0,0.5))",flexShrink:0}} onError={e=>e.target.style.display="none"}/>
+              <div>
+                <div style={{color:GOLD2,fontSize:9,letterSpacing:2.5,textTransform:"uppercase",fontWeight:700,marginBottom:4}}>Pemerintah Kota Tarakan</div>
+                <div style={{color:FG,fontSize:17,fontWeight:800,lineHeight:1.25}}>Bagian Protokol &amp;</div>
+                <div style={{color:FG,fontSize:17,fontWeight:800}}>Komunikasi Pimpinan</div>
+              </div>
+            </div>
+            <div style={{width:40,height:3,background:"linear-gradient(90deg,"+GOLD2+","+GOLD_LIGHT+")",borderRadius:3,marginBottom:20}}/>
+            <div style={{color:MUTED,fontSize:12.5,lineHeight:1.8,marginBottom:28}}>
+              Sistem Informasi Jadwal Kegiatan Pimpinan Daerah Kota Tarakan. Mengelola agenda, approval workflow, dan koordinasi tim Protokol dan Komunikasi Pimpinan secara terpadu.
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px 16px"}}>
+              {features.map(([ic,t,d],i)=><div key={t} className="feat-item" style={{display:"flex",alignItems:"flex-start",gap:10,animationDelay:(i*0.06)+"s"}}>
+                <div style={{width:30,height:30,borderRadius:8,background:"hsla(42,78%,55%,0.1)",border:"1px solid hsla(42,78%,55%,0.18)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,flexShrink:0,marginTop:1}}>{ic}</div>
+                <div><div style={{color:FG,fontSize:12,fontWeight:700,lineHeight:1.3}}>{t}</div><div style={{color:MUTED,fontSize:10,lineHeight:1.4,marginTop:1}}>{d}</div></div>
+              </div>)}
+            </div>
+          </div>
+          <div style={{color:MUTED,fontSize:10,letterSpacing:1.5,opacity:0.5,marginTop:20}}>v1.0 · Prokopim Tarakan · 2026</div>
+        </div>
+
+        {/* Right panel login */}
+        <div className="login-card" style={{width:370,background:"linear-gradient(160deg,hsla(215,35%,14%,0.8),hsla(215,30%,16%,0.6))",backdropFilter:"blur(20px)",padding:"44px 38px",display:"flex",flexDirection:"column",justifyContent:"center"}}>
+          <div style={{marginBottom:28}}>
+            <div style={{backgroundImage:"linear-gradient(135deg,"+GOLD2+","+GOLD_LIGHT+")",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",fontSize:24,fontWeight:800,marginBottom:6}}>Masuk ke Sistem</div>
+            <div style={{fontSize:13,color:MUTED}}>Masukkan kredensial akun Anda</div>
+          </div>
+
+          <div style={{marginBottom:14}}>
+            <label style={{display:"block",fontSize:11,color:MUTED,fontWeight:700,marginBottom:6,letterSpacing:1.2,textTransform:"uppercase"}}>Username</label>
+            <input className="login-inp" type="text" value={loginForm.username} onChange={e=>setLF(p=>({...p,username:e.target.value}))} onKeyDown={e=>e.key==="Enter"&&doLogin()} placeholder="Masukkan username" autoCapitalize="none" autoCorrect="off" style={inpStyle}/>
+          </div>
+          <div style={{marginBottom:18}}>
+            <label style={{display:"block",fontSize:11,color:MUTED,fontWeight:700,marginBottom:6,letterSpacing:1.2,textTransform:"uppercase"}}>Password</label>
+            <div style={{position:"relative"}}>
+              <input className="login-inp" type={showPass?"text":"password"} value={loginForm.password} onChange={e=>setLF(p=>({...p,password:e.target.value}))} onKeyDown={e=>e.key==="Enter"&&doLogin()} placeholder="Masukkan password" style={{...inpStyle,paddingRight:44}}/>
+              <button onClick={()=>setShowPass(p=>!p)} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:MUTED,fontSize:16,padding:4}}>{showPass?"👁️":"👁️‍🗨️"}</button>
+            </div>
+          </div>
+
+          {loginErr&&<div style={{background:"hsla(0,84%,60%,0.15)",borderRadius:9,padding:"9px 13px",marginBottom:12,fontSize:13,color:"hsl(0,84%,75%)",fontWeight:600,border:"1px solid hsla(0,84%,60%,0.3)",animation:"gentleShake 0.4s ease"}}>
+            {loginErr}
+            {lockSeconds>0&&<div style={{marginTop:6,fontSize:11,opacity:0.8}}>⏳ Coba lagi dalam {Math.floor(lockSeconds/60)}:{String(lockSeconds%60).padStart(2,"0")}</div>}
+          </div>}
+          {(bioErr||bioLoading)&&<div style={{background:"hsla(210,80%,55%,0.12)",borderRadius:9,padding:"9px 13px",marginBottom:12,fontSize:13,color:"hsl(210,80%,75%)",fontWeight:600,border:"1px solid hsla(210,80%,55%,0.25)"}}>{bioLoading?"Memverifikasi biometrik perangkat...":bioErr}</div>}
+
+          <button className="login-btn-primary" onClick={doLogin} disabled={lockSeconds>0} style={{width:"100%",height:48,borderRadius:12,fontSize:15,fontWeight:800,marginBottom:10}}>{lockSeconds>0?"Dikunci Sementara":"Masuk"}</button>
+          <button className="login-btn-outline" onClick={()=>setShowForgot(true)} style={{width:"100%",height:42,borderRadius:12,fontSize:13,fontWeight:600,marginBottom:8}}>🔑 Lupa Password?</button>
+          <button onClick={()=>setShowRegister(true)} style={{width:"100%",height:42,borderRadius:12,border:"1.5px dashed rgba(201,168,76,0.5)",background:"transparent",color:GOLD2,cursor:"pointer",fontSize:13,fontWeight:600,marginBottom:8,display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+              <span>📝</span> Belum punya akun? Daftar di sini
+            </button>
+
+          {bioSupported()&&<>
+            <button className="login-btn-outline" onClick={doBioLogin} disabled={bioLoading} style={{width:"100%",height:42,borderRadius:12,fontSize:13,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",gap:8,marginBottom:8}}>
+              <span style={{fontSize:16}}>🔐</span>{bioLoading?"Memproses...":"Login dengan Biometrik / PIN"}
+            </button>
+            {loginForm.username&&!bioIsRegistered(loginForm.username.toLowerCase().trim())&&
+              <div style={{background:"hsla(42,78%,55%,0.1)",borderRadius:8,padding:"7px 11px",fontSize:11,color:GOLD2,display:"flex",gap:6,alignItems:"flex-start",border:"1px solid hsla(42,78%,55%,0.2)"}}>
+                <span>⚠️</span><span>Biometrik belum aktif. Login dulu, lalu aktifkan di <strong>Pengaturan Akun</strong>.</span>
+              </div>}
+          </>}
+
+
+        </div>
+      </div>}
+
+      {/* ForgotPassword harus di sini — sebelum user login */}
+      {showForgot&&<ForgotPasswordModal onClose={()=>setShowForgot(false)}/> }
+    {showRegister&&<RegisterModal onClose={()=>setShowRegister(false)}/>}
+    </div>
+  );}
+
+
+
+  if(!dbReady)return(
+    <div style={{minHeight:"100vh",background:"linear-gradient(160deg,"+NAVY+" 0%,#142238 60%,#0D1F35 100%)",display:"flex",alignItems:"center",justifyContent:"center",gap:16,flexDirection:"column"}}><style>{CSS}</style>
+      <img src="/logo_tarakan.png" alt="" style={{height:56,width:"auto",objectFit:"contain",filter:"drop-shadow(0 4px 16px rgba(0,0,0,0.4))",marginBottom:8,animation:"pulse 2s ease infinite"}} onError={e=>e.target.style.display="none"}/>
+      <div style={{width:40,height:40,border:"3px solid rgba(212,175,90,0.2)",borderTopColor:GOLD,borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/>
+      <div style={{color:"white",fontSize:14,fontWeight:600,letterSpacing:"0.3px",opacity:0.85}}>Memuat data...</div>
+      {dbError&&<div style={{color:"#FCA5A5",fontSize:12,maxWidth:260,textAlign:"center",padding:"8px 16px",background:"rgba(220,38,38,0.15)",borderRadius:10,border:"1px solid rgba(220,38,38,0.3)"}}>{dbError}</div>}
+    </div>
+  );
+
+  // ==================== SIDEBAR ====================
+  const navGroups=[
+    {label:"MENU UTAMA",items:[
+      ...(role==="staf"?[{key:"jadwal",icon:"📅",label:"Jadwal"},{key:"penugasan",icon:"🎯",label:"Penugasan"}]:[]),
+      ...(role==="admin_rk"?[{key:"form",icon:"✏️",label:"Input Jadwal"},{key:"draft",icon:"📝",label:"Draft & Progress"},{key:"jadwal",icon:"📅",label:"Jadwal Disetujui"},{key:"rk",icon:"📋",label:"Rencana Kegiatan"}]:[]),
+      ...(KASUBBAG_ROLES.includes(role)?[{key:"jadwal",icon:"📋",label:"Antrian"},{key:"semua",icon:"🗓️",label:"Semua Jadwal"}]:[]),
+      ...(role==="kabag"?[{key:"jadwal",icon:"📋",label:"Antrian"},{key:"semua",icon:"🗓️",label:"Semua Jadwal"}]:[]),
+      ...((role==="ajudan_walikota"||role==="ajudan_wakilwalikota")?[{key:"ajudan",icon:"✅",label:"Konfirmasi"},{key:"jadwal",icon:"📅",label:"Jadwal"},{key:"penugasan",icon:"🎯",label:"Penugasan"}]:[]),
+      ...(role==="timkom"?[{key:"jadwal",icon:"📅",label:"Jadwal"},{key:"penugasan",icon:"🎯",label:"Penugasan"}]:[]),
+      ...(role==="mitra_kerja"?[{key:"mitra",icon:"📅",label:"Agenda"}]:[]),
+      ...(role==="walikota"||role==="wakilwalikota"?[{key:"jadwal",icon:"📅",label:"Jadwal Saya"}]:[]),
+      {key:"tayang",icon:"🏛️",label:"Agenda Tayang"},
+    ]},
+    {label:"LAPORAN & TOOLS",items:[
+      {key:"action:summary",icon:"💬",label:"Rekap WA Hari Ini"},
+      {key:"action:report",icon:"📄",label:"Cetak Rekap PDF"},
+      ...(canReport?[{key:"action:laporan",icon:"📊",label:"Laporan Mingguan/Bulanan"}]:[]),
+      ...((KASUBBAG_ROLES.includes(role)||role==="kabag")?[{key:"penugasan",icon:"📈",label:"Rekap Evaluasi Kinerja"}]:[]),
+    ]},
+    {label:"AKUN",items:[
+      {key:"action:profile",icon:"👤",label:"Pengaturan Akun"},
+      ...(role==="kabag"?[{key:"action:admin",icon:"⚙️",label:"Kelola Pengguna"}]:[]),
+      ...(role==="kabag"?[{key:"action:broadcast",icon:"📢",label:"Kirim Pengumuman"}]:[]),
+    ]},
+  ];
+
+  const handleNavClick=key=>{
+    if(key==="action:summary"){setShowSummary(true);return;}if(key==="action:report"){setShowReport(true);return;}if(key==="action:laporan"){setShowLaporan(true);return;}if(key==="action:admin"){setShowAdmin(true);return;}if(key==="action:broadcast"){setShowBroadcast(true);return;}if(key==="action:profile"){setShowProfile(true);return;}
+    setTab(key);if(key==="form"){setForm(emptyForm);setEditId(null);}
+  };
+
+  const sidebarJSX=(<aside style={{width:260,minHeight:"100vh",background:th.g,display:"flex",flexDirection:"column",flexShrink:0,position:"sticky",top:0,height:"100vh",overflowY:"auto",boxShadow:"4px 0 20px rgba(0,0,0,0.18)"}}>
+    <div style={{padding:"20px 16px 14px",borderBottom:"1px solid rgba(255,255,255,0.1)"}}>
+      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
+        <img src="/logo_tarakan.png" alt="Logo" style={{height:36,width:"auto",objectFit:"contain",filter:"drop-shadow(0 1px 4px rgba(0,0,0,0.3))",flexShrink:0}} onError={e=>e.target.style.display="none"}/>
+        <div><div style={{color:th.a,fontSize:8,letterSpacing:1.5,textTransform:"uppercase",fontWeight:700}}>Pemkot Tarakan</div><div style={{color:"white",fontSize:11,fontWeight:700,lineHeight:1.3}}>Protokol &amp; Komunikasi</div></div>
+      </div>
+      <button onClick={()=>setShowProfile(true)} style={{width:"100%",background:"rgba(255,255,255,0.09)",borderRadius:11,padding:"10px 12px",display:"flex",alignItems:"center",gap:10,border:"1px solid rgba(255,255,255,0.12)",cursor:"pointer",textAlign:"left",transition:"all 0.15s"}} onMouseOver={e=>e.currentTarget.style.background="rgba(255,255,255,0.16)"} onMouseOut={e=>e.currentTarget.style.background="rgba(255,255,255,0.09)"}>
+        <div style={{width:34,height:34,borderRadius:9,background:"rgba(255,255,255,0.12)",border:"1.5px solid "+th.a,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0,color:"white",fontWeight:700}}>{user?.nama?.slice(0,1)}</div>
+        <div style={{flex:1,minWidth:0}}><div style={{color:"white",fontSize:12,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user?.nama}</div><div style={{color:"rgba(255,255,255,0.5)",fontSize:9,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{roleInfo.label}</div></div>
+        <div title={SUPA_OK?"DB OK":"Mode Lokal"} style={{width:7,height:7,borderRadius:"50%",background:SUPA_OK?"#34d399":"#f87171",flexShrink:0}}/>
+      </button>
+    </div>
+    <nav style={{flex:1,padding:"10px 10px",overflowY:"auto"}}>
+      {navGroups.map(group=><div key={group.label} style={{marginBottom:8}}>
+        <div style={{color:"rgba(255,255,255,0.3)",fontSize:9,fontWeight:800,letterSpacing:1.5,padding:"6px 10px 4px",textTransform:"uppercase"}}>{group.label}</div>
+        {group.items.map(item=>{const isActive=tab===item.key&&!item.key.startsWith("action:");return(
+          <button key={item.key+item.label} className="nav-btn sidebar-link" onClick={()=>handleNavClick(item.key)} style={{width:"100%",padding:"9px 14px",borderRadius:9,border:"none",background:isActive?"rgba(255,255,255,0.18)":"transparent",color:"white",cursor:"pointer",fontSize:12.5,fontWeight:isActive?700:400,textAlign:"left",display:"flex",alignItems:"center",gap:10,marginBottom:2,borderLeft:isActive?"3px solid "+th.a:"3px solid transparent",opacity:isActive?1:0.72}}>
+            <span style={{fontSize:15,minWidth:22,textAlign:"center"}}>{item.icon}</span>{item.label}
+          </button>);})}
+      </div>)}
+    </nav>
+    <div style={{padding:"10px",borderTop:"1px solid rgba(255,255,255,0.08)"}}>
+      {pendingList.length>0&&<button onClick={goToPending} style={{width:"100%",padding:"10px 14px",borderRadius:10,border:"none",background:"linear-gradient(135deg,#ef4444,#dc2626)",color:"white",cursor:"pointer",fontSize:12,fontWeight:700,textAlign:"left",display:"flex",alignItems:"center",gap:10,marginBottom:8,boxShadow:"0 4px 12px rgba(239,68,68,0.3)"}}>
+        <span style={{background:"white",color:"#ef4444",borderRadius:"50%",width:18,height:18,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:900,flexShrink:0}}>{pendingList.length}</span>Pending Approval
+      </button>}
+      <button onClick={doLogout} style={{width:"100%",padding:"9px 12px",borderRadius:9,border:"1px solid rgba(255,255,255,0.18)",background:"transparent",color:"rgba(255,255,255,0.65)",cursor:"pointer",fontSize:12,fontWeight:600,textAlign:"left"}}>Keluar</button>
+    </div>
+  </aside>);
+
+  // ==================== MOBILE HEADER + iOS BOTTOM TAB BAR ====================
+  const mobTabs=[
+    ...(role==="staf"?[{key:"jadwal",label:"Jadwal",icon:"📅"},{key:"penugasan",label:"Penugasan",icon:"🎯"}]:[]),
+    ...(role==="admin_rk"?[{key:"form",label:"Input",icon:"✏️"},{key:"draft",label:"Draft",icon:"📝"},{key:"jadwal",label:"Jadwal",icon:"📅"},{key:"rk",label:"RK",icon:"📋"}]:[]),
+    ...(KASUBBAG_ROLES.includes(role)?[{key:"jadwal",label:"Antrian",icon:"📋"},{key:"semua",label:"Jadwal",icon:"🗓️"}]:[]),
+    ...(role==="kabag"?[{key:"jadwal",label:"Antrian",icon:"📋"},{key:"semua",label:"Jadwal",icon:"🗓️"}]:[]),
+    ...((role==="ajudan_walikota"||role==="ajudan_wakilwalikota")?[{key:"ajudan",label:"Konfirmasi",icon:"✅"},{key:"jadwal",label:"Jadwal",icon:"📅"},{key:"penugasan",label:"Penugasan",icon:"🎯"}]:[]),
+    ...(role==="timkom"?[{key:"jadwal",label:"Jadwal",icon:"📅"},{key:"penugasan",label:"Penugasan",icon:"🎯"}]:[]),
+    ...(role==="mitra_kerja"?[{key:"mitra",label:"Agenda",icon:"📅"}]:[]),
+    ...(role==="walikota"||role==="wakilwalikota"?[{key:"jadwal",label:"Jadwal",icon:"📅"}]:[]),
+    {key:"tayang",label:"Tayang",icon:"🏛️"},
+    {key:"action:more",label:"Lainnya",icon:"⋯"},
+  ];
+  const TAB_BAR_H=56;
+  const mobileHeaderJSX=(<>
+    {/* ── TOP NAV BAR ── */}
+    <div style={{background:"linear-gradient(to bottom,"+NAVY+" 0%,"+NAVY+" 100%)",position:"sticky",top:0,zIndex:200,paddingTop:"env(safe-area-inset-top,0px)"}}>
+      <div style={{padding:"10px 16px 10px",display:"flex",alignItems:"center",gap:10,borderBottom:"0.5px solid rgba(255,255,255,0.1)"}}>
+        <img src="/logo_tarakan.png" alt="" style={{height:32,width:"auto",objectFit:"contain",flexShrink:0,filter:"drop-shadow(0 1px 3px rgba(0,0,0,0.3))"}} onError={e=>e.target.style.display="none"}/>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{color:"white",fontSize:13,fontWeight:800,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",letterSpacing:"-0.2px"}}>{user?.nama}</div>
+          <div style={{color:GOLD,fontSize:9.5,fontWeight:600,letterSpacing:"0.5px",textTransform:"uppercase"}}>{roleInfo.label}</div>
+        </div>
+        {pendingList.length>0&&<button onClick={goToPending} className="btn-ios" style={{background:"#EF4444",color:"white",borderRadius:20,padding:"4px 11px",fontSize:11,fontWeight:800,border:"none",cursor:"pointer",flexShrink:0,boxShadow:"0 2px 10px rgba(239,68,68,0.5)",display:"flex",alignItems:"center",gap:5}}>
+          <span style={{background:"rgba(255,255,255,0.25)",borderRadius:"50%",width:16,height:16,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:900}}>{pendingList.length}</span>Pending
+        </button>}
+        <button aria-label="Notifikasi" onClick={()=>setShowNotifCenter(true)} style={{position:"relative",width:32,height:32,borderRadius:9,border:"1px solid rgba(255,255,255,0.2)",background:"rgba(255,255,255,0.1)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>
+          🔔
+          {notifPenugasan.length>0&&<span style={{position:"absolute",top:-3,right:-3,background:"#EF4444",color:"white",borderRadius:"50%",width:14,height:14,display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,fontWeight:900}}>{notifPenugasan.length}</span>}
+        </button>
+        <div title={SUPA_OK?"Terhubung ke Database":"Mode Lokal"} style={{width:8,height:8,borderRadius:"50%",background:SUPA_OK?"#34D399":"#F87171",flexShrink:0,boxShadow:SUPA_OK?"0 0 6px rgba(52,211,153,0.6)":"none"}}/>
+      </div>
+    </div>
+
+    {/* ── iOS BOTTOM TAB BAR ── */}
+    <div className="ios-tab-bar" style={{height:TAB_BAR_H+"px"}}>
+      {mobTabs.map(t=>{
+        const isActive=t.key==="action:more"?showMobMenu:(tab===t.key&&!showMobMenu);
+        const handleTab=()=>{
+          if(t.key==="action:more"){setMobMenu(v=>!v);return;}
+          setMobMenu(false);
+          if(t.key==="form"){setForm(emptyForm);setEditId(null);}
+          setTab(t.key);
+        };
+        return <button key={t.key} className={"ios-tab-btn"+(isActive?" active":"")} onClick={handleTab} style={{color:isActive?NAVY:"#94A3B8"}}>
+          <span className="ios-tab-icon" style={{filter:isActive?"none":"grayscale(0.3)"}}>{t.icon}</span>
+          <span className="ios-tab-label" style={{fontWeight:isActive?700:500,color:isActive?NAVY:"#94A3B8"}}>{t.label}</span>
+          {t.key==="action:more"&&!showMobMenu&&(
+            (pendingList.length>0?<span style={{position:"absolute",top:6,right:"calc(50% - 14px)",background:"#EF4444",color:"white",borderRadius:"50%",width:16,height:16,fontSize:9,fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center"}}>{pendingList.length}</span>:null)
+          )}
+        </button>;
+      })}
+    </div>
+
+    {/* ── MORE DRAWER (bottom sheet style) ── */}
+    {showMobMenu&&<>
+      <div style={{position:"fixed",inset:0,zIndex:290,background:"rgba(0,0,0,0.4)",backdropFilter:"blur(4px)",WebkitBackdropFilter:"blur(4px)",animation:"fadeIn 0.2s ease"}} onClick={()=>setMobMenu(false)}/>
+      <div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:295,background:"white",borderRadius:"20px 20px 0 0",boxShadow:"0 -8px 40px rgba(0,0,0,0.2)",animation:"sheetUp 0.3s cubic-bezier(0.34,1.3,0.64,1)",maxHeight:"70vh",display:"flex",flexDirection:"column"}} onClick={e=>e.stopPropagation()}>
+        {/* Handle + scrollable content */}
+        <div style={{flexShrink:0,padding:"0 16px"}}>
+          <div style={{width:36,height:4,background:"#E2E8F0",borderRadius:4,margin:"12px auto 16px"}}/>
+          <div style={{fontSize:11,fontWeight:700,color:"#94A3B8",letterSpacing:1.5,textTransform:"uppercase",marginBottom:10,paddingLeft:2}}>MENU</div>
+        </div>
+        <div style={{flex:1,overflowY:"auto",padding:"0 16px",WebkitOverflowScrolling:"touch"}}>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+            {[
+              {icon:"💬",label:"Rekap WA",action:()=>{setShowSummary(true);setMobMenu(false);}},
+              {icon:"📄",label:"Cetak PDF",action:()=>{setShowReport(true);setMobMenu(false);}},
+              ...(canReport?[{icon:"📊",label:"Laporan",action:()=>{setShowLaporan(true);setMobMenu(false);}}]:[]),
+              ...((KASUBBAG_ROLES.includes(role)||role==="kabag")?[{icon:"📈",label:"Rekap Evaluasi",action:()=>{setTab("penugasan");setMobMenu(false);}}]:[]),
+              {icon:"👤",label:"Profil",action:()=>{setShowProfile(true);setMobMenu(false);}},
+              ...(role==="kabag"?[{icon:"⚙️",label:"Kelola User"+(loadPendingRegs().length>0?" ("+loadPendingRegs().length+")":""),action:()=>{setShowAdmin(true);setMobMenu(false);}}]:[]),
+              ...(role==="kabag"?[{icon:"📢",label:"Kirim Pengumuman",action:()=>{setShowBroadcast(true);setMobMenu(false);}}]:[]),
+            ].map((btn,i)=>(
+              <button key={i} onClick={btn.action} className="btn-ios" style={{padding:"14px 12px",borderRadius:14,border:"1.5px solid #E4EAF2",background:"#F8FAFF",color:NAVY,cursor:"pointer",fontSize:13,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+                <span style={{fontSize:20}}>{btn.icon}</span>{btn.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        {/* Logout button - ALWAYS visible, sticky at bottom */}
+        <div style={{flexShrink:0,padding:"8px 16px",paddingBottom:"calc(env(safe-area-inset-bottom,0px) + 12px)",borderTop:"1px solid #F1F5F9",background:"white"}}>
+          <button onClick={()=>{doLogout();setMobMenu(false);}} className="btn-ios" style={{width:"100%",padding:"14px",borderRadius:14,border:"2px solid #FCA5A5",background:"#FEF2F2",color:"#DC2626",cursor:"pointer",fontSize:14,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+            <span style={{fontSize:18}}>🚪</span>Keluar dari Akun
+          </button>
+        </div>
+      </div>
+    </>}
+  </>);
+
+  
+// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
+// RENCANA KEGIATAN (RK) VIEW — hanya untuk admin_rk
+// ═══════════════════════════════════════════════════════
+function RKView({events,user,upd,updAndSync,showT,isMobile}){
+  const NAVY="0A1628";const _NAVY="#0A1628";
+  const[rkList,setRkList]=useState(()=>{try{return JSON.parse(localStorage.getItem("prokopim_rk")||"[]");}catch{return[];}});
+  const[showForm,setShowForm]=useState(false);
+  const[form,setForm]=useState({judul:"",perihal:"",tanggalMulai:"",tanggalSelesai:"",uraian:"",catatan:""});
+  const[showAI,setShowAI]=useState(false);
+  const saveRk=(list)=>{localStorage.setItem("prokopim_rk",JSON.stringify(list));setRkList(list);};
+  const submitRk=()=>{
+    if(!form.judul||!form.tanggalMulai)return showT("Judul dan tanggal mulai wajib diisi","error");
+    const item={...form,id:Date.now(),dibuat:new Date().toISOString(),dibuatOleh:user.username,dibuatOlehNama:user.nama};
+    saveRk([item,...rkList]);
+    setForm({judul:"",perihal:"",tanggalMulai:"",tanggalSelesai:"",uraian:"",catatan:""});
+    setShowForm(false);showT("Rencana Kegiatan berhasil disimpan ✓");
+  };
+  const hapusRk=(id)=>saveRk(rkList.filter(r=>r.id!==id));
+  const inp={width:"100%",padding:"9px 11px",borderRadius:8,border:"1.5px solid #e2e8f0",fontSize:13,boxSizing:"border-box"};
+  return <div style={{padding:isMobile?"12px":"20px"}}>
+    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16,flexWrap:"wrap",gap:8}}>
+      <div><div style={{fontSize:16,fontWeight:700,color:_NAVY}}>📋 Rencana Kegiatan (RK)</div><div style={{fontSize:12,color:"#64748b",marginTop:2}}>{rkList.length} entri tersimpan</div></div>
+      <div style={{display:"flex",gap:8}}><button onClick={()=>setShowAI(true)} style={{padding:"9px 14px",borderRadius:9,border:"1.5px solid #6366f1",background:"white",color:"#6366f1",cursor:"pointer",fontSize:12,fontWeight:700}}>✨ Input dengan AI</button><button onClick={()=>setShowForm(true)} style={{padding:"9px 14px",borderRadius:9,border:"none",background:_NAVY,color:"white",cursor:"pointer",fontSize:12,fontWeight:700}}>+ Input Manual</button></div>
+    </div>
+    {showForm&&<div style={{background:"white",borderRadius:12,border:"1.5px solid #e2e8f0",padding:16,marginBottom:16}}>
+      <div style={{fontWeight:700,color:_NAVY,marginBottom:12}}>Input Rencana Kegiatan Baru</div>
+      {[{k:"judul",l:"Judul RK *"},{k:"perihal",l:"Perihal"},{k:"uraian",l:"Uraian Kegiatan"},{k:"catatan",l:"Catatan"}].map(f=><div key={f.k} style={{marginBottom:10}}>
+        <label style={{display:"block",fontSize:12,color:"#64748b",fontWeight:600,marginBottom:3}}>{f.l}</label>
+        <input value={form[f.k]||""} onChange={e=>setForm(p=>({...p,[f.k]:e.target.value}))} style={inp}/>
+      </div>)}
+      <div style={{display:"flex",gap:8,marginBottom:10}}>
+        <div style={{flex:1}}><label style={{display:"block",fontSize:12,color:"#64748b",fontWeight:600,marginBottom:3}}>Tanggal Mulai *</label><input type="date" value={form.tanggalMulai} onChange={e=>setForm(p=>({...p,tanggalMulai:e.target.value}))} style={inp}/></div>
+        <div style={{flex:1}}><label style={{display:"block",fontSize:12,color:"#64748b",fontWeight:600,marginBottom:3}}>Tanggal Selesai</label><input type="date" value={form.tanggalSelesai} onChange={e=>setForm(p=>({...p,tanggalSelesai:e.target.value}))} style={inp}/></div>
+      </div>
+      <div style={{display:"flex",gap:8}}>
+        <button onClick={()=>setShowForm(false)} style={{flex:1,padding:"10px",borderRadius:9,border:"1.5px solid #e2e8f0",background:"white",color:"#64748b",cursor:"pointer",fontSize:13,fontWeight:600}}>Batal</button>
+        <button onClick={submitRk} style={{flex:2,padding:"10px",borderRadius:9,border:"none",background:_NAVY,color:"white",cursor:"pointer",fontSize:13,fontWeight:700}}>Simpan RK</button>
+      </div>
+    </div>}
+    {rkList.length===0&&!showForm?<div style={{textAlign:"center",padding:"40px 20px",background:"white",borderRadius:12,border:"1.5px solid #e2e8f0",color:"#94a3b8"}}>
+      <div style={{fontSize:36,marginBottom:8}}>📋</div><div style={{fontWeight:700}}>Belum ada rencana kegiatan</div>
+      <div style={{fontSize:12,marginTop:4}}>Gunakan tombol Input Manual atau Input AI untuk menambahkan RK</div>
+    </div>:rkList.map(r=><div key={r.id} style={{background:"white",borderRadius:12,border:"1.5px solid #e2e8f0",padding:"12px 16px",marginBottom:10}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
+        <div style={{flex:1}}>
+          <div style={{fontWeight:700,color:_NAVY,fontSize:14}}>{r.judul}</div>
+          {r.perihal&&<div style={{fontSize:12,color:"#475569",marginTop:2}}>{r.perihal}</div>}
+          <div style={{fontSize:11,color:"#94a3b8",marginTop:4}}>{r.tanggalMulai}{r.tanggalSelesai&&" s.d. "+r.tanggalSelesai} · Oleh: {r.dibuatOlehNama}</div>
+          {r.uraian&&<div style={{fontSize:12,color:"#334155",marginTop:6,padding:"6px 8px",background:"#f8fafc",borderRadius:6}}>{r.uraian}</div>}
+          {r.catatan&&<div style={{fontSize:11,color:"#64748b",marginTop:4,fontStyle:"italic"}}>{r.catatan}</div>}
+        </div>
+        <button onClick={()=>hapusRk(r.id)} style={{flexShrink:0,padding:"6px 10px",borderRadius:8,border:"1.5px solid #fca5a5",background:"white",color:"#ef4444",cursor:"pointer",fontSize:11,fontWeight:700}}>✕</button>
+      </div>
+    </div>)}
+    {showAI&&<AIModalRK onFill={d=>{setForm(p=>({...p,...d}));setShowForm(true);setShowAI(false);showT("Data terisi dari AI ✓","warn");}} onClose={()=>setShowAI(false)}/>}
+  </div>;
+}
+
+// AIModal khusus RK — upload langsung tersimpan
+function AIModalRK({onFill,onClose}){
+  const ref=useRef();const[drag,setDrag]=useState(false);const[loading,setLoading]=useState(false);const[edited,setEdited]=useState(null);const[err,setErr]=useState("");const[savedFile,setSavedFile]=useState(null);
+  const analyze=async f=>{
+    setLoading(true);setErr("");
+    try{
+      let b64,mimeType;
+      if(f.type==="application/pdf"){b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result.split(",")[1]);r.onerror=rej;r.readAsDataURL(f);});mimeType="application/pdf";}
+      else{const img=new Image();const url=URL.createObjectURL(f);b64=await new Promise(res=>{img.onload=()=>{URL.revokeObjectURL(url);const c=document.createElement("canvas");let w=img.width,h=img.height;if(w>1024||h>1024){if(w>h){h=Math.round(h*1024/w);w=1024;}else{w=Math.round(w*1024/h);h=1024;}}c.width=w;c.height=h;c.getContext("2d").drawImage(img,0,0,w,h);res(c.toDataURL("image/jpeg",0.75).split(",")[1]);};img.onerror=()=>{const r=new FileReader();r.onload=e=>res(e.target.result.split(",")[1]);r.readAsDataURL(f);};img.src=url;});mimeType="image/jpeg";}
+      const PROMPT='Baca dokumen ini dan balas HANYA JSON: {"judul":"","perihal":"","tanggalMulai":"YYYY-MM-DD","tanggalSelesai":"YYYY-MM-DD","uraian":"","catatan":""}';
+      const resp=await fetch("/api/ai",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,messages:[{role:"user",content:[{type:f.type==="application/pdf"?"document":"image",source:{type:"base64",media_type:mimeType,data:b64}},{type:"text",text:PROMPT}]}]})});
+      const data=await resp.json().catch(()=>null);
+      if(!resp.ok)throw new Error(data?.error||"Server error");
+      const txt=(data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("").replace(/```(?:json)?\s*/gi,"").replace(/```/g,"").trim();
+      const m=txt.match(/{[\s\S]*}/);
+      if(!m)throw new Error("AI tidak mengembalikan JSON");
+      setEdited(JSON.parse(m[0]));
+      // Simpan file otomatis ke storage
+      try{
+        let url;
+        if(SUPA_OK){url=await storageUpload("undangan",f,f.name);}
+        else{url=await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=rej;r.readAsDataURL(f);});}
+        setSavedFile({url,nama:f.name});
+      }catch(e2){console.warn("Gagal simpan file:",e2);}
+    }catch(e){setErr(e.message);}
+    setLoading(false);
+  };
+  const inp={width:"100%",padding:"9px 11px",borderRadius:8,border:"1.5px solid #e2e8f0",fontSize:13};
+  return <div style={{position:"fixed",inset:0,zIndex:8200,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+    <div style={{background:"white",borderRadius:16,width:"100%",maxWidth:500,maxHeight:"90vh",display:"flex",flexDirection:"column"}}>
+      <div style={{padding:"16px 20px 12px",borderBottom:"1px solid #f1f5f9",display:"flex",alignItems:"center",gap:10}}>
+        <div style={{flex:1}}><div style={{fontSize:16,fontWeight:700,color:"#0A1628"}}>✨ Input RK dengan AI</div><div style={{fontSize:12,color:"#64748b"}}>Upload dokumen — data & file tersimpan otomatis</div></div>
+        <button onClick={onClose} style={{background:"#f1f5f9",border:"none",borderRadius:7,padding:"6px 10px",cursor:"pointer",fontSize:13,fontWeight:700,color:"#64748b"}}>Tutup</button>
+      </div>
+      <div style={{flex:1,overflowY:"auto",padding:"16px 20px 20px"}}>
+        {!edited&&!loading&&<>
+          <input ref={ref} type="file" accept="application/pdf,image/*" onChange={e=>{if(e.target.files[0])analyze(e.target.files[0]);e.target.value="";}} style={{display:"none"}}/>
+          <div onClick={()=>ref.current.click()} onDragOver={e=>{e.preventDefault();setDrag(true);}} onDragLeave={()=>setDrag(false)} onDrop={e=>{e.preventDefault();setDrag(false);if(e.dataTransfer.files[0])analyze(e.dataTransfer.files[0]);}} style={{border:"2px dashed "+(drag?"#6366f1":"#c7d2fe"),borderRadius:12,padding:"36px 20px",textAlign:"center",cursor:"pointer",background:drag?"#eef2ff":"#f8faff"}}>
+            <div style={{fontSize:36,marginBottom:10}}>📄</div>
+            <div style={{fontSize:15,fontWeight:700,color:"#0A1628",marginBottom:4}}>Upload Dokumen RK</div>
+            <div style={{fontSize:13,color:"#64748b"}}>PDF, JPG, atau PNG • File otomatis tersimpan ke sistem</div>
+          </div>
+          {err&&<div style={{marginTop:12,padding:"10px 12px",background:"#fee2e2",borderRadius:8,fontSize:13,color:"#991b1b"}}>{err}</div>}
+        </>}
+        {loading&&<div style={{textAlign:"center",padding:"40px 20px"}}><div style={{width:48,height:48,border:"4px solid #e0e7ff",borderTopColor:"#6366f1",borderRadius:"50%",animation:"spin 0.9s linear infinite",margin:"0 auto 16px"}}/><div style={{fontSize:14,fontWeight:700,color:"#0A1628"}}>AI menganalisa dokumen...</div><style>{"@keyframes spin{to{transform:rotate(360deg)}}"}</style></div>}
+        {edited&&<>
+          <div style={{background:"#d1fae5",borderRadius:9,padding:"9px 12px",marginBottom:12,fontSize:13,color:"#065f46",fontWeight:700}}>✓ Analisa selesai{savedFile?" — file tersimpan: "+savedFile.nama:""}. Edit jika perlu.</div>
+          {[{k:"judul",l:"Judul RK"},{k:"perihal",l:"Perihal"},{k:"uraian",l:"Uraian"},{k:"catatan",l:"Catatan"}].map(f=><div key={f.k} style={{marginBottom:9}}><label style={{display:"block",fontSize:12,color:"#64748b",fontWeight:600,marginBottom:3}}>{f.l}</label><input value={edited[f.k]||""} onChange={e=>setEdited(p=>({...p,[f.k]:e.target.value}))} style={inp}/></div>)}
+          <div style={{display:"flex",gap:8,marginBottom:10}}>
+            <div style={{flex:1}}><label style={{display:"block",fontSize:12,color:"#64748b",fontWeight:600,marginBottom:3}}>Tanggal Mulai</label><input type="date" value={edited.tanggalMulai||""} onChange={e=>setEdited(p=>({...p,tanggalMulai:e.target.value}))} style={inp}/></div>
+            <div style={{flex:1}}><label style={{display:"block",fontSize:12,color:"#64748b",fontWeight:600,marginBottom:3}}>Tanggal Selesai</label><input type="date" value={edited.tanggalSelesai||""} onChange={e=>setEdited(p=>({...p,tanggalSelesai:e.target.value}))} style={inp}/></div>
+          </div>
+          <div style={{display:"flex",gap:8,marginTop:16}}>
+            <button onClick={()=>setEdited(null)} style={{flex:1,padding:"11px",borderRadius:9,border:"1.5px solid #e2e8f0",background:"white",cursor:"pointer",fontSize:13,fontWeight:600,color:"#64748b"}}>Ulangi</button>
+            <button onClick={()=>onFill(edited)} style={{flex:2,padding:"11px",borderRadius:9,border:"none",background:"#0A1628",color:"white",cursor:"pointer",fontSize:13,fontWeight:700}}>Gunakan Data Ini</button>
+          </div>
+        </>}
+      </div>
+    </div>
+  </div>;
+}
+
+// PENUGASAN SAYA VIEW
+// ═══════════════════════════════════════════════════════
+function PenugasanSayaView({events, user, onOpenEvaluasi, isMobile}){
+  const NAVY="#0A1628",GOLD="#C9A84C";
+  const canSeeAll=["kabag","ajudan_walikota","ajudan_wakilwalikota","kasubbag_protokol","kasubbag_komdokpim"].includes(user.role);
+  const approved=events.filter(e=>e.alur==="disetujui").sort((a,b)=>(a.tanggal+a.jam).localeCompare(b.tanggal+b.jam));
+  // Untuk kabag/ajudan/kasubbag: semua jadwal disetujui; untuk staf: hanya yang ditugaskan ke mereka
+  const myEvents=canSeeAll?approved:approved.filter(e=>(e.personil||[]).includes(user.username));
+  const allApproved=approved;
+
+  const now=new Date();
+  const fmt=t=>{const d=new Date(t);return d.toLocaleDateString("id-ID",{weekday:"short",day:"numeric",month:"short",year:"numeric"});};
+  const upcoming=myEvents.filter(e=>new Date(e.tanggal+"T"+e.jam)>=now);
+  const past=myEvents.filter(e=>new Date(e.tanggal+"T"+e.jam)<now);
+
+  const PenCard=({ev,isMyTask})=>{
+    const evDt=new Date(ev.tanggal+"T"+ev.jam);
+    const isPast=evDt<now;
+    const hoursLeft=(evDt-now)/(1000*60*60);
+    const isUrgent=hoursLeft>0&&hoursLeft<=24;
+    const sudahEval=!!(ev.evaluasi||{})[user.username]?.submitted;
+    return(
+      <div style={{background:isMyTask?(isPast?"#F8FFFE":"#FAFFFD"):"#FAFBFF",borderRadius:14,border:"1.5px solid "+(isMyTask?(isPast?"#a7f3d0":"#6ee7b7"):"#E2E8F0"),marginBottom:8,overflow:"hidden",opacity:isPast&&!isMyTask?0.6:1}}>
+        {isMyTask&&<div style={{background:isPast?"linear-gradient(90deg,#d1fae5,#a7f3d0)":"linear-gradient(90deg,#ECFDF5,#d1fae5)",padding:"5px 14px",fontSize:10,color:isPast?"#065f46":"#047857",fontWeight:800,letterSpacing:0.5,display:"flex",alignItems:"center",gap:5,borderBottom:"1px solid "+(isPast?"#a7f3d0":"#bbf7d0")}}>
+          <span>🎯</span> {isPast?"SUDAH BERTUGAS":"ANDA BERTUGAS"}
+          {isUrgent&&<span style={{marginLeft:"auto",background:"#FEF3C7",color:"#92400E",borderRadius:4,padding:"1px 7px",fontSize:9}}>⚠️ {Math.round(hoursLeft)} JAM LAGI</span>}
+          {isPast&&!sudahEval&&onOpenEvaluasi&&<button onClick={()=>onOpenEvaluasi(ev)} style={{marginLeft:"auto",background:"#7c3aed",color:"white",border:"none",borderRadius:5,padding:"2px 8px",fontSize:9,fontWeight:700,cursor:"pointer"}}>📝 Isi Evaluasi</button>}
+          {isPast&&sudahEval&&<span style={{marginLeft:"auto",background:"#d1fae5",color:"#065f46",borderRadius:4,padding:"1px 7px",fontSize:9,fontWeight:700}}>✅ Dievaluasi</span>}
+        </div>}
+        <div style={{padding:"12px 14px",display:"flex",gap:12,alignItems:"flex-start"}}>
+          <div style={{minWidth:44,textAlign:"center",background:isMyTask?(isPast?"#d1fae5":"#ecfdf5"):"#f1f5f9",borderRadius:10,padding:"6px 0"}}>
+            <div style={{fontSize:9,fontWeight:800,color:isMyTask?"#065f46":"#64748B",letterSpacing:0.5,textTransform:"uppercase"}}>{new Date(ev.tanggal).toLocaleDateString("id-ID",{weekday:"short"})}</div>
+            <div style={{fontSize:20,fontWeight:900,color:isMyTask?(isPast?"#047857":NAVY):"#334155",lineHeight:1}}>{ev.tanggal.slice(8)}</div>
+            <div style={{fontSize:10,color:isMyTask?"#059669":"#94A3B8",fontWeight:600}}>{ev.jam}</div>
+          </div>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontSize:13,fontWeight:800,color:"#0F1C2E",marginBottom:3,lineHeight:1.3}}>{ev.namaAcara}</div>
+            <div style={{fontSize:11,color:"#64748B",marginBottom:3}}>{ev.penyelenggara}{ev.lokasi?" · "+ev.lokasi:""}</div>
+            {ev.catatanPenugasan&&<div style={{fontSize:11,color:"#4338CA",background:"#EEF2FF",borderRadius:6,padding:"4px 8px",marginTop:4,fontStyle:"italic"}}>💬 {ev.catatanPenugasan}</div>}
+            {(ev.personil||[]).length>0&&isMyTask&&<div style={{fontSize:10,color:"#64748B",marginTop:4}}>Rekan: {(ev.personil||[]).filter(u=>u!==user.username).map(u=>getNamaByUsername(u)).join(", ")||"-"}</div>}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  return(
+    <div style={{padding:isMobile?"12px 14px":"24px 32px",overflowY:"auto"}}>
+      {/* SUMMARY BAR */}
+      <div style={{display:"flex",gap:10,marginBottom:18,flexWrap:"wrap"}}>
+        {[{n:upcoming.length,l:"Akan Datang",c:NAVY,ic:"📅"},{n:past.length,l:"Selesai",c:"#059669",ic:"✅"},{n:myEvents.filter(e=>!(e.evaluasi||{})[user.username]?.submitted&&new Date(e.tanggal+"T"+e.jam)<now).length,l:"Belum Dievaluasi",c:"#7c3aed",ic:"📝"}].map(it=>(
+          <div key={it.l} style={{flex:1,minWidth:90,background:"white",borderRadius:12,padding:"12px",boxShadow:"0 1px 8px rgba(0,0,0,0.06)",border:"1.5px solid #E8EDF4",textAlign:"center"}}>
+            <div style={{fontSize:22,fontWeight:900,color:it.c}}>{it.n}</div>
+            <div style={{fontSize:10,color:"#94A3B8",fontWeight:600,marginTop:2}}>{it.ic} {it.l}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* AKAN DATANG */}
+      {upcoming.length>0&&<>
+        <div style={{fontSize:11,fontWeight:800,color:NAVY,letterSpacing:1.2,textTransform:"uppercase",marginBottom:8,display:"flex",alignItems:"center",gap:6}}>
+          <span>{user.role==="kabag"?"📊":"📅"}</span> {user.role==="kabag"?"Kegiatan Mendatang":"Penugasan Mendatang"}
+        </div>
+        {upcoming.map(ev=><PenCard key={ev.id} ev={ev} isMyTask={(ev.personil||[]).includes(user.username)}/>)}
+      </>}
+
+      {upcoming.length===0&&past.length===0&&(
+        <div style={{textAlign:"center",padding:"50px 20px",color:"#94A3B8"}}>
+          <div style={{fontSize:48,marginBottom:10}}>🎯</div>
+          <div style={{fontSize:16,fontWeight:700,color:"#334155",marginBottom:6}}>Belum Ada Penugasan</div>
+          <div style={{fontSize:13}}>Anda belum ditugaskan ke jadwal manapun saat ini.</div>
+        </div>
+      )}
+
+      {/* RIWAYAT */}
+      {past.length>0&&<>
+        <div style={{fontSize:11,fontWeight:800,color:"#64748B",letterSpacing:1.2,textTransform:"uppercase",margin:"18px 0 8px",display:"flex",alignItems:"center",gap:6}}>
+          <span>📁</span> Riwayat Penugasan
+        </div>
+        {past.map(ev=><PenCard key={ev.id} ev={ev} isMyTask={(ev.personil||[]).includes(user.username)}/>)}
+      </>}
+
+      {/* SEMUA JADWAL DISETUJUI */}
+      <div style={{fontSize:11,fontWeight:800,color:"#64748B",letterSpacing:1.2,textTransform:"uppercase",margin:"22px 0 8px",display:"flex",alignItems:"center",gap:6,borderTop:"1px solid #E2E8F0",paddingTop:16}}>
+        <span>🗓️</span> Semua Jadwal Aktif
+      </div>
+      <div style={{fontSize:11,color:"#94A3B8",marginBottom:10}}>Jadwal yang sudah disetujui — termasuk yang tidak ada penugasan Anda</div>
+      {allApproved.length===0
+        ?<div style={{textAlign:"center",padding:"20px",color:"#94A3B8",fontSize:13}}>Belum ada jadwal aktif</div>
+        :allApproved.map(ev=>{
+          const isMy=(ev.personil||[]).includes(user.username);
+          return <PenCard key={ev.id} ev={ev} isMyTask={isMy}/>;
+        })
+      }
+    </div>
+  );
+}
+
+
+
+// ── Komponen catatan terkontrol — fix bug defaultValue/onBlur ──────────
+function CatatanInput({evId, initial, onSave, btnColor, placeholder, label}){
+  const NAVY="#0A1628";
+  const [val, setVal] = React.useState(initial||"");
+  const [saved, setSaved] = React.useState(false);
+  // Sync jika initial berubah dari luar (mis. update dari device lain)
+  React.useEffect(()=>{ setVal(initial||""); },[evId, initial]);
+  const handleSave = ()=>{
+    onSave(val);
+    setSaved(true);
+    setTimeout(()=>setSaved(false), 2000);
+  };
+  return (
+    <div>
+      {label&&<label style={{display:"block",fontSize:12,color:"#64748B",fontWeight:600,marginBottom:4}}>{label}</label>}
+      <textarea
+        value={val}
+        onChange={e=>{ setVal(e.target.value); setSaved(false); }}
+        rows={3}
+        placeholder={placeholder||"Ketik catatan..."}
+        style={{width:"100%",padding:"10px 12px",borderRadius:10,
+          border:"1.5px solid "+(saved?"#6EE7B7":"#E2E8F0"),
+          fontSize:13,color:"#0F172A",resize:"vertical",
+          background:saved?"#F0FDF4":"white",
+          boxSizing:"border-box",transition:"border-color 0.2s,background 0.2s",
+          outline:"none"}}
+        onKeyDown={e=>{ if((e.ctrlKey||e.metaKey)&&e.key==="Enter") handleSave(); }}
+      />
+      <div style={{display:"flex",alignItems:"center",gap:8,marginTop:6}}>
+        <button
+          onClick={e=>{e.stopPropagation();handleSave();}}
+          style={{padding:"9px 20px",borderRadius:9,border:"none",
+            background:saved?"#059669":(btnColor||NAVY),
+            color:"white",cursor:"pointer",fontSize:12,fontWeight:700,
+            transition:"background 0.2s",flexShrink:0}}>
+          {saved?"✓ Tersimpan":"Simpan Catatan"}
+        </button>
+        <span style={{fontSize:10,color:"#94A3B8"}}>Ctrl+Enter untuk simpan cepat</span>
+      </div>
+    </div>
+  );
+}
 
 
 // ── Modal konfirmasi untuk aksi berbahaya ──────────────────────────────
