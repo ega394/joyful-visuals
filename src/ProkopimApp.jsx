@@ -4352,30 +4352,35 @@ const TH={
       </>}
 
       {/* ── DESKTOP LAYOUT ── */}
-      {!isMobile&&<div style={{width:"100%",maxWidth:960,display:"flex",gap:0,borderRadius:20,overflow:"hidden",boxShadow:"0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px "+BORDER,animation:"pulseGlow 3s ease infinite"}}>
+      {!isMobile&&<div style={{width:"100%",maxWidth:1040,display:"flex",gap:0,borderRadius:24,overflow:"hidden",boxShadow:"0 40px 100px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05)",animation:"pulseGlow 4s ease infinite"}}>
         {/* Left panel hero */}
-        <div style={{flex:1,background:"linear-gradient(160deg,hsla(215,35%,14%,0.95),hsla(215,30%,11%,0.98))",backdropFilter:"blur(20px)",padding:"48px 44px",display:"flex",flexDirection:"column",justifyContent:"space-between",borderRight:"1px solid "+BORDER}}>
-          <div>
-            <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:32}}>
-              <img src="/logo_tarakan.png" alt="Logo" style={{height:64,width:"auto",objectFit:"contain",filter:"drop-shadow(0 2px 12px rgba(0,0,0,0.5))",flexShrink:0}} onError={e=>e.target.style.display="none"}/>
+        <div style={{flex:1,background:"linear-gradient(160deg,hsla(215,35%,14%,0.97),hsla(215,30%,11%,0.99))",padding:"52px 48px",display:"flex",flexDirection:"column",justifyContent:"space-between",borderRight:"1px solid "+BORDER,position:"relative",overflow:"hidden"}}>
+          {/* Background image overlay */}
+          <div style={{position:"absolute",inset:0,backgroundImage:"url(/hero_tarakan.jpg)",backgroundSize:"cover",backgroundPosition:"center",opacity:0.08}}/>
+          <div style={{position:"relative",zIndex:1}}>
+            <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:36}}>
+              <img src="/logo_tarakan.png" alt="Logo" style={{height:68,width:"auto",objectFit:"contain",filter:"drop-shadow(0 4px 16px rgba(0,0,0,0.5))",flexShrink:0}} onError={e=>e.target.style.display="none"}/>
               <div>
-                <div style={{color:GOLD2,fontSize:9,letterSpacing:2.5,textTransform:"uppercase",fontWeight:700,marginBottom:4}}>Pemerintah Kota Tarakan</div>
-                <div style={{color:FG,fontSize:17,fontWeight:800,lineHeight:1.25}}>Bagian Protokol &amp;</div>
-                <div style={{color:FG,fontSize:17,fontWeight:800}}>Komunikasi Pimpinan</div>
+                <div style={{color:GOLD2,fontSize:9,letterSpacing:3,textTransform:"uppercase",fontWeight:700,marginBottom:5}}>Pemerintah Kota Tarakan</div>
+                <div style={{color:FG,fontSize:18,fontWeight:800,lineHeight:1.25,letterSpacing:"-0.02em",fontFamily:"'Geist',sans-serif"}}>Bagian Protokol &amp;</div>
+                <div style={{color:FG,fontSize:18,fontWeight:800,fontFamily:"'Geist',sans-serif"}}>Komunikasi Pimpinan</div>
               </div>
             </div>
-            <div style={{width:40,height:3,background:"linear-gradient(90deg,"+GOLD2+","+GOLD_LIGHT+")",borderRadius:3,marginBottom:20}}/>
-            <div style={{color:MUTED,fontSize:12.5,lineHeight:1.8,marginBottom:28}}>
-              Sistem Informasi Jadwal Kegiatan Pimpinan Daerah Kota Tarakan. Mengelola agenda, approval workflow, dan koordinasi tim Protokol dan Komunikasi Pimpinan secara terpadu.
+            <div style={{width:48,height:3,background:"linear-gradient(90deg,"+GOLD2+","+GOLD_LIGHT+",transparent)",borderRadius:3,marginBottom:24}}/>
+            <div style={{color:MUTED,fontSize:13,lineHeight:1.9,marginBottom:32,maxWidth:380}}>
+              Sistem terpadu untuk mengelola jadwal kegiatan, persetujuan berjenjang, dan koordinasi tim Protokol &amp; Komunikasi Pimpinan Kota Tarakan.
             </div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px 16px"}}>
-              {features.map(([ic,t,d],i)=><div key={t} className="feat-item" style={{display:"flex",alignItems:"flex-start",gap:10,animationDelay:(i*0.06)+"s"}}>
-                <div style={{width:30,height:30,borderRadius:8,background:"hsla(42,78%,55%,0.1)",border:"1px solid hsla(42,78%,55%,0.18)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,flexShrink:0,marginTop:1}}>{ic}</div>
-                <div><div style={{color:FG,fontSize:12,fontWeight:700,lineHeight:1.3}}>{t}</div><div style={{color:MUTED,fontSize:10,lineHeight:1.4,marginTop:1}}>{d}</div></div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"12px 20px"}}>
+              {features.map(([ic,t,d],i)=><div key={t} className="feat-item" style={{display:"flex",alignItems:"flex-start",gap:12,animationDelay:(i*0.08)+"s"}}>
+                <div style={{width:34,height:34,borderRadius:10,background:"hsla(42,78%,55%,0.08)",border:"1px solid hsla(42,78%,55%,0.15)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0,marginTop:1}}>{ic}</div>
+                <div><div style={{color:FG,fontSize:12,fontWeight:700,lineHeight:1.3,letterSpacing:"-0.01em"}}>{t}</div><div style={{color:MUTED,fontSize:10.5,lineHeight:1.5,marginTop:2}}>{d}</div></div>
               </div>)}
             </div>
           </div>
-          <div style={{color:MUTED,fontSize:10,letterSpacing:1.5,opacity:0.5,marginTop:20}}>v1.0 · Prokopim Tarakan · 2026</div>
+          <div style={{position:"relative",zIndex:1,display:"flex",alignItems:"center",gap:10,marginTop:24}}>
+            <div style={{width:6,height:6,borderRadius:"50%",background:GOLD2,animation:"glow 2s ease infinite"}}/>
+            <span style={{color:MUTED,fontSize:10,letterSpacing:1.5,opacity:0.6}}>v1.0 · Prokopim Tarakan · 2026</span>
+          </div>
         </div>
 
         {/* Right panel login */}
