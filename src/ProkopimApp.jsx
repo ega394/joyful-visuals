@@ -303,7 +303,7 @@ if(typeof document!=="undefined"&&!document.getElementById("prokopim-anim")){
 }
 
 const PAKAIAN=["PDH","PDH Batik Tarakan","Batik Lengan Panjang","Batik Korpri","Pakaian Muslim","PSL","PSR","PSH","PDUB","Pakaian Lapangan","Olahraga","Bebas Rapi","Lainnya"];
-const JENIS=["Menghadiri","Sambutan","Pengarahan"];
+const JENIS=["Menghadiri","Sambutan","Sambutan membuka acara","Pengarahan"];
 const PEJABAT=["Sekda","Asisten Pemerintahan dan Kesra","Asisten Perekonomian dan Pembangunan","Asisten Administrasi Umum"];
 const ROLES_WITH_REPORT=["staf","admin_rk","kasubbag_protokol","kasubbag_komdokpim","kabag","timkom"];
 const STAF_ROLES=["staf","admin_rk","timkom"];
