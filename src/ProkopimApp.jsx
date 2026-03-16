@@ -5640,6 +5640,7 @@ function KabagDashboard({events, user, upd, showT, askConfirm, deleteAndSync, is
           <div style={{flex:1,minWidth:0}}>
             <div style={{fontSize:13,fontWeight:800,color:"#0F172A",marginBottom:3}}>{ev.namaAcara}</div>
             <div style={{fontSize:11,color:"#64748B"}}>🕐 {ev.jam} · {ev.penyelenggara||ev.lokasi||"—"}</div>
+            <div style={{marginTop:3,marginBottom:2}}><TujuanBadge ev={ev}/></div>
             <div style={{fontSize:11,color:"#94A3B8",marginTop:2}}>Diajukan oleh: {getNamaByUsername(ev.submittedBy)}</div>
           </div>
           <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
