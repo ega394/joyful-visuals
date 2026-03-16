@@ -6174,8 +6174,16 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
     ? (ev) => ev.statusWK
     : (ev) => ev.statusWWK;
   const byAjudan = role==="walikota"
-    ? (ev) => ev.statusWK_by==="ajudan"
-    : (ev) => ev.statusWWK_by==="ajudan";
+    ? (ev) => ev.statusWK_by
+    : (ev) => ev.statusWWK_by;
+  const KonfirmasiByBadge = ({by}) => {
+    if(!by || by==="walikota" || by==="wakilwalikota") return null;
+    const label = by==="ajudan"?"diisi oleh Ajudan":by==="admin_rk"?"diisi oleh Admin RK":"diisi oleh "+by;
+    const bg = by==="ajudan"?"#FFF8DC":by==="admin_rk"?"#FEF3C7":"#F1F5F9";
+    const color = by==="ajudan"?"#B45309":by==="admin_rk"?"#92400E":"#64748B";
+    const border = by==="ajudan"?"1px solid #FCD34D":by==="admin_rk"?"1px solid #FDE68A":"1px solid #E2E8F0";
+    return <span style={{background:bg,color,borderRadius:4,padding:"1px 5px",fontSize:9,fontWeight:800,border}}>✏️ {label}</span>;
+  };
 
   const DisposisiBar = ({ev}) => {
     const st = statusWK(ev);
