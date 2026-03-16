@@ -6203,7 +6203,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
       }
       if(ev.untukPimpinan.includes("wakilwalikota")||ev.delegasiKeWWK) {
         const stWWK = ev.statusWWK;
-        const byWWK = ev.statusWWK_by==="ajudan";
+        const byWWK = ev.statusWWK_by;
         const labWWK = stWWK==="hadir"?"Hadir":stWWK==="tidak_hadir"?"Tidak Hadir":stWWK==="diwakilkan"?(ev.perwakilanWWK?"→ "+ev.perwakilanWWK:"Diwakilkan"):"Belum konfirmasi";
         const clrWWK = stWWK==="hadir"?"#065f46":stWWK==="tidak_hadir"?"#991b1b":stWWK?"#92400e":"#b45309";
         const bgWWK  = stWWK==="hadir"?"#D1FAE5":stWWK==="tidak_hadir"?"#FEE2E2":stWWK?"#FEF3C7":"#FFFBEB";
