@@ -4920,7 +4920,7 @@ function AjudanDashboard({events, user, upd, showT, setDelegTarget, isMobile}){
           {forWK&&<div style={{marginBottom:8}}>
             <div style={{fontSize:11,fontWeight:700,color:NAVY,textTransform:"uppercase",letterSpacing:0.5,marginBottom:5}}>
               Wali Kota &nbsp;
-              {ev.statusWK_by==="ajudan"&&<span style={{background:"#FEF9C3",color:"#92400E",borderRadius:4,padding:"1px 5px",fontSize:9,fontWeight:800}}>diisi Ajudan</span>}
+              {ev.statusWK_by&&ev.statusWK_by!=="walikota"&&<span style={{background:ev.statusWK_by==="ajudan"?"#FEF9C3":"#FEF3C7",color:"#92400E",borderRadius:4,padding:"1px 5px",fontSize:9,fontWeight:800}}>{ev.statusWK_by==="ajudan"?"diisi Ajudan":ev.statusWK_by==="admin_rk"?"diisi Admin RK":"diisi "+ev.statusWK_by}</span>}
             </div>
             <div style={{display:"flex",gap:8}}>
               <StatusBtn label="✓ Hadir" active={ev.statusWK==="hadir"} color={GREEN}
@@ -4949,13 +4949,13 @@ function AjudanDashboard({events, user, upd, showT, setDelegTarget, isMobile}){
                 <div style={{fontSize:12,fontWeight:700,color:ev.delegasiKeWWK?"#7c3aed":ev.statusWK==="hadir"?"#065f46":"#991b1b"}}>
                   {ev.delegasiKeWWK?"Didelegasikan ke Wakil Wali Kota":ev.statusWK==="hadir"?"Wali Kota Hadir":ev.statusWK==="tidak_hadir"?"Wali Kota Tidak Hadir":ev.perwakilanWK?"Diwakilkan ke "+ev.perwakilanWK:"—"}
                 </div>
-                {ev.statusWK_by&&<div style={{fontSize:9,color:"#94a3b8",marginTop:1}}>Diisi: {ev.statusWK_by==="ajudan"?"Ajudan WK":ev.statusWK_by==="walikota"?"Wali Kota langsung":"—"}</div>}
+                {ev.statusWK_by&&<div style={{fontSize:9,color:"#94a3b8",marginTop:1}}>Diisi: {ev.statusWK_by==="ajudan"?"Ajudan WK":ev.statusWK_by==="walikota"?"Wali Kota langsung":ev.statusWK_by==="admin_rk"?"Admin RK":"—"}</div>}
               </div>
             </div>}
             {ev.delegasiKeWWK&&<div style={{background:"#7c3aed",borderRadius:6,padding:"5px 10px",marginBottom:8,fontSize:10,fontWeight:800,color:"white",letterSpacing:0.5}}>↩ ANDA MENERIMA DISPOSISI DARI WALI KOTA</div>}
             <div style={{fontSize:11,fontWeight:700,color:GREEN,textTransform:"uppercase",letterSpacing:0.5,marginBottom:5}}>
               Wakil Wali Kota &nbsp;
-              {ev.statusWWK_by==="ajudan"&&<span style={{background:"#FEF9C3",color:"#92400E",borderRadius:4,padding:"1px 5px",fontSize:9,fontWeight:800}}>diisi Ajudan</span>}
+              {ev.statusWWK_by&&ev.statusWWK_by!=="wakilwalikota"&&<span style={{background:ev.statusWWK_by==="ajudan"?"#FEF9C3":"#FEF3C7",color:"#92400E",borderRadius:4,padding:"1px 5px",fontSize:9,fontWeight:800}}>{ev.statusWWK_by==="ajudan"?"diisi Ajudan":ev.statusWWK_by==="admin_rk"?"diisi Admin RK":"diisi "+ev.statusWWK_by}</span>}
             </div>
             <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
               <StatusBtn label="✓ Hadir" active={ev.statusWWK==="hadir"} color={GREEN}
@@ -6174,8 +6174,16 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
     ? (ev) => ev.statusWK
     : (ev) => ev.statusWWK;
   const byAjudan = role==="walikota"
-    ? (ev) => ev.statusWK_by==="ajudan"
-    : (ev) => ev.statusWWK_by==="ajudan";
+    ? (ev) => ev.statusWK_by
+    : (ev) => ev.statusWWK_by;
+  const KonfirmasiByBadge = ({by}) => {
+    if(!by || by==="walikota" || by==="wakilwalikota") return null;
+    const label = by==="ajudan"?"diisi oleh Ajudan":by==="admin_rk"?"diisi oleh Admin RK":"diisi oleh "+by;
+    const bg = by==="ajudan"?"#FFF8DC":by==="admin_rk"?"#FEF3C7":"#F1F5F9";
+    const color = by==="ajudan"?"#B45309":by==="admin_rk"?"#92400E":"#64748B";
+    const border = by==="ajudan"?"1px solid #FCD34D":by==="admin_rk"?"1px solid #FDE68A":"1px solid #E2E8F0";
+    return <span style={{background:bg,color,borderRadius:4,padding:"1px 5px",fontSize:9,fontWeight:800,border}}>✏️ {label}</span>;
+  };
 
   const DisposisiBar = ({ev}) => {
     const st = statusWK(ev);
@@ -6187,7 +6195,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
       const items = [];
       if(ev.untukPimpinan.includes("walikota")) {
         const stWK = ev.statusWK;
-        const byWK = ev.statusWK_by==="ajudan";
+        const byWK = ev.statusWK_by;
         const labWK = ev.delegasiKeWWK?"Delegasi ke Wawali":stWK==="hadir"?"Hadir":stWK==="tidak_hadir"?"Tidak Hadir":stWK==="diwakilkan"?(ev.perwakilanWK?"→ "+ev.perwakilanWK:"Diwakilkan"):"Belum konfirmasi";
         const clrWK = ev.delegasiKeWWK||stWK==="hadir"?"#065f46":stWK==="tidak_hadir"?"#991b1b":stWK?"#92400e":"#b45309";
         const bgWK  = ev.delegasiKeWWK||stWK==="hadir"?"#D1FAE5":stWK==="tidak_hadir"?"#FEE2E2":stWK?"#FEF3C7":"#FFFBEB";
@@ -6195,7 +6203,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
       }
       if(ev.untukPimpinan.includes("wakilwalikota")||ev.delegasiKeWWK) {
         const stWWK = ev.statusWWK;
-        const byWWK = ev.statusWWK_by==="ajudan";
+        const byWWK = ev.statusWWK_by;
         const labWWK = stWWK==="hadir"?"Hadir":stWWK==="tidak_hadir"?"Tidak Hadir":stWWK==="diwakilkan"?(ev.perwakilanWWK?"→ "+ev.perwakilanWWK:"Diwakilkan"):"Belum konfirmasi";
         const clrWWK = stWWK==="hadir"?"#065f46":stWWK==="tidak_hadir"?"#991b1b":stWWK?"#92400e":"#b45309";
         const bgWWK  = stWWK==="hadir"?"#D1FAE5":stWWK==="tidak_hadir"?"#FEE2E2":stWWK?"#FEF3C7":"#FFFBEB";
@@ -6208,7 +6216,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
             <div key={it.label} style={{display:"flex",alignItems:"center",gap:4}}>
               <span style={{fontSize:9,fontWeight:700,color:"#94A3B8",textTransform:"uppercase"}}>{it.label}:</span>
               <span style={{background:it.bg,color:it.color,borderRadius:20,padding:"2px 8px",fontSize:11,fontWeight:700}}>{it.status}</span>
-              {it.byAdj&&<span style={{background:"#FFF8DC",color:"#B45309",borderRadius:4,padding:"1px 5px",fontSize:9,fontWeight:800,border:"1px solid #FCD34D"}}>✏️ Ajudan</span>}
+              <KonfirmasiByBadge by={it.byAdj}/>
             </div>
           ))}
         </div>
@@ -6229,7 +6237,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
     return (
       <div style={{display:"flex",alignItems:"center",gap:8}}>
         <span style={{background:b.bg,color:b.color,borderRadius:20,padding:"4px 12px",fontSize:12,fontWeight:800}}>{b.icon} {b.text}</span>
-        {byAdj&&<span style={{fontSize:10,color:"#D97706",background:"#FFF3CD",borderRadius:4,padding:"2px 6px",fontWeight:600}}>diisi Ajudan</span>}
+        <KonfirmasiByBadge by={byAdj}/>
         {ev.delegasiKeWWK&&role==="walikota"&&<span style={{fontSize:10,color:"#7C3AED",background:"#EDE9FE",borderRadius:4,padding:"2px 6px"}}>→ Wawali</span>}
         {ev.perwakilanWK&&role==="walikota"&&<span style={{fontSize:10,color:"#92400E",background:"#FEF3C7",borderRadius:4,padding:"2px 6px"}}>→ {ev.perwakilanWK}</span>}
         {ev.perwakilanWWK&&role==="wakilwalikota"&&<span style={{fontSize:10,color:"#92400E",background:"#FEF3C7",borderRadius:4,padding:"2px 6px"}}>→ {ev.perwakilanWWK}</span>}
