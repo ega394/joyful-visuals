@@ -6195,7 +6195,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
       const items = [];
       if(ev.untukPimpinan.includes("walikota")) {
         const stWK = ev.statusWK;
-        const byWK = ev.statusWK_by==="ajudan";
+        const byWK = ev.statusWK_by;
         const labWK = ev.delegasiKeWWK?"Delegasi ke Wawali":stWK==="hadir"?"Hadir":stWK==="tidak_hadir"?"Tidak Hadir":stWK==="diwakilkan"?(ev.perwakilanWK?"→ "+ev.perwakilanWK:"Diwakilkan"):"Belum konfirmasi";
         const clrWK = ev.delegasiKeWWK||stWK==="hadir"?"#065f46":stWK==="tidak_hadir"?"#991b1b":stWK?"#92400e":"#b45309";
         const bgWK  = ev.delegasiKeWWK||stWK==="hadir"?"#D1FAE5":stWK==="tidak_hadir"?"#FEE2E2":stWK?"#FEF3C7":"#FFFBEB";
