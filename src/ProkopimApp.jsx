@@ -4920,7 +4920,7 @@ function AjudanDashboard({events, user, upd, showT, setDelegTarget, isMobile}){
           {forWK&&<div style={{marginBottom:8}}>
             <div style={{fontSize:11,fontWeight:700,color:NAVY,textTransform:"uppercase",letterSpacing:0.5,marginBottom:5}}>
               Wali Kota &nbsp;
-              {ev.statusWK_by==="ajudan"&&<span style={{background:"#FEF9C3",color:"#92400E",borderRadius:4,padding:"1px 5px",fontSize:9,fontWeight:800}}>diisi Ajudan</span>}
+              {ev.statusWK_by&&ev.statusWK_by!=="walikota"&&<span style={{background:ev.statusWK_by==="ajudan"?"#FEF9C3":"#FEF3C7",color:"#92400E",borderRadius:4,padding:"1px 5px",fontSize:9,fontWeight:800}}>{ev.statusWK_by==="ajudan"?"diisi Ajudan":ev.statusWK_by==="admin_rk"?"diisi Admin RK":"diisi "+ev.statusWK_by}</span>}
             </div>
             <div style={{display:"flex",gap:8}}>
               <StatusBtn label="✓ Hadir" active={ev.statusWK==="hadir"} color={GREEN}
