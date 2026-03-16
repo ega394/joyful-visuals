@@ -12,3 +12,5 @@ with: { node-version: '18' }
 - run: npm install
 - run: npm run build
 - run: npx @capgo/cli@latest bundle upload
+env:
+CAPGO_TOKEN: ${{ secrets.CAPGO_TOKEN }}
