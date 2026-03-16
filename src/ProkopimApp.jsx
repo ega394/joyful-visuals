@@ -4949,7 +4949,7 @@ function AjudanDashboard({events, user, upd, showT, setDelegTarget, isMobile}){
                 <div style={{fontSize:12,fontWeight:700,color:ev.delegasiKeWWK?"#7c3aed":ev.statusWK==="hadir"?"#065f46":"#991b1b"}}>
                   {ev.delegasiKeWWK?"Didelegasikan ke Wakil Wali Kota":ev.statusWK==="hadir"?"Wali Kota Hadir":ev.statusWK==="tidak_hadir"?"Wali Kota Tidak Hadir":ev.perwakilanWK?"Diwakilkan ke "+ev.perwakilanWK:"—"}
                 </div>
-                {ev.statusWK_by&&<div style={{fontSize:9,color:"#94a3b8",marginTop:1}}>Diisi: {ev.statusWK_by==="ajudan"?"Ajudan WK":ev.statusWK_by==="walikota"?"Wali Kota langsung":"—"}</div>}
+                {ev.statusWK_by&&<div style={{fontSize:9,color:"#94a3b8",marginTop:1}}>Diisi: {ev.statusWK_by==="ajudan"?"Ajudan WK":ev.statusWK_by==="walikota"?"Wali Kota langsung":ev.statusWK_by==="admin_rk"?"Admin RK":"—"}</div>}
               </div>
             </div>}
             {ev.delegasiKeWWK&&<div style={{background:"#7c3aed",borderRadius:6,padding:"5px 10px",marginBottom:8,fontSize:10,fontWeight:800,color:"white",letterSpacing:0.5}}>↩ ANDA MENERIMA DISPOSISI DARI WALI KOTA</div>}
