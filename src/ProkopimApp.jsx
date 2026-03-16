@@ -3312,8 +3312,7 @@ function TableView({evList}){
           <td><span style={{fontWeight:700,fontSize:13,color:NAVY}}>{ev.jam}</span></td>
           <td><div style={{fontWeight:700,fontSize:13,color:"#0F2040",lineHeight:1.3}}>{ev.namaAcara}</div>
             <div style={{display:"flex",gap:4,marginTop:3,flexWrap:"wrap"}}>
-              {ev.untukPimpinan.includes("walikota")&&<span style={{fontSize:9,padding:"1px 5px",borderRadius:10,background:"#EBF0FA",color:NAVY,fontWeight:700}}>WK</span>}
-              {(ev.untukPimpinan.includes("wakilwalikota")||ev.delegasiKeWWK)&&<span style={{fontSize:9,padding:"1px 5px",borderRadius:10,background:"#ecfdf5",color:GREEN,fontWeight:700}}>{ev.delegasiKeWWK?"Deleg.WWK":"WWK"}</span>}
+              <span style={{fontSize:9,padding:"1px 5px",borderRadius:10,background:"#EFF6FF",color:"#1E40AF",fontWeight:700,border:"1px solid #BFDBFE"}}>🎯 {tujuanPimpinanLabel(ev)}</span>
             </div>
           </td>
           <td><JenisBadge j={ev.jenisKegiatan}/></td>
