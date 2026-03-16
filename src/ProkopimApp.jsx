@@ -1082,6 +1082,33 @@ function SummaryModal({events,onToggleHide,onClose}){
   </div>;
 }
 
+// Helper: label tujuan pimpinan detail
+function tujuanPimpinanLabel(ev){
+  const parts=[];
+  const forWK=(ev.untukPimpinan||[]).includes("walikota");
+  const forWWK=(ev.untukPimpinan||[]).includes("wakilwalikota")||ev.delegasiKeWWK;
+  if(forWK){
+    if(ev.besertaIstriWK) parts.push("Wali Kota dan Istri");
+    else parts.push("Wali Kota");
+  }
+  if(forWWK){
+    if(ev.delegasiKeWWK){
+      if(ev.besertaIstriWWK) parts.push("Wakil Wali Kota dan Istri (Delegasi)");
+      else parts.push("Wakil Wali Kota (Delegasi)");
+    } else {
+      if(ev.besertaIstriWWK) parts.push("Wakil Wali Kota dan Istri");
+      else parts.push("Wakil Wali Kota");
+    }
+  }
+  return parts.join(", ")||"-";
+}
+const TujuanBadge=({ev})=>{
+  const label=tujuanPimpinanLabel(ev);
+  return <div style={{fontSize:11,color:"#1E40AF",background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:8,padding:"3px 9px",fontWeight:700,display:"inline-flex",alignItems:"center",gap:4}}>
+    <span style={{fontSize:12}}>🎯</span> {label}
+  </div>;
+};
+
 
 // ==================== BROADCAST MODAL ====================
 function BroadcastModal({onClose,showT,senderNama}){
@@ -1803,6 +1830,7 @@ function ApprovalQueueView({events,role,upd,showT,askConfirm,isMobile}){
       <div style={{fontSize:13,fontWeight:700,color:"#0F2040",marginBottom:4}}>{ev.namaAcara}</div>
       <div style={{fontSize:11,color:"#64748b",marginBottom:2}}>{fmt(ev.tanggal)} · {ev.jam} WITA · {ev.penyelenggara}</div>
       {ev.lokasi&&<div style={{fontSize:11,color:"#64748b",marginBottom:2}}>📍 {ev.lokasi}</div>}
+      <div style={{marginBottom:4,marginTop:2}}><TujuanBadge ev={ev}/></div>
       {ev.pakaian&&<div style={{fontSize:11,color:"#64748b",marginBottom:8}}>Pakaian: {ev.pakaian}</div>}
       {ev.submittedBy&&<div style={{fontSize:11,color:"#94a3b8",marginBottom:6}}>Diajukan oleh: {getNamaByUsername(ev.submittedBy)}</div>}
       {ev.undanganFile&&<div style={{display:"flex",gap:7,marginBottom:10}}>
@@ -3252,8 +3280,7 @@ function EventCard({ev}){
             {isPending&&<span style={{fontSize:9,background:"#FEF3C7",color:"#92400E",borderRadius:4,padding:"1px 5px",fontWeight:700,letterSpacing:0.3}}>DIPROSES</span>}
             {isUpcoming&&!isToday&&<span style={{fontSize:9,background:"#EFF6FF",color:"#1D4ED8",borderRadius:4,padding:"1px 5px",fontWeight:700,letterSpacing:0.3}}>{relativeDate(ev.tanggal)||"AKAN DATANG"}</span>}
             {isToday&&isUpcoming&&<span style={{fontSize:9,background:"linear-gradient(90deg,#0A1628,#1B4080)",color:"#C9A84C",borderRadius:4,padding:"1px 5px",fontWeight:700,letterSpacing:0.3}}>HARI INI</span>}
-            {ev.untukPimpinan.includes("walikota")&&<span style={{fontSize:9,padding:"2px 6px",borderRadius:10,background:"rgba(10,22,40,0.07)",color:NAVY,fontWeight:700}}>WK{ev.besertaIstriWK?" + Istri":""}</span>}
-            {(ev.untukPimpinan.includes("wakilwalikota")||ev.delegasiKeWWK)&&<span style={{fontSize:9,padding:"2px 6px",borderRadius:10,background:"#ECFDF5",color:GREEN,fontWeight:700}}>{ev.delegasiKeWWK?"→WWK":"WWK"}{ev.besertaIstriWWK?" + Istri":""}</span>}
+            <span style={{fontSize:9,padding:"2px 6px",borderRadius:10,background:"#EFF6FF",color:"#1E40AF",fontWeight:700,border:"1px solid #BFDBFE"}}>🎯 {tujuanPimpinanLabel(ev)}</span>
           </div>
           <div style={{fontSize:14,fontWeight:700,color:"#0F1C2E",lineHeight:1.35,marginBottom:3,letterSpacing:"-0.1px"}}>{ev.namaAcara}</div>
           <div style={{fontSize:12,color:"#64748B",display:"flex",alignItems:"center",gap:4}}>
@@ -3285,8 +3312,7 @@ function TableView({evList}){
           <td><span style={{fontWeight:700,fontSize:13,color:NAVY}}>{ev.jam}</span></td>
           <td><div style={{fontWeight:700,fontSize:13,color:"#0F2040",lineHeight:1.3}}>{ev.namaAcara}</div>
             <div style={{display:"flex",gap:4,marginTop:3,flexWrap:"wrap"}}>
-              {ev.untukPimpinan.includes("walikota")&&<span style={{fontSize:9,padding:"1px 5px",borderRadius:10,background:"#EBF0FA",color:NAVY,fontWeight:700}}>WK</span>}
-              {(ev.untukPimpinan.includes("wakilwalikota")||ev.delegasiKeWWK)&&<span style={{fontSize:9,padding:"1px 5px",borderRadius:10,background:"#ecfdf5",color:GREEN,fontWeight:700}}>{ev.delegasiKeWWK?"Deleg.WWK":"WWK"}</span>}
+              <span style={{fontSize:9,padding:"1px 5px",borderRadius:10,background:"#EFF6FF",color:"#1E40AF",fontWeight:700,border:"1px solid #BFDBFE"}}>🎯 {tujuanPimpinanLabel(ev)}</span>
             </div>
           </td>
           <td><JenisBadge j={ev.jenisKegiatan}/></td>
@@ -5614,6 +5640,7 @@ function KabagDashboard({events, user, upd, showT, askConfirm, deleteAndSync, is
           <div style={{flex:1,minWidth:0}}>
             <div style={{fontSize:13,fontWeight:800,color:"#0F172A",marginBottom:3}}>{ev.namaAcara}</div>
             <div style={{fontSize:11,color:"#64748B"}}>🕐 {ev.jam} · {ev.penyelenggara||ev.lokasi||"—"}</div>
+            <div style={{marginTop:3,marginBottom:2}}><TujuanBadge ev={ev}/></div>
             <div style={{fontSize:11,color:"#94A3B8",marginTop:2}}>Diajukan oleh: {getNamaByUsername(ev.submittedBy)}</div>
           </div>
           <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
@@ -5669,6 +5696,7 @@ function KabagDashboard({events, user, upd, showT, askConfirm, deleteAndSync, is
           <div style={{flex:1,minWidth:0}}>
             <div style={{fontSize:13,fontWeight:800,color:"#0F172A",marginBottom:3}}>{ev.namaAcara}</div>
             <div style={{fontSize:11,color:"#64748B"}}>🕐 {ev.jam} · {ev.penyelenggara||"—"}</div>
+            <div style={{marginTop:3}}><TujuanBadge ev={ev}/></div>
             <div style={{fontSize:11,color:"#94A3B8",marginTop:2}}>
               👥 {personilList.length>0?personilList.map(p=>p.nama).join(", "):"Belum ada personil"}
             </div>
