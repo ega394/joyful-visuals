@@ -1082,6 +1082,33 @@ function SummaryModal({events,onToggleHide,onClose}){
   </div>;
 }
 
+// Helper: label tujuan pimpinan detail
+function tujuanPimpinanLabel(ev){
+  const parts=[];
+  const forWK=(ev.untukPimpinan||[]).includes("walikota");
+  const forWWK=(ev.untukPimpinan||[]).includes("wakilwalikota")||ev.delegasiKeWWK;
+  if(forWK){
+    if(ev.besertaIstriWK) parts.push("Wali Kota dan Istri");
+    else parts.push("Wali Kota");
+  }
+  if(forWWK){
+    if(ev.delegasiKeWWK){
+      if(ev.besertaIstriWWK) parts.push("Wakil Wali Kota dan Istri (Delegasi)");
+      else parts.push("Wakil Wali Kota (Delegasi)");
+    } else {
+      if(ev.besertaIstriWWK) parts.push("Wakil Wali Kota dan Istri");
+      else parts.push("Wakil Wali Kota");
+    }
+  }
+  return parts.join(", ")||"-";
+}
+const TujuanBadge=({ev})=>{
+  const label=tujuanPimpinanLabel(ev);
+  return <div style={{fontSize:11,color:"#1E40AF",background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:8,padding:"3px 9px",fontWeight:700,display:"inline-flex",alignItems:"center",gap:4}}>
+    <span style={{fontSize:12}}>🎯</span> {label}
+  </div>;
+};
+
 
 // ==================== BROADCAST MODAL ====================
 function BroadcastModal({onClose,showT,senderNama}){
