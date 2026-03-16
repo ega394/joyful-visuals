@@ -1830,6 +1830,7 @@ function ApprovalQueueView({events,role,upd,showT,askConfirm,isMobile}){
       <div style={{fontSize:13,fontWeight:700,color:"#0F2040",marginBottom:4}}>{ev.namaAcara}</div>
       <div style={{fontSize:11,color:"#64748b",marginBottom:2}}>{fmt(ev.tanggal)} · {ev.jam} WITA · {ev.penyelenggara}</div>
       {ev.lokasi&&<div style={{fontSize:11,color:"#64748b",marginBottom:2}}>📍 {ev.lokasi}</div>}
+      <div style={{marginBottom:4,marginTop:2}}><TujuanBadge ev={ev}/></div>
       {ev.pakaian&&<div style={{fontSize:11,color:"#64748b",marginBottom:8}}>Pakaian: {ev.pakaian}</div>}
       {ev.submittedBy&&<div style={{fontSize:11,color:"#94a3b8",marginBottom:6}}>Diajukan oleh: {getNamaByUsername(ev.submittedBy)}</div>}
       {ev.undanganFile&&<div style={{display:"flex",gap:7,marginBottom:10}}>
