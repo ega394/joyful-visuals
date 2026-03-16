@@ -4955,7 +4955,7 @@ function AjudanDashboard({events, user, upd, showT, setDelegTarget, isMobile}){
             {ev.delegasiKeWWK&&<div style={{background:"#7c3aed",borderRadius:6,padding:"5px 10px",marginBottom:8,fontSize:10,fontWeight:800,color:"white",letterSpacing:0.5}}>↩ ANDA MENERIMA DISPOSISI DARI WALI KOTA</div>}
             <div style={{fontSize:11,fontWeight:700,color:GREEN,textTransform:"uppercase",letterSpacing:0.5,marginBottom:5}}>
               Wakil Wali Kota &nbsp;
-              {ev.statusWWK_by==="ajudan"&&<span style={{background:"#FEF9C3",color:"#92400E",borderRadius:4,padding:"1px 5px",fontSize:9,fontWeight:800}}>diisi Ajudan</span>}
+              {ev.statusWWK_by&&ev.statusWWK_by!=="wakilwalikota"&&<span style={{background:ev.statusWWK_by==="ajudan"?"#FEF9C3":"#FEF3C7",color:"#92400E",borderRadius:4,padding:"1px 5px",fontSize:9,fontWeight:800}}>{ev.statusWWK_by==="ajudan"?"diisi Ajudan":ev.statusWWK_by==="admin_rk"?"diisi Admin RK":"diisi "+ev.statusWWK_by}</span>}
             </div>
             <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
               <StatusBtn label="✓ Hadir" active={ev.statusWWK==="hadir"} color={GREEN}
