@@ -1,0 +1,8 @@
+{
+  "type": "commonjs",
+  "dependencies": {
+    "web-push": "^3.6.7",
+    "mammoth": "^1.8.0",
+    "pdf-lib": "^1.17.1"
+  }
+}
