@@ -3258,6 +3258,9 @@ function EventCard({ev}){
   const borderColor=isPending?"#F59E0B":isDraft?"#94A3B8":ev.alur==="ditolak"?"#EF4444":isToday&&isUpcoming?NAVY:"transparent";
   const cardBg="white";
   const cardOpacity=isPast?0.72:1;
+  const hadirStr=hadirOleh(ev);
+  const anyPimpinan=(ev.untukPimpinan||[]).length>0||ev.delegasiKeWWK;
+  const showMenungguKehadiran=!hadirStr&&anyPimpinan&&isUpcoming;
   return <div id={"ev-"+ev.id} className="ev-card" style={{background:cardBg,borderRadius:16,marginBottom:10,boxShadow:"0 2px 12px rgba(0,0,0,0.07),0 0 0 1px rgba(0,0,0,0.04)",border:"1.5px solid "+borderColor,overflow:"hidden",opacity:cardOpacity}}>
     {ev.catatanPimpinan&&<div style={{background:"linear-gradient(90deg,#EEF2FF,#F5F3FF)",padding:"6px 14px",fontSize:11,color:"#4338CA",fontWeight:600,borderBottom:"1px solid #E0E7FF",display:"flex",alignItems:"center",gap:5}}>
       <span style={{fontSize:12}}>💬</span>{ev.catatanPimpinan}
@@ -3287,6 +3290,13 @@ function EventCard({ev}){
             <span>{ev.penyelenggara}</span>
             {ev.lokasi&&<><span style={{color:"#CBD5E1"}}>·</span><span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:130}}>{ev.lokasi}</span></>}
           </div>
+          {(hadirStr||showMenungguKehadiran)&&
+            <div style={{marginTop:4,fontSize:11,display:"flex",alignItems:"center",gap:6}}>
+              <span style={{fontSize:11}}>👤</span>
+              {hadirStr
+                ?<span style={{color:"#16A34A",fontWeight:600}}>Hadir: {hadirStr}</span>
+                :<span style={{color:"#B45309",fontWeight:600}}>Menunggu konfirmasi kehadiran pimpinan</span>}
+            </div>}
         </div>
         {/* Chevron */}
         <div style={{color:"#CBD5E1",fontSize:11,flexShrink:0,transition:"transform 0.25s cubic-bezier(0.34,1.56,0.64,1)",transform:exp?"rotate(180deg)":"none",marginTop:4}}>▼</div>
@@ -3302,11 +3312,23 @@ function TableView({evList}){
   return <div style={{background:"white",borderRadius:12,boxShadow:"0 1px 8px rgba(0,0,0,0.07)",overflow:"hidden"}}>
   <table className="ev-table">
     <thead><tr>
-      <th>Tanggal</th><th>Pukul</th><th style={{minWidth:220}}>Nama Acara</th><th>Jenis</th><th>Penyelenggara</th><th>Lokasi</th><th>Pakaian</th><th>Status</th><th>Aksi</th>
+      <th>Tanggal</th>
+      <th>Pukul</th>
+      <th style={{minWidth:220}}>Nama Acara</th>
+      <th>Jenis</th>
+      <th>Penyelenggara</th>
+      <th>Lokasi</th>
+      <th>Pakaian</th>
+      <th>Kehadiran</th>
+      <th>Status</th>
+      <th>Aksi</th>
     </tr></thead>
     <tbody>
       {evList.map(ev=>{
         const exp=expandedId===ev.id;const hariEv=getHari(ev.tanggal);const isToday=ev.tanggal===todayStr();
+        const hadirStr=hadirOleh(ev);
+        const anyPimpinan=(ev.untukPimpinan||[]).length>0||ev.delegasiKeWWK;
+        const waitingLabel=anyPimpinan?"Menunggu konfirmasi":"—";
         return <><tr key={ev.id} id={"ev-"+ev.id} className="card-row" style={{cursor:"pointer"}} onClick={()=>setExp(exp?null:ev.id)}>
           <td><div style={{fontWeight:700,fontSize:12,color:isToday?NAVY:"#334155",whiteSpace:"nowrap"}}>{hariEv}, {fmtShort(ev.tanggal)}</div>{(isToday||relativeDate(ev.tanggal))&&<span style={{fontSize:10,color:isToday?"#2563eb":"#64748B",fontWeight:700}}>{isToday?"Hari ini":relativeDate(ev.tanggal)}</span>}</td>
           <td><span style={{fontWeight:700,fontSize:13,color:NAVY}}>{ev.jam}</span></td>
@@ -3319,10 +3341,13 @@ function TableView({evList}){
           <td style={{fontSize:12,color:"#475569",maxWidth:140,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ev.penyelenggara}</td>
           <td style={{fontSize:12,color:"#475569",maxWidth:130,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ev.lokasi||<span style={{color:"#cbd5e1"}}>-</span>}</td>
           <td style={{fontSize:11,color:"#475569",whiteSpace:"nowrap"}}>{ev.pakaian}</td>
+          <td style={{fontSize:11,color:hadirStr?"#16A34A":"#9CA3AF",whiteSpace:"nowrap",maxWidth:140,overflow:"hidden",textOverflow:"ellipsis"}}>
+            {hadirStr ? "Hadir: "+hadirStr : waitingLabel}
+          </td>
           <td><StatusPill alur={ev.alur} hapus={ev.alurHapus}/></td>
           <td><button onClick={e=>{e.stopPropagation();setExp(exp?null:ev.id);}} style={{padding:"5px 10px",borderRadius:7,border:"1.5px solid #e2e8f0",background:exp?"#EBF0FA":"white",color:exp?NAVY:"#64748b",cursor:"pointer",fontSize:11,fontWeight:700,whiteSpace:"nowrap"}}>{exp?"Tutup":"Detail"}</button></td>
         </tr>
-        {exp&&<tr key={ev.id+"_exp"}><td colSpan={9} style={{padding:0,background:"#fafbfc",borderBottom:"2px solid #EBF0FA"}}>
+        {exp&&<tr key={ev.id+"_exp"}><td colSpan={10} style={{padding:0,background:"#fafbfc",borderBottom:"2px solid #EBF0FA"}}>
           <div style={{padding:"16px 20px"}}><ExpandedDetail ev={ev} hariEv={hariEv}/></div>
         </td></tr>}</>
       })}
@@ -3558,6 +3583,9 @@ function TimelineView({evList}){
     // Tampilkan pemisah tanggal jika berbeda dari item sebelumnya
     const prevTgl=i>0?arr[i-1].tanggal:null;
     const showDateSep=ev.tanggal!==prevTgl;
+    const hadirStr=hadirOleh(ev);
+    const anyPimpinan=(ev.untukPimpinan||[]).length>0||ev.delegasiKeWWK;
+    const showMenungguKehadiran=!hadirStr&&anyPimpinan&&!isPast;
 
     return <React.Fragment key={ev.id}>
       {/* Pemisah tanggal */}
@@ -3601,6 +3629,13 @@ function TimelineView({evList}){
                 overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
                 {ev.penyelenggara}{ev.lokasi?" · "+ev.lokasi:""}
               </div>
+              {(hadirStr||showMenungguKehadiran)&&
+                <div style={{marginTop:3,fontSize:10,display:"flex",alignItems:"center",gap:5}}>
+                  <span style={{fontSize:11}}>👤</span>
+                  {hadirStr
+                    ?<span style={{color:isPast?"#16A34A":"#15803D",fontWeight:600}}>Hadir: {hadirStr}</span>
+                    :<span style={{color:"#B45309",fontWeight:600}}>Menunggu konfirmasi kehadiran pimpinan</span>}
+                </div>}
             </div>
             {isNow&&<span style={{fontSize:9,background:"linear-gradient(90deg,#0A1628,#1B4080)",color:"#C9A84C",
               borderRadius:4,padding:"2px 7px",fontWeight:800,flexShrink:0,animation:"pulse 2s ease infinite"}}>Berlangsung</span>}
