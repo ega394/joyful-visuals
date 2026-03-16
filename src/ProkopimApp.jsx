@@ -6237,7 +6237,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
     return (
       <div style={{display:"flex",alignItems:"center",gap:8}}>
         <span style={{background:b.bg,color:b.color,borderRadius:20,padding:"4px 12px",fontSize:12,fontWeight:800}}>{b.icon} {b.text}</span>
-        {byAdj&&<span style={{fontSize:10,color:"#D97706",background:"#FFF3CD",borderRadius:4,padding:"2px 6px",fontWeight:600}}>diisi Ajudan</span>}
+        <KonfirmasiByBadge by={byAdj}/>
         {ev.delegasiKeWWK&&role==="walikota"&&<span style={{fontSize:10,color:"#7C3AED",background:"#EDE9FE",borderRadius:4,padding:"2px 6px"}}>→ Wawali</span>}
         {ev.perwakilanWK&&role==="walikota"&&<span style={{fontSize:10,color:"#92400E",background:"#FEF3C7",borderRadius:4,padding:"2px 6px"}}>→ {ev.perwakilanWK}</span>}
         {ev.perwakilanWWK&&role==="wakilwalikota"&&<span style={{fontSize:10,color:"#92400E",background:"#FEF3C7",borderRadius:4,padding:"2px 6px"}}>→ {ev.perwakilanWWK}</span>}
