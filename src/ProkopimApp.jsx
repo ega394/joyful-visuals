@@ -6216,7 +6216,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
             <div key={it.label} style={{display:"flex",alignItems:"center",gap:4}}>
               <span style={{fontSize:9,fontWeight:700,color:"#94A3B8",textTransform:"uppercase"}}>{it.label}:</span>
               <span style={{background:it.bg,color:it.color,borderRadius:20,padding:"2px 8px",fontSize:11,fontWeight:700}}>{it.status}</span>
-              {it.byAdj&&<span style={{background:"#FFF8DC",color:"#B45309",borderRadius:4,padding:"1px 5px",fontSize:9,fontWeight:800,border:"1px solid #FCD34D"}}>✏️ Ajudan</span>}
+              <KonfirmasiByBadge by={it.byAdj}/>
             </div>
           ))}
         </div>
