@@ -5696,6 +5696,7 @@ function KabagDashboard({events, user, upd, showT, askConfirm, deleteAndSync, is
           <div style={{flex:1,minWidth:0}}>
             <div style={{fontSize:13,fontWeight:800,color:"#0F172A",marginBottom:3}}>{ev.namaAcara}</div>
             <div style={{fontSize:11,color:"#64748B"}}>🕐 {ev.jam} · {ev.penyelenggara||"—"}</div>
+            <div style={{marginTop:3}}><TujuanBadge ev={ev}/></div>
             <div style={{fontSize:11,color:"#94A3B8",marginTop:2}}>
               👥 {personilList.length>0?personilList.map(p=>p.nama).join(", "):"Belum ada personil"}
             </div>
