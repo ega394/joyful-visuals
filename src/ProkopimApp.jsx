@@ -61,6 +61,26 @@ function relativeDate(dateStr){
 function haptic(ms=50){try{navigator?.vibrate?.(ms);}catch{}}
 
 // ═══════════════════════════════════════════════════════
+// UTIL: Teks ringkas siapa pimpinan yang hadir
+// ═══════════════════════════════════════════════════════
+function hadirOleh(ev){
+  const list=[];
+  const fWK=(ev.untukPimpinan||[]).includes("walikota");
+  const fWWK=(ev.untukPimpinan||[]).includes("wakilwalikota")||ev.delegasiKeWWK;
+  if(fWK&&!ev.delegasiKeWWK){
+    if(ev.statusWK==="hadir")list.push("Wali Kota"+(ev.besertaIstriWK?" (beserta Istri)":""));
+    else if(ev.statusWK==="diwakilkan"&&ev.perwakilanWK)list.push(ev.perwakilanWK);
+    else if(ev.statusWK==="diwakilkan")list.push("Perwakilan WK");
+  }
+  if(fWWK){
+    if(ev.statusWWK==="hadir")list.push("Wakil Wali Kota"+(ev.besertaIstriWWK?" (beserta Istri)":""));
+    else if(ev.statusWWK==="diwakilkan"&&ev.perwakilanWWK)list.push(ev.perwakilanWWK);
+    else if(ev.statusWWK==="diwakilkan")list.push("Perwakilan WWK");
+  }
+  return list.join(", ");
+}
+
+// ═══════════════════════════════════════════════════════
 // UX: Undo Toast (batal aksi destruktif selama 5 detik)
 // ═══════════════════════════════════════════════════════
 let _undoTimer=null;let _undoCallback=null;
@@ -1308,8 +1328,7 @@ const printF4L=()=>{
       const evs=byTgl[tgl];
       return evs.map((ev,iG)=>{
         nomor++;
-function hadirOleh(ev){var list=[];var fWK=(ev.untukPimpinan||[]).includes("walikota");var fWWK=(ev.untukPimpinan||[]).includes("wakilwalikota")||ev.delegasiKeWWK;if(fWK&&!ev.delegasiKeWWK){if(ev.statusWK==="hadir")list.push("Wali Kota"+(ev.besertaIstriWK?" (beserta Istri)":""));else if(ev.statusWK==="diwakilkan"&&ev.perwakilanWK)list.push(ev.perwakilanWK);else if(ev.statusWK==="diwakilkan")list.push("Perwakilan WK");}if(fWWK){if(ev.statusWWK==="hadir")list.push("Wakil Wali Kota"+(ev.besertaIstriWWK?" (beserta Istri)":""));else if(ev.statusWWK==="diwakilkan"&&ev.perwakilanWWK)list.push(ev.perwakilanWWK);else if(ev.statusWWK==="diwakilkan")list.push("Perwakilan WWK");}return list.join(", ");}
-            const tglCell=iG===0?"<td class='nw' rowspan='"+evs.length+"' style='background:#EBF0FA;font-weight:700;color:#0B2545;vertical-align:middle'><b>"+getHari(tgl)+"</b><br>"+fmt(tgl)+"</td>":"";
+        const tglCell=iG===0?"<td class='nw' rowspan='"+evs.length+"' style='background:#EBF0FA;font-weight:700;color:#0B2545;vertical-align:middle'><b>"+getHari(tgl)+"</b><br>"+fmt(tgl)+"</td>":"";
         const pkn=ev.pakaian==="Lainnya"?(ev.pakaianLainnya||"Lainnya"):ev.pakaian||"-";
         return (iG===0?"<tr class='ds'>":"<tr>")+"<td class='c'>"+nomor+"</td>"+tglCell+"<td class='c'><b>"+ev.jam+"</b></td><td><b>"+ev.namaAcara+"</b><br><span style='font-size:7.5pt;color:#64748b'>"+ev.penyelenggara+"</span></td><td>"+ev.lokasi+"</td><td style='font-size:8pt'>"+pkn+"</td><td style='font-size:8pt'>"+hadirOleh(ev)+"</td><td class='cat'></td></tr>";
       });
