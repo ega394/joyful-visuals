@@ -13,12 +13,12 @@ export default defineConfig(({ mode }) => ({
   build: {
     rollupOptions: {
       external: [
-        '@aparajita/capacitor-biometric-auth',
-        '@capacitor/core',
-        '@capacitor/app',
-        '@capacitor/haptics',
-        '@capacitor/keyboard',
-        '@capacitor/status-bar',
+        "@aparajita/capacitor-biometric-auth",
+        "@capacitor/core",
+        "@capacitor/app",
+        "@capacitor/haptics",
+        "@capacitor/keyboard",
+        "@capacitor/status-bar",
       ],
     },
   },
@@ -42,20 +42,20 @@ export default defineConfig(({ mode }) => ({
           {
             src: "pwa-192x192.png",
             sizes: "192x192",
-            type: "image/png"
-          },
-          {
-            src: "pwa-512x512.png",
-            sizes: "512x512",
-            type: "image/png"
+            type: "image/png",
           },
           {
             src: "pwa-512x512.png",
             sizes: "512x512",
             type: "image/png",
-            purpose: "any maskable"
-          }
-        ]
+          },
+          {
+            src: "pwa-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "any maskable",
+          },
+        ],
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg}"],
@@ -64,4 +64,15 @@ export default defineConfig(({ mode }) => ({
             urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
             handler: "NetworkFirst",
             options: {
-              cache
+              cacheName: "supabase-cache",
+              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 },
+            },
+          },
+        ],
+      },
+    }),
+  ].filter(Boolean),
+  resolve: {
+    alias: { "@": path.resolve(__dirname, "./src") },
+  },
+}));
