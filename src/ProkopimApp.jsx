@@ -4734,7 +4734,7 @@ const TH={
           <div style={{width:36,height:4,background:"#E2E8F0",borderRadius:4,margin:"12px auto 16px"}}/>
           <div style={{fontSize:11,fontWeight:700,color:"#94A3B8",letterSpacing:1.5,textTransform:"uppercase",marginBottom:10,paddingLeft:2}}>MENU</div>
         </div>
-        <div style={{flex:1,overflowY:"auto",padding:"0 16px",WebkitOverflowScrolling:"touch"}}>
+        <div style={{flex:1,overflowY:"auto",padding:"0 16px 16px",WebkitOverflowScrolling:"touch"}}>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
             {[
               {icon:"💬",label:"Rekap WA",action:()=>{setShowSummary(true);setMobMenu(false);}},
@@ -4752,7 +4752,7 @@ const TH={
           </div>
         </div>
         {/* Logout button - ALWAYS visible, sticky at bottom */}
-        <div style={{flexShrink:0,padding:"8px 16px",paddingBottom:"calc(env(safe-area-inset-bottom,0px) + 12px)",borderTop:"1px solid #F1F5F9",background:"white"}}>
+        <div style={{flexShrink:0,padding:"8px 16px",paddingBottom:"calc(env(safe-area-inset-bottom,0px) + 70px)",borderTop:"1px solid #F1F5F9",background:"white"}}>
           <button onClick={()=>{doLogout();setMobMenu(false);}} className="btn-ios" style={{width:"100%",padding:"14px",borderRadius:14,border:"2px solid #FCA5A5",background:"#FEF2F2",color:"#DC2626",cursor:"pointer",fontSize:14,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
             <span style={{fontSize:18}}>🚪</span>Keluar dari Akun
           </button>
