@@ -1,4 +1,8 @@
 {
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/$1" },
+    { "source": "/(.*)",     "destination": "/index.html" }
+  ],
   "crons": [
     { "path": "/api/notif-cron?type=pagi",     "schedule": "30 23 * * *" },
     { "path": "/api/notif-cron?type=reminder",  "schedule": "55 7 * * *"  },
