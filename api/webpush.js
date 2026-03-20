@@ -6,9 +6,8 @@ const { guard } = require("./_middleware");
 const VAPID_PUBLIC  = process.env.VAPID_PUBLIC;
 const VAPID_PRIVATE = process.env.VAPID_PRIVATE;
 const VAPID_EMAIL   = process.env.VAPID_EMAIL || "mailto:prokopim@tarakankota.go.id";
-const SUPA_URL      = process.env.VITE_SUPABASE_URL;
-const SUPA_KEY      = process.env.VITE_SUPABASE_ANON_KEY;
-
+const SUPA_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const SUPA_KEY = process.env.SUPABASE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 const supaHeaders = () => ({
   "Content-Type": "application/json",
   "apikey": SUPA_KEY,
