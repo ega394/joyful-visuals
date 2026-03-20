@@ -1,3 +1,8 @@
+// vite.config.ts
+// PERUBAHAN dari versi sebelumnya:
+//   - Ganti strategy generateSW → injectManifest (Tugas 3)
+//   - Agar bisa menulis custom push & notificationclick di src/sw.ts
+
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
@@ -9,6 +14,12 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
     hmr: { overlay: false },
+    proxy: {
+      "/api": {
+        target: "http://localhost:3000",
+        changeOrigin: true,
+      },
+    },
   },
   build: {
     rollupOptions: {
@@ -28,6 +39,21 @@ export default defineConfig(({ mode }) => ({
     VitePWA({
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "apple-touch-icon.png", "masked-icon.svg"],
+
+      // ✅ TUGAS 3: Ganti dari generateSW (default) ke injectManifest
+      // Perbedaannya:
+      //   generateSW     = SW di-generate 100% otomatis, tidak bisa tambah event custom
+      //   injectManifest = kita tulis SW sendiri di src/sw.ts,
+      //                    Workbox hanya inject daftar file cache ke dalamnya
+      strategies: "injectManifest",
+      srcDir: "src",
+      filename: "sw.ts",
+
+      injectManifest: {
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+        globIgnores: ["**/api/**"],
+      },
+
       manifest: {
         name: "Prokopim Kota Tarakan",
         short_name: "Prokopim",
@@ -39,28 +65,15 @@ export default defineConfig(({ mode }) => ({
         scope: "/",
         start_url: "/",
         icons: [
-  { src: "icon-72x72.png",    sizes: "72x72",    type: "image/png" },
-  { src: "icon-96x96.png",    sizes: "96x96",    type: "image/png" },
-  { src: "icon-128x128.png",  sizes: "128x128",  type: "image/png" },
-  { src: "icon-144x144.png",  sizes: "144x144",  type: "image/png" },
-  { src: "icon-152x152.png",  sizes: "152x152",  type: "image/png" },
-  { src: "pwa-192x192.png",   sizes: "192x192",  type: "image/png" },
-  { src: "icon-384x384.png",  sizes: "384x384",  type: "image/png" },
-  { src: "pwa-512x512.png",   sizes: "512x512",  type: "image/png" },
-  { src: "pwa-512x512.png",   sizes: "512x512",  type: "image/png", purpose: "any maskable" },
-        ],
-      },
-      workbox: {
-        globPatterns: ["**/*.{js,css,html,ico,png,svg}"],
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
-            handler: "NetworkFirst",
-            options: {
-              cacheName: "supabase-cache",
-              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 },
-            },
-          },
+          { src: "icon-72x72.png",   sizes: "72x72",   type: "image/png" },
+          { src: "icon-96x96.png",   sizes: "96x96",   type: "image/png" },
+          { src: "icon-128x128.png", sizes: "128x128", type: "image/png" },
+          { src: "icon-144x144.png", sizes: "144x144", type: "image/png" },
+          { src: "icon-152x152.png", sizes: "152x152", type: "image/png" },
+          { src: "pwa-192x192.png",  sizes: "192x192", type: "image/png" },
+          { src: "icon-384x384.png", sizes: "384x384", type: "image/png" },
+          { src: "pwa-512x512.png",  sizes: "512x512", type: "image/png" },
+          { src: "pwa-512x512.png",  sizes: "512x512", type: "image/png", purpose: "any maskable" },
         ],
       },
     }),
