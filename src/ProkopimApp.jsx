@@ -61,6 +61,21 @@ function relativeDate(dateStr){
 function haptic(ms=50){try{navigator?.vibrate?.(ms);}catch{}}
 
 // ═══════════════════════════════════════════════════════
+// iOS Push Support Helper
+// ═══════════════════════════════════════════════════════
+// PushManager tidak ada di window di iOS Safari — harus cek via SW registration
+async function checkPushSupported(){
+  if(!("serviceWorker" in navigator)||!("Notification" in window))return false;
+  try{const reg=await navigator.serviceWorker.ready;return!!reg.pushManager;}
+  catch{return false;}
+}
+function isStandalonePWA(){
+  return window.navigator.standalone===true||
+    window.matchMedia("(display-mode: standalone)").matches||
+    window.matchMedia("(display-mode: fullscreen)").matches;
+}
+
+// ═══════════════════════════════════════════════════════
 // UTIL: Teks ringkas siapa pimpinan yang hadir
 // ═══════════════════════════════════════════════════════
 function hadirOleh(ev){
@@ -1526,6 +1541,7 @@ function NotifTab({user,showT}){
   const[subbed,setSubbed]=useState(false);
   const[loading,setLoading]=useState(false);
   const[msg,setMsg]=useState("");
+  const[pushReady,setPushReady]=useState(null); // iOS fix: async PushManager check
 
   // Deteksi native vs browser
   useEffect(()=>{
@@ -1540,14 +1556,23 @@ function NotifTab({user,showT}){
           setFcmToken(token);
         } else {
           // Di browser: cek Web Push subscription
-          if("serviceWorker" in navigator&&"PushManager" in navigator){
+          // iOS fix: cek via serviceWorker.ready, bukan PushManager in window
+          if("serviceWorker" in navigator){
             navigator.serviceWorker.ready.then(reg=>
-              reg.pushManager.getSubscription().then(sub=>setSubbed(!!sub))
+              reg.pushManager?.getSubscription().then(sub=>setSubbed(!!sub))
             ).catch(()=>{});
           }
         }
       }catch{}
     })();
+  },[]);
+
+  // iOS Push Support check (async) — PushManager tidak ada di window di iOS
+  useEffect(()=>{
+    if(!("serviceWorker" in navigator)||!("Notification" in window)){setPushReady(false);return;}
+    navigator.serviceWorker.ready
+      .then(reg=>setPushReady(!!reg.pushManager))
+      .catch(()=>setPushReady(false));
   },[]);
 
   // Aktifkan FCM native
@@ -1568,7 +1593,8 @@ function NotifTab({user,showT}){
   const activateWeb=async()=>{
     setLoading(true);setMsg("");
     try{
-      if(!("serviceWorker" in navigator)||!("PushManager" in navigator)){
+      const _swReg=await navigator.serviceWorker.ready.catch(()=>null);
+      if(!_swReg||!_swReg.pushManager){
         setMsg("Browser ini tidak mendukung push notification.");setLoading(false);return;
       }
       const perm=await Notification.requestPermission();
@@ -1634,13 +1660,20 @@ function NotifTab({user,showT}){
   }
 
   // ── Tampilan untuk Browser / PWA (Web Push) ──
-  const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
+  const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||
+    (/Macintosh/.test(navigator.userAgent)&&navigator.maxTouchPoints>1); // iPad iOS 13+
   const iosVer=(()=>{const m=navigator.userAgent.match(/OS (\d+)_(\d+)/);return m?parseFloat(m[1]+"."+m[2]):0;})();
-  const isStandalone=window.navigator.standalone===true||window.matchMedia("(display-mode: standalone)").matches;
+  const isStandalone=window.navigator.standalone===true||
+    window.matchMedia("(display-mode: standalone)").matches||
+    window.matchMedia("(display-mode: fullscreen)").matches;
   const hasSW="serviceWorker" in navigator;
-  const hasPush="PushManager" in window;
+  // ✅ iOS: PushManager tidak ada di window — pakai pushReady (async via serviceWorker.ready)
+  // pushReady: null=sedang cek, true=didukung, false=tidak didukung
+  const hasPush=pushReady===true||("PushManager" in window); // fallback Android
   const hasNotif="Notification" in window;
-  const supported=hasSW&&hasPush&&hasNotif;
+  // Selama pushReady masih null (loading), jangan anggap tidak didukung
+  const checking=pushReady===null&&hasSW&&hasNotif;
+  const supported=hasSW&&hasNotif&&hasPush;
 
   return <div>
     <div style={{borderRadius:12,padding:"14px 16px",marginBottom:16,
@@ -1674,13 +1707,19 @@ function NotifTab({user,showT}){
       <div><strong>iOS:</strong> Settings → Safari → Advanced → Website Data → hapus domain ini → install ulang ke Home Screen.</div>
       <div style={{marginTop:6}}><strong>Android:</strong> Tap ikon kunci di address bar → Permissions → Notifications → Allow.</div>
     </div>}
-    {!supported&&<div>
+    {checking&&<div style={{background:"#f0f9ff",borderRadius:10,padding:"13px 14px",marginBottom:12,
+      border:"1px solid #bae6fd",fontSize:13,color:"#0284c7",display:"flex",alignItems:"center",gap:10}}>
+      <div style={{width:18,height:18,border:"3px solid #bae6fd",borderTopColor:"#0284c7",
+        borderRadius:"50%",flexShrink:0,animation:"prokopim-spin 0.9s linear infinite"}}/>
+      Memeriksa dukungan notifikasi...
+    </div>}
+    {!supported&&!checking&&<div>
       <div style={{background:"#f8fafc",borderRadius:10,padding:"13px 14px",marginBottom:12,border:"1px solid #e2e8f0",fontSize:12,color:"#475569",lineHeight:2}}>
         <div style={{fontWeight:700,color:"#0A1628",marginBottom:4}}>🔍 Diagnostik Perangkat</div>
         <div>Mode standalone (PWA): <strong style={{color:isStandalone?"#166534":"#991b1b"}}>{isStandalone?"✅ Ya":"❌ Tidak"}</strong></div>
         <div>Platform: <strong>{isIOS?"iOS "+iosVer:"Android/Lainnya"}</strong></div>
         <div>Service Worker: <strong style={{color:hasSW?"#166534":"#991b1b"}}>{hasSW?"✅ Didukung":"❌ Tidak"}</strong></div>
-        <div>Push Manager: <strong style={{color:hasPush?"#166534":"#991b1b"}}>{hasPush?"✅ Didukung":"❌ Tidak"}</strong></div>
+        <div>Push Manager: <strong style={{color:hasPush?"#166534":"#991b1b"}}>{hasPush?"✅ Terdeteksi":(pushReady===null?"⏳ Memeriksa...":"❌ Tidak")}</strong></div>
         <div>Notification API: <strong style={{color:hasNotif?"#166534":"#991b1b"}}>{hasNotif?"✅ Didukung":"❌ Tidak"}</strong></div>
       </div>
       {isIOS&&!isStandalone&&<div style={{background:"#fef3c7",borderRadius:12,padding:"14px",border:"1px solid #fde68a",fontSize:13,color:"#92400e"}}>
@@ -1704,6 +1743,10 @@ function NotifTab({user,showT}){
         Push notification membutuhkan Android Chrome 90+ atau iOS 16.4+.
       </div>}
     </div>}
+    {supported&&status!=="denied"&&!subbed&&checking===false&&
+      <div style={{fontSize:12,color:"#64748b",textAlign:"center",marginBottom:8}}>
+        {isIOS&&isStandalone?"✅ Perangkat siap. Tap tombol di atas untuk mengaktifkan.":""}
+      </div>}
     {msg&&<div style={{marginTop:10,background:"#fee2e2",borderRadius:8,padding:"9px 12px",fontSize:13,color:"#991b1b"}}>{msg}</div>}
     <div style={{marginTop:14,padding:"10px 13px",background:"#f8fafc",borderRadius:9,border:"1px solid #e2e8f0",fontSize:11,color:"#64748b",lineHeight:1.8}}>
       <div style={{fontWeight:700,color:"#475569",marginBottom:4}}>Syarat push notification (PWA):</div>
@@ -3082,7 +3125,7 @@ async function sendPush({targetRole,title,body,url,tag}){
 
 // ── Daftarkan service worker + subscribe push ──
 async function registerPush(username,role){
-  if(!("serviceWorker" in navigator)||!("PushManager" in navigator))return;
+  if(!("serviceWorker" in navigator))return; // iOS fix: jangan cek PushManager di window
   try{
     const reg=await navigator.serviceWorker.register("/sw.js");
     await navigator.serviceWorker.ready;
