@@ -5124,8 +5124,11 @@ function AjudanDashboard({events, user, upd, showT, setDelegTarget, isMobile}){
               {ev.statusWK_by&&ev.statusWK_by!=="walikota"&&<span style={{background:ev.statusWK_by==="ajudan"?"#FEF9C3":"#FEF3C7",color:"#92400E",borderRadius:4,padding:"1px 5px",fontSize:9,fontWeight:800}}>{ev.statusWK_by==="ajudan"?"diisi Ajudan":ev.statusWK_by==="admin_rk"?"diisi Admin RK":"diisi "+ev.statusWK_by}</span>}
             </div>
             <div style={{display:"flex",gap:8}}>
-              <StatusBtn label="✓ Hadir" active={ev.statusWK==="hadir"} color={GREEN}
-                onClick={()=>{upd(ev.id,{statusWK:"hadir",delegasiKeWWK:false,perwakilanWK:"",statusWK_by:"ajudan"});showT("Kehadiran WK diinput");loadUsers().filter(u=>(u.role==="kabag"||u.role==="kasubbag_protokol"||u.role==="kasubbag_komdokpim")&&u.noWA).forEach(u=>sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"konfirmasi_kehadiran",labelPimpinan:"Wali Kota",statusKehadiran:"hadir"}));}}/>
+              <button
+  className={"action-btn hadir" + (ev.statusWK==="hadir" ? " active" : "")}
+  onClick={...}>
+  ✓ Hadir
+</button>
               <StatusBtn label="✗ Tidak Hadir" active={ev.statusWK==="tidak_hadir"} color="#991b1b"
                 onClick={()=>{upd(ev.id,{statusWK:"tidak_hadir",statusWK_by:"ajudan"});showT("WK: Tidak Hadir");loadUsers().filter(u=>(u.role==="kabag"||u.role==="kasubbag_protokol"||u.role==="kasubbag_komdokpim")&&u.noWA).forEach(u=>sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"konfirmasi_kehadiran",labelPimpinan:"Wali Kota",statusKehadiran:"tidak_hadir"}));}}/>
               <StatusBtn label="→ Delegasi WWK" active={ev.delegasiKeWWK} color="#7C3AED"
@@ -7033,11 +7036,15 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
       :role==="mitra_kerja"&&(tab==="mitra"||tab==="jadwal")
         ?<MitraKerjaView events={events} isMobile={isMobile}/>
 
-      /* 10. Pimpinan View (WK, WWK, ajudan, staf, timkom, admin_rk — tab jadwal) */
+      // 10a. ZEN MODE — Wali Kota & Wakil Wali Kota
+      :tab==="jadwal"&&(role==="walikota"||role==="wakilwalikota")
+        ?<ZenModeView events={events} role={role} user={user}/>
+ 
+      // 10b. Pimpinan View — semua role lainnya (tidak berubah)
       :tab==="jadwal"
         ?<PimpinanView events={events} role={role} user={user} upd={upd} showT={showT} isMobile={isMobile} setDelegTarget={setDelegTarget} initialExpandedId={pendingExpandTarget} onExpandConsumed={()=>setPendingExpandTarget(null)}/>
-
-      /* 11. Tayang / Semua — generic event list untuk semua role */
+      
+        /* 11. Tayang / Semua — generic event list untuk semua role */
       :(tab==="tayang"||tab==="semua")
         ?<>{listEvents.length===0
           ?<div style={{textAlign:"center",padding:"60px 24px",background:"white",borderRadius:20,boxShadow:"0 2px 16px rgba(0,0,0,0.06)"}}>
