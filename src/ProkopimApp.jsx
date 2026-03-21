@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { ZenModeView, AjudanView, SkeletonLoader, EmptyState } from "./JoyfulInterface.jsx";
+import { ZenModeView, AjudanView, StafView, MitraView, SkeletonLoader, EmptyState, useDynamicTheme } from "./JoyfulInterface.jsx";
 
 // ═══════════════════════════════════════════════════════
 // PENDAFTARAN AKUN (Register → Menunggu Persetujuan Kabag)
@@ -7028,47 +7028,48 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
       :(["kasubbag_protokol","kasubbag_komdokpim","kabag"].includes(role)&&tab==="jadwal")
         ?<ApprovalQueueView events={events} role={role} upd={upd} showT={showT} askConfirm={askConfirm} isMobile={isMobile}/>
 
-      /* 9. Mitra Kerja */
+      /* 9. Mitra Kerja — Joyful MitraView */
       :role==="mitra_kerja"&&(tab==="mitra"||tab==="jadwal")
-        ?<MitraKerjaView events={events} isMobile={isMobile}/>
+        ?<MitraView events={events} isMobile={isMobile}/>
 
-      /* 10. Pimpinan View (WK, WWK, ajudan, staf, timkom, admin_rk — tab jadwal) */
+      /* 10. Pimpinan View — role-based joyful routing */
       :tab==="jadwal"
         ?(role==="walikota"||role==="wakilwalikota")
-  ?<ZenModeView
-      events={events}
-      role={role}
-      user={user}
-      upd={upd}
-      showT={showT}
-      isMobile={isMobile}
-      setDelegTarget={setDelegTarget}
-    />
-:(role==="ajudan_walikota"||role==="ajudan_wakilwalikota")
-  ?<AjudanView
-      events={events}
-      role={role}
-      user={user}
-      upd={upd}
-      showT={showT}
-      isMobile={isMobile}
-    />
-:<PimpinanView
-    events={events}
-    role={role}
-    user={user}
-    upd={upd}
-    showT={showT}
-    isMobile={isMobile}
-    setDelegTarget={setDelegTarget}
-    initialExpandedId={pendingExpandTarget}
-    onExpandConsumed={()=>setPendingExpandTarget(null)}
-  />
+          ?<ZenModeView
+              events={events} role={role} user={user}
+              upd={upd} showT={showT} isMobile={isMobile}
+              setDelegTarget={setDelegTarget}
+            />
+        :(role==="ajudan_walikota"||role==="ajudan_wakilwalikota")
+          ?<AjudanView
+              events={events} role={role} user={user}
+              upd={upd} showT={showT} isMobile={isMobile}
+            />
+        :(role==="staf"||role==="timkom"||role==="admin_rk")
+          ?<StafView
+              events={events} role={role} user={user}
+              isMobile={isMobile}
+            />
+        :<PimpinanView
+            events={events} role={role} user={user}
+            upd={upd} showT={showT} isMobile={isMobile}
+            setDelegTarget={setDelegTarget}
+            initialExpandedId={pendingExpandTarget}
+            onExpandConsumed={()=>setPendingExpandTarget(null)}
+          />
         
       /* 11. Tayang / Semua — generic event list untuk semua role */
       :(tab==="tayang"||tab==="semua")
         ?<>{listEvents.length===0
-          ?<div style={{textAlign:"center",padding:"60px 24px",background:"white",borderRadius:20,boxShadow:"0 2px 16px rgba(0,0,0,0.06)"}}>
+          ?<EmptyState
+              icon={filterDate&&filterDate!=="all" ? "🔍" : "📭"}
+              message={filterDate&&filterDate!=="all" ? "Tidak ada jadwal ditemukan" : "Belum ada agenda"}
+              sub={filterDate&&filterDate!=="all"
+                ? "Coba ubah filter atau hapus filter aktif."
+                : "Jadwal akan muncul setelah disetujui Kabag."
+              }
+            />
+          ?<div style={{display:"none"}}>
             {filterDate&&filterDate!=="all"
               ?<>
                 <div style={{fontSize:48,marginBottom:12}}>🔍</div>
