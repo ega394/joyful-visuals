@@ -1,0 +1,365 @@
+/*
+ * FILE: src/joyful-ui.css
+ * IMPORT DI: src/main.tsx  → import "./joyful-ui.css";
+ *
+ * TUGAS 5: Joyful Interface — CSS Global
+ * Berisi:
+ *   1. Skeleton Loader
+ *   2. Dynamic Theming (kartu berubah warna mendekati jam)
+ *   3. Empty State estetik
+ *   4. Ajudan: Action-oriented card swipe & quick buttons
+ *   5. Animasi & transisi native-like
+ */
+
+/* ══════════════════════════════════════════════════════════
+   1. SKELETON LOADER
+   Pakai class .skeleton pada div kosong
+   ══════════════════════════════════════════════════════════ */
+@keyframes skeleton-shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    #E2E8F0 25%,
+    #F1F5F9 50%,
+    #E2E8F0 75%
+  );
+  background-size: 800px 100%;
+  animation: skeleton-shimmer 1.6s ease-in-out infinite;
+  border-radius: 6px;
+}
+
+.skeleton-card {
+  animation: fadeIn 0.3s ease;
+}
+
+/* Skeleton variasi untuk teks dan avatar */
+.skeleton-text  { height: 14px; margin-bottom: 8px; }
+.skeleton-title { height: 20px; width: 60%; margin-bottom: 12px; }
+.skeleton-avatar {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+
+/* ══════════════════════════════════════════════════════════
+   2. DYNAMIC THEMING — Kartu Agenda
+   Class berubah otomatis berdasarkan waktu tersisa
+   Gunakan di komponen React: className={`agenda-card ${timeClass}`}
+   ══════════════════════════════════════════════════════════ */
+
+/* Base card */
+.agenda-card {
+  background: white;
+  border-radius: 16px;
+  border: 1.5px solid #E4EAF2;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  transition: background 0.5s ease, border-color 0.5s ease, box-shadow 0.3s ease;
+  box-shadow: 0 2px 12px rgba(10,22,40,0.06);
+}
+
+/* < 1 jam — MERAH: urgent */
+.agenda-card.urgent {
+  background: #FEF2F2;
+  border-color: #FCA5A5;
+  box-shadow: 0 4px 20px rgba(220,38,38,0.12);
+  animation: urgent-pulse 2s ease-in-out infinite;
+}
+@keyframes urgent-pulse {
+  0%, 100% { box-shadow: 0 4px 20px rgba(220,38,38,0.12); }
+  50%       { box-shadow: 0 4px 28px rgba(220,38,38,0.24); }
+}
+
+/* 1–3 jam — KUNING: perhatian */
+.agenda-card.approaching {
+  background: #FFFBEB;
+  border-color: #FCD34D;
+  box-shadow: 0 4px 16px rgba(217,119,6,0.10);
+}
+
+/* 3–8 jam — BIRU: hari ini */
+.agenda-card.today {
+  background: #EFF6FF;
+  border-color: #93C5FD;
+}
+
+/* > 8 jam / besok — HIJAU: santai */
+.agenda-card.upcoming {
+  background: #F0FDF4;
+  border-color: #86EFAC;
+}
+
+/* Sudah lewat */
+.agenda-card.past {
+  background: #F8FAFC;
+  border-color: #E2E8F0;
+  opacity: 0.55;
+}
+
+/* Strip warna di kiri kartu (timeline marker) */
+.agenda-card::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 8px; bottom: 8px;
+  width: 4px;
+  border-radius: 0 2px 2px 0;
+  transition: background 0.4s ease;
+}
+.agenda-card { position: relative; }
+.agenda-card.urgent::before     { background: #DC2626; }
+.agenda-card.approaching::before { background: #D97706; }
+.agenda-card.today::before      { background: #2563EB; }
+.agenda-card.upcoming::before   { background: #059669; }
+.agenda-card.past::before       { background: #94A3B8; }
+
+
+/* ══════════════════════════════════════════════════════════
+   3. EMPTY STATE
+   ══════════════════════════════════════════════════════════ */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 32px;
+  text-align: center;
+  background: white;
+  border-radius: 24px;
+  box-shadow: 0 4px 24px rgba(10,22,40,0.07);
+  animation: fadeInUp 0.4s cubic-bezier(0.34,1.56,0.64,1);
+}
+
+.empty-state__icon {
+  font-size: 52px;
+  margin-bottom: 16px;
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-8px); }
+}
+
+.empty-state__title {
+  font-size: 17px;
+  font-weight: 800;
+  color: #0F172A;
+  margin-bottom: 8px;
+}
+
+.empty-state__subtitle {
+  font-size: 13px;
+  color: #94A3B8;
+  line-height: 1.7;
+  max-width: 260px;
+}
+
+
+/* ══════════════════════════════════════════════════════════
+   4. AJUDAN: ACTION-ORIENTED
+   Tombol aksi cepat yang terasa responsif
+   ══════════════════════════════════════════════════════════ */
+
+/* Tombol status kehadiran (Hadir / Tidak Hadir / Delegasi) */
+.action-btn {
+  flex: 1;
+  padding: 12px 8px;
+  border-radius: 12px;
+  border: 2px solid transparent;
+  font-weight: 800;
+  font-size: 13px;
+  cursor: pointer;
+  transition: transform 0.12s cubic-bezier(0.34,1.56,0.64,1),
+              box-shadow 0.12s ease,
+              background 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.action-btn:active {
+  transform: scale(0.94);
+  box-shadow: none !important;
+}
+
+.action-btn.hadir {
+  background: white;
+  border-color: #0D6B4F;
+  color: #0D6B4F;
+}
+.action-btn.hadir.active,
+.action-btn.hadir:hover {
+  background: #0D6B4F;
+  color: white;
+  box-shadow: 0 4px 14px rgba(13,107,79,0.3);
+}
+
+.action-btn.tidak-hadir {
+  background: white;
+  border-color: #991B1B;
+  color: #991B1B;
+}
+.action-btn.tidak-hadir.active,
+.action-btn.tidak-hadir:hover {
+  background: #DC2626;
+  color: white;
+  box-shadow: 0 4px 14px rgba(220,38,38,0.3);
+}
+
+.action-btn.delegasi {
+  background: white;
+  border-color: #7C3AED;
+  color: #7C3AED;
+}
+.action-btn.delegasi.active,
+.action-btn.delegasi:hover {
+  background: #7C3AED;
+  color: white;
+  box-shadow: 0 4px 14px rgba(124,58,237,0.3);
+}
+
+/* Tombol Maps — aksi cepat ke Google Maps */
+.maps-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 20px;
+  border: 1.5px solid #2563EB;
+  background: white;
+  color: #2563EB;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+.maps-btn:active {
+  background: #2563EB;
+  color: white;
+  transform: scale(0.96);
+}
+
+/* Badge urgensi ajudan */
+.urgency-strip {
+  padding: 5px 14px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.urgency-strip.urgent     { background: #FEF2F2; color: #DC2626; }
+.urgency-strip.need-input { background: #FFFBEB; color: #B45309; }
+.urgency-strip.confirmed  { background: #F0FDF4; color: #065F46; }
+
+
+/* ══════════════════════════════════════════════════════════
+   5. ANIMASI GLOBAL
+   ══════════════════════════════════════════════════════════ */
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(-12px) scale(0.92); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+}
+
+@keyframes toastProgress {
+  from { width: 100%; }
+  to   { width: 0%; }
+}
+
+/* Transisi masuk komponen */
+.view-enter {
+  animation: fadeInUp 0.3s cubic-bezier(0.34,1.56,0.64,1);
+}
+
+/* Hero card zen mode masuk */
+.zen-hero-enter {
+  animation: slideInRight 0.4s cubic-bezier(0.34,1.56,0.64,1);
+}
+
+
+/* ══════════════════════════════════════════════════════════
+   6. ZEN MODE — Tampilan VIP
+   ══════════════════════════════════════════════════════════ */
+
+.zen-container {
+  padding-bottom: 40px;
+}
+
+/* Kartu hero besar */
+.zen-hero {
+  border-radius: 24px;
+  padding: 24px;
+  margin-bottom: 16px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(10,22,40,0.12);
+  transition: all 0.4s ease;
+  animation: zen-hero-enter 0.5s cubic-bezier(0.34,1.56,0.64,1);
+}
+
+@keyframes zen-hero-enter {
+  from { opacity: 0; transform: translateY(20px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Jam besar di hero card */
+.zen-time {
+  font-size: 52px;
+  font-weight: 900;
+  line-height: 1;
+  margin-bottom: 8px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -1px;
+}
+
+/* Nama acara */
+.zen-title {
+  font-size: 19px;
+  font-weight: 800;
+  color: #0F172A;
+  line-height: 1.35;
+  margin-bottom: 12px;
+}
+
+/* Mini card (agenda lain) */
+.zen-mini-card {
+  background: white;
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-left: 4px solid;
+  transition: opacity 0.3s ease;
+}
+
+.zen-section-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.45);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 10px;
+  margin-top: 8px;
+}
