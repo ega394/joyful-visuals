@@ -1,176 +1,309 @@
-# Prokopim Kota Tarakan
+# 🏛️ Prokopim — Sistem Agenda Pimpinan Kota Tarakan
 
-Sistem Informasi Jadwal dan Agenda Kegiatan Pimpinan Kota Tarakan.
-Dikelola oleh Bagian Protokol dan Komunikasi Pimpinan, Setda Kota Tarakan.
+**Sistem Informasi Terpadu Jadwal dan Agenda Kegiatan Pimpinan**
+Bagian Protokol dan Komunikasi Pimpinan — Setda Kota Tarakan
 
-## Tentang Aplikasi
+[![Vercel](https://img.shields.io/badge/deployed-Vercel-black?logo=vercel)](https://prokopim.tarakankota.go.id)
+[![PWA](https://img.shields.io/badge/PWA-ready-blue?logo=googlechrome)](https://prokopim.tarakankota.go.id)
+[![Supabase](https://img.shields.io/badge/database-Supabase-green?logo=supabase)](https://supabase.com)
 
-Aplikasi web PWA (Progressive Web App) untuk mengelola jadwal dan agenda kegiatan pimpinan Kota Tarakan. Dapat diinstall di perangkat mobile seperti aplikasi native.
+---
+
+## 📋 Deskripsi
+
+Prokopim adalah aplikasi web progressif (PWA) yang dirancang untuk membantu tim Bagian Protokol dan Komunikasi Pimpinan Setda Kota Tarakan dalam mengelola, menyetujui, dan memantau jadwal kegiatan Wali Kota dan Wakil Wali Kota Tarakan.
 
 ### Fitur Utama
 
-- Manajemen jadwal dan agenda kegiatan pimpinan
-- Push notification untuk pengingat agenda
-- Autentikasi OTP via WhatsApp
-- Fitur AI untuk penyusunan sambutan
-- Progressive Web App (installable di HP)
+- **Multi-role dashboard** — tampilan berbeda & personal untuk setiap jabatan
+- **Workflow approval bertingkat** — Draft → Kasubbag → Kabag → Tayang
+- **Push notification** — pengingat otomatis via browser (PWA)
+- **Notifikasi keberangkatan** — hitung jarak via Google Maps, kirim notif saat waktunya berangkat
+- **Upload naskah sambutan** — DOCX → PDF otomatis via server
+- **Analisa undangan AI** — ekstrak data jadwal dari foto/PDF undangan
+- **WhatsApp broadcast** — rekap agenda harian ke seluruh tim via Fonnte
+- **Mode offline** — data tersedia meskipun tanpa koneksi (cache PWA)
 
-### Teknologi
+---
 
-- **Frontend:** React 18, TypeScript, Vite
-- **UI:** shadcn/ui, Tailwind CSS, Radix UI
-- **Backend:** Vercel Serverless Functions (Node.js)
-- **Database:** Supabase
-- **PWA:** vite-plugin-pwa (Workbox)
-- **Push:** web-push (VAPID protocol)
+## 👥 Role Pengguna
 
-## Persyaratan
+| Role | Akses |
+|---|---|
+| `walikota` | Zen Mode — lihat & konfirmasi kehadiran |
+| `wakilwalikota` | Zen Mode — lihat, konfirmasi, terima disposisi |
+| `ajudan_walikota` / `ajudan_wakilwalikota` | Action Mode — konfirmasi kehadiran pimpinan, buka Maps |
+| `kabag` | Approval final, dashboard rekap, broadcast |
+| `kasubbag_protokol` | Approval awal, penugasan personil protokol |
+| `kasubbag_komdokpim` | Approval awal, upload naskah sambutan |
+| `staf` / `admin_rk` | Input jadwal, lihat penugasan |
+| `timkom` | Upload naskah sambutan, lihat penugasan |
+| `mitra_kerja` | Lihat agenda publik (read-only) |
 
-- Node.js >= 18.x (disarankan 20.x atau terbaru)
-- npm >= 9.x
-- Akun Vercel (untuk deployment)
-- Akun Supabase (untuk database)
+---
 
-## Instalasi Lokal
+## 🛠️ Teknologi
 
-### 1. Clone Repository
+| Layer | Stack |
+|---|---|
+| Frontend | React 18 + TypeScript + Vite 5 |
+| UI | shadcn/ui + Tailwind CSS |
+| Backend | Vercel Serverless Functions (Node.js) |
+| Database | Supabase (PostgreSQL) |
+| Storage | Supabase Storage (sambutan, undangan) |
+| PWA | vite-plugin-pwa + Workbox |
+| Push Notification | Web Push API + VAPID |
+| Jarak/Maps | Google Distance Matrix API |
+| WhatsApp | Fonnte API |
+| AI | Claude API (Anthropic) via `/api/ai` |
+
+---
+
+## ⚙️ Requirements
+
+- Node.js 18+ (disarankan 24.x)
+- npm 9+
+- Akun Vercel (deploy)
+- Akun Supabase (database & storage)
+- Google Cloud Console (Distance Matrix API)
+- Akun Fonnte (WhatsApp gateway)
+- Anthropic API key (fitur AI undangan)
+
+---
+
+## 🚀 Cara Install & Menjalankan Lokal
 
 ```bash
+# 1. Clone repository
 git clone https://github.com/ega394/joyful-visuals.git
 cd joyful-visuals
-```
 
-### 2. Install Dependencies
-
-```bash
+# 2. Install dependencies
 npm install
+
+# 3. Salin file environment
+cp .env.example .env.local
+
+# 4. Isi .env.local (lihat bagian Setup .env di bawah)
+
+# 5. Jalankan development server
+npm run dev
+# App berjalan di http://localhost:8080
 ```
 
-### 3. Konfigurasi Environment Variables
+---
 
-Buat file `.env` di root proyek:
+## 🔑 Setup Environment Variables
+
+### Untuk development lokal — buat file `.env.local`:
 
 ```env
-# === SUPABASE ===
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=eyJ...your-anon-key
+# ── SUPABASE ─────────────────────────────────────────
+VITE_SUPABASE_URL=https://xxxxxxxxxxxx.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGci...
 
-# === PUSH NOTIFICATION (VAPID) ===
-# Generate VAPID keys: npx web-push generate-vapid-keys
-VAPID_PUBLIC_KEY=BHyn6m5zFHYd...your-public-key
-VAPID_PRIVATE_KEY=your-private-key-here
-VAPID_SUBJECT=mailto:admin@tarakankota.go.id
+# Untuk serverless functions (tanpa VITE_ prefix)
+SUPABASE_URL=https://xxxxxxxxxxxx.supabase.co
+SUPABASE_KEY=eyJhbGci...
 
-# === WHATSAPP API ===
-WHATSAPP_API_URL=https://your-wa-api-endpoint
-WHATSAPP_API_TOKEN=your-token
+# ── VAPID (Push Notification) ─────────────────────────
+# Generate sekali dengan: npx web-push generate-vapid-keys
+VAPID_PUBLIC=Bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+VAPID_PRIVATE=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+VAPID_EMAIL=mailto:prokopim@tarakankota.go.id
 
-# === AI / SAMBUTAN ===
-AI_API_KEY=your-ai-api-key
+# ── GOOGLE MAPS ───────────────────────────────────────
+# Aktifkan Distance Matrix API di console.cloud.google.com
+GOOGLE_MAPS_API_KEY=AIzaSyxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+DEFAULT_ORIGIN=-3.3265,117.5789
 
-# === KEAMANAN ===
-API_SECRET=your-secret-for-cron-jobs
+# ── WHATSAPP (FONNTE) ─────────────────────────────────
+FONNTE_TOKEN=xxxxxxxxxxxxxxxxxxxx
+
+# ── AI (ANTHROPIC) ────────────────────────────────────
+VITE_GEMINI_API_KEY=sk-ant-xxxxxxx   # nama lama, isinya Anthropic key
+
+# ── KEAMANAN ──────────────────────────────────────────
+API_SECRET=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+CRON_SECRET=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+ALLOWED_ORIGIN=http://localhost:8080
 ```
 
-> **Penting:** JANGAN commit file `.env` ke repository. Pastikan `.env` sudah tercantum di `.gitignore`.
+### Untuk production — set di Vercel Dashboard:
 
-### 4. Generate VAPID Keys (Jika Belum Ada)
+`Vercel Dashboard → Project → Settings → Environment Variables`
+
+Tambahkan semua variable di atas dengan `ALLOWED_ORIGIN=https://prokopim.tarakankota.go.id`
+
+---
+
+## 🗄️ Setup Database Supabase
+
+### 1. Buat tabel yang diperlukan
+
+Jalankan di **Supabase Dashboard → SQL Editor**:
+
+```sql
+-- Tabel jadwal utama
+CREATE TABLE jadwal (
+  id TEXT PRIMARY KEY,
+  data JSONB NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Tabel users
+CREATE TABLE users (
+  username TEXT PRIMARY KEY,
+  nama TEXT,
+  jabatan TEXT,
+  role TEXT,
+  password TEXT,
+  noWA TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Tabel push subscriptions
+CREATE TABLE push_subscriptions (
+  endpoint TEXT PRIMARY KEY,
+  subscription JSONB,
+  username TEXT,
+  role TEXT,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Tabel pending registrations
+CREATE TABLE pending_regs (
+  id BIGINT PRIMARY KEY,
+  data JSONB
+);
+
+-- Tabel log notifikasi keberangkatan
+CREATE TABLE departure_notif_log (
+  id BIGSERIAL PRIMARY KEY,
+  agenda_id TEXT UNIQUE,
+  agenda_name TEXT,
+  notified_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+### 2. Buat Supabase Storage buckets
+
+Di **Supabase Dashboard → Storage → New Bucket**:
+- `sambutan` — untuk naskah sambutan (PDF/DOCX)
+- `undangan` — untuk berkas undangan
+
+Set policy: **Public read**, authenticated write.
+
+### 3. Jalankan migration koordinat (Tugas 2)
+
+```sql
+-- File: supabase/migrations/001_add_location_coords.sql
+-- Jalankan setelah tabel jadwal dibuat
+```
+
+---
+
+## 📦 Deploy ke Vercel
+
+```bash
+# Install Vercel CLI
+npm i -g vercel
+
+# Login
+vercel login
+
+# Deploy production
+vercel --prod
+```
+
+Atau cukup push ke branch `main` — Vercel auto-deploy via GitHub integration.
+
+---
+
+## 🕐 Jadwal Cron Jobs
+
+Diatur di `vercel.json` (waktu UTC, zona WITA = UTC+8):
+
+| Jadwal | Waktu WITA | Fungsi |
+|---|---|---|
+| `30 23 * * *` | 07:30 | Rekap agenda pagi ke semua tim |
+| `55 7 * * *` | 15:55 | Pengingat penugasan belum diisi |
+| `0 8 * * *` | 16:00 | Notif besok ke Ajudan |
+| `10 8 * * *` | 16:10 | Notif penugasan ke Personil |
+| `*/5 23-14 * * 1-5` | Setiap 5 menit (kerja) | Notif keberangkatan *(butuh Vercel Pro)* |
+
+> Cron `*/5` membutuhkan **Vercel Pro plan**. Untuk Free plan, hapus baris `notif-departure` dari `vercel.json`.
+
+---
+
+## 🔐 Generate VAPID Keys
 
 ```bash
 npx web-push generate-vapid-keys
 ```
 
-Salin output `Public Key` ke `VAPID_PUBLIC_KEY` dan `Private Key` ke `VAPID_PRIVATE_KEY` di file `.env`.
+Salin output ke environment variables `VAPID_PUBLIC` dan `VAPID_PRIVATE`.
 
-### 5. Jalankan Development Server
+---
 
-```bash
-npm run dev
-```
-
-Buka http://localhost:8080 di browser.
-
-## Struktur Proyek
+## 📁 Struktur Proyek
 
 ```
 joyful-visuals/
-├── api/                    # Vercel Serverless Functions
-│   ├── webpush.js          # Push notification (subscribe/send)
-│   ├── notif-cron.js       # Cron job notifikasi terjadwal
-│   ├── notif-penugasan.js  # Notifikasi penugasan
-│   ├── otp.js              # Verifikasi OTP
-│   ├── sendOTP.js          # Kirim OTP via WhatsApp
-│   ├── whatsapp.js         # Integrasi WhatsApp API
-│   ├── sambutan.js         # Generator sambutan AI
-│   ├── aibackup.js         # Backup AI endpoint
-│   └── _middleware.js      # Middleware API
-├── public/                 # File statis (icons, manifest)
-├── src/                    # Kode sumber frontend React
-│   ├── components/         # Komponen UI
-│   ├── pages/              # Halaman-halaman
-│   ├── hooks/              # Custom React hooks
-│   ├── lib/                # Utilitas dan konfigurasi
-│   └── main.tsx            # Entry point
-├── index.html              # HTML template
-├── vite.config.ts          # Konfigurasi Vite + PWA
-├── tailwind.config.ts      # Konfigurasi Tailwind CSS
-├── package.json            # Dependencies dan scripts
-└── vercel.json             # Konfigurasi deployment Vercel
+├── api/                        # Vercel Serverless Functions
+│   ├── _middleware.js          # Auth + rate limiting shared
+│   ├── ai.js                   # Proxy ke Claude API
+│   ├── distance.js             # Google Maps Distance Matrix
+│   ├── notif-cron.js           # Cron dispatcher (WA)
+│   ├── notif-departure.js      # Notif keberangkatan
+│   ├── notif-penugasan.js      # Notif penugasan personil
+│   ├── otp.js                  # OTP via WA
+│   ├── sambutan.js             # Konversi DOCX→PDF
+│   ├── sendOTP.js              # Kirim OTP
+│   ├── webpush.js              # Push notification
+│   └── whatsapp.js             # WhatsApp via Fonnte
+├── public/
+│   ├── push-handler.js         # SW push + click-to-redirect
+│   └── [icons PWA]
+├── src/
+│   ├── JoyfulInterface.jsx     # Role-based UI components
+│   ├── ProkopimApp.jsx         # Komponen utama (7000+ baris)
+│   ├── native-feel.css         # PWA native UX styles
+│   ├── main.tsx                # Entry point
+│   └── App.tsx
+├── supabase/
+│   └── migrations/
+│       └── 001_add_location_coords.sql
+├── index.html                  # Viewport + PWA meta
+├── vite.config.ts              # Vite + PWA config
+├── vercel.json                 # Routing + cron jobs
+└── .env.example                # Template environment variables
 ```
 
-## Deployment ke Vercel
+---
 
-### 1. Hubungkan Repository
+## 🧪 Testing
 
-- Buka https://vercel.com dan login
-- Import repo `ega394/joyful-visuals`
-- Framework otomatis terdeteksi sebagai Vite
+```bash
+# Unit test
+npm run test
 
-### 2. Set Environment Variables
+# Watch mode
+npm run test:watch
 
-Di Vercel Dashboard → Project Settings → Environment Variables, tambahkan semua variabel dari file `.env` di atas.
+# E2E (Playwright)
+npx playwright test
+```
 
-### 3. Konfigurasi Domain
+---
 
-Di Vercel Dashboard → Project Settings → Domains, tambahkan domain `prokopim.tarakankota.go.id`.
+## 📞 Kontak & Support
 
-**DNS Setup (Cloudflare):**
+**Bagian Protokol dan Komunikasi Pimpinan**
+Sekretariat Daerah Kota Tarakan
+Email: prokopim@tarakankota.go.id
+Website: prokopim.tarakankota.go.id
 
-|Tipe |Name    |Target              |Proxy   |
-|-----|--------|--------------------|--------|
-|CNAME|prokopim|cname.vercel-dns.com|DNS Only|
+---
 
-### 4. Deploy
-
-Setiap push ke branch `main` akan otomatis trigger deployment.
-
-## Perintah yang Tersedia
-
-|Perintah            |Fungsi                         |
-|--------------------|-------------------------------|
-|`npm run dev`       |Jalankan development server    |
-|`npm run build`     |Build untuk production         |
-|`npm run preview`   |Preview hasil build lokal      |
-|`npm run lint`      |Cek kode dengan ESLint         |
-|`npm test`          |Jalankan unit tests            |
-|`npm run test:watch`|Jalankan tests dalam mode watch|
-
-## Prosedur Update (SOP)
-
-1. Buat perubahan di branch `dev` (bukan langsung di `main`)
-1. Push ke `dev` — Vercel akan buat Preview URL otomatis
-1. Test di Preview URL
-1. Jika oke, buat Pull Request dari `dev` ke `main`
-1. Merge PR — deployment production otomatis berjalan
-1. Catat perubahan di `CHANGELOG.md`
-
-**Waktu update aman:** sebelum 07.00, 12.00–13.00, atau setelah 17.00 WITA.
-
-## Kontributor
-
-- **Pengelola:** Bagian Protokol dan Komunikasi Pimpinan, Setda Kota Tarakan
-
-## Lisensi
-
-Proyek internal Pemerintah Kota Tarakan.
-Hak cipta © 2026 Bagian Prokopim Setda Kota Tarakan.
+*Dibangun dengan ❤️ untuk Prokopim Kota Tarakan — #TarakanHibot*
