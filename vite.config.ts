@@ -1,7 +1,6 @@
 // vite.config.ts
-// PERUBAHAN dari versi sebelumnya:
-//   - Ganti strategy generateSW → injectManifest (Tugas 3)
-//   - Agar bisa menulis custom push & notificationclick di src/sw.ts
+// TUGAS 3 FIX: Kembali ke generateSW (tidak butuh workbox npm packages)
+// Push notification handler diload via importScripts dari /public/push-handler.js
 
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
@@ -39,21 +38,6 @@ export default defineConfig(({ mode }) => ({
     VitePWA({
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "apple-touch-icon.png", "masked-icon.svg"],
-
-      // ✅ TUGAS 3: Ganti dari generateSW (default) ke injectManifest
-      // Perbedaannya:
-      //   generateSW     = SW di-generate 100% otomatis, tidak bisa tambah event custom
-      //   injectManifest = kita tulis SW sendiri di src/sw.ts,
-      //                    Workbox hanya inject daftar file cache ke dalamnya
-      strategies: "injectManifest",
-      srcDir: "src",
-      filename: "sw.ts",
-
-      injectManifest: {
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
-        globIgnores: ["**/api/**"],
-      },
-
       manifest: {
         name: "Prokopim Kota Tarakan",
         short_name: "Prokopim",
@@ -75,6 +59,37 @@ export default defineConfig(({ mode }) => ({
           { src: "pwa-512x512.png",  sizes: "512x512", type: "image/png" },
           { src: "pwa-512x512.png",  sizes: "512x512", type: "image/png", purpose: "any maskable" },
         ],
+      },
+      workbox: {
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+
+        // ✅ FIX: Jangan intercept /api/* — biarkan ke server
+        navigateFallbackDenylist: [
+          /^\/api\/.*/,
+          /^\/sw\.js$/,
+          /^\/push-handler\.js$/,
+        ],
+
+        runtimeCaching: [
+          {
+            // API Vercel → tidak pernah di-cache
+            urlPattern: /^\/api\/.*/,
+            handler: "NetworkOnly",
+          },
+          {
+            urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "supabase-cache",
+              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 },
+            },
+          },
+        ],
+
+        // ✅ TUGAS 3: Load push handler dari /public/push-handler.js
+        // File ini menangani event 'push' dan 'notificationclick'
+        // Tanpa butuh npm packages tambahan
+        importScripts: ["/push-handler.js"],
       },
     }),
   ].filter(Boolean),
