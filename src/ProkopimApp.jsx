@@ -7069,24 +7069,6 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
                 : "Jadwal akan muncul setelah disetujui Kabag."
               }
             />
-          ?<div style={{display:"none"}}>
-            {filterDate&&filterDate!=="all"
-              ?<>
-                <div style={{fontSize:48,marginBottom:12}}>🔍</div>
-                <div style={{fontSize:16,fontWeight:700,color:"#334155",marginBottom:8}}>Tidak ada jadwal ditemukan</div>
-                <div style={{fontSize:13,color:"#94A3B8",marginBottom:16}}>Filter aktif: <strong style={{color:"#0A1628"}}>{filterDate==="today"?"Hari Ini":filterDate==="week"?"Minggu Ini":"Rentang Tanggal"}</strong></div>
-                <button onClick={()=>{setFDate("");setFilterFrom("");setFilterTo("");setShowRangeFilter(false);}}
-                  style={{padding:"10px 20px",borderRadius:10,border:"1.5px solid #0A1628",background:"white",color:"#0A1628",cursor:"pointer",fontSize:13,fontWeight:700}}>
-                  Hapus Filter
-                </button>
-              </>
-              :<>
-                <div style={{fontSize:52,marginBottom:12}}>📭</div>
-                <div style={{fontSize:16,fontWeight:700,color:"#334155",marginBottom:6}}>Belum ada jadwal</div>
-                <div style={{fontSize:13,color:"#94A3B8"}}>Belum ada jadwal yang tersedia untuk ditampilkan</div>
-              </>
-            }
-          </div>
           :viewMode==="timeline"
               ?<TimelineView evList={listEvents}/>
               :isMobile
