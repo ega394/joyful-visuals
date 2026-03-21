@@ -7,6 +7,6 @@
     { "path": "/api/notif-cron?type=pagi",     "schedule": "30 23 * * *" },
     { "path": "/api/notif-cron?type=reminder", "schedule": "55 7 * * *"  },
     { "path": "/api/notif-cron?type=ajudan",   "schedule": "0 8 * * *"   },
-    { "path": "/api/notif-cron?type=personil", "schedule": "10 8 * * *"  },
+    { "path": "/api/notif-cron?type=personil", "schedule": "10 8 * * *"  }
   ]
 }
