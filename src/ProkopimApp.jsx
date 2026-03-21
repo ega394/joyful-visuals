@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
-
+import { ZenModeView, AjudanView, SkeletonLoader, EmptyState } from "./JoyfulInterface.jsx";
 
 // ═══════════════════════════════════════════════════════
 // PENDAFTARAN AKUN (Register → Menunggu Persetujuan Kabag)
@@ -7034,8 +7034,37 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
 
       /* 10. Pimpinan View (WK, WWK, ajudan, staf, timkom, admin_rk — tab jadwal) */
       :tab==="jadwal"
-        ?<PimpinanView events={events} role={role} user={user} upd={upd} showT={showT} isMobile={isMobile} setDelegTarget={setDelegTarget} initialExpandedId={pendingExpandTarget} onExpandConsumed={()=>setPendingExpandTarget(null)}/>
-
+        ?(role==="walikota"||role==="wakilwalikota")
+  ?<ZenModeView
+      events={events}
+      role={role}
+      user={user}
+      upd={upd}
+      showT={showT}
+      isMobile={isMobile}
+      setDelegTarget={setDelegTarget}
+    />
+:(role==="ajudan_walikota"||role==="ajudan_wakilwalikota")
+  ?<AjudanView
+      events={events}
+      role={role}
+      user={user}
+      upd={upd}
+      showT={showT}
+      isMobile={isMobile}
+    />
+:<PimpinanView
+    events={events}
+    role={role}
+    user={user}
+    upd={upd}
+    showT={showT}
+    isMobile={isMobile}
+    setDelegTarget={setDelegTarget}
+    initialExpandedId={pendingExpandTarget}
+    onExpandConsumed={()=>setPendingExpandTarget(null)}
+  />
+        
       /* 11. Tayang / Semua — generic event list untuk semua role */
       :(tab==="tayang"||tab==="semua")
         ?<>{listEvents.length===0
