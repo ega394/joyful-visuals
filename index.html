@@ -1,37 +1,51 @@
 <!doctype html>
 <html lang="id">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<head>
+<meta charset="UTF-8" />
 
-    <!-- Identity -->
-    <title>Prokopim Kota Tarakan</title>
-    <meta name="description" content="Sistem Informasi Jadwal dan Agenda Kegiatan Pimpinan Kota Tarakan" />
-    <meta name="author" content="Bagian Protokol dan Komunikasi Pimpinan Setda Kota Tarakan" />
-    <meta name="application-name" content="Prokopim" />
+<!--
+  ✅ TUGAS 4: Viewport Native Feel
+  Perubahan dari versi lama:
+    - Tambah: user-scalable=no          → blokir pinch-zoom & double-tap zoom
+    - Tambah: minimum-scale=1.0         → kunci skala minimum
+    - Tambah: maximum-scale=1.0         → kunci skala maximum
+    - Tambah: viewport-fit=cover        → support notch/Dynamic Island iPhone
+-->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
 
-    <!-- PWA / iOS -->
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-title" content="Prokopim" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="theme-color" content="#0A1628" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+<!-- Identity -->
+<title>Prokopim Kota Tarakan</title>
+<meta name="description" content="Sistem Informasi Jadwal dan Agenda Kegiatan Pimpinan Kota Tarakan" />
+<meta name="author" content="Bagian Protokol dan Komunikasi Pimpinan Setda Kota Tarakan" />
+<meta name="application-name" content="Prokopim" />
 
-    <!-- Open Graph (WhatsApp, Telegram preview) -->
-    <meta property="og:title" content="Prokopim Kota Tarakan" />
-    <meta property="og:description" content="Sistem Informasi Jadwal dan Agenda Kegiatan Pimpinan Kota Tarakan" />
-    <meta property="og:type" content="website" />
-    <meta property="og:image" content="/pwa-512x512.png" />
-    <meta property="og:locale" content="id_ID" />
+<!-- PWA / iOS -->
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="Prokopim" />
+<!--
+  black-translucent: status bar transparan, konten bisa naik ke area notch
+  Dikombinasikan dengan viewport-fit=cover + safe-area CSS → tampilan penuh layar
+-->
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="theme-color" content="#0A1628" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+<link rel="icon" type="image/x-icon" href="/favicon.ico" />
 
-    <!-- Twitter/X Card -->
-    <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="Prokopim Kota Tarakan" />
-    <meta name="twitter:image" content="/pwa-512x512.png" />
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<!-- Open Graph (WhatsApp, Telegram preview) -->
+<meta property="og:title" content="Prokopim Kota Tarakan" />
+<meta property="og:description" content="Sistem Informasi Jadwal dan Agenda Kegiatan Pimpinan Kota Tarakan" />
+<meta property="og:type" content="website" />
+<meta property="og:image" content="/pwa-512x512.png" />
+<meta property="og:locale" content="id_ID" />
+
+<!-- Twitter/X Card -->
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="Prokopim Kota Tarakan" />
+<meta name="twitter:image" content="/pwa-512x512.png" />
+
+</head>
+<body>
+<div id="root"></div>
+<script type="module" src="/src/main.tsx"></script>
+</body>
 </html>
