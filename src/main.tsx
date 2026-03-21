@@ -1,4 +1,5 @@
 import "./native-feel.css";
+import "./joyful-ui.css";
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
