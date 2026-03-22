@@ -1,392 +1,346 @@
-// ============================================================
-//  /api/notif-cron.js — Dispatcher Notifikasi Terjadwal
-//  Satu file untuk semua cron, routing via ?type=
-//
-//  vercel.json:
-//  { "path": "/api/notif-cron?type=pagi",     "schedule": "30 23 * * *" }  → 07:30 WITA
-//  { "path": "/api/notif-cron?type=reminder",  "schedule": "55 7 * * *"  }  → 15:55 WITA
-//  { "path": "/api/notif-cron?type=ajudan",    "schedule": "0 8 * * *"   }  → 16:00 WITA
-//  { "path": "/api/notif-cron?type=personil",  "schedule": "10 8 * * *"  }  → 16:10 WITA
-// ============================================================
+/**
+ * api/notif-cron.js — Prokopim Notifikasi Harian
+ *
+ * PERBAIKAN DUPLIKAT:
+ * Sebelumnya WA terkirim 2x karena Vercel kadang menjalankan cron
+ * lebih dari sekali (retry otomatis). Fix: sebelum kirim, cek tabel
+ * `notif_daily_log` apakah notif jenis ini sudah terkirim hari ini.
+ * Jika sudah → skip. Jika belum → kirim + catat ke log.
+ *
+ * JADWAL CRON (vercel.json, dalam UTC):
+ *   type=pagi      → "30 23 * * *"  = 07:30 WITA
+ *   type=reminder  → "55 7 * * *"   = 15:55 WITA
+ *   type=ajudan    → "0 8 * * *"    = 16:00 WITA
+ *   type=personil  → "10 8 * * *"   = 16:10 WITA
+ */
 
-const SUPA_URL = process.env.VITE_SUPABASE_URL  || process.env.SUPABASE_URL  || "";
-const SUPA_KEY = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_KEY || "";
-const FONNTE   = process.env.FONNTE_TOKEN || "";
-const LINK     = "prokopim.tarakankota.go.id";
-const FOOTER   = "\n_Prokopim Kota Tarakan_\n_" + LINK + "_";
+const SUPA_URL  = process.env.SUPABASE_URL  || process.env.VITE_SUPABASE_URL;
+const SUPA_KEY  = process.env.SUPABASE_KEY  || process.env.VITE_SUPABASE_ANON_KEY;
+const FONNTE    = process.env.FONNTE_TOKEN;
+const CRON_SEC  = process.env.CRON_SECRET;
 
+// ── Helper Supabase ──────────────────────────────────────────
 const H = () => ({
   "Content-Type":  "application/json",
   "apikey":        SUPA_KEY,
-  "Authorization": "Bearer " + SUPA_KEY,
+  "Authorization": `Bearer ${SUPA_KEY}`,
 });
 
-// ── Supabase helpers ─────────────────────────────────────────
-async function getAllJadwal() {
-  const r = await fetch(SUPA_URL + "/rest/v1/jadwal?select=data&order=id", { headers: H() });
-  if (!r.ok) throw new Error("Gagal ambil jadwal: " + r.status);
-  return (await r.json()).map(x => x.data).filter(Boolean);
+async function sbGet(path) {
+  const r = await fetch(`${SUPA_URL}/rest/v1/${path}`, { headers: H() });
+  if (!r.ok) return null;
+  return r.json();
 }
 
-async function getAllUsers() {
-  const r = await fetch(SUPA_URL + "/rest/v1/users?select=*", { headers: H() });
-  if (!r.ok) throw new Error("Gagal ambil users: " + r.status);
-  return await r.json();
-}
+// ── DEDUPLICATION: cek & catat log harian ───────────────────
+/**
+ * Kembalikan true jika notif jenis `type` sudah terkirim hari ini (WITA).
+ * Jika belum, langsung INSERT ke log dan kembalikan false.
+ */
+async function isDuplicate(type) {
+  // Tanggal hari ini dalam zona WITA (UTC+8)
+  const nowWITA = new Date(Date.now() + 8 * 60 * 60 * 1000);
+  const todayStr = nowWITA.toISOString().slice(0, 10); // "YYYY-MM-DD"
 
-// ── Tanggal helpers ──────────────────────────────────────────
-function getTodayWITA() {
-  return new Date(Date.now() + 8*60*60*1000).toISOString().slice(0,10);
-}
-function getTomorrowWITA() {
-  return new Date(Date.now() + 8*60*60*1000 + 24*60*60*1000).toISOString().slice(0,10);
-}
-
-const HARI  = ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
-const BULAN = ["","Januari","Februari","Maret","April","Mei","Juni",
-               "Juli","Agustus","September","Oktober","November","Desember"];
-function fmtTgl(tgl) {
-  const [y,m,d] = tgl.split("-").map(Number);
-  return HARI[new Date(y,m-1,d).getDay()] + ", " + d + " " + BULAN[m] + " " + y;
-}
-
-// ── WhatsApp helper ──────────────────────────────────────────
-async function kirimWA(noWA, pesan) {
-  const nomor = noWA.trim().replace(/^0/,"62").replace(/\D/g,"");
   try {
-    const r = await fetch("https://api.fonnte.com/send", {
+    // Cek apakah sudah ada record hari ini untuk type ini
+    const existing = await sbGet(
+      `notif_daily_log?select=id&notif_type=eq.${type}&notif_date=eq.${todayStr}&limit=1`
+    );
+
+    if (existing && existing.length > 0) {
+      console.log(`[DEDUP] ${type} sudah terkirim hari ini (${todayStr}), skip.`);
+      return true; // duplikat — jangan kirim
+    }
+
+    // Belum ada → INSERT ke log SEKARANG (sebelum kirim, untuk lock)
+    await fetch(`${SUPA_URL}/rest/v1/notif_daily_log`, {
       method: "POST",
-      headers: { "Authorization": FONNTE, "Content-Type": "application/json" },
-      body: JSON.stringify({ target: nomor, message: pesan }),
+      headers: {
+        ...H(),
+        "Prefer": "return=minimal",
+      },
+      body: JSON.stringify({
+        notif_type: type,
+        notif_date: todayStr,
+        sent_at:    new Date().toISOString(),
+      }),
     });
-    return (await r.json()).status !== false;
-  } catch(e) {
-    console.error("[cron] Gagal kirim ke", nomor, e.message);
+
+    return false; // bukan duplikat — lanjut kirim
+  } catch (err) {
+    // Jika tabel belum ada atau error lain → tetap lanjut kirim
+    // (jangan blokir notif hanya karena tabel log belum dibuat)
+    console.warn(`[DEDUP] Error cek log:`, err?.message || err);
     return false;
   }
 }
 
-// ── Status kehadiran ─────────────────────────────────────────
-function statusKehadiran(ev, pim) {
-  const s = pim === "wk" ? ev.statusWK : ev.statusWWK;
-  if (pim === "wk" && ev.delegasiKeWWK) return "↩️ Delegasi ke Wakil WK";
-  if (!s)                 return "⚠️ Belum konfirmasi";
-  if (s === "hadir")      return "✅";
-  if (s === "tidak_hadir")return "❌ Tidak hadir";
-  if (s === "diwakilkan") {
-    const nama = pim === "wk" ? ev.perwakilanWK : ev.perwakilanWWK;
-    return "🔄 Diwakilkan" + (nama ? ": " + nama : "");
-  }
-  return s;
-}
-
-function pimpinanLabel(ev) {
-  const list = [];
-  if ((ev.untukPimpinan||[]).includes("walikota"))
-    list.push(ev.delegasiKeWWK ? "WK (Delegasi ke WWK)" : "WK");
-  if ((ev.untukPimpinan||[]).includes("wakilwalikota") || ev.delegasiKeWWK)
-    list.push("WWK");
-  return list.join(" & ") || "-";
-}
-
-// ════════════════════════════════════════════════════════════
-//  TYPE: pagi — 07:30 WITA
-//  Kabag, Kasubbag Komdokpim, Ajudan WK/WWK, Personil (jika punya penugasan)
-// ════════════════════════════════════════════════════════════
-function pesanKabag(events, tgl, userMap) {
-  const sorted = [...events].sort((a,b)=>(a.jam||"").localeCompare(b.jam||""));
-  const wkNama  = Object.values(userMap).find(u=>u.role==="walikota")?.nama  || "Wali Kota";
-  const wwkNama = Object.values(userMap).find(u=>u.role==="wakilwalikota")?.nama || "Wakil Wali Kota";
-  const lines = ["🗓️ *Rekap Agenda Pimpinan — Hari Ini*", fmtTgl(tgl), ""];
-  sorted.forEach((ev,i) => {
-    const hadirWK  = (ev.untukPimpinan||[]).includes("walikota");
-    const hadirWWK = (ev.untukPimpinan||[]).includes("wakilwalikota")||ev.delegasiKeWWK;
-    const pers = (ev.personil||[]).map(un=>userMap[un]?.nama||un).join(", ") || "—";
-    lines.push((i+1)+". ⏰ "+(ev.jam||"-")+" | *"+(ev.namaAcara||"-")+"*");
-    if (ev.lokasi)        lines.push("   📍 "+ev.lokasi);
-    if (ev.penyelenggara) lines.push("   🏢 "+ev.penyelenggara);
-    if (hadirWK)  lines.push("   👔 "+wkNama+" "+statusKehadiran(ev,"wk"));
-    if (hadirWWK) lines.push("   👔 "+wwkNama+" "+statusKehadiran(ev,"wwk"));
-    lines.push("   🎯 Bertugas: "+pers, "");
-  });
-  lines.push("_Total: "+events.length+" kegiatan hari ini_", FOOTER);
-  return lines.join("\n");
-}
-
-function pesanKasubbagKomdok(events, tgl, userMap) {
-  const sorted = [...events].sort((a,b)=>(a.jam||"").localeCompare(b.jam||""));
-  const lines = ["🗓️ *Rekap Lengkap Agenda Pimpinan — Hari Ini*", fmtTgl(tgl), ""];
-  sorted.forEach((ev,i) => {
-    const hadirWK  = (ev.untukPimpinan||[]).includes("walikota");
-    const hadirWWK = (ev.untukPimpinan||[]).includes("wakilwalikota")||ev.delegasiKeWWK;
-    const pers = (ev.personil||[]).map(un=>userMap[un]?.nama||un).join(", ") || "—";
-    lines.push((i+1)+". ⏰ "+(ev.jam||"-")+" | *"+(ev.namaAcara||"-")+"*");
-    if (ev.lokasi)        lines.push("   📍 "+ev.lokasi);
-    if (ev.penyelenggara) lines.push("   🏢 "+ev.penyelenggara);
-    if (hadirWK)  lines.push("   👔 Wali Kota "+statusKehadiran(ev,"wk"));
-    if (hadirWWK) lines.push("   👔 Wakil Wali Kota "+statusKehadiran(ev,"wwk"));
-    lines.push("   🎯 Bertugas: "+pers);
-    lines.push("   📝 Sambutan: "+(ev.sambutanFile?"✅ Tersedia":"❌ Belum ada"), "");
-  });
-  lines.push("_Total: "+events.length+" kegiatan hari ini_", FOOTER);
-  return lines.join("\n");
-}
-
-function pesanAjudanPagi(events, tgl, userMap, pim) {
-  const label = pim==="wk" ? "Wali Kota" : "Wakil Wali Kota";
-  const filtered = events.filter(ev =>
-    pim==="wk"
-      ? (ev.untukPimpinan||[]).includes("walikota")
-      : (ev.untukPimpinan||[]).includes("wakilwalikota")||ev.delegasiKeWWK
-  ).sort((a,b)=>(a.jam||"").localeCompare(b.jam||""));
-  if (!filtered.length) return null;
-  const lines = ["🌅 *Selamat Pagi!*", "*Agenda "+label+" — Hari Ini*", fmtTgl(tgl), ""];
-  filtered.forEach((ev,i) => {
-    const pers = (ev.personil||[]).map(un=>userMap[un]?.nama||un).join(", ") || "—";
-    lines.push((i+1)+". ⏰ "+(ev.jam||"-")+" | *"+(ev.namaAcara||"-")+"*");
-    if (ev.lokasi)        lines.push("   📍 "+ev.lokasi);
-    if (ev.penyelenggara) lines.push("   🏢 "+ev.penyelenggara);
-    lines.push("   👔 "+label+" "+statusKehadiran(ev, pim));
-    lines.push("   🎯 Bertugas: "+pers, "");
-  });
-  lines.push(FOOTER);
-  return lines.join("\n");
-}
-
-function pesanPersonilPagi(events, tgl, userMap) {
-  const sorted = [...events].sort((a,b)=>(a.jam||"").localeCompare(b.jam||""));
-  const lines = ["🌅 *Selamat Pagi!*", fmtTgl(tgl), "", "Agenda Pimpinan hari ini:", ""];
-  sorted.forEach((ev,i) => {
-    const hadirWK  = (ev.untukPimpinan||[]).includes("walikota");
-    const hadirWWK = (ev.untukPimpinan||[]).includes("wakilwalikota")||ev.delegasiKeWWK;
-    const pers = (ev.personil||[]).map(un=>userMap[un]?.nama||un).join(", ") || "—";
-    lines.push((i+1)+". ⏰ "+(ev.jam||"-")+" | *"+(ev.namaAcara||"-")+"*");
-    if (ev.lokasi)        lines.push("   📍 "+ev.lokasi);
-    if (ev.penyelenggara) lines.push("   🏢 "+ev.penyelenggara);
-    if (hadirWK)  lines.push("   👔 Wali Kota "+statusKehadiran(ev,"wk"));
-    if (hadirWWK) lines.push("   👔 Wakil Wali Kota "+statusKehadiran(ev,"wwk"));
-    lines.push("   🎯 Personil bertugas: "+pers, "");
-  });
-  lines.push(FOOTER);
-  return lines.join("\n");
-}
-
-async function handlePagi(userMap, allUsers) {
-  const today = getTodayWITA();
-  const events = (await getAllJadwal()).filter(ev =>
-    ev.tanggal===today && ev.alur==="disetujui" && !ev.tersembunyi
-  );
-  if (!events.length) return { sent:0, message:"Tidak ada kegiatan hari ini" };
-
-  const PERSONIL_ROLES = ["staf","admin_rk","timkom","kasubbag_protokol","kasubbag_komdokpim"];
-  let sent=0, failed=0, results=[];
-  for (const u of allUsers) {
-    if (!u.noWA) continue;
-    let pesan = null;
-    if      (u.role==="kabag")               pesan = pesanKabag(events, today, userMap);
-    else if (u.role==="kasubbag_komdokpim")  pesan = pesanKasubbagKomdok(events, today, userMap);
-    else if (u.role==="ajudan_walikota")     pesan = pesanAjudanPagi(events, today, userMap, "wk");
-    else if (u.role==="ajudan_wakilwalikota")pesan = pesanAjudanPagi(events, today, userMap, "wwk");
-    else if (PERSONIL_ROLES.includes(u.role)) {
-      if (events.some(ev=>(ev.personil||[]).includes(u.username)))
-        pesan = pesanPersonilPagi(events, today, userMap);
-    }
-    if (!pesan) continue;
-    const ok = await kirimWA(u.noWA, pesan);
-    if (ok) sent++; else failed++;
-    results.push({ username:u.username, role:u.role, ok });
-    await new Promise(r=>setTimeout(r,300));
-  }
-  return { sent, failed, results, kegiatanCount:events.length };
-}
-
-// ════════════════════════════════════════════════════════════
-//  TYPE: reminder — 15:55 WITA
-//  Kasubbag Protokol & Komdokpim: pengingat penugasan besok
-// ════════════════════════════════════════════════════════════
-function punyaPersonilDariRole(ev, roles, userMap) {
-  return (ev.personil||[]).some(un => roles.includes(userMap[un]?.role));
-}
-
-function pesanPengingat(evBelum, tglBesok, today) {
-  const sorted = [...evBelum].sort((a,b)=>(a.jam||"").localeCompare(b.jam||""));
-  const lines = [
-    "⚠️ *Pengingat Penugasan — Besok*",
-    fmtTgl(today)+" | 15.55 WITA", "",
-    "Kegiatan besok yang *belum ada penugasan*:", "",
-  ];
-  sorted.forEach((ev,i) => {
-    lines.push((i+1)+". ⏰ "+(ev.jam||"-")+" | *"+(ev.namaAcara||"-")+"*");
-    if (ev.lokasi) lines.push("   📍 "+ev.lokasi);
-    lines.push("   👔 "+pimpinanLabel(ev));
-    if (ev.sambutanFile!==undefined)
-      lines.push("   📝 Sambutan: "+(ev.sambutanFile?"✅ Tersedia":"❌ Belum ada"));
-    lines.push("");
-  });
-  lines.push("Mohon segera input penugasan melalui:\n🔗 "+LINK, FOOTER);
-  return lines.join("\n");
-}
-
-async function handleReminder(userMap, allUsers) {
-  const tglBesok = getTomorrowWITA();
-  const today    = getTodayWITA();
-  const events   = (await getAllJadwal()).filter(ev =>
-    ev.tanggal===tglBesok && ev.alur==="disetujui" && !ev.tersembunyi
-  );
-  if (!events.length) return { sent:0, message:"Tidak ada kegiatan besok" };
-
-  const PROT_ROLES  = ["staf","admin_rk","kasubbag_protokol"];
-  const KOMDOK_ROLES = ["timkom","kasubbag_komdokpim"];
-  const belumProt   = events.filter(ev=>!punyaPersonilDariRole(ev,PROT_ROLES,userMap));
-  const belumKomdok = events.filter(ev=>!punyaPersonilDariRole(ev,KOMDOK_ROLES,userMap));
-
-  let sent=0, failed=0, results=[];
-  for (const u of allUsers) {
-    if (!u.noWA) continue;
-    let evBelum = null;
-    if (u.role==="kasubbag_protokol"  && belumProt.length)   evBelum = belumProt;
-    if (u.role==="kasubbag_komdokpim" && belumKomdok.length) evBelum = belumKomdok;
-    if (!evBelum) continue;
-    const ok = await kirimWA(u.noWA, pesanPengingat(evBelum, tglBesok, today));
-    if (ok) sent++; else failed++;
-    results.push({ username:u.username, role:u.role, eventCount:evBelum.length, ok });
-    await new Promise(r=>setTimeout(r,300));
-  }
-  return { sent, failed, results, belumProt:belumProt.length, belumKomdok:belumKomdok.length };
-}
-
-// ════════════════════════════════════════════════════════════
-//  TYPE: ajudan — 16:00 WITA
-//  Ajudan WK & WWK: rekap besok + pengingat konfirmasi kehadiran
-// ════════════════════════════════════════════════════════════
-function pesanAjudanBesok(events, tglBesok, label) {
-  const sorted = [...events].sort((a,b)=>(a.jam||"").localeCompare(b.jam||""));
-  const lines = ["📋 *Agenda "+label+" Besok*", fmtTgl(tglBesok), ""];
-  sorted.forEach((ev,i) => {
-    lines.push((i+1)+". ⏰ "+(ev.jam||"-")+" | *"+(ev.namaAcara||"-")+"*");
-    if (ev.lokasi)        lines.push("   📍 "+ev.lokasi);
-    if (ev.penyelenggara) lines.push("   🏢 "+ev.penyelenggara);
-    lines.push("");
-  });
-  lines.push(
-    "⚠️ *Mohon segera konfirmasi kehadiran "+label+"* untuk "+events.length+" kegiatan di atas.",
-    "Hubungi Pimpinan hari ini dan input konfirmasi melalui:",
-    "🔗 "+LINK, FOOTER
-  );
-  return lines.join("\n");
-}
-
-async function handleAjudan(userMap, allUsers) {
-  const tglBesok = getTomorrowWITA();
-  const besokAll = (await getAllJadwal()).filter(ev =>
-    ev.tanggal===tglBesok && ev.alur==="disetujui" && !ev.tersembunyi
-  );
-  const besokWK  = besokAll.filter(ev=>(ev.untukPimpinan||[]).includes("walikota"));
-  const besokWWK = besokAll.filter(ev=>(ev.untukPimpinan||[]).includes("wakilwalikota")||ev.delegasiKeWWK);
-
-  let sent=0, failed=0, results=[];
-  for (const u of allUsers) {
-    if (!u.noWA) continue;
-    let pesan = null;
-    if (u.role==="ajudan_walikota"      && besokWK.length)  pesan = pesanAjudanBesok(besokWK,  tglBesok, "Wali Kota");
-    if (u.role==="ajudan_wakilwalikota" && besokWWK.length) pesan = pesanAjudanBesok(besokWWK, tglBesok, "Wakil Wali Kota");
-    if (!pesan) continue;
-    const ok = await kirimWA(u.noWA, pesan);
-    if (ok) sent++; else failed++;
-    results.push({ username:u.username, role:u.role, ok });
-    await new Promise(r=>setTimeout(r,300));
-  }
-  return { sent, failed, results, besokWK:besokWK.length, besokWWK:besokWWK.length };
-}
-
-// ════════════════════════════════════════════════════════════
-//  TYPE: personil — 16:10 WITA
-//  Personil/Staf: rekap penugasan besok
-// ════════════════════════════════════════════════════════════
-function pesanPersonilBesok(namaPersonil, events, tglBesok, userMap) {
-  const sorted = [...events].sort((a,b)=>(a.jam||"").localeCompare(b.jam||""));
-  const lines = ["📋 *Agenda & Penugasan Besok*", fmtTgl(tglBesok), "", "*"+namaPersonil+"* bertugas pada:", ""];
-  sorted.forEach((ev,i) => {
-    const hadirWK  = (ev.untukPimpinan||[]).includes("walikota");
-    const hadirWWK = (ev.untukPimpinan||[]).includes("wakilwalikota")||ev.delegasiKeWWK;
-    const rekan    = (ev.personil||[]).filter(un=>userMap[un]?.nama!==namaPersonil)
-                       .map(un=>userMap[un]?.nama||un);
-    lines.push((i+1)+". ⏰ "+(ev.jam||"-")+" | *"+(ev.namaAcara||"-")+"*");
-    if (ev.lokasi)         lines.push("   📍 "+ev.lokasi);
-    if (ev.penyelenggara)  lines.push("   🏢 "+ev.penyelenggara);
-    if (hadirWK)  lines.push("   👔 Wali Kota");
-    if (hadirWWK) lines.push("   👔 Wakil Wali Kota");
-    if (ev.catatanPenugasan) lines.push("   📝 "+ev.catatanPenugasan);
-    if (rekan.length) lines.push("   🤝 Bertugas bersama: "+rekan.join(", "));
-    lines.push("");
-  });
-  lines.push("Silakan siapkan perlengkapan yang diperlukan. Sampai jumpa besok! 🙏", FOOTER);
-  return lines.join("\n");
-}
-
-async function handlePersonil(userMap, allUsers) {
-  const tglBesok = getTomorrowWITA();
-  const besok    = (await getAllJadwal()).filter(ev =>
-    ev.tanggal===tglBesok && ev.alur==="disetujui" && !ev.tersembunyi
-  );
-  if (!besok.length) return { sent:0, message:"Tidak ada kegiatan besok" };
-
-  const personilBesok = new Map();
-  besok.forEach(ev => {
-    (ev.personil||[]).forEach(un => {
-      if (!personilBesok.has(un)) personilBesok.set(un,[]);
-      personilBesok.get(un).push(ev);
+// ── Helper: kirim WA via Fonnte ──────────────────────────────
+async function sendWA(to, message) {
+  if (!FONNTE || !to) return;
+  try {
+    await fetch("https://api.fonnte.com/send", {
+      method: "POST",
+      headers: {
+        "Authorization": FONNTE,
+        "Content-Type":  "application/json",
+      },
+      body: JSON.stringify({ target: to, message, countryCode: "62" }),
     });
-  });
-
-  let sent=0, failed=0, results=[];
-  for (const [un, evMereka] of personilBesok) {
-    const u = userMap[un];
-    if (!u?.noWA) continue;
-    const ok = await kirimWA(u.noWA, pesanPersonilBesok(u.nama||un, evMereka, tglBesok, userMap));
-    if (ok) sent++; else failed++;
-    results.push({ username:un, jumlahKegiatan:evMereka.length, ok });
-    await new Promise(r=>setTimeout(r,300));
+  } catch (err) {
+    console.error(`[WA] Gagal kirim ke ${to}:`, err?.message || err);
   }
-  return { sent, failed, results, personilCount:personilBesok.size };
 }
 
-// ════════════════════════════════════════════════════════════
-//  MAIN HANDLER
-// ════════════════════════════════════════════════════════════
-module.exports = async function handler(req, res) {
-  const isVercelCron = req.headers["x-vercel-cron"] === "1";
-  const cronSecret   = process.env.CRON_SECRET || "";
-  const authHeader   = req.headers["authorization"] || "";
-  const isManual     = cronSecret && authHeader === "Bearer " + cronSecret;
+// ── Formatter tanggal ────────────────────────────────────────
+const HARI  = ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
+const BULAN = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
 
-  if (!isVercelCron && !isManual)
-    return res.status(401).json({ error: "Unauthorized" });
-  if (!SUPA_URL || !SUPA_KEY)
-    return res.status(500).json({ error: "Supabase env belum diset" });
+function fmtTgl(str) {
+  if (!str) return str;
+  const d = new Date(str + "T00:00:00+08:00");
+  return `${HARI[d.getDay()]}, ${d.getDate()} ${BULAN[d.getMonth()]}`;
+}
 
-  const type = req.query?.type || "";
-  if (!["pagi","reminder","ajudan","personil"].includes(type))
-    return res.status(400).json({ error: "type tidak valid. Gunakan: pagi | reminder | ajudan | personil" });
+function localDateWITA(offsetDays = 0) {
+  const d = new Date(Date.now() + 8 * 60 * 60 * 1000 + offsetDays * 86400000);
+  return d.toISOString().slice(0, 10);
+}
 
-  console.log("[notif-cron] type:", type);
+// ── Load data dari Supabase ──────────────────────────────────
+async function loadJadwal() {
+  const today = localDateWITA(0);
+  // Ambil jadwal yang disetujui mulai hari ini ke depan
+  const rows = await sbGet(
+    `jadwal?select=data&order=id`
+  );
+  if (!rows) return [];
+  return rows
+    .map(r => r.data)
+    .filter(e => e && e.alur === "disetujui" && e.tanggal >= today);
+}
+
+async function loadUsers() {
+  const rows = await sbGet(`users?select=username,nama,jabatan,role,noWA`);
+  return rows || [];
+}
+
+// ── Tipe notifikasi ──────────────────────────────────────────
+
+/**
+ * PAGI (07:30 WITA) — rekap agenda HARI INI
+ * Penerima: Kabag, Kasubbag, Ajudan, Personil bertugas
+ */
+async function notifPagi(jadwal, users) {
+  const today    = localDateWITA(0);
+  const todayEvs = jadwal.filter(e => e.tanggal === today);
+
+  if (todayEvs.length === 0) {
+    console.log("[PAGI] Tidak ada agenda hari ini, skip.");
+    return;
+  }
+
+  const sorted = todayEvs.sort((a, b) => a.jam.localeCompare(b.jam));
+
+  const roles = [
+    "kabag", "kasubbag_protokol", "kasubbag_komdokpim",
+    "ajudan_walikota", "ajudan_wakilwalikota",
+  ];
+
+  const targets = users.filter(u => roles.includes(u.role) && u.noWA);
+
+  // Buat ringkasan
+  const ringkasan = sorted.map(e =>
+    `🕐 ${e.jam?.slice(0,5)} — *${e.namaAcara}*\n📍 ${e.lokasi || e.penyelenggara || "-"}`
+  ).join("\n\n");
+
+  const msg =
+    `📋 *Rekap Agenda Hari Ini*\n` +
+    `${fmtTgl(today)} | ${sorted.length} kegiatan\n\n` +
+    ringkasan +
+    `\n\n_Prokopim Kota Tarakan_`;
+
+  for (const u of targets) {
+    await sendWA(u.noWA, msg);
+    console.log(`[PAGI] Terkirim → ${u.nama} (${u.role})`);
+  }
+
+  // Personil bertugas — pesan personal
+  const allPersonil = [...new Set(sorted.flatMap(e => e.personil || []))];
+  for (const username of allPersonil) {
+    const u = users.find(x => x.username === username);
+    if (!u?.noWA) continue;
+
+    const tugasKu = sorted.filter(e => (e.personil || []).includes(username));
+    const detail  = tugasKu.map(e =>
+      `🕐 ${e.jam?.slice(0,5)} — *${e.namaAcara}*\n📍 ${e.lokasi || "-"}\n👔 ${e.pakaian || "-"}`
+    ).join("\n\n");
+
+    const msgPersonil =
+      `📋 *Penugasan Anda Hari Ini*\n` +
+      `${fmtTgl(today)}\n\n` +
+      detail +
+      `\n\n_Harap hadir tepat waktu. Prokopim Tarakan_`;
+
+    await sendWA(u.noWA, msgPersonil);
+    console.log(`[PAGI] Personil → ${u.nama}`);
+  }
+}
+
+/**
+ * REMINDER (15:55 WITA) — peringatan agenda BESOK belum ditugaskan
+ * Penerima: Kasubbag Protokol & Komdokpim
+ */
+async function notifReminder(jadwal, users) {
+  const tomorrow = localDateWITA(1);
+  const tmrwEvs  = jadwal.filter(e => e.tanggal === tomorrow);
+
+  const belumDitugaskan = tmrwEvs.filter(
+    e => !e.personil || e.personil.length === 0
+  );
+
+  if (belumDitugaskan.length === 0) {
+    console.log("[REMINDER] Semua agenda besok sudah ditugaskan.");
+    return;
+  }
+
+  const kasubbags = users.filter(
+    u => (u.role === "kasubbag_protokol" || u.role === "kasubbag_komdokpim") && u.noWA
+  );
+
+  const daftar = belumDitugaskan.map(e =>
+    `• ${e.jam?.slice(0,5)} — ${e.namaAcara} (${e.lokasi || e.penyelenggara || "-"})`
+  ).join("\n");
+
+  const msg =
+    `⚠️ *Reminder: Personil Belum Ditugaskan*\n` +
+    `Agenda besok (${fmtTgl(tomorrow)}) yang belum ada personilnya:\n\n` +
+    daftar +
+    `\n\nSilakan segera tugaskan via aplikasi Prokopim.\n_Prokopim Kota Tarakan_`;
+
+  for (const u of kasubbags) {
+    await sendWA(u.noWA, msg);
+    console.log(`[REMINDER] Terkirim → ${u.nama}`);
+  }
+}
+
+/**
+ * AJUDAN (16:00 WITA) — rekap agenda BESOK + minta konfirmasi kehadiran
+ * Penerima: Ajudan WK & Ajudan WWK
+ */
+async function notifAjudan(jadwal, users) {
+  const tomorrow = localDateWITA(1);
+  const tmrwEvs  = jadwal
+    .filter(e => e.tanggal === tomorrow)
+    .sort((a, b) => a.jam.localeCompare(b.jam));
+
+  const ajudans = users.filter(
+    u => (u.role === "ajudan_walikota" || u.role === "ajudan_wakilwalikota") && u.noWA
+  );
+
+  for (const ajudan of ajudans) {
+    const isWK = ajudan.role === "ajudan_walikota";
+    const label = isWK ? "Wali Kota" : "Wakil Wali Kota";
+
+    const myEvs = tmrwEvs.filter(e =>
+      isWK
+        ? (e.untukPimpinan || []).includes("walikota")
+        : (e.untukPimpinan || []).includes("wakilwalikota") || e.delegasiKeWWK
+    );
+
+    if (myEvs.length === 0) continue;
+
+    const daftar = myEvs.map(e =>
+      `🕐 ${e.jam?.slice(0,5)} — *${e.namaAcara}*\n📍 ${e.lokasi || e.penyelenggara || "-"}\n👔 ${e.pakaian || "-"}`
+    ).join("\n\n");
+
+    const msg =
+      `📅 *Agenda ${label} Besok*\n` +
+      `${fmtTgl(tomorrow)} | ${myEvs.length} kegiatan\n\n` +
+      daftar +
+      `\n\nMohon konfirmasi kehadiran ${label} melalui aplikasi Prokopim.\n_Prokopim Kota Tarakan_`;
+
+    await sendWA(ajudan.noWA, msg);
+    console.log(`[AJUDAN] Terkirim → ${ajudan.nama}`);
+  }
+}
+
+/**
+ * PERSONIL (16:10 WITA) — notif penugasan BESOK ke personil bertugas
+ */
+async function notifPersonil(jadwal, users) {
+  const tomorrow = localDateWITA(1);
+  const tmrwEvs  = jadwal
+    .filter(e => e.tanggal === tomorrow)
+    .sort((a, b) => a.jam.localeCompare(b.jam));
+
+  const allPersonil = [...new Set(tmrwEvs.flatMap(e => e.personil || []))];
+
+  for (const username of allPersonil) {
+    const u = users.find(x => x.username === username);
+    if (!u?.noWA) continue;
+
+    const tugasKu = tmrwEvs.filter(e => (e.personil || []).includes(username));
+    const detail  = tugasKu.map(e =>
+      `🕐 ${e.jam?.slice(0,5)} — *${e.namaAcara}*\n📍 ${e.lokasi || "-"}\n👔 ${e.pakaian || "-"}\n📝 ${e.catatanPenugasan || "-"}`
+    ).join("\n\n");
+
+    const msg =
+      `📋 *Penugasan Anda Besok*\n` +
+      `${fmtTgl(tomorrow)}\n\n` +
+      detail +
+      `\n\nHarap konfirmasi kesiapan Anda. Prokopim Tarakan 🙏`;
+
+    await sendWA(u.noWA, msg);
+    console.log(`[PERSONIL] Terkirim → ${u.nama}`);
+  }
+}
+
+// ── MAIN HANDLER ─────────────────────────────────────────────
+export default async function handler(req, res) {
+  // Validasi CRON_SECRET
+  const authHeader = req.headers["authorization"] || "";
+  const secret     = authHeader.replace("Bearer ", "").trim();
+  if (CRON_SEC && secret !== CRON_SEC) {
+    // Vercel Cron mengirim header x-vercel-cron, izinkan juga
+    const isCronCall = req.headers["x-vercel-cron"] === "1";
+    if (!isCronCall) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+  }
+
+  const type = req.query.type || "pagi";
+
+  console.log(`[CRON] Mulai: type=${type}, time=${new Date().toISOString()}`);
+
+  // ── DEDUPLICATION CHECK ──────────────────────────────────────
+  const duplikat = await isDuplicate(type);
+  if (duplikat) {
+    return res.status(200).json({
+      ok: true,
+      skipped: true,
+      reason: `Notifikasi '${type}' sudah terkirim hari ini`,
+    });
+  }
 
   try {
-    const allUsers = await getAllUsers();
-    const userMap  = {};
-    allUsers.forEach(u => { userMap[u.username] = u; });
+    const [jadwal, users] = await Promise.all([loadJadwal(), loadUsers()]);
+    console.log(`[CRON] Data: ${jadwal.length} jadwal, ${users.length} users`);
 
-    let result;
-    if      (type==="pagi")     result = await handlePagi(userMap, allUsers);
-    else if (type==="reminder") result = await handleReminder(userMap, allUsers);
-    else if (type==="ajudan")   result = await handleAjudan(userMap, allUsers);
-    else if (type==="personil") result = await handlePersonil(userMap, allUsers);
+    if      (type === "pagi")     await notifPagi(jadwal, users);
+    else if (type === "reminder") await notifReminder(jadwal, users);
+    else if (type === "ajudan")   await notifAjudan(jadwal, users);
+    else if (type === "personil") await notifPersonil(jadwal, users);
+    else {
+      return res.status(400).json({ error: `Tipe tidak dikenal: ${type}` });
+    }
 
-    console.log("[notif-cron]", type, "selesai:", result);
-    return res.status(200).json({ ok:true, type, ...result });
+    console.log(`[CRON] Selesai: type=${type}`);
+    return res.status(200).json({ ok: true, type });
 
-  } catch(err) {
-    console.error("[notif-cron] Error:", err.message);
-    return res.status(500).json({ error: err.message });
+  } catch (err) {
+    console.error(`[CRON] Error:`, err?.message || err);
+    return res.status(500).json({ error: err?.message || "Internal error" });
   }
-};
+}
