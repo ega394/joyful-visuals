@@ -7033,13 +7033,12 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
         ?<MitraView events={events} isMobile={isMobile}/>
 
       /* 10. Pimpinan View — role-based joyful routing */
-      :tab==="jadwal"
-        ?(role==="walikota"||role==="wakilwalikota")
-          ?<ZenModeView
-              events={events} role={role} user={user}
-              upd={upd} showT={showT} isMobile={isMobile}
-              setDelegTarget={setDelegTarget}
-            />
+        :tab==="jadwal"
+          ?<ZenDashboard
+            events={events} role={role} user={user}
+            upd={upd} showT={showT} isMobile={isMobile}
+            setDelegTarget={setDelegTarget}
+          />
         :(role==="ajudan_walikota"||role==="ajudan_wakilwalikota")
           ?<AjudanView
               events={events} role={role} user={user}
