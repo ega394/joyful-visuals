@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { ZenModeView, AjudanView, StafView, MitraView, SkeletonLoader, EmptyState, useDynamicTheme } from "./JoyfulInterface.jsx";
+import { ZenDashboard } from "./ZenModeUI.jsx";
 
 // ═══════════════════════════════════════════════════════
 // PENDAFTARAN AKUN (Register → Menunggu Persetujuan Kabag)
@@ -7032,29 +7033,12 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
       :role==="mitra_kerja"&&(tab==="mitra"||tab==="jadwal")
         ?<MitraView events={events} isMobile={isMobile}/>
 
-      /* 10. Pimpinan View — role-based joyful routing */
-        :tab==="jadwal"
-          ?<ZenDashboard
+      /* 10. Pimpinan View — ZenDashboard menangani semua role */
+      :tab==="jadwal"
+        ?<ZenDashboard
             events={events} role={role} user={user}
             upd={upd} showT={showT} isMobile={isMobile}
             setDelegTarget={setDelegTarget}
-          />
-        :(role==="ajudan_walikota"||role==="ajudan_wakilwalikota")
-          ?<AjudanView
-              events={events} role={role} user={user}
-              upd={upd} showT={showT} isMobile={isMobile}
-            />
-        :(role==="staf"||role==="timkom"||role==="admin_rk")
-          ?<StafView
-              events={events} role={role} user={user}
-              isMobile={isMobile}
-            />
-        :<PimpinanView
-            events={events} role={role} user={user}
-            upd={upd} showT={showT} isMobile={isMobile}
-            setDelegTarget={setDelegTarget}
-            initialExpandedId={pendingExpandTarget}
-            onExpandConsumed={()=>setPendingExpandTarget(null)}
           />
         
       /* 11. Tayang / Semua — generic event list untuk semua role */
