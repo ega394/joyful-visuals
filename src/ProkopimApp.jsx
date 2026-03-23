@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { ZenModeView, AjudanView, StafView, MitraView, SkeletonLoader, EmptyState, useDynamicTheme } from "./JoyfulInterface.jsx";
-import { ZenDashboard } from "./ZenModeUI.jsx";
 
 // ═══════════════════════════════════════════════════════
 // PENDAFTARAN AKUN (Register → Menunggu Persetujuan Kabag)
@@ -190,11 +189,11 @@ function CaptchaBox({onValid}){
 function RegisterModal({onClose, onSuccess}){
   const NAVY="#0A1628",GOLD="#C9A84C";
 
-  const [form,setForm]=React.useState({nama:"",jabatan:"",noWA:"",username:"",password:"",konfirmasi:"",role:"staf",alasan:""});
+  const [form,setForm]=React.useState({nama:"",jabatan:"",noWA:"",username:"",password:"",konfirmasi:"",role:"pending",alasan:""});
   const [err,setErr]=React.useState("");
   const [sent,setSent]=React.useState(false);
   const [captchaOK,setCaptchaOK]=React.useState(false);
-  const ROLE_OPTS=[{v:"staf",l:"Staf Protokol"},{v:"admin_rk",l:"Admin Rencana Kegiatan (Input Jadwal)"},{v:"timkom",l:"Staf Komunikasi & Dokumentasi"},{v:"ajudan_walikota",l:"Ajudan Wali Kota"},{v:"ajudan_wakilwalikota",l:"Ajudan Wakil Wali Kota"},{v:"mitra_kerja",l:"Mitra Kerja Pemkot (Hanya Lihat Agenda)"}];
+  // ROLE_OPTS dihapus — role kini ditetapkan Kabag saat approval
   const inp={width:"100%",padding:"10px 13px",borderRadius:10,border:"1.5px solid #e2e8f0",fontSize:14,outline:"none",background:"white",boxSizing:"border-box"};
   const submit=async()=>{
     setErr("");
@@ -245,11 +244,9 @@ function RegisterModal({onClose, onSuccess}){
               <input value={form[f.k]} onChange={e=>setForm(p=>({...p,[f.k]:e.target.value}))} placeholder={f.ph} style={inp}/>
             </div>
           ))}
-          <div style={{marginBottom:12}}>
-            <label style={{display:"block",fontSize:12,fontWeight:700,color:"#475569",marginBottom:4}}>Posisi/Role</label>
-            <select value={form.role} onChange={e=>setForm(p=>({...p,role:e.target.value}))} style={{...inp}}>
-              {ROLE_OPTS.map(r=><option key={r.v} value={r.v}>{r.l}</option>)}
-            </select>
+          <div style={{marginBottom:12,background:"#F0F9FF",borderRadius:10,padding:"10px 13px",border:"1px solid #BAE6FD"}}>
+            <div style={{fontSize:12,fontWeight:700,color:"#0369A1",marginBottom:2}}>ℹ️ Hak Akses / Role</div>
+            <div style={{fontSize:12,color:"#0369A1",lineHeight:1.6}}>Role/hak akses akan ditetapkan oleh <strong>Kabag Prokopim</strong> saat permohonan Anda disetujui.</div>
           </div>
           {[{l:"Password",k:"password"},{l:"Konfirmasi Password",k:"konfirmasi"}].map(f=>(
             <div key={f.k} style={{marginBottom:12}}>
@@ -2281,32 +2278,56 @@ function AdminModal({onClose,showT}){
           <div style={{marginBottom:16}}><label style={{display:"block",fontSize:12,color:"#64748b",fontWeight:600,marginBottom:3}}>Role / Hak Akses</label><select value={newUser.role} onChange={e=>setNewUser(p=>({...p,role:e.target.value}))} style={{...inp,WebkitAppearance:"none"}}>{ALL_ROLE_DEFS.map(r=><option key={r.key} value={r.key}>{r.label}</option>)}</select></div>
           <div style={{marginBottom:16}}><label style={{display:"block",fontSize:12,color:"#64748b",fontWeight:600,marginBottom:3}}>No. WhatsApp (opsional)</label><input value={newUser.noWA||""} onChange={e=>setNewUser(p=>({...p,noWA:e.target.value}))} placeholder="08123456789" style={inp}/><div style={{fontSize:11,color:"#94a3b8",marginTop:3}}>Untuk menerima notifikasi otomatis</div></div>
           <button onClick={doAdd} style={{width:"100%",padding:"12px",borderRadius:10,border:"none",background:NAVY,color:"white",cursor:"pointer",fontSize:14,fontWeight:700}}>Tambahkan Pengguna</button></>}
-        {tabA==="pendaftaran"&&<div>{pendRegs.length===0
+        {tabA==="pendaftaran"&&(()=>{
+          const [approveRoles,setApproveRoles]=React.useState({});
+          const doApprove=(r)=>{
+            const chosenRole=approveRoles[r.id]||"staf";
+            const regs=loadPendingRegs().filter(x=>x.id!==r.id);
+            savePendingRegs(regs);setPendRegs(regs);
+            dbDeletePendingReg(r.id).catch(e=>console.warn("Sync:",e?.message||e));
+            const newU={username:r.username,password:r.password,nama:r.nama,jabatan:r.jabatan,role:chosenRole,noWA:r.noWA||""};
+            const all=loadUsers();saveUsers([...all,newU]);setUsers([...all,newU]);
+            dbUpsertUser(newU).catch(e=>console.warn("Sync:",e?.message||e));
+            showT("Akun "+r.username+" diaktifkan sebagai "+ALL_ROLE_DEFS.find(x=>x.key===chosenRole)?.label+" ✓");
+          };
+          return(<div>{pendRegs.length===0
           ?<div style={{textAlign:"center",padding:"30px 10px",color:"#94a3b8"}}><div style={{fontSize:36,marginBottom:8}}>📭</div><div style={{fontWeight:700}}>Tidak ada permohonan</div></div>
-          :pendRegs.map(r=><div key={r.id} style={{background:"#FAFAFA",borderRadius:10,border:"1.5px solid #E2E8F0",marginBottom:10,padding:"12px 14px"}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8,flexWrap:"wrap"}}>
-              <div style={{flex:1}}>
-                <div style={{fontWeight:800,color:NAVY,fontSize:14}}>{r.nama}</div>
-                <div style={{fontSize:11,color:"#64748B",marginTop:2}}>{r.jabatan} · {ROLE_LABEL[r.role]||r.role}</div>
-                <div style={{fontSize:11,color:"#94A3B8",marginTop:1}}>@{r.username}{r.noWA?" · "+r.noWA:""}</div>
-                {r.alasan&&<div style={{fontSize:11,color:"#475569",fontStyle:"italic",marginTop:4,background:"#F0F4FF",borderRadius:5,padding:"4px 8px"}}>{r.alasan}</div>}
-                <div style={{fontSize:10,color:"#CBD5E1",marginTop:4}}>{new Date(r.tanggal).toLocaleDateString("id-ID",{day:"numeric",month:"long",year:"numeric"})}</div>
-              </div>
-              <div style={{display:"flex",gap:6,flexShrink:0}}>
-                <button onClick={()=>{
-                  const regs=loadPendingRegs().filter(x=>x.id!==r.id);
-                  savePendingRegs(regs);setPendRegs(regs);
-                  dbDeletePendingReg(r.id).catch(e=>console.warn("Sync:",e?.message||e));
-                  const newU={username:r.username,password:r.password,nama:r.nama,jabatan:r.jabatan,role:r.role,noWA:r.noWA||""};
-                  const all=loadUsers();saveUsers([...all,newU]);setUsers([...all,newU]);
-                  dbUpsertUser(newU).catch(e=>console.warn("Sync:",e?.message||e));
-                  showT("Akun "+r.username+" diaktifkan ✓");
-                }} style={{padding:"6px 12px",borderRadius:8,border:"none",background:"#10b981",color:"white",cursor:"pointer",fontSize:11,fontWeight:700}}>✓ Setujui</button>
-                <button onClick={()=>{const regs=loadPendingRegs().filter(x=>x.id!==r.id);savePendingRegs(regs);setPendRegs(regs);dbDeletePendingReg(r.id).catch(e=>console.warn("Sync:",e?.message||e));showT("Permohonan ditolak","warn");}} style={{padding:"6px 10px",borderRadius:8,border:"1.5px solid #fca5a5",background:"white",color:"#ef4444",cursor:"pointer",fontSize:11,fontWeight:700}}>✕ Tolak</button>
-              </div>
+          :pendRegs.map(r=><div key={r.id} style={{background:"#FAFAFA",borderRadius:10,border:"1.5px solid #E2E8F0",marginBottom:12,padding:"12px 14px"}}>
+            {/* Info pendaftar */}
+            <div style={{marginBottom:10}}>
+              <div style={{fontWeight:800,color:NAVY,fontSize:14}}>{r.nama}</div>
+              <div style={{fontSize:11,color:"#64748B",marginTop:2}}>{r.jabatan}</div>
+              <div style={{fontSize:11,color:"#94A3B8",marginTop:1}}>@{r.username}{r.noWA?" · "+r.noWA:""}</div>
+              {r.alasan&&<div style={{fontSize:11,color:"#475569",fontStyle:"italic",marginTop:5,background:"#F0F4FF",borderRadius:6,padding:"5px 8px",lineHeight:1.5}}>💬 {r.alasan}</div>}
+              <div style={{fontSize:10,color:"#CBD5E1",marginTop:4}}>{new Date(r.tanggal).toLocaleDateString("id-ID",{day:"numeric",month:"long",year:"numeric"})}</div>
+            </div>
+            {/* Kabag pilih role sebelum setujui */}
+            <div style={{background:"#FFFBEB",border:"1.5px solid #FDE68A",borderRadius:9,padding:"10px 12px",marginBottom:10}}>
+              <div style={{fontSize:11,fontWeight:700,color:"#92400E",marginBottom:6}}>⚙️ Tetapkan Role / Hak Akses</div>
+              <select
+                value={approveRoles[r.id]||"staf"}
+                onChange={e=>setApproveRoles(p=>({...p,[r.id]:e.target.value}))}
+                style={{width:"100%",padding:"8px 10px",borderRadius:8,border:"1.5px solid #FCD34D",fontSize:13,fontWeight:600,color:NAVY,background:"white",outline:"none",WebkitAppearance:"none"}}>
+                {ALL_ROLE_DEFS.map(rd=><option key={rd.key} value={rd.key}>{rd.label}</option>)}
+              </select>
+            </div>
+            {/* Tombol aksi */}
+            <div style={{display:"flex",gap:8}}>
+              <button onClick={()=>doApprove(r)}
+                style={{flex:2,padding:"9px",borderRadius:9,border:"none",background:"linear-gradient(135deg,#059669,#047857)",color:"white",cursor:"pointer",fontSize:12,fontWeight:700,boxShadow:"0 2px 8px rgba(5,150,105,0.3)"}}>
+                ✓ Setujui & Aktifkan
+              </button>
+              <button onClick={()=>{
+                const regs=loadPendingRegs().filter(x=>x.id!==r.id);
+                savePendingRegs(regs);setPendRegs(regs);
+                dbDeletePendingReg(r.id).catch(e=>console.warn("Sync:",e?.message||e));
+                showT("Permohonan ditolak","warn");
+              }} style={{flex:1,padding:"9px",borderRadius:9,border:"1.5px solid #FECACA",background:"white",color:"#EF4444",cursor:"pointer",fontSize:12,fontWeight:700}}>
+                ✕ Tolak
+              </button>
             </div>
           </div>)
-        }</div>}
+        }</div>);})()}
         {tabA==="pw"&&<div style={{background:"#fef3c7",borderRadius:10,padding:"12px 14px",fontSize:13,color:"#92400e"}}>Untuk reset password pengguna, gunakan tab Pengguna lalu klik Edit pada akun yang bersangkutan.</div>}
         {tabA==="import"&&<ImportUsersTab users={users} save={save} showT={showT}/>}
         {tabA==="export"&&<div>
@@ -4223,8 +4244,8 @@ export default function App(){
   const pendingList=events.filter(e=>{
     if(role==="kasubbag_protokol"||role==="kasubbag_komdokpim")return e.alur==="menunggu_kasubbag"||(e.alurHapus==="menunggu_kasubbag");if(role==="kabag")return e.alur==="menunggu_kabag"||(e.alurHapus==="menunggu_kabag");
     if(role==="timkom")return e.alur==="disetujui"&&!e.sambutanFile&&e.jenisKegiatan==="Sambutan";
-    if(role==="walikota"){const evTime=new Date(e.tanggal+"T"+(e.jam||"08:00"));return e.untukPimpinan.includes("walikota")&&e.alur==="disetujui"&&!e.statusWK&&evTime>=new Date();}
-    if(role==="wakilwalikota"){const evTime=new Date(e.tanggal+"T"+(e.jam||"08:00"));return e.alur==="disetujui"&&(e.untukPimpinan.includes("wakilwalikota")||e.delegasiKeWWK)&&!e.statusWWK&&evTime>=new Date();}
+    if(role==="walikota")return e.untukPimpinan.includes("walikota")&&e.alur==="disetujui"&&!e.statusWK;
+    if(role==="wakilwalikota")return e.alur==="disetujui"&&(e.untukPimpinan.includes("wakilwalikota")||e.delegasiKeWWK)&&!e.statusWWK;
     return false;
   });
   const [pendingExpandTarget,setPendingExpandTarget]=React.useState(null);
@@ -7033,12 +7054,29 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
       :role==="mitra_kerja"&&(tab==="mitra"||tab==="jadwal")
         ?<MitraView events={events} isMobile={isMobile}/>
 
-      /* 10. Pimpinan View — ZenDashboard handles all roles */
-      :tab==="jadwal"
-        ?<ZenDashboard
+      /* 10. Pimpinan View — role-based joyful routing */
+        :tab==="jadwal"
+          ?<ZenDashboard
             events={events} role={role} user={user}
             upd={upd} showT={showT} isMobile={isMobile}
             setDelegTarget={setDelegTarget}
+          />
+        :(role==="ajudan_walikota"||role==="ajudan_wakilwalikota")
+          ?<AjudanView
+              events={events} role={role} user={user}
+              upd={upd} showT={showT} isMobile={isMobile}
+            />
+        :(role==="staf"||role==="timkom"||role==="admin_rk")
+          ?<StafView
+              events={events} role={role} user={user}
+              isMobile={isMobile}
+            />
+        :<PimpinanView
+            events={events} role={role} user={user}
+            upd={upd} showT={showT} isMobile={isMobile}
+            setDelegTarget={setDelegTarget}
+            initialExpandedId={pendingExpandTarget}
+            onExpandConsumed={()=>setPendingExpandTarget(null)}
           />
         
       /* 11. Tayang / Semua — generic event list untuk semua role */
