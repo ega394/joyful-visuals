@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { ZenModeView, AjudanView, StafView, MitraView, SkeletonLoader, EmptyState, useDynamicTheme } from "./JoyfulInterface.jsx";
+import { ZenDashboard } from "./ZenModeUI.jsx";
 
 // ═══════════════════════════════════════════════════════
 // PENDAFTARAN AKUN (Register → Menunggu Persetujuan Kabag)
@@ -193,7 +194,7 @@ function RegisterModal({onClose, onSuccess}){
   const [err,setErr]=React.useState("");
   const [sent,setSent]=React.useState(false);
   const [captchaOK,setCaptchaOK]=React.useState(false);
-  // ROLE_OPTS dihapus — role kini ditetapkan Kabag saat approval
+  // ROLE_OPTS dihapus — role ditetapkan Kabag saat approval
   const inp={width:"100%",padding:"10px 13px",borderRadius:10,border:"1.5px solid #e2e8f0",fontSize:14,outline:"none",background:"white",boxSizing:"border-box"};
   const submit=async()=>{
     setErr("");
@@ -284,15 +285,17 @@ const C={
   glass:"rgba(255,255,255,0.08)", glassBorder:"rgba(255,255,255,0.14)",
 };
 const ALL_ROLE_DEFS=[
-  {key:"walikota",      label:"Wali Kota",                     icon:"circle"},
-  {key:"wakilwalikota", label:"Wakil Wali Kota",               icon:"circle2"},
-  {key:"ajudan_walikota",label:"Ajudan WK",icon:"clip"},{key:"ajudan_wakilwalikota",label:"Ajudan WWK",icon:"clip"},
-  {key:"timkom",        label:"Tim Komunikasi & Dokumentasi",  icon:"attach"},
-  {key:"staf",          label:"Staf Protokol",                 icon:"pencil"},
-  {key:"admin_rk",      label:"Admin Rencana Kegiatan",        icon:"pencil"},
-  {key:"kasubbag_protokol",      label:"Kasubbag Protokol",             icon:"search"},
-  {key:"kabag",         label:"Kabag Prokopim",                icon:"check"},
-  {key:"mitra_kerja",    label:"Mitra Kerja Pemkot",              icon:"eye"},
+  {key:"walikota",           label:"Wali Kota",                     icon:"circle"},
+  {key:"wakilwalikota",      label:"Wakil Wali Kota",               icon:"circle2"},
+  {key:"ajudan_walikota",    label:"Ajudan WK",                     icon:"clip"},
+  {key:"ajudan_wakilwalikota",label:"Ajudan WWK",                   icon:"clip"},
+  {key:"timkom",             label:"Tim Komunikasi & Dokumentasi",  icon:"attach"},
+  {key:"staf",               label:"Staf Protokol",                 icon:"pencil"},
+  {key:"admin_rk",           label:"Admin Rencana Kegiatan",        icon:"pencil"},
+  {key:"kasubbag_protokol",  label:"Kasubbag Protokol",             icon:"search"},
+  {key:"kasubbag_komdokpim", label:"Kasubbag Komdokpim",            icon:"search"},
+  {key:"kabag",              label:"Kabag Prokopim",                icon:"check"},
+  {key:"mitra_kerja",        label:"Mitra Kerja Pemkot",            icon:"eye"},
 ];
 const WF={
   draft:             {label:"Draft",             color:"#64748b",bg:"#f1f5f9"},
@@ -2293,7 +2296,6 @@ function AdminModal({onClose,showT}){
           return(<div>{pendRegs.length===0
           ?<div style={{textAlign:"center",padding:"30px 10px",color:"#94a3b8"}}><div style={{fontSize:36,marginBottom:8}}>📭</div><div style={{fontWeight:700}}>Tidak ada permohonan</div></div>
           :pendRegs.map(r=><div key={r.id} style={{background:"#FAFAFA",borderRadius:10,border:"1.5px solid #E2E8F0",marginBottom:12,padding:"12px 14px"}}>
-            {/* Info pendaftar */}
             <div style={{marginBottom:10}}>
               <div style={{fontWeight:800,color:NAVY,fontSize:14}}>{r.nama}</div>
               <div style={{fontSize:11,color:"#64748B",marginTop:2}}>{r.jabatan}</div>
@@ -2301,30 +2303,16 @@ function AdminModal({onClose,showT}){
               {r.alasan&&<div style={{fontSize:11,color:"#475569",fontStyle:"italic",marginTop:5,background:"#F0F4FF",borderRadius:6,padding:"5px 8px",lineHeight:1.5}}>💬 {r.alasan}</div>}
               <div style={{fontSize:10,color:"#CBD5E1",marginTop:4}}>{new Date(r.tanggal).toLocaleDateString("id-ID",{day:"numeric",month:"long",year:"numeric"})}</div>
             </div>
-            {/* Kabag pilih role sebelum setujui */}
             <div style={{background:"#FFFBEB",border:"1.5px solid #FDE68A",borderRadius:9,padding:"10px 12px",marginBottom:10}}>
               <div style={{fontSize:11,fontWeight:700,color:"#92400E",marginBottom:6}}>⚙️ Tetapkan Role / Hak Akses</div>
-              <select
-                value={approveRoles[r.id]||"staf"}
-                onChange={e=>setApproveRoles(p=>({...p,[r.id]:e.target.value}))}
+              <select value={approveRoles[r.id]||"staf"} onChange={e=>setApproveRoles(p=>({...p,[r.id]:e.target.value}))}
                 style={{width:"100%",padding:"8px 10px",borderRadius:8,border:"1.5px solid #FCD34D",fontSize:13,fontWeight:600,color:NAVY,background:"white",outline:"none",WebkitAppearance:"none"}}>
                 {ALL_ROLE_DEFS.map(rd=><option key={rd.key} value={rd.key}>{rd.label}</option>)}
               </select>
             </div>
-            {/* Tombol aksi */}
             <div style={{display:"flex",gap:8}}>
-              <button onClick={()=>doApprove(r)}
-                style={{flex:2,padding:"9px",borderRadius:9,border:"none",background:"linear-gradient(135deg,#059669,#047857)",color:"white",cursor:"pointer",fontSize:12,fontWeight:700,boxShadow:"0 2px 8px rgba(5,150,105,0.3)"}}>
-                ✓ Setujui & Aktifkan
-              </button>
-              <button onClick={()=>{
-                const regs=loadPendingRegs().filter(x=>x.id!==r.id);
-                savePendingRegs(regs);setPendRegs(regs);
-                dbDeletePendingReg(r.id).catch(e=>console.warn("Sync:",e?.message||e));
-                showT("Permohonan ditolak","warn");
-              }} style={{flex:1,padding:"9px",borderRadius:9,border:"1.5px solid #FECACA",background:"white",color:"#EF4444",cursor:"pointer",fontSize:12,fontWeight:700}}>
-                ✕ Tolak
-              </button>
+              <button onClick={()=>doApprove(r)} style={{flex:2,padding:"9px",borderRadius:9,border:"none",background:"linear-gradient(135deg,#059669,#047857)",color:"white",cursor:"pointer",fontSize:12,fontWeight:700}}>✓ Setujui & Aktifkan</button>
+              <button onClick={()=>{const regs=loadPendingRegs().filter(x=>x.id!==r.id);savePendingRegs(regs);setPendRegs(regs);dbDeletePendingReg(r.id).catch(e=>console.warn("Sync:",e?.message||e));showT("Permohonan ditolak","warn");}} style={{flex:1,padding:"9px",borderRadius:9,border:"1.5px solid #FECACA",background:"white",color:"#EF4444",cursor:"pointer",fontSize:12,fontWeight:700}}>✕ Tolak</button>
             </div>
           </div>)
         }</div>);})()}
@@ -4244,8 +4232,8 @@ export default function App(){
   const pendingList=events.filter(e=>{
     if(role==="kasubbag_protokol"||role==="kasubbag_komdokpim")return e.alur==="menunggu_kasubbag"||(e.alurHapus==="menunggu_kasubbag");if(role==="kabag")return e.alur==="menunggu_kabag"||(e.alurHapus==="menunggu_kabag");
     if(role==="timkom")return e.alur==="disetujui"&&!e.sambutanFile&&e.jenisKegiatan==="Sambutan";
-    if(role==="walikota")return e.untukPimpinan.includes("walikota")&&e.alur==="disetujui"&&!e.statusWK;
-    if(role==="wakilwalikota")return e.alur==="disetujui"&&(e.untukPimpinan.includes("wakilwalikota")||e.delegasiKeWWK)&&!e.statusWWK;
+    if(role==="walikota"){const evTime=new Date(e.tanggal+"T"+(e.jam||"08:00"));return e.untukPimpinan.includes("walikota")&&e.alur==="disetujui"&&!e.statusWK&&evTime>=new Date();}
+    if(role==="wakilwalikota"){const evTime=new Date(e.tanggal+"T"+(e.jam||"08:00"));return e.alur==="disetujui"&&(e.untukPimpinan.includes("wakilwalikota")||e.delegasiKeWWK)&&!e.statusWWK&&evTime>=new Date();}
     return false;
   });
   const [pendingExpandTarget,setPendingExpandTarget]=React.useState(null);
@@ -7054,29 +7042,12 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
       :role==="mitra_kerja"&&(tab==="mitra"||tab==="jadwal")
         ?<MitraView events={events} isMobile={isMobile}/>
 
-      /* 10. Pimpinan View — role-based joyful routing */
-        :tab==="jadwal"
-          ?<ZenDashboard
+      /* 10. Pimpinan View — ZenDashboard handles all roles */
+      :tab==="jadwal"
+        ?<ZenDashboard
             events={events} role={role} user={user}
             upd={upd} showT={showT} isMobile={isMobile}
             setDelegTarget={setDelegTarget}
-          />
-        :(role==="ajudan_walikota"||role==="ajudan_wakilwalikota")
-          ?<AjudanView
-              events={events} role={role} user={user}
-              upd={upd} showT={showT} isMobile={isMobile}
-            />
-        :(role==="staf"||role==="timkom"||role==="admin_rk")
-          ?<StafView
-              events={events} role={role} user={user}
-              isMobile={isMobile}
-            />
-        :<PimpinanView
-            events={events} role={role} user={user}
-            upd={upd} showT={showT} isMobile={isMobile}
-            setDelegTarget={setDelegTarget}
-            initialExpandedId={pendingExpandTarget}
-            onExpandConsumed={()=>setPendingExpandTarget(null)}
           />
         
       /* 11. Tayang / Semua — generic event list untuk semua role */
