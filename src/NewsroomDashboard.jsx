@@ -156,8 +156,7 @@ function TimkomView({ user }) {
       setFormErr("Konfigurasi Supabase belum ada. Hubungi Admin."); return;
     }
 
-    var geminiKey = (typeof import.meta !== "undefined" && import.meta.env)
-      ? (import.meta.env.VITE_GEMINI_API_KEY || "") : "";
+    var geminiKey = "AIzaSyApleh5X7brMUNq_lvPStpJF7RHHgutpZ0";
 
     setSubmitting(true);
     var drafAi = "";
