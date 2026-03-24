@@ -1,6 +1,28 @@
 /**
  * src/NewsroomDashboard.jsx — Prokopim v1.5
  * AI Newsroom — Dapur Redaksi Digital Komdokpim Kota Tarakan
+ *
+ * Props: { role, user }
+ *
+ * Routing view:
+ *   role === "timkom"            → TimkomView   (input & generate draf AI)
+ *   role === "kasubbag_komdokpim"→ KurasiView   (review, setujui, revisi)
+ *   role === "kabag"             → MonitoringView (read-only pantauan)
+ *
+ * Tabel Supabase: rilis_berita
+ * Kolom: id, created_at, judul, poin_lapangan, draf_ai, status,
+ *        catatan_revisi, peliput_username, peliput_nama,
+ *        dikurasi_oleh, published_at
+ *
+ * Status flow:
+ *   draft_timkom → pending_kasubbag → published
+ *                                   → draft_timkom (revisi)
+ *
+ * INTEGRASI di ProkopimApp.jsx:
+ *   import NewsroomDashboard from "./NewsroomDashboard.jsx";
+ *   // Di routing tab "newsroom":
+ *   :tab === "newsroom"
+ *     ? <NewsroomDashboard role={role} user={user}/>
  */
 
 import React, {
@@ -129,7 +151,7 @@ function TimkomView({ user }) {
     if (!supa.ok) { setLoadRiwayat(false); return; }
     setLoadRiwayat(true);
     var url = supa.url + "/rest/v1/rilis_berita"
-      + "?pembuat=eq." + encodeURIComponent(user.username)
+      + "?peliput_username=eq." + encodeURIComponent(user.username)
       + "&order=created_at.desc"
       + "&limit=30";
     fetch(url, { headers: supaHeaders(supa.key) })
@@ -156,7 +178,8 @@ function TimkomView({ user }) {
       setFormErr("Konfigurasi Supabase belum ada. Hubungi Admin."); return;
     }
 
-    var geminiKey = "AIzaSyApleh5X7brMUNq_lvPStpJF7RHHgutpZ0";
+    var geminiKey = (typeof import.meta !== "undefined" && import.meta.env)
+      ? (import.meta.env.VITE_GEMINI_API_KEY || "") : "";
 
     setSubmitting(true);
     var drafAi = "";
@@ -193,7 +216,7 @@ function TimkomView({ user }) {
         ].join("\n");
 
         var geminiRes = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`
+          "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
           + "?key=" + geminiKey,
           {
             method:  "POST",
@@ -258,7 +281,8 @@ function TimkomView({ user }) {
         poin_lapangan:    poinLapangan.trim(),
         draf_ai:          drafAi.trim(),
         status:           "pending_kasubbag",
-        pembuat:          user.username,
+        peliput_username: user.username,
+        peliput_nama:     user.nama || user.username,
       };
 
       var supaRes = await fetch(supa.url + "/rest/v1/rilis_berita", {
@@ -703,7 +727,7 @@ function KurasiView({ user }) {
                         Menunggu Kurasi
                       </div>
                       <div style={{ fontSize:11, color:"#94A3B8" }}>
-                        📡 {item.pembuat} · {fmtTs(item.created_at)}
+                        📡 {item.peliput_nama || item.peliput_username} · {fmtTs(item.created_at)}
                       </div>
                     </div>
 
@@ -988,7 +1012,7 @@ function MonitoringView({ user }) {
                         display:"flex", gap:12, fontSize:11,
                         color:"#94A3B8", flexWrap:"wrap",
                       }}>
-                        <span>📡 {item.pembuat}</span>
+                        <span>📡 {item.peliput_nama || item.peliput_username}</span>
                         <span>🕐 {fmtTs(item.created_at)}</span>
                         {item.dikurasi_oleh && (
                           <span>✍️ Kurator: {item.dikurasi_oleh}</span>
