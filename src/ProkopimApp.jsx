@@ -3,6 +3,7 @@ import { ZenModeView, AjudanView, StafView, MitraView, SkeletonLoader, EmptyStat
 import { ZenDashboard } from "./ZenModeUI.jsx";
 import TamuPage from "./TamuPage.jsx";
 import GuestDashboard from "./GuestDashboard.jsx"
+import NewsroomDashboard from "./NewsroomDashboard.jsx";
 
 // ═══════════════════════════════════════════════════════
 // PENDAFTARAN AKUN (Register → Menunggu Persetujuan Kabag)
@@ -4694,12 +4695,14 @@ const TH={
       {key:"jadwal",icon:"📋", label:"Antrian"},
       {key:"semua", icon:"🗓️", label:"Semua Jadwal"},
       {key:"tamu",  icon:"👥", label:"Tamu (Lihat)"},
+      {key:"newsroom", icon:"📰", label:"AI Newsroom"},
     ]:[]),
     // ── Kabag ──
     ...(role==="kabag"?[
       {key:"jadwal",icon:"📋", label:"Antrian"},
       {key:"semua", icon:"🗓️", label:"Semua Jadwal"},
       {key:"tamu",  icon:"👥", label:"Manajemen Tamu"},
+      {key:"newsroom", icon:"📰", label:"Monitoring Komdok"},
     ]:[]),
     // ── Ajudan Wali Kota / Wakil Wali Kota ──
     ...((role==="ajudan_walikota"||role==="ajudan_wakilwalikota")?[
@@ -4713,6 +4716,7 @@ const TH={
       {key:"jadwal",   icon:"📅", label:"Jadwal"},
       {key:"tamu",     icon:"👥", label:"Tamu (Lihat)"},
       {key:"penugasan",icon:"🎯", label:"Penugasan"},
+      {key:"newsroom", icon:"📰", label:"AI Newsroom"},
     ]:[]),
     // ── Mitra Kerja ──
     ...(role==="mitra_kerja"?[
@@ -4804,12 +4808,14 @@ const TH={
     {key:"jadwal",label:"Antrian", icon:"📋"},
     {key:"semua", label:"Jadwal",  icon:"🗓️"},
     {key:"tamu",  label:"Tamu 👁", icon:"👥"},
+    {key:"newsroom", label:"Newsroom", icon:"📰"},
   ]:[]),
   // ── Kabag ──
   ...(role==="kabag"?[
     {key:"jadwal",label:"Antrian",icon:"📋"},
     {key:"semua", label:"Jadwal", icon:"🗓️"},
     {key:"tamu",  label:"Tamu",   icon:"👥"},
+    {key:"newsroom", label:"Komdok",   icon:"📰"},
   ]:[]),
   // ── Ajudan WK / WWK ──
   ...((role==="ajudan_walikota"||role==="ajudan_wakilwalikota")?[
@@ -4823,6 +4829,7 @@ const TH={
     {key:"jadwal",   label:"Jadwal",  icon:"📅"},
     {key:"tamu",     label:"Tamu 👁", icon:"👥"},
     {key:"penugasan",label:"Penugasan",icon:"🎯"},
+    {key:"newsroom", label:"Newsroom", icon:"📰"},
   ]:[]),
   // ── Mitra Kerja ──
   ...(role==="mitra_kerja"?[
@@ -7149,6 +7156,8 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
       /* 7. Admin RK: Rencana Kegiatan */
       :(role==="admin_rk"&&tab==="rk")
         ?<RKView events={events} user={user} upd={upd} updAndSync={updAndSync} showT={showT} isMobile={isMobile}/>
+        :tab==="newsroom"
+        ?<NewsroomDashboard role={role} user={user}/>
 
       /* 8. Kasubbag/Kabag: Antrian Approval (tab jadwal) */
       :(["kasubbag_protokol","kasubbag_komdokpim","kabag"].includes(role)&&tab==="jadwal")
