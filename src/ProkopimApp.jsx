@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { ZenModeView, AjudanView, StafView, MitraView, SkeletonLoader, EmptyState, useDynamicTheme } from "./JoyfulInterface.jsx";
 import { ZenDashboard } from "./ZenModeUI.jsx";
+import TamuPage from "./TamuPage.jsx";
+import GuestDashboard from "./GuestDashboard.jsx"
 
 // ═══════════════════════════════════════════════════════
 // PENDAFTARAN AKUN (Register → Menunggu Persetujuan Kabag)
@@ -3840,6 +3842,7 @@ function TimelineView({evList}){
 }
 
 export default function App(){
+  if (window.location.pathname === "/tamu" || window.location.search.includes("tamu")) return <TamuPage />;
   const width=useWindowWidth();const isMobile=width<768;
   const[user,setUser]=useState(null);const role=user?.role||null;
   const[loginForm,setLF]=useState({username:"",password:""});const[loginErr,setLE]=useState("");const[showPass,setShowPass]=useState(false);
@@ -4666,29 +4669,80 @@ const TH={
 
   // ==================== SIDEBAR ====================
   const navGroups=[
-    {label:"MENU UTAMA",items:[
-      ...(role==="staf"?[{key:"jadwal",icon:"📅",label:"Jadwal"},{key:"penugasan",icon:"🎯",label:"Penugasan"}]:[]),
-      ...(role==="admin_rk"?[{key:"form",icon:"✏️",label:"Input Jadwal"},{key:"draft",icon:"📝",label:"Draft & Progress"},{key:"jadwal",icon:"📅",label:"Jadwal Disetujui"},{key:"rk",icon:"📋",label:"Rencana Kegiatan"}]:[]),
-      ...(KASUBBAG_ROLES.includes(role)?[{key:"jadwal",icon:"📋",label:"Antrian"},{key:"semua",icon:"🗓️",label:"Semua Jadwal"}]:[]),
-      ...(role==="kabag"?[{key:"jadwal",icon:"📋",label:"Antrian"},{key:"semua",icon:"🗓️",label:"Semua Jadwal"}]:[]),
-      ...((role==="ajudan_walikota"||role==="ajudan_wakilwalikota")?[{key:"ajudan",icon:"✅",label:"Konfirmasi"},{key:"jadwal",icon:"📅",label:"Jadwal"},{key:"penugasan",icon:"🎯",label:"Penugasan"}]:[]),
-      ...(role==="timkom"?[{key:"jadwal",icon:"📅",label:"Jadwal"},{key:"penugasan",icon:"🎯",label:"Penugasan"}]:[]),
-      ...(role==="mitra_kerja"?[{key:"mitra",icon:"📅",label:"Agenda"}]:[]),
-      ...(role==="walikota"||role==="wakilwalikota"?[{key:"jadwal",icon:"📅",label:"Jadwal Saya"}]:[]),
-      {key:"tayang",icon:"🏛️",label:"Agenda Tayang"},
-    ]},
-    {label:"LAPORAN & TOOLS",items:[
-      {key:"action:summary",icon:"💬",label:"Rekap WA Hari Ini"},
-      {key:"action:report",icon:"📄",label:"Cetak Rekap PDF"},
-      ...(canReport?[{key:"action:laporan",icon:"📊",label:"Laporan Mingguan/Bulanan"}]:[]),
-      ...((KASUBBAG_ROLES.includes(role)||role==="kabag")?[{key:"penugasan",icon:"📈",label:"Rekap Evaluasi Kinerja"}]:[]),
-    ]},
-    {label:"AKUN",items:[
-      {key:"action:profile",icon:"👤",label:"Pengaturan Akun"},
-      ...(role==="kabag"?[{key:"action:admin",icon:"⚙️",label:"Kelola Pengguna"}]:[]),
-      ...(role==="kabag"?[{key:"action:broadcast",icon:"📢",label:"Kirim Pengumuman"}]:[]),
-    ]},
-  ];
+  {label:"MENU UTAMA",items:[
+    // ── Staf Protokol ──
+    ...(role==="staf"?[
+      {key:"jadwal",   icon:"📅", label:"Jadwal"},
+      {key:"penugasan",icon:"🎯", label:"Penugasan"},
+    ]:[]),
+    // ── Admin Rencana Kegiatan ──
+    ...(role==="admin_rk"?[
+      {key:"form",    icon:"✏️", label:"Input Jadwal"},
+      {key:"draft",   icon:"📝", label:"Draft & Progress"},
+      {key:"jadwal",  icon:"📅", label:"Jadwal Disetujui"},
+      {key:"rk",      icon:"📋", label:"Rencana Kegiatan"},
+      {key:"tamu",    icon:"👥", label:"Manajemen Tamu"},
+    ]:[]),
+    // ── Kasubbag Protokol ──
+    ...(role==="kasubbag_protokol"?[
+      {key:"jadwal",icon:"📋", label:"Antrian"},
+      {key:"semua", icon:"🗓️", label:"Semua Jadwal"},
+      {key:"tamu",  icon:"👥", label:"Manajemen Tamu"},
+    ]:[]),
+    // ── Kasubbag Komdokpim (read-only tamu) ──
+    ...(role==="kasubbag_komdokpim"?[
+      {key:"jadwal",icon:"📋", label:"Antrian"},
+      {key:"semua", icon:"🗓️", label:"Semua Jadwal"},
+      {key:"tamu",  icon:"👥", label:"Tamu (Lihat)"},
+    ]:[]),
+    // ── Kabag ──
+    ...(role==="kabag"?[
+      {key:"jadwal",icon:"📋", label:"Antrian"},
+      {key:"semua", icon:"🗓️", label:"Semua Jadwal"},
+      {key:"tamu",  icon:"👥", label:"Manajemen Tamu"},
+    ]:[]),
+    // ── Ajudan Wali Kota / Wakil Wali Kota ──
+    ...((role==="ajudan_walikota"||role==="ajudan_wakilwalikota")?[
+      {key:"ajudan",   icon:"✅", label:"Konfirmasi"},
+      {key:"jadwal",   icon:"📅", label:"Jadwal"},
+      {key:"tamu",     icon:"👥", label:"Manajemen Tamu"},
+      {key:"penugasan",icon:"🎯", label:"Penugasan"},
+    ]:[]),
+    // ── Timkom (read-only tamu) ──
+    ...(role==="timkom"?[
+      {key:"jadwal",   icon:"📅", label:"Jadwal"},
+      {key:"tamu",     icon:"👥", label:"Tamu (Lihat)"},
+      {key:"penugasan",icon:"🎯", label:"Penugasan"},
+    ]:[]),
+    // ── Mitra Kerja ──
+    ...(role==="mitra_kerja"?[
+      {key:"mitra",icon:"📅", label:"Agenda"},
+    ]:[]),
+    // ── Wali Kota ──
+    ...(role==="walikota"?[
+      {key:"jadwal",icon:"📅", label:"Jadwal Saya"},
+      {key:"tamu",  icon:"👥", label:"Manajemen Tamu"},
+    ]:[]),
+    // ── Wakil Wali Kota ──
+    ...(role==="wakilwalikota"?[
+      {key:"jadwal",icon:"📅", label:"Jadwal Saya"},
+      {key:"tamu",  icon:"👥", label:"Manajemen Tamu"},
+    ]:[]),
+    // ── Selalu ada ──
+    {key:"tayang",icon:"🏛️",label:"Agenda Tayang"},
+  ]},
+  {label:"LAPORAN & TOOLS",items:[
+    {key:"action:summary",icon:"💬",label:"Rekap WA Hari Ini"},
+    {key:"action:report", icon:"📄",label:"Cetak Rekap PDF"},
+    ...(canReport?[{key:"action:laporan",icon:"📊",label:"Laporan Mingguan/Bulanan"}]:[]),
+    ...((KASUBBAG_ROLES.includes(role)||role==="kabag")?[{key:"penugasan",icon:"📈",label:"Rekap Evaluasi Kinerja"}]:[]),
+  ]},
+  {label:"AKUN",items:[
+    {key:"action:profile",   icon:"👤", label:"Pengaturan Akun"},
+    ...(role==="kabag"?[{key:"action:admin",     icon:"⚙️", label:"Kelola Pengguna"}]:[]),
+    ...(role==="kabag"?[{key:"action:broadcast", icon:"📢", label:"Kirim Pengumuman"}]:[]),
+  ]},
+];
 
   const handleNavClick=key=>{
     if(key==="action:summary"){setShowSummary(true);return;}if(key==="action:report"){setShowReport(true);return;}if(key==="action:laporan"){setShowLaporan(true);return;}if(key==="action:admin"){setShowAdmin(true);return;}if(key==="action:broadcast"){setShowBroadcast(true);return;}if(key==="action:profile"){setShowProfile(true);return;}
@@ -4726,17 +4780,69 @@ const TH={
 
   // ==================== MOBILE HEADER + iOS BOTTOM TAB BAR ====================
   const mobTabs=[
-    ...(role==="staf"?[{key:"jadwal",label:"Jadwal",icon:"📅"},{key:"penugasan",label:"Penugasan",icon:"🎯"}]:[]),
-    ...(role==="admin_rk"?[{key:"form",label:"Input",icon:"✏️"},{key:"draft",label:"Draft",icon:"📝"},{key:"jadwal",label:"Jadwal",icon:"📅"},{key:"rk",label:"RK",icon:"📋"}]:[]),
-    ...(KASUBBAG_ROLES.includes(role)?[{key:"jadwal",label:"Antrian",icon:"📋"},{key:"semua",label:"Jadwal",icon:"🗓️"}]:[]),
-    ...(role==="kabag"?[{key:"jadwal",label:"Antrian",icon:"📋"},{key:"semua",label:"Jadwal",icon:"🗓️"}]:[]),
-    ...((role==="ajudan_walikota"||role==="ajudan_wakilwalikota")?[{key:"ajudan",label:"Konfirmasi",icon:"✅"},{key:"jadwal",label:"Jadwal",icon:"📅"},{key:"penugasan",label:"Penugasan",icon:"🎯"}]:[]),
-    ...(role==="timkom"?[{key:"jadwal",label:"Jadwal",icon:"📅"},{key:"penugasan",label:"Penugasan",icon:"🎯"}]:[]),
-    ...(role==="mitra_kerja"?[{key:"mitra",label:"Agenda",icon:"📅"}]:[]),
-    ...(role==="walikota"||role==="wakilwalikota"?[{key:"jadwal",label:"Jadwal",icon:"📅"}]:[]),
-    {key:"tayang",label:"Tayang",icon:"🏛️"},
-    {key:"action:more",label:"Lainnya",icon:"⋯"},
-  ];
+  // ── Staf ──
+  ...(role==="staf"?[
+    {key:"jadwal",   label:"Jadwal",   icon:"📅"},
+    {key:"penugasan",label:"Penugasan",icon:"🎯"},
+  ]:[]),
+  // ── Admin RK ──
+  ...(role==="admin_rk"?[
+    {key:"form",  label:"Input", icon:"✏️"},
+    {key:"draft", label:"Draft", icon:"📝"},
+    {key:"jadwal",label:"Jadwal",icon:"📅"},
+    {key:"rk",    label:"RK",    icon:"📋"},
+    {key:"tamu",  label:"Tamu",  icon:"👥"},
+  ]:[]),
+  // ── Kasubbag Protokol ──
+  ...(role==="kasubbag_protokol"?[
+    {key:"jadwal",label:"Antrian",icon:"📋"},
+    {key:"semua", label:"Jadwal", icon:"🗓️"},
+    {key:"tamu",  label:"Tamu",   icon:"👥"},
+  ]:[]),
+  // ── Kasubbag Komdokpim (read-only) ──
+  ...(role==="kasubbag_komdokpim"?[
+    {key:"jadwal",label:"Antrian", icon:"📋"},
+    {key:"semua", label:"Jadwal",  icon:"🗓️"},
+    {key:"tamu",  label:"Tamu 👁", icon:"👥"},
+  ]:[]),
+  // ── Kabag ──
+  ...(role==="kabag"?[
+    {key:"jadwal",label:"Antrian",icon:"📋"},
+    {key:"semua", label:"Jadwal", icon:"🗓️"},
+    {key:"tamu",  label:"Tamu",   icon:"👥"},
+  ]:[]),
+  // ── Ajudan WK / WWK ──
+  ...((role==="ajudan_walikota"||role==="ajudan_wakilwalikota")?[
+    {key:"ajudan",   label:"Konfirmasi",icon:"✅"},
+    {key:"jadwal",   label:"Jadwal",    icon:"📅"},
+    {key:"tamu",     label:"Tamu",      icon:"👥"},
+    {key:"penugasan",label:"Penugasan", icon:"🎯"},
+  ]:[]),
+  // ── Timkom (read-only) ──
+  ...(role==="timkom"?[
+    {key:"jadwal",   label:"Jadwal",  icon:"📅"},
+    {key:"tamu",     label:"Tamu 👁", icon:"👥"},
+    {key:"penugasan",label:"Penugasan",icon:"🎯"},
+  ]:[]),
+  // ── Mitra Kerja ──
+  ...(role==="mitra_kerja"?[
+    {key:"mitra",label:"Agenda",icon:"📅"},
+  ]:[]),
+  // ── Wali Kota ──
+  ...(role==="walikota"?[
+    {key:"jadwal",label:"Jadwal",icon:"📅"},
+    {key:"tamu",  label:"Tamu",  icon:"👥"},
+  ]:[]),
+  // ── Wakil Wali Kota ──
+  ...(role==="wakilwalikota"?[
+    {key:"jadwal",label:"Jadwal",icon:"📅"},
+    {key:"tamu",  label:"Tamu",  icon:"👥"},
+  ]:[]),
+  // ── Selalu ada ──
+  {key:"tayang",      label:"Tayang", icon:"🏛️"},
+  {key:"action:more", label:"Lainnya",icon:"⋯"},
+];
+ 
   const TAB_BAR_H=56;
   const mobileHeaderJSX=(<>
     {/* ── TOP NAV BAR ── */}
@@ -7014,7 +7120,17 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
       :(role==="ajudan_walikota"||role==="ajudan_wakilwalikota")&&tab==="ajudan"
         ?<AjudanDashboard events={events} user={user} upd={upd} showT={showT} setDelegTarget={setDelegTarget} isMobile={isMobile} initialExpandedId={pendingExpandTarget} onExpandConsumed={()=>setPendingExpandTarget(null)}/>
 
-      /* 3. Kabag dashboard */
+      /* 2b. Manajemen Tamu (GuestDashboard) */
+      :tab==="tamu"
+        ?<GuestDashboard
+          role={role}
+          user={user}
+          events={events}
+          showT={showT}
+          isMobile={isMobile}
+        />
+
+        /* 3. Kabag dashboard */
       :role==="kabag"&&tab==="dashboard"
         ?<KabagDashboard events={events} user={user} upd={upd} showT={showT} askConfirm={askConfirm} deleteAndSync={deleteAndSync} isMobile={isMobile}/>
 
