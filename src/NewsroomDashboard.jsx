@@ -1,28 +1,6 @@
 /**
  * src/NewsroomDashboard.jsx — Prokopim v1.5
  * AI Newsroom — Dapur Redaksi Digital Komdokpim Kota Tarakan
- *
- * Props: { role, user }
- *
- * Routing view:
- *   role === "timkom"            → TimkomView   (input & generate draf AI)
- *   role === "kasubbag_komdokpim"→ KurasiView   (review, setujui, revisi)
- *   role === "kabag"             → MonitoringView (read-only pantauan)
- *
- * Tabel Supabase: rilis_berita
- * Kolom: id, created_at, judul, poin_lapangan, draf_ai, status,
- *        catatan_revisi, peliput_username, peliput_nama,
- *        dikurasi_oleh, published_at
- *
- * Status flow:
- *   draft_timkom → pending_kasubbag → published
- *                                   → draft_timkom (revisi)
- *
- * INTEGRASI di ProkopimApp.jsx:
- *   import NewsroomDashboard from "./NewsroomDashboard.jsx";
- *   // Di routing tab "newsroom":
- *   :tab === "newsroom"
- *     ? <NewsroomDashboard role={role} user={user}/>
  */
 
 import React, {
@@ -151,7 +129,7 @@ function TimkomView({ user }) {
     if (!supa.ok) { setLoadRiwayat(false); return; }
     setLoadRiwayat(true);
     var url = supa.url + "/rest/v1/rilis_berita"
-      + "?peliput_username=eq." + encodeURIComponent(user.username)
+      + "?pembuat=eq." + encodeURIComponent(user.username)
       + "&order=created_at.desc"
       + "&limit=30";
     fetch(url, { headers: supaHeaders(supa.key) })
@@ -216,7 +194,7 @@ function TimkomView({ user }) {
         ].join("\n");
 
         var geminiRes = await fetch(
-          "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+          "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent"
           + "?key=" + geminiKey,
           {
             method:  "POST",
@@ -281,8 +259,7 @@ function TimkomView({ user }) {
         poin_lapangan:    poinLapangan.trim(),
         draf_ai:          drafAi.trim(),
         status:           "pending_kasubbag",
-        peliput_username: user.username,
-        peliput_nama:     user.nama || user.username,
+        pembuat:          user.username,
       };
 
       var supaRes = await fetch(supa.url + "/rest/v1/rilis_berita", {
@@ -727,7 +704,7 @@ function KurasiView({ user }) {
                         Menunggu Kurasi
                       </div>
                       <div style={{ fontSize:11, color:"#94A3B8" }}>
-                        📡 {item.peliput_nama || item.peliput_username} · {fmtTs(item.created_at)}
+                        📡 {item.pembuat} · {fmtTs(item.created_at)}
                       </div>
                     </div>
 
@@ -1012,7 +989,7 @@ function MonitoringView({ user }) {
                         display:"flex", gap:12, fontSize:11,
                         color:"#94A3B8", flexWrap:"wrap",
                       }}>
-                        <span>📡 {item.peliput_nama || item.peliput_username}</span>
+                        <span>📡 {item.pembuat}</span>
                         <span>🕐 {fmtTs(item.created_at)}</span>
                         {item.dikurasi_oleh && (
                           <span>✍️ Kurator: {item.dikurasi_oleh}</span>
