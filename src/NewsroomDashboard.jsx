@@ -163,35 +163,129 @@ function TimkomView({ user }) {
 
   useEffect(function() { fetchRiwayat(); }, [fetchRiwayat]);
 
-  // ── Submit: simpan draft + dummy generate AI ─────────────
+  // ── Submit: Generate draf via Gemini → simpan ke Supabase ──
   async function handleGenerate() {
     setFormErr(""); setFormSuccess("");
-    if (!judul.trim()) { setFormErr("Judul liputan wajib diisi."); return; }
+
+    // ── Validasi form ────────────────────────────────────────
+    if (!judul.trim()) {
+      setFormErr("Judul liputan wajib diisi."); return;
+    }
     if (poinLapangan.trim().length < 20) {
-      setFormErr("Poin lapangan terlalu singkat — minimal 20 karakter.");
-      return;
+      setFormErr("Poin lapangan terlalu singkat — minimal 20 karakter."); return;
     }
     if (!supa.ok) {
-      setFormErr("Konfigurasi Supabase belum ada. Hubungi Admin.");
-      return;
+      setFormErr("Konfigurasi Supabase belum ada. Hubungi Admin."); return;
     }
 
+    var geminiKey = (typeof import.meta !== "undefined" && import.meta.env)
+      ? (import.meta.env.VITE_GEMINI_API_KEY || "") : "";
+
     setSubmitting(true);
-
-    // Dummy draf AI — akan diganti generasi nyata di Step 3
-    var drafAi = "Draf AI akan digenerate di sini (Step 3)...";
-
-    var payload = {
-      judul:             judul.trim(),
-      poin_lapangan:     poinLapangan.trim(),
-      draf_ai:           drafAi,
-      status:            "pending_kasubbag",
-      peliput_username:  user.username,
-      peliput_nama:      user.nama || user.username,
-    };
+    var drafAi = "";
 
     try {
-      var res = await fetch(supa.url + "/rest/v1/rilis_berita", {
+      // ══════════════════════════════════════════════════════
+      // STEP 1: Panggil Gemini API
+      // ══════════════════════════════════════════════════════
+      if (!geminiKey) {
+        // Fallback jika env key belum diset — tetap simpan dengan catatan
+        drafAi = "[Draf AI tidak tersedia — VITE_GEMINI_API_KEY belum dikonfigurasi. "
+               + "Silakan isi secara manual atau hubungi Admin.]";
+      } else {
+        var systemPrompt = [
+          "Anda adalah Staf Ahli Komunikasi dan Dokumentasi Pimpinan (Komdokpim)",
+          "Sekretariat Daerah Kota Tarakan.",
+          "Tugas Anda menyusun draf rilis berita resmi pemerintahan berdasarkan",
+          "poin-poin liputan mentah yang diberikan oleh staf lapangan.",
+          "",
+          "Judul / Topik Liputan:",
+          judul.trim(),
+          "",
+          "Poin-Poin Lapangan:",
+          poinLapangan.trim(),
+          "",
+          "Syarat penulisan:",
+          "- Gunakan gaya bahasa jurnalistik pemerintahan yang formal, elegan, positif, dan informatif.",
+          "- Susun dalam format paragraf berita yang rapi (minimal 3 paragraf).",
+          "- Paragraf pertama adalah teras berita (lead) yang menjawab 5W+1H secara ringkas.",
+          "- Paragraf berikutnya mengembangkan detail poin lapangan secara kronologis.",
+          "- Paragraf terakhir dapat berisi kutipan fiktif pejabat atau penutup yang menguatkan.",
+          "- Hindari kata-kata berulang. Jangan sertakan judul dalam draf.",
+          "- Tulis HANYA isi draf berita — tanpa penjelasan tambahan, tanpa preamble.",
+        ].join("\n");
+
+        var geminiRes = await fetch(
+          "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+          + "?key=" + geminiKey,
+          {
+            method:  "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [
+                {
+                  role:  "user",
+                  parts: [{ text: systemPrompt }],
+                },
+              ],
+              generationConfig: {
+                temperature:     0.7,
+                maxOutputTokens: 1024,
+                topP:            0.9,
+              },
+              safetySettings: [
+                { category: "HARM_CATEGORY_HARASSMENT",        threshold: "BLOCK_NONE" },
+                { category: "HARM_CATEGORY_HATE_SPEECH",       threshold: "BLOCK_NONE" },
+                { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+                { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+              ],
+            }),
+          }
+        );
+
+        if (!geminiRes.ok) {
+          var geminiErr = await geminiRes.json().catch(function() { return {}; });
+          var errMsg = (geminiErr.error && geminiErr.error.message) || ("HTTP " + geminiRes.status);
+          throw new Error("Gemini API gagal: " + errMsg);
+        }
+
+        var geminiData = await geminiRes.json();
+
+        // Ekstrak teks dari respons Gemini
+        drafAi = (
+          geminiData.candidates &&
+          geminiData.candidates[0] &&
+          geminiData.candidates[0].content &&
+          geminiData.candidates[0].content.parts &&
+          geminiData.candidates[0].content.parts[0] &&
+          geminiData.candidates[0].content.parts[0].text
+        ) || "";
+
+        if (!drafAi.trim()) {
+          // Gemini kadang return finishReason: SAFETY — tangani dengan elegan
+          var reason = (
+            geminiData.candidates &&
+            geminiData.candidates[0] &&
+            geminiData.candidates[0].finishReason
+          ) || "UNKNOWN";
+          drafAi = "[Draf AI tidak dapat dibuat (alasan: " + reason + "). "
+                 + "Silakan tulis draf secara manual atau coba lagi dengan poin lapangan yang berbeda.]";
+        }
+      }
+
+      // ══════════════════════════════════════════════════════
+      // STEP 2: INSERT ke Supabase tabel rilis_berita
+      // ══════════════════════════════════════════════════════
+      var payload = {
+        judul:            judul.trim(),
+        poin_lapangan:    poinLapangan.trim(),
+        draf_ai:          drafAi.trim(),
+        status:           "pending_kasubbag",
+        peliput_username: user.username,
+        peliput_nama:     user.nama || user.username,
+      };
+
+      var supaRes = await fetch(supa.url + "/rest/v1/rilis_berita", {
         method:  "POST",
         headers: Object.assign({}, supaHeaders(supa.key), {
           "Prefer": "return=representation",
@@ -199,16 +293,24 @@ function TimkomView({ user }) {
         body: JSON.stringify(payload),
       });
 
-      if (!res.ok) {
-        var err = await res.json().catch(function() { return {}; });
-        throw new Error(err.message || "Gagal menyimpan rilis. Coba lagi.");
+      if (!supaRes.ok) {
+        var supaErr = await supaRes.json().catch(function() { return {}; });
+        throw new Error(supaErr.message || "Draf AI berhasil dibuat tapi gagal disimpan. Coba lagi.");
       }
 
+      // ══════════════════════════════════════════════════════
+      // STEP 3: Reset form & refresh riwayat
+      // ══════════════════════════════════════════════════════
       setJudul(""); setPoinLapangan("");
-      setFormSuccess("Draf berhasil digenerate & dikirim ke Kasubbag untuk dikurasi.");
+      setFormSuccess(
+        geminiKey
+          ? "✨ Draf AI berhasil dibuat & dikirim ke Kasubbag untuk dikurasi."
+          : "📝 Rilis disimpan (tanpa AI). Tambahkan VITE_GEMINI_API_KEY di Vercel untuk mengaktifkan AI."
+      );
       fetchRiwayat();
+
     } catch(e) {
-      setFormErr(e.message || "Terjadi kesalahan. Periksa koneksi.");
+      setFormErr(e.message || "Terjadi kesalahan. Periksa koneksi internet dan coba lagi.");
     } finally {
       setSubmitting(false);
     }
@@ -337,7 +439,7 @@ function TimkomView({ user }) {
                   width:16, height:16, borderRadius:"50%",
                   border:"2.5px solid rgba(255,255,255,0.3)",
                   borderTopColor:"white", display:"inline-block",
-                }}/> Mengirim...</>
+                }}/> Memproses AI...</>
               : <><span style={{ fontSize:17 }}>✨</span> Generate Draf AI</>
             }
           </button>
