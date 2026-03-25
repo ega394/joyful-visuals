@@ -1887,7 +1887,8 @@ function BiometricTab({user,showT}){
 }
 
 // ==================== DRAFT PROGRESS VIEW (Staf) ====================
-function DraftProgressView({events,user,upd,showT,askConfirm,setTab,isMobile,setForm,setEditId,deleteAndSync}){
+// ==================== INPUT & DRAFT PROGRESS VIEW (Admin RK / Staf) ====================
+function DraftProgressView({events,user,upd,showT,askConfirm,setTab,isMobile,setForm,setEditId,deleteAndSync,onAddNew}){
   const NAVY="#0A1628",GOLD="#C9A84C";
   const mine=events.filter(e=>e.submittedBy===user?.username);
   const steps=[
@@ -1898,21 +1899,24 @@ function DraftProgressView({events,user,upd,showT,askConfirm,setTab,isMobile,set
   ];
   const getStep=(alur)=>steps.findIndex(s=>s.key===alur);
   const fmt=d=>{if(!d)return"";const[y,m,dd]=d.split("-");const M=["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];return dd+" "+M[parseInt(m)-1]+" "+y;};
+  
   if(mine.length===0)return <div style={{padding:40,textAlign:"center",color:"#94a3b8",fontSize:14}}>
     <div style={{fontSize:32,marginBottom:12}}>📝</div>
     <div>Belum ada jadwal yang Anda ajukan.</div>
-    <button onClick={()=>setTab("form")} style={{marginTop:16,padding:"10px 24px",borderRadius:10,border:"none",background:NAVY,color:"white",cursor:"pointer",fontSize:14,fontWeight:700}}>+ Input Jadwal Baru</button>
+    <button onClick={onAddNew} style={{marginTop:16,padding:"10px 24px",borderRadius:10,border:"none",background:NAVY,color:"white",cursor:"pointer",fontSize:14,fontWeight:700}}>+ Input Jadwal Baru</button>
   </div>;
+
   return <div style={{padding:isMobile?"12px":"20px",maxWidth:680,margin:"0 auto"}}>
-    <div style={{fontSize:15,fontWeight:700,color:NAVY,marginBottom:16}}>📝 Draft & Progress Jadwal Anda</div>
+    {/* 👇 TOMBOL INPUT BARU SELALU TAMPIL DI ATAS 👇 */}
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+      <div style={{fontSize:15,fontWeight:800,color:NAVY}}>📝 Input & Draft Jadwal</div>
+      <button onClick={onAddNew} style={{padding:"8px 14px",borderRadius:10,border:"none",background:NAVY,color:"white",cursor:"pointer",fontSize:12,fontWeight:700,boxShadow:"0 4px 12px rgba(10,22,40,0.2)"}}>
+        + Input Baru
+      </button>
+    </div>
+    
     {mine.sort((a,b)=>b.tanggal?.localeCompare(a.tanggal||"")||0).map(ev=>{
-      const stepIdx=getStep(ev.alur);
-      const isDraft=ev.alur==="draft";
-      const isDitolak=ev.alur==="ditolak";
-      const isDisetujui=ev.alur==="disetujui";
-      return <div key={ev.id} style={{background:"white",borderRadius:14,padding:"14px 16px",marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,0.07)",border:"1.5px solid "+(isDitolak?"#fca5a5":isDraft?"#e2e8f0":isDisetujui?"#86efac":"#e2e8f0")}}>
-        <div style={{fontSize:13,fontWeight:700,color:"#0F2040",marginBottom:4}}>{ev.namaAcara}</div>
-        <div style={{fontSize:11,color:"#64748b",marginBottom:10}}>{fmt(ev.tanggal)} · {ev.jam} WITA · {ev.penyelenggara}</div>
+      // ... (sisa kode di bawah ini biarkan sama persis sampai selesai)
         {/* Progress bar */}
         {!isDraft&&!isDitolak&&<div style={{display:"flex",alignItems:"center",gap:0,marginBottom:12}}>
           {steps.map((s,i)=><React.Fragment key={s.key}>
@@ -5010,7 +5014,6 @@ const TH={
       {key:"form",    icon:"✏️", label:"Input Jadwal"},
       {key:"draft",   icon:"📝", label:"Draft & Progress"},
       {key:"jadwal",  icon:"📅", label:"Jadwal Disetujui"},
-      {key:"rk",      icon:"📋", label:"Rencana Kegiatan"},
       {key:"tamu",    icon:"👥", label:"Manajemen Tamu"},
     ]:[]),
     // ── Kasubbag Protokol ──
@@ -5124,7 +5127,6 @@ const TH={
     {key:"form",  label:"Input", icon:"✏️"},
     {key:"draft", label:"Draft", icon:"📝"},
     {key:"jadwal",label:"Jadwal",icon:"📅"},
-    {key:"rk",    label:"RK",    icon:"📋"},
     {key:"tamu",  label:"Tamu",  icon:"👥"},
   ]:[]),
   // ── Kasubbag Protokol ──
@@ -7476,19 +7478,15 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
       :KASUBBAG_ROLES.includes(role)&&tab==="dashboard"
         ?<KasubbagDashboard events={events} user={user} upd={upd} showT={showT} askConfirm={askConfirm} isMobile={isMobile} onPenugasan={ev=>setPenugasanEv(ev)}/>
 
-      /* 5. Admin RK: Draft & Progress */
+      /* 5. Admin RK: Input & Draft */
       :(role==="admin_rk"&&tab==="draft")
-        ?<DraftProgressView events={events} user={user} upd={upd} showT={showT} askConfirm={askConfirm} setTab={setTab} isMobile={isMobile} setForm={setForm} setEditId={setEditId} deleteAndSync={deleteAndSync}/>
+        ?<DraftProgressView events={events} user={user} upd={upd} showT={showT} askConfirm={askConfirm} setTab={setTab} isMobile={isMobile} setForm={setForm} setEditId={setEditId} deleteAndSync={deleteAndSync} onAddNew={()=>{setForm(emptyForm);setEditId(null);setTab("form");}}/>
 
       /* 6. Admin RK: Form input jadwal */
       :showForm
-        ?<FormView form={form} setForm={setForm} editId={editId} setEditId={setEditId} setTab={setTab} isMobile={isMobile} onSubmit={submit} onCancel={()=>{setForm(emptyForm);setEditId(null);setTab("jadwal");}} onOpenAI={()=>setShowAI(true)} onUndanganUpload={handleUndanganUpload} showT={showT} canUploadUndangan={role==="admin_rk"}/>
+        ?<FormView form={form} setForm={setForm} editId={editId} setEditId={setEditId} setTab={setTab} isMobile={isMobile} onSubmit={submit} onCancel={()=>{setForm(emptyForm);setEditId(null);setTab(role==="admin_rk"?"draft":"jadwal");}} onOpenAI={()=>setShowAI(true)} onUndanganUpload={handleUndanganUpload} showT={showT} canUploadUndangan={role==="admin_rk"}/>
 
-      /* 7. Admin RK: Rencana Kegiatan */
-      :(role==="admin_rk"&&tab==="rk")
-        ?<RKView events={events} user={user} upd={upd} updAndSync={updAndSync} showT={showT} isMobile={isMobile}/>
-        :tab==="newsroom"
-        ?<NewsroomDashboard role={role} user={user}/>
+      /* 7. Admin RK: Rencana Kegiatan ──> SUDAH DIHAPUS SEPENUHNYA DARI SINI */
 
       /* 8. Kasubbag/Kabag: Antrian Approval (tab jadwal) */
       :(["kasubbag_protokol","kasubbag_komdokpim","kabag"].includes(role)&&tab==="jadwal")
