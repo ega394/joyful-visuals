@@ -2212,7 +2212,7 @@ function MitraKerjaView({events,isMobile}){
 }
 
 // ==================== ADMIN MODAL ====================
-function AdminModal({onClose, showT}) {
+function AdminModal({onClose, showT, events, updAndSync}) {
   const [users, setUsers] = useState(loadUsers);
   const [tabA, setTabA] = useState("users");
   const [pendRegs, setPendRegs] = React.useState(() => loadPendingRegs());
@@ -7647,7 +7647,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
       showT(undanganFile?"Form terisi dari AI ✓ — berkas undangan tersimpan":"Form terisi dari AI ✓","warn");
     }} onClose={()=>setShowAI(false)}/>}
     {showSummary&&<SummaryModal events={events} onToggleHide={id=>upd(id,{tersembunyi:!events.find(e=>e.id===id)?.tersembunyi})} onClose={()=>setShowSummary(false)}/>}
-    {showAdmin&&<AdminModal onClose={()=>setShowAdmin(false)} showT={showT}/>}
+    {showAdmin&&<AdminModal onClose={()=>setShowAdmin(false)} showT={showT} events={events} updAndSync={updAndSync}/>}
     {showBroadcast&&<BroadcastModal onClose={()=>setShowBroadcast(false)} showT={showT} senderNama={user?.nama||"Kabag Protokol dan Komunikasi Pimpinan"}/>}
     {showReport&&<ReportingModal events={events} kabagNama={kabagNama} cetakOleh={user?.nama||user?.username||""} onClose={()=>setShowReport(false)}/>}
     {showProfile&&<ProfileModal user={user} onClose={updated=>{setShowProfile(false);if(updated)setUser(updated);}} showT={showT}/>}
