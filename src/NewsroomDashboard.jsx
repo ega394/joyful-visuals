@@ -213,7 +213,13 @@ export default function NewsroomDashboard({ events, user, showT, isMobile, upd }
       <div style={{ fontSize: 14, fontWeight: 800, color: NAVY, marginBottom: 12 }}>Daftar Kegiatan Tayang:</div>
       
       {jadwalTayang.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "40px 20px", background: "white", borderRadius: 16, border: "none", boxShadow: "0 4px 20px rgba(0,0,0,0.04)" }}>Belum ada jadwal tayang.</div>
+        <div style={{ textAlign: "center", padding: "60px 20px", background: "white", borderRadius: 24, boxShadow: "0 4px 20px rgba(0,0,0,0.03)", marginTop: 20 }}>
+  <div style={{ fontSize: 64, marginBottom: 16 }}>✨</div>
+  <div style={{ fontSize: 18, fontWeight: 800, color: "#0A1628", marginBottom: 8 }}>Inbox Zero! Luar Biasa.</div>
+  <div style={{ fontSize: 14, color: "#64748B", maxWidth: 320, margin: "0 auto", lineHeight: 1.5 }}>
+    Semua draf berita kegiatan sudah beres di-ACC. Tim Komdokpim bisa istirahat dulu, ngopi sejenak! 📸
+  </div>
+</div>
       ) : (
         <div style={{ display: "grid", gap: 12 }}>
           {jadwalTayang.map(ev => {
