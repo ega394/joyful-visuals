@@ -110,7 +110,7 @@ export default function NewsroomDashboard({ events, user, showT, isMobile, upd }
         </button>
         
         {/* Header Acara */}
-        <div style={{ background: "white", borderRadius: 16, padding: "20px", boxShadow: "0 4px 12px rgba(0,0,0,0.05)", border: "1px solid #E2E8F0", marginBottom: 16 }}>
+        <div style={{ background: "white", borderRadius: 16, padding: "20px", boxShadow: "0 4px 12px rgba(0,0,0,0.05)", border: "none", boxShadow: "0 4px 20px rgba(0,0,0,0.04)", marginBottom: 16 }}>
           <div style={{ display:"flex", justifyContent:"space-between" }}>
             <div style={{ fontSize: 12, color: GOLD, fontWeight: 800, textTransform: "uppercase", letterSpacing: 1 }}>Target Liputan</div>
             {st === "review" && <span style={{background:"#FEF3C7",color:"#92400E",padding:"4px 10px",borderRadius:20,fontSize:10,fontWeight:800}}>Menunggu Kasubbag</span>}
@@ -123,7 +123,7 @@ export default function NewsroomDashboard({ events, user, showT, isMobile, upd }
 
         {/* Form AI (Hanya untuk Timkom jika belum disetujui) */}
         {isTimkom && st !== "approved" && st !== "review" && (
-          <div style={{ background: "#F8FAFC", borderRadius: 16, padding: "20px", border: "1px solid #E2E8F0", marginBottom: 16 }}>
+          <div style={{ background: "#F8FAFC", borderRadius: 16, padding: "20px", border: "none", boxShadow: "0 4px 20px rgba(0,0,0,0.04)", marginBottom: 16 }}>
             <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: NAVY, marginBottom: 8 }}>Poin Penting Liputan 📝</label>
             <textarea 
               value={poinPenting} onChange={(e) => setPoinPenting(e.target.value)}
@@ -141,7 +141,7 @@ export default function NewsroomDashboard({ events, user, showT, isMobile, upd }
         )}
 
         {/* Editor Teks Berita */}
-        <div style={{ background: "white", borderRadius: 16, padding: "20px", border: "1px solid #E2E8F0", marginBottom: 16 }}>
+        <div style={{ background: "white", borderRadius: 16, padding: "20px", border: "none", boxShadow: "0 4px 20px rgba(0,0,0,0.04)", marginBottom: 16 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
             <div style={{ fontSize: 14, fontWeight: 800, color: NAVY }}>📝 Teks Rilis / Berita</div>
             <button onClick={copyToClipboard} style={{ padding: "6px 12px", borderRadius: 6, border: "none", background: "#F1F5F9", color: NAVY, fontWeight: 700, cursor: "pointer", fontSize: 12 }}>📋 Salin</button>
@@ -213,7 +213,7 @@ export default function NewsroomDashboard({ events, user, showT, isMobile, upd }
       <div style={{ fontSize: 14, fontWeight: 800, color: NAVY, marginBottom: 12 }}>Daftar Kegiatan Tayang:</div>
       
       {jadwalTayang.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "40px 20px", background: "white", borderRadius: 16, border: "1px solid #E2E8F0" }}>Belum ada jadwal tayang.</div>
+        <div style={{ textAlign: "center", padding: "40px 20px", background: "white", borderRadius: 16, border: "none", boxShadow: "0 4px 20px rgba(0,0,0,0.04)" }}>Belum ada jadwal tayang.</div>
       ) : (
         <div style={{ display: "grid", gap: 12 }}>
           {jadwalTayang.map(ev => {
@@ -225,7 +225,7 @@ export default function NewsroomDashboard({ events, user, showT, isMobile, upd }
             if (st === "revisi") badge = <span style={{background:"#FEE2E2",color:"#991B1B",padding:"4px 8px",borderRadius:20,fontSize:10,fontWeight:700}}>Revisi Timkom</span>;
 
             return (
-              <div key={ev.id} onClick={() => openEditor(ev)} style={{ background: "white", borderRadius: 12, padding: "16px", border: "1px solid #E2E8F0", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", boxShadow: "0 2px 4px rgba(0,0,0,0.02)" }}>
+              <div key={ev.id} onClick={() => openEditor(ev)} style={{ background: "white", borderRadius: 12, padding: "16px", border: "none", boxShadow: "0 4px 20px rgba(0,0,0,0.04)", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", boxShadow: "0 2px 4px rgba(0,0,0,0.02)" }}>
                 <div style={{ flex:1, paddingRight:12 }}>
                   <div style={{ fontSize: 14, fontWeight: 800, color: NAVY, marginBottom: 4 }}>{ev.namaAcara}</div>
                   <div style={{ fontSize: 12, color: "#64748B" }}>📅 {fmtDate(ev.tanggal)}</div>
