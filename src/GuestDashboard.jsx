@@ -1418,7 +1418,7 @@ function PimpinanView({ role, user, events, showT, isMobile }) {
                   <button
                     onClick={function() { setModal("tolak"); }}
                     style={{
-                      padding:"13px 8px", minHeight:52, borderRadius:14, border:"none",
+                      padding:"13px 8px", minHeight:52, borderRadius:14,
                       background:"#FEF2F2",
                       color:"#DC2626", fontSize:12, fontWeight:800, cursor:"pointer",
                       border:"1.5px solid #FECACA",
