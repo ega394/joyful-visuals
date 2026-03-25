@@ -7458,7 +7458,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
 
         /* 👇 TAMBAHKAN KODE INI UNTUK AI NEWSROOM 👇 */
       :tab==="newsroom"
-        ?<NewsroomDashboard events={events} user={user} showT={showT} isMobile={isMobile}/>
+        ?<NewsroomDashboard events={events} user={user} showT={showT} isMobile={isMobile} upd={upd}/>
       /* 👆 BATAS PENAMBAHAN KODE 👆 */
         
         /* 3. Kabag dashboard */
