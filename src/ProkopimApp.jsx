@@ -1886,10 +1886,8 @@ function BiometricTab({user,showT}){
   </div>;
 }
 
-
 // ==================== DRAFT PROGRESS VIEW (Staf) ====================
-// ==================== DRAFT PROGRESS VIEW (Staf) ====================
-function DraftProgressView({events,user,upd,showT,askConfirm,setTab,isMobile,setForm,setEditId}){
+function DraftProgressView({events,user,upd,showT,askConfirm,setTab,isMobile,setForm,setEditId,deleteAndSync}){
   const NAVY="#0A1628",GOLD="#C9A84C";
   const mine=events.filter(e=>e.submittedBy===user?.username);
   const steps=[
@@ -1952,7 +1950,20 @@ function DraftProgressView({events,user,upd,showT,askConfirm,setTab,isMobile,set
              }
           }} style={{padding:"7px 14px",borderRadius:8,border:"1.5px solid "+NAVY,background:"white",color:NAVY,cursor:"pointer",fontSize:12,fontWeight:600}}>✏️ Edit</button>}
           {/* 👆 BATAS PERBAIKAN 👆 */}
-
+          {/* 👇 TOMBOL HAPUS BARU 👇 */}
+          {(isDraft||isDitolak)&&<button onClick={()=>{
+            askConfirm(
+              "Hapus Draft?",
+              "Jadwal '" + ev.namaAcara + "' akan dihapus permanen.",
+              () => {
+                deleteAndSync(ev.id);
+                showT("Draft dihapus", "warn");
+              },
+              "Hapus",
+              "#DC2626"
+            );
+          }} style={{padding:"7px 14px",borderRadius:8,border:"1.5px solid #FCA5A5",background:"white",color:"#EF4444",cursor:"pointer",fontSize:12,fontWeight:600}}>🗑️ Hapus</button>}
+          {/* 👆 AKHIR TOMBOL HAPUS 👆 */}
           {isDraft&&<button onClick={()=>{upd(ev.id,{alur:"menunggu_kasubbag"});showT("Dikirim ke Kasubbag","ok");loadUsers().filter(u=>(u.role==="kasubbag_protokol")&&u.noWA).forEach(u=>sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"submit",submittedBy:user?.nama}));sendPush({targetRole:"kasubbag_protokol",title:"📋 Jadwal Baru Masuk",body:ev.namaAcara+" — "+ev.jam+" WITA",url:"/",tag:"submit-"+ev.id});sendPush({targetRole:"kasubbag_komdokpim",title:"📋 Jadwal Baru Masuk",body:ev.namaAcara+" — "+ev.jam+" WITA",url:"/",tag:"submit-"+ev.id});}} style={{padding:"7px 14px",borderRadius:8,border:"none",background:NAVY,color:"white",cursor:"pointer",fontSize:12,fontWeight:700}}>Kirim ke Kasubbag →</button>}
           {isDitolak&&<button onClick={()=>{upd(ev.id,{alur:"menunggu_kasubbag",catatanTolak:""});showT("Dikirim ulang ke Kasubbag","ok");loadUsers().filter(u=>(u.role==="kasubbag_protokol")&&u.noWA).forEach(u=>sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"submit",submittedBy:user?.nama}));sendPush({targetRole:"kasubbag_protokol",title:"📋 Jadwal Dikirim Ulang",body:ev.namaAcara,url:"/",tag:"resubmit-"+ev.id});sendPush({targetRole:"kasubbag_komdokpim",title:"📋 Jadwal Dikirim Ulang",body:ev.namaAcara,url:"/",tag:"resubmit-"+ev.id});}} style={{padding:"7px 14px",borderRadius:8,border:"none",background:"#d97706",color:"white",cursor:"pointer",fontSize:12,fontWeight:700}}>Kirim Ulang →</button>}
         </div>
@@ -7467,7 +7478,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
 
       /* 5. Admin RK: Draft & Progress */
       :(role==="admin_rk"&&tab==="draft")
-        ?<DraftProgressView events={events} user={user} upd={upd} showT={showT} askConfirm={askConfirm} setTab={setTab} isMobile={isMobile} setForm={setForm} setEditId={setEditId}/>
+        ?<DraftProgressView events={events} user={user} upd={upd} showT={showT} askConfirm={askConfirm} setTab={setTab} isMobile={isMobile} setForm={setForm} setEditId={setEditId} deleteAndSync={deleteAndSync}/>
 
       /* 6. Admin RK: Form input jadwal */
       :showForm
