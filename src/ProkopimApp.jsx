@@ -4583,28 +4583,65 @@ export default function App(){
     },400);
   };
 
-  const submit=async()=>{
-    if(!form.namaAcara||!form.tanggal||!form.jam){showT("Nama acara, tanggal & jam wajib diisi.","error");return;}if(!form.untukPimpinan||!form.untukPimpinan.length){showT("Pilih tujuan undangan (Wali Kota dan/atau Wakil Wali Kota) sebelum menyimpan.","error");return;}
-    const conflict=hasConflict(events,{...form,id:editId||0,alur:"disetujui"});
-    if(editId!==null){const evSebelum=events.find(e=>e.id===editId);setEvents(p=>{const next=p.map(e=>e.id===editId?{...e,...form}:e);const u=next.find(e=>e.id===editId);if(u)dbUpsert(u).catch(console.error);return next;});
-      // Jika jadwal sebelumnya ditolak → otomatis kirim ulang ke Kasubbag
+const submit=async()=>{
+    if(!form.namaAcara||!form.tanggal||!form.jam){showT("Nama acara, tanggal & jam wajib diisi.","error");return;}
+    if(!form.untukPimpinan||!form.untukPimpinan.length){showT("Pilih tujuan undangan (Wali Kota dan/atau Wakil Wali Kota) sebelum menyimpan.","error");return;}
+    
+    const evId = editId || Date.now();
+    let finalUndanganFile = form.undanganFile;
+
+    // ════════════════════════════════════════════════════════
+    // INTERCEPTOR: KIRIM FILE KE GOOGLE DRIVE
+    // ════════════════════════════════════════════════════════
+    if (finalUndanganFile && finalUndanganFile.startsWith("data:")) {
+      showT("Mengamankan file ke Google Drive...", "warn");
+      try {
+        const blob = await fetch(finalUndanganFile).then(r => r.blob());
+        const fd = new FormData();
+        fd.append("file", blob, form.undanganNama || "undangan_ai.pdf");
+        fd.append("agendaId", evId);
+        fd.append("agendaDate", form.tanggal);
+        fd.append("fileType", "undangan");
+        fd.append("uploadedBy", user?.username || "admin_rk");
+
+        const res = await fetch("/api/drive?action=upload", { method: "POST", body: fd });
+        const data = await res.json();
+        if (data.ok) {
+          finalUndanganFile = data.fileUrl || null; 
+          showT("File berhasil masuk ke Google Drive ✓", "ok");
+        }
+      } catch(e) {
+        console.error("Gagal upload GDrive:", e);
+      }
+    }
+    // ════════════════════════════════════════════════════════
+
+    const formDataToSave = { ...form, undanganFile: finalUndanganFile };
+    const conflict=hasConflict(events,{...formDataToSave,id:evId,alur:"disetujui"});
+    
+    if(editId!==null){
+      const evSebelum=events.find(e=>e.id===editId);
+      setEvents(p=>{const next=p.map(e=>e.id===editId?{...e,...formDataToSave}:e);const u=next.find(e=>e.id===editId);if(u)dbUpsert(u).catch(console.error);return next;});
       if(evSebelum?.alur==="ditolak"){
         upd(editId,{alur:"menunggu_kasubbag",catatanTolak:"",_requiresEdit:false});
         showT("Jadwal diperbaiki & dikirim ulang ke Kasubbag","ok");
         loadUsers().filter(u=>(u.role==="kasubbag_protokol")&&u.noWA).forEach(u=>sendWA({to:u.noWA,namaAcara:form.namaAcara,tanggal:form.tanggal,jam:form.jam,penyelenggara:form.penyelenggara,lokasi:form.lokasi,event:"submit",submittedBy:user?.nama}));
-        sendPush({targetRole:"kasubbag_protokol",title:"📋 Jadwal Dikirim Ulang",body:form.namaAcara,url:"/",tag:"resubmit-"+editId});sendPush({targetRole:"kasubbag_komdokpim",title:"📋 Jadwal Dikirim Ulang",body:form.namaAcara,url:"/",tag:"resubmit-"+editId});
+        sendPush({targetRole:"kasubbag_protokol",title:"📋 Jadwal Dikirim Ulang",body:form.namaAcara,url:"/",tag:"resubmit-"+editId});
+        sendPush({targetRole:"kasubbag_komdokpim",title:"📋 Jadwal Dikirim Ulang",body:form.namaAcara,url:"/",tag:"resubmit-"+editId});
       } else {
         showT("Jadwal diperbarui");
       }
       setEditId(null);
-      // Notif WA jika jadwal sudah disetujui (tayang) yang diedit
-      if(evSebelum?.alur==="disetujui"){const _allU=loadUsers();const _editor=user?.nama||user?.username||"Admin";// Notif ke ajudan yang relevan
-        _allU.filter(u=>(u.role==="ajudan_walikota"||u.role==="ajudan_wakilwalikota")&&u.noWA).forEach(u=>{const _isWK=u.role==="ajudan_walikota"&&(evSebelum.untukPimpinan||[]).includes("walikota");const _isWWK=u.role==="ajudan_wakilwalikota"&&((evSebelum.untukPimpinan||[]).includes("wakilwalikota")||evSebelum.delegasiKeWWK);if(_isWK||_isWWK)sendWA({to:u.noWA,namaAcara:form.namaAcara,tanggal:form.tanggal,jam:form.jam,penyelenggara:form.penyelenggara,lokasi:form.lokasi,event:"jadwal_diubah",namaEditor:_editor});});// Notif ke personil yang ditugaskan
+      if(evSebelum?.alur==="disetujui"){
+        const _allU=loadUsers();const _editor=user?.nama||user?.username||"Admin";
+        _allU.filter(u=>(u.role==="ajudan_walikota"||u.role==="ajudan_wakilwalikota")&&u.noWA).forEach(u=>{const _isWK=u.role==="ajudan_walikota"&&(evSebelum.untukPimpinan||[]).includes("walikota");const _isWWK=u.role==="ajudan_wakilwalikota"&&((evSebelum.untukPimpinan||[]).includes("wakilwalikota")||evSebelum.delegasiKeWWK);if(_isWK||_isWWK)sendWA({to:u.noWA,namaAcara:form.namaAcara,tanggal:form.tanggal,jam:form.jam,penyelenggara:form.penyelenggara,lokasi:form.lokasi,event:"jadwal_diubah",namaEditor:_editor});});
         (evSebelum.personil||[]).forEach(un=>{const _u=_allU.find(x=>x.username===un);if(_u?.noWA)sendWA({to:_u.noWA,namaAcara:form.namaAcara,tanggal:form.tanggal,jam:form.jam,penyelenggara:form.penyelenggara,lokasi:form.lokasi,event:"jadwal_diubah",namaEditor:_editor});});
       }
     }
-    else{const n={...form,id:Date.now(),alur:"draft",submittedBy:user?.username,catatanTolak:"",statusWK:null,statusWWK:null,perwakilanWK:"",perwakilanWWK:"",delegasiKeWWK:false,besertaIstriWK:!!form.besertaIstriWK,besertaIstriWWK:!!form.besertaIstriWWK,sambutanFile:null,sambutanNama:"",catatanPimpinan:"",tersembunyi:false,alurHapus:null};setEvents(p=>[...p,n]);dbUpsert(n).catch(console.error);if(conflict)showT("Potensi tabrakan jadwal!","warn");else showT("Draft disimpan. Kirim ke Kasubbag.");
-      // ── Notif WA ke Ajudan jika undangan masuk setelah 16.00 WITA ───
+    else{
+      const n={...formDataToSave,id:evId,alur:"draft",submittedBy:user?.username,catatanTolak:"",statusWK:null,statusWWK:null,perwakilanWK:"",perwakilanWWK:"",delegasiKeWWK:false,besertaIstriWK:!!form.besertaIstriWK,besertaIstriWWK:!!form.besertaIstriWWK,sambutanFile:null,sambutanNama:"",catatanPimpinan:"",tersembunyi:false,alurHapus:null};
+      setEvents(p=>[...p,n]);dbUpsert(n).catch(console.error);
+      if(conflict)showT("Potensi tabrakan jadwal!","warn");else showT("Draft disimpan. Kirim ke Kasubbag.");
       const jamWITA=new Date().getUTCHours()+8;const jamLokal=jamWITA>=24?jamWITA-24:jamWITA;
       if(jamLokal>=16){
         const tgtRoles=[];
@@ -4614,10 +4651,7 @@ export default function App(){
         for(const tRole of tgtRoles){
           const ajudan=allU.filter(u=>u.role===tRole&&u.noWA);
           const labelPim=tRole==="ajudan_walikota"?"Wali Kota":"Wakil Wali Kota";
-          for(const aj of ajudan){
-            // undangan_sore: diganti dengan cron notif-ajudan (16:00 WITA)
-          }
-          await sendPush({targetRole:tRole,title:"🔔 Undangan Baru Masuk",body:form.namaAcara+" · "+form.tanggal+" "+form.jam+" WITA — Mohon konfirmasi ke "+labelPim,url:"/",tag:"undangan-sore-"+Date.now()});sendPush({targetRole:"kasubbag_protokol",title:"📋 Undangan Sore Masuk",body:form.namaAcara+" — "+form.tanggal+" "+form.jam+" WITA",url:"/",tag:"undangan-sore-ksbg-"+Date.now()});sendPush({targetRole:"kasubbag_komdokpim",title:"📋 Undangan Sore Masuk",body:form.namaAcara+" — "+form.tanggal+" "+form.jam+" WITA",url:"/",tag:"undangan-sore-ksbg2-"+Date.now()});
+          await sendPush({targetRole:tRole,title:"🔔 Undangan Baru Masuk",body:form.namaAcara+" · "+form.tanggal+" "+form.jam+" WITA",url:"/",tag:"undangan-sore-"+Date.now()});
         }
       }
     }
