@@ -243,21 +243,25 @@ async function getOrCreateFolder(token, folderPath) {
  * @returns { fileId, fileUrl, folderId, folderPath }
  */
 // Tambahkan parameter fileType di ujung tanda kurung
+// ── UPLOAD FILE ───────────────────────────────────────────────
+/**
+ * uploadFileToDrive
+ * Upload file ke Google Drive folder yang sesuai tahun/bulan/kategori.
+ */
 async function uploadFileToDrive(fileBuffer, fileName, mimeType, agendaDate, fileType) {
+  // 1. Ambil Kunci & Tentukan Jalur Folder (Hanya 3 baris ini saja)
   const token = await getGoogleAccessToken();
   const folderPath = getFolderPath(agendaDate, fileType);
   const folderId   = await getOrCreateFolder(token, folderPath);
-  const token = await getGoogleAccessToken();
-  const folderPath = getFolderPath(agendaDate);
-  const folderId   = await getOrCreateFolder(token, folderPath);
 
-  // Multipart upload: metadata + file content
+  // 2. Multipart upload: metadata + file content (Lanjut ke kode aslinya)
   const metadata = JSON.stringify({
     name:    fileName,
     parents: [folderId],
   });
 
   const boundary = "-------prokopim_boundary_" + Date.now();
+  // ... (biarkan sisa kode di bawahnya tetap utuh seperti aslinya) ...
   const delimiter = `\r\n--${boundary}\r\n`;
   const closeDelimiter = `\r\n--${boundary}--`;
 
