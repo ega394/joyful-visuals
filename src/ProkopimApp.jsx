@@ -1888,7 +1888,8 @@ function BiometricTab({user,showT}){
 
 
 // ==================== DRAFT PROGRESS VIEW (Staf) ====================
-function DraftProgressView({events,user,upd,showT,askConfirm,setTab,isMobile}){
+// ==================== DRAFT PROGRESS VIEW (Staf) ====================
+function DraftProgressView({events,user,upd,showT,askConfirm,setTab,isMobile,setForm,setEditId}){
   const NAVY="#0A1628",GOLD="#C9A84C";
   const mine=events.filter(e=>e.submittedBy===user?.username);
   const steps=[
@@ -1902,7 +1903,7 @@ function DraftProgressView({events,user,upd,showT,askConfirm,setTab,isMobile}){
   if(mine.length===0)return <div style={{padding:40,textAlign:"center",color:"#94a3b8",fontSize:14}}>
     <div style={{fontSize:32,marginBottom:12}}>📝</div>
     <div>Belum ada jadwal yang Anda ajukan.</div>
-    <button onClick={()=>setTab("input")} style={{marginTop:16,padding:"10px 24px",borderRadius:10,border:"none",background:NAVY,color:"white",cursor:"pointer",fontSize:14,fontWeight:700}}>+ Input Jadwal Baru</button>
+    <button onClick={()=>setTab("form")} style={{marginTop:16,padding:"10px 24px",borderRadius:10,border:"none",background:NAVY,color:"white",cursor:"pointer",fontSize:14,fontWeight:700}}>+ Input Jadwal Baru</button>
   </div>;
   return <div style={{padding:isMobile?"12px":"20px",maxWidth:680,margin:"0 auto"}}>
     <div style={{fontSize:15,fontWeight:700,color:NAVY,marginBottom:16}}>📝 Draft & Progress Jadwal Anda</div>
@@ -1938,8 +1939,20 @@ function DraftProgressView({events,user,upd,showT,askConfirm,setTab,isMobile}){
           {ev.catatanTolak&&<div style={{marginTop:4}}>Catatan: {ev.catatanTolak}</div>}
         </div>}
         {isDisetujui&&<div style={{background:"#f0fdf4",borderRadius:8,padding:"8px 12px",fontSize:12,color:"#16a34a",fontWeight:700,marginBottom:10}}>✅ Disetujui & Tayang</div>}
+        
         <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-          {(isDraft||isDitolak)&&<button onClick={()=>{if(typeof onEditDraft==="function")onEditDraft(ev);else setTab("input");}} style={{padding:"7px 14px",borderRadius:8,border:"1.5px solid "+NAVY,background:"white",color:NAVY,cursor:"pointer",fontSize:12,fontWeight:600}}>✏️ Edit</button>}
+          {/* 👇 PERBAIKAN TOMBOL EDIT ADA DI SINI 👇 */}
+          {(isDraft||isDitolak)&&<button onClick={()=>{
+             if(setForm && setEditId) {
+               setForm({tanggal:ev.tanggal,jam:ev.jam,namaAcara:ev.namaAcara,penyelenggara:ev.penyelenggara,kontak:ev.kontak||"",buktiUndangan:ev.buktiUndangan||"",pakaian:ev.pakaian,jenisKegiatan:ev.jenisKegiatan,catatan:ev.catatan||"",lokasi:ev.lokasi||"",untukPimpinan:ev.untukPimpinan||[],besertaIstriWK:ev.besertaIstriWK||false,besertaIstriWWK:ev.besertaIstriWWK||false,undanganFile:ev.undanganFile||null,undanganNama:ev.undanganNama||""});
+               setEditId(ev.id);
+               setTab("form");
+             } else {
+               setTab("form");
+             }
+          }} style={{padding:"7px 14px",borderRadius:8,border:"1.5px solid "+NAVY,background:"white",color:NAVY,cursor:"pointer",fontSize:12,fontWeight:600}}>✏️ Edit</button>}
+          {/* 👆 BATAS PERBAIKAN 👆 */}
+
           {isDraft&&<button onClick={()=>{upd(ev.id,{alur:"menunggu_kasubbag"});showT("Dikirim ke Kasubbag","ok");loadUsers().filter(u=>(u.role==="kasubbag_protokol")&&u.noWA).forEach(u=>sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"submit",submittedBy:user?.nama}));sendPush({targetRole:"kasubbag_protokol",title:"📋 Jadwal Baru Masuk",body:ev.namaAcara+" — "+ev.jam+" WITA",url:"/",tag:"submit-"+ev.id});sendPush({targetRole:"kasubbag_komdokpim",title:"📋 Jadwal Baru Masuk",body:ev.namaAcara+" — "+ev.jam+" WITA",url:"/",tag:"submit-"+ev.id});}} style={{padding:"7px 14px",borderRadius:8,border:"none",background:NAVY,color:"white",cursor:"pointer",fontSize:12,fontWeight:700}}>Kirim ke Kasubbag →</button>}
           {isDitolak&&<button onClick={()=>{upd(ev.id,{alur:"menunggu_kasubbag",catatanTolak:""});showT("Dikirim ulang ke Kasubbag","ok");loadUsers().filter(u=>(u.role==="kasubbag_protokol")&&u.noWA).forEach(u=>sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"submit",submittedBy:user?.nama}));sendPush({targetRole:"kasubbag_protokol",title:"📋 Jadwal Dikirim Ulang",body:ev.namaAcara,url:"/",tag:"resubmit-"+ev.id});sendPush({targetRole:"kasubbag_komdokpim",title:"📋 Jadwal Dikirim Ulang",body:ev.namaAcara,url:"/",tag:"resubmit-"+ev.id});}} style={{padding:"7px 14px",borderRadius:8,border:"none",background:"#d97706",color:"white",cursor:"pointer",fontSize:12,fontWeight:700}}>Kirim Ulang →</button>}
         </div>
@@ -7284,7 +7297,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
 
       /* 5. Admin RK: Draft & Progress */
       :(role==="admin_rk"&&tab==="draft")
-        ?<DraftProgressView events={events} user={user} upd={upd} showT={showT} askConfirm={askConfirm} setTab={setTab} isMobile={isMobile}/>
+        ?<DraftProgressView events={events} user={user} upd={upd} showT={showT} askConfirm={askConfirm} setTab={setTab} isMobile={isMobile} setForm={setForm} setEditId={setEditId}/>
 
       /* 6. Admin RK: Form input jadwal */
       :showForm
