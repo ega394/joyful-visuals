@@ -4419,10 +4419,51 @@ export default function App(){
     return {pdfBase64,pdfUrl};
   },[updAndSync]);
 
-  const handleSambutanUpload=useCallback(async(evId,file,name)=>{
-    if(SUPA_OK){const url=await storageUpload("sambutan",evId,file);if(url){updAndSync(evId,{sambutanFile:url,sambutanNama:name});return;}}
-    const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=rej;r.readAsDataURL(file);});updAndSync(evId,{sambutanFile:b64,sambutanNama:name});
-  },[updAndSync]);
+  const handleSambutanUpload = useCallback(async (evId, file, name) => {
+    // 1. Dapatkan data event untuk informasi folder Drive
+    const ev = events.find(e => e.id === evId);
+    
+    showT("Mengunggah naskah ke Google Drive...", "warn");
+
+    try {
+      // 2. Kirim ke API Google Drive
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("agendaId", evId);
+      fd.append("agendaDate", ev?.tanggal || todayStr());
+      fd.append("fileType", "sambutan");
+      fd.append("uploadedBy", user?.username || "timkom");
+
+      const res = await fetch("/api/drive?action=upload", {
+        method: "POST",
+        body: fd,
+      });
+      const data = await res.json();
+
+      if (data.ok) {
+        // 3. Simpan URL Drive ke database utama (Supabase)
+        const driveUrl = data.fileUrl;
+        updAndSync(evId, { 
+          sambutanFile: driveUrl, 
+          sambutanNama: name 
+        });
+        showT("Naskah sambutan berhasil diamankan ke Drive ✓", "ok");
+      } else {
+        throw new Error(data.error);
+      }
+    } catch (err) {
+      console.error("Gagal sync ke Drive:", err);
+      // Fallback: Jika Drive gagal, simpan ke database internal sebagai cadangan
+      const b64 = await new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = e => res(e.target.result);
+        r.onerror = rej;
+        r.readAsDataURL(file);
+      });
+      updAndSync(evId, { sambutanFile: b64, sambutanNama: name });
+      showT("Gagal ke Drive, tersimpan di database internal", "warn");
+    }
+  }, [updAndSync, events, user]);
 
   // ── Simpan penugasan personil ──
   // ── Simpan evaluasi pasca kegiatan ──
