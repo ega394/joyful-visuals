@@ -2213,6 +2213,61 @@ function MitraKerjaView({events,isMobile}){
 
 // ==================== ADMIN MODAL ====================
 function AdminModal({onClose,showT}){
+  const syncAllToDrive = async () => {
+    // 1. Filter jadwal yang punya file tapi bukan link GDrive (masih Base64 atau Supabase Storage)
+    const pendingSync = events.filter(e => 
+      (e.undanganFile && !e.undanganFile.includes("drive.google.com")) ||
+      (e.sambutanFile && !e.sambutanFile.includes("drive.google.com"))
+    );
+
+    if (pendingSync.length === 0) {
+      showT("Semua file sudah rapi di Google Drive, Pak! ✅", "ok");
+      return;
+    }
+
+    showT(`Memulai migrasi ${pendingSync.length} file ke Drive...`, "warn");
+    
+    let successCount = 0;
+
+    for (const ev of pendingSync) {
+      try {
+        const types = [];
+        if (ev.undanganFile && !ev.undanganFile.includes("drive.google.com")) types.push("undangan");
+        if (ev.sambutanFile && !ev.sambutanFile.includes("drive.google.com")) types.push("sambutan");
+
+        for (const type of types) {
+          const fileSource = type === "undangan" ? ev.undanganFile : ev.sambutanFile;
+          const fileName = type === "undangan" ? (ev.undanganNama || "undangan.pdf") : (ev.sambutanNama || "sambutan.pdf");
+
+          // Convert URL/Base64 ke Blob
+          const resBlob = await fetch(fileSource);
+          const blob = await resBlob.blob();
+
+          const fd = new FormData();
+          fd.append("file", blob, fileName);
+          fd.append("agendaId", ev.id);
+          fd.append("agendaDate", ev.tanggal);
+          fd.append("fileType", type);
+          fd.append("uploadedBy", "Sistem Migration");
+
+          const resDrive = await fetch("/api/drive?action=upload", { method: "POST", body: fd });
+          const dataDrive = await resDrive.json();
+
+          if (dataDrive.ok) {
+            // Update Supabase dengan Link GDrive baru
+            await updAndSync(ev.id, {
+              [type === "undangan" ? "undanganFile" : "sambutanFile"]: dataDrive.fileUrl
+            });
+            successCount++;
+          }
+        }
+      } catch (err) {
+        console.error(`Gagal migrasi jadwal ID ${ev.id}:`, err);
+      }
+    }
+
+    showT(`Selesai! ${successCount} file berhasil dipindahkan ke Drive 🚀`, "ok");
+  };
   const[users,setUsers]=useState(loadUsers);const[tabA,setTabA]=useState("users");const[pendRegs,setPendRegs]=React.useState(()=>loadPendingRegs());
   // Fungsi refresh: gabung localStorage + Supabase
   const refreshPendRegs=async()=>{
@@ -2333,9 +2388,60 @@ function AdminModal({onClose,showT}){
         }</div>);})()}
         {tabA==="pw"&&<div style={{background:"#fef3c7",borderRadius:10,padding:"12px 14px",fontSize:13,color:"#92400e"}}>Untuk reset password pengguna, gunakan tab Pengguna lalu klik Edit pada akun yang bersangkutan.</div>}
         {tabA==="import"&&<ImportUsersTab users={users} save={save} showT={showT}/>}
-        {tabA==="export"&&<div>
-          <div style={{background:"#EFF6FF",borderRadius:10,padding:"12px 14px",marginBottom:14,border:"1px solid #BFDBFE",fontSize:12,color:"#1D4ED8",lineHeight:1.7}}>
-            📦 Backup data pengguna ke file JSON. Gunakan untuk cadangan atau migrasi ke sistem lain.
+        {tabA === "export" && (
+  <div>
+    <div style={{ background: "#EFF6FF", borderRadius: 10, padding: "12px 14px", marginBottom: 14, border: "1px solid #BFDBFE", fontSize: 12, color: "#1D4ED8", lineHeight: 1.7 }}>
+      📦 Backup data pengguna ke file JSON. Gunakan untuk cadangan atau migrasi ke sistem lain.
+    </div>
+
+    <button onClick={() => {
+      const data = { exportDate: new Date().toISOString(), users: users.map(u => ({ username: u.username, nama: u.nama, jabatan: u.jabatan, role: u.role, noWA: u.noWA || "" })), totalUsers: users.length };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = "prokopim-users-backup-" + new Date().toISOString().slice(0, 10) + ".json"; a.click(); URL.revokeObjectURL(url);
+      showT("Backup pengguna berhasil diunduh ✓");
+    }} style={{ width: "100%", padding: "14px", borderRadius: 12, border: "none", background: NAVY, color: "white", cursor: "pointer", fontSize: 14, fontWeight: 700, marginBottom: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+      <span style={{ fontSize: 18 }}>👥</span> Export Data Pengguna (JSON)
+    </button>
+
+    <button onClick={async () => {
+      try {
+        let evts = [];
+        if (SUPA_OK) { const rows = await dbLoadAll(); if (rows) evts = rows; }
+        else { try { evts = JSON.parse(localStorage.getItem("jp_events") || "[]"); } catch { } }
+        const data = { exportDate: new Date().toISOString(), events: evts, totalEvents: evts.length };
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = "prokopim-jadwal-backup-" + new Date().toISOString().slice(0, 10) + ".json"; a.click(); URL.revokeObjectURL(url);
+        showT("Backup jadwal berhasil diunduh (" + evts.length + " jadwal) ✓");
+      } catch (e) { showT("Gagal mengekspor: " + e.message, "error"); }
+    }} style={{ width: "100%", padding: "14px", borderRadius: 12, border: "1.5px solid " + NAVY, background: "white", color: NAVY, cursor: "pointer", fontSize: 14, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 24 }}>
+      <span style={{ fontSize: 18 }}>📅</span> Export Data Jadwal (JSON)
+    </button>
+
+    {/* 👇 INI ADALAH KODE BARU UNTUK SINKRONISASI DRIVE 👇 */}
+    <div style={{ marginTop: 20, borderTop: "2px dashed #E2E8F0", paddingTop: 20 }}>
+      <div style={{ background: "#FFFBEB", padding: 12, borderRadius: 10, border: "1px solid #FDE68A", marginBottom: 12 }}>
+        <div style={{ fontSize: 13, fontWeight: 800, color: "#92400E", marginBottom: 4 }}>☁️ Sinkronisasi Cloud (Google Drive)</div>
+        <div style={{ fontSize: 11, color: "#B45309", lineHeight: 1.5 }}>
+          Pindahkan semua file lama (Undangan & Sambutan) yang masih tersimpan di database internal ke Google Drive Prokopim secara otomatis.
+        </div>
+      </div>
+      
+      <button 
+        onClick={syncAllToDrive}
+        style={{
+          width: "100%", padding: "14px", borderRadius: 12, border: "none",
+          background: "linear-gradient(135deg, #059669, #047857)",
+          color: "white", fontWeight: 800, cursor: "pointer",
+          display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+          boxShadow: "0 4px 12px rgba(5, 150, 105, 0.3)"
+        }}
+      >
+        <span>🔄</span> Pindahkan File Lama ke Drive
+      </button>
+    </div>
+    {/* 👆 BATAS KODE BARU 👆 */}
+  </div>
+)}
           </div>
           <button onClick={()=>{
             const data={exportDate:new Date().toISOString(),users:users.map(u=>({username:u.username,nama:u.nama,jabatan:u.jabatan,role:u.role,noWA:u.noWA||""})),totalUsers:users.length};
