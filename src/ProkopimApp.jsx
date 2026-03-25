@@ -2237,42 +2237,78 @@ function AdminModal({onClose, showT, events, updAndSync}) {
   }, []);
 
   const syncAllToDrive = async () => {
+    // 1. Validasi awal data
+    if (!events || events.length === 0) {
+      showT("Data jadwal tidak terbaca. Coba refresh halaman.", "error");
+      return;
+    }
+
+    // 2. Filter: Cari file yang belum ada kata 'drive.google.com'
     const pendingSync = events.filter(e => 
       (e.undanganFile && !e.undanganFile.includes("drive.google.com")) ||
       (e.sambutanFile && !e.sambutanFile.includes("drive.google.com"))
     );
+
     if (pendingSync.length === 0) {
-      showT("Semua file sudah rapi di Google Drive! ✅", "ok");
+      showT("Semua file sudah aman di Google Drive Bapak! ✅", "ok");
       return;
     }
-    showT(`Memulai migrasi ${pendingSync.length} file...`, "warn");
-    let successCount = 0;
-    for (const ev of pendingSync) {
-      try {
-        const types = [];
-        if (ev.undanganFile && !ev.undanganFile.includes("drive.google.com")) types.push("undangan");
-        if (ev.sambutanFile && !ev.sambutanFile.includes("drive.google.com")) types.push("sambutan");
-        for (const type of types) {
+
+    // 3. Mulai Proses
+    showT(`Mulai memindahkan ${pendingSync.length} agenda ke Drive...`, "warn");
+    let totalMoved = 0;
+
+    for (let i = 0; i < pendingSync.length; i++) {
+      const ev = pendingSync[i];
+      
+      // Deteksi file apa saja yang perlu dipindah di agenda ini
+      const tasks = [];
+      if (ev.undanganFile && !ev.undanganFile.includes("drive.google.com")) tasks.push("undangan");
+      if (ev.sambutanFile && !ev.sambutanFile.includes("drive.google.com")) tasks.push("sambutan");
+
+      for (const type of tasks) {
+        try {
+          // Beri info ke layar tiap file diproses
+          showT(`[${i + 1}/${pendingSync.length}] Memindah ${type}: ${ev.namaAcara.slice(0, 15)}...`, "warn");
+
           const fileSource = type === "undangan" ? ev.undanganFile : ev.sambutanFile;
           const fileName = type === "undangan" ? (ev.undanganNama || "undangan.pdf") : (ev.sambutanNama || "sambutan.pdf");
-          const resBlob = await fetch(fileSource);
-          const blob = await resBlob.blob();
+
+          // Tarik file (berhasil handle Base64 maupun URL Supabase)
+          const response = await fetch(fileSource);
+          if (!response.ok) throw new Error("Gagal ambil file sumber");
+          const blob = await response.blob();
+
+          // Kirim ke API Google Drive
           const fd = new FormData();
           fd.append("file", blob, fileName);
           fd.append("agendaId", ev.id);
           fd.append("agendaDate", ev.tanggal);
           fd.append("fileType", type);
-          fd.append("uploadedBy", "Sistem Migration");
+          fd.append("uploadedBy", "Sistem Migrasi");
+
           const resDrive = await fetch("/api/drive?action=upload", { method: "POST", body: fd });
           const dataDrive = await resDrive.json();
-          if (dataDrive.ok) {
-            await updAndSync(ev.id, { [type === "undangan" ? "undanganFile" : "sambutanFile"]: dataDrive.fileUrl });
-            successCount++;
+
+          if (dataDrive.ok && dataDrive.fileUrl) {
+            // Update database dengan link Drive baru
+            await updAndSync(ev.id, { 
+              [type === "undangan" ? "undanganFile" : "sambutanFile"]: dataDrive.fileUrl 
+            });
+            totalMoved++;
+          } else {
+            console.error(`Gagal upload ${type} ID ${ev.id}:`, dataDrive.error);
           }
+        } catch (err) {
+          console.error(`Error pada agenda ${ev.id}:`, err);
         }
-      } catch (err) { console.error(err); }
+      }
+      
+      // Jeda sebentar agar tidak membebani server
+      await new Promise(r => setTimeout(r, 600));
     }
-    showT(`Selesai! ${successCount} file dipindahkan 🚀`, "ok");
+
+    showT(`Misi Selesai! ${totalMoved} file berhasil dipindahkan ke Drive 🚀`, "ok");
   };
 
   const [editUser, setEditUser] = useState(null);
