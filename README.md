@@ -42,3 +42,22 @@ FONNTE_TOKEN=your_whatsapp_gateway_token
 GDRIVE_CLIENT_EMAIL=your_google_service_account_email
 GDRIVE_PRIVATE_KEY="your_google_service_account_private_key"
 GDRIVE_FOLDER_ID=your_target_folder_id
+
+🚀 Cara Instalasi (Local Development)
+Clone repository ini:
+
+Bash
+git clone [https://github.com/username/prokopim-hibot.git](https://github.com/username/prokopim-hibot.git)
+Masuk ke direktori proyek:
+
+Bash
+cd prokopim-hibot
+Install dependencies:
+
+Bash
+npm install
+Jalankan development server:
+
+Bash
+npm run dev
+© 2026 Anugrah Yega Pranatha. Seluruh hak cipta dilindungi.
