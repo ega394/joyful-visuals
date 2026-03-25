@@ -158,10 +158,17 @@ const BULAN_INDO = ["","01-Jan","02-Feb","03-Mar","04-Apr","05-Mei",
  * Tentukan path folder berdasarkan tanggal kegiatan (WITA)
  * Output contoh: "2026/03-Mar"
  */
-function getFolderPath(dateStr) {
-  // dateStr = "YYYY-MM-DD" (WITA, sudah lokal)
+/**
+ * getFolderPath
+ * Menambahkan pemisah folder otomatis antara Undangan dan Sambutan
+ */
+function getFolderPath(dateStr, fileType) {
   const [year, month] = dateStr.split("-");
-  return `${year}/${BULAN_INDO[parseInt(month)] || month}`;
+  // Membaca tipe file yang dikirim dari aplikasi
+  const subFolder = fileType === "undangan" ? "Undangan" : fileType === "sambutan" ? "Sambutan" : "Lainnya";
+  
+  // Format akhir: YYYY/Bulan/Kategori
+  return `${year}/${BULAN_INDO[parseInt(month)] || month}/${subFolder}`;
 }
 
 /**
@@ -235,7 +242,11 @@ async function getOrCreateFolder(token, folderPath) {
  * @param {string} agendaDate   - "YYYY-MM-DD" tanggal kegiatan WITA
  * @returns { fileId, fileUrl, folderId, folderPath }
  */
-async function uploadFileToDrive(fileBuffer, fileName, mimeType, agendaDate) {
+// Tambahkan parameter fileType di ujung tanda kurung
+async function uploadFileToDrive(fileBuffer, fileName, mimeType, agendaDate, fileType) {
+  const token = await getGoogleAccessToken();
+  const folderPath = getFolderPath(agendaDate, fileType);
+  const folderId   = await getOrCreateFolder(token, folderPath);
   const token = await getGoogleAccessToken();
   const folderPath = getFolderPath(agendaDate);
   const folderId   = await getOrCreateFolder(token, folderPath);
@@ -399,7 +410,7 @@ export default async function handler(req, res) {
 
       // Upload ke Drive
       const { fileId, fileUrl, folderId, folderPath, folderUrl } =
-        await uploadFileToDrive(filePart.buffer, fileName, mimeType, agendaDate);
+        await uploadFileToDrive(filePart.buffer, fileName, mimeType, agendaDate, fileType);
 
       // Simpan ke tabel drive_files
       const record = await sbPost("drive_files", {
