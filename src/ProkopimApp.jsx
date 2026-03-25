@@ -3842,6 +3842,137 @@ function TimelineView({evList}){
   </div>;
 }
 
+// ════════════════════════════════════════════════════════════
+//  KOMPONEN DOKUMEN GOOGLE DRIVE (UNDANGAN & SAMBUTAN)
+// ════════════════════════════════════════════════════════════
+function DocumentManager({ agendaId, agendaDate, role, username }) {
+  const [files, setFiles] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [uploading, setUploading] = React.useState(false);
+
+  // Cek apakah role ini punya hak untuk mengupload (Admin, Kasubbag, Timkom)
+  const canUpload = ["admin_rk", "kasubbag_komdokpim", "timkom", "protokol"].includes(role);
+
+  const fetchFiles = React.useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/drive?action=files&agendaId=${agendaId}`);
+      const data = await res.json();
+      if (data.ok) setFiles(data.files || []);
+    } catch (e) {
+      console.error("Gagal load dokumen:", e);
+    } finally {
+      setLoading(false);
+    }
+  }, [agendaId]);
+
+  React.useEffect(() => {
+    if (agendaId) fetchFiles();
+  }, [fetchFiles]);
+
+  const handleUpload = async (e, fileType) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Batasi ukuran file misal max 10MB
+    if (file.size > 10 * 1024 * 1024) {
+      alert("⚠️ Ukuran file terlalu besar! Maksimal 10MB.");
+      return;
+    }
+
+    setUploading(true);
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("agendaId", agendaId);
+    formData.append("agendaDate", agendaDate); // Format YYYY-MM-DD
+    formData.append("fileType", fileType); // "undangan" atau "sambutan"
+    formData.append("uploadedBy", username);
+
+    try {
+      const res = await fetch("/api/drive?action=upload", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.ok) {
+        alert(data.message);
+        fetchFiles(); // Refresh daftar file
+      } else {
+        alert("Gagal: " + data.error);
+      }
+    } catch (err) {
+      alert("Terjadi kesalahan saat upload.");
+    } finally {
+      setUploading(false);
+      e.target.value = null; // Reset input
+    }
+  };
+
+  return (
+    <div style={{ marginTop: 24, borderTop: "1.5px dashed #CBD5E1", paddingTop: 16 }}>
+      <div style={{ fontSize: 13, fontWeight: 800, color: "#0A1628", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
+        <span>📂</span> Dokumen Acara (Google Drive)
+      </div>
+
+      {/* List File yang Sudah Diupload */}
+      {loading ? (
+        <div style={{ fontSize: 11, color: "#64748B" }}>Memuat dokumen...</div>
+      ) : files.length === 0 ? (
+        <div style={{ fontSize: 11, color: "#94A3B8", fontStyle: "italic", marginBottom: 12 }}>
+          Belum ada dokumen yang dilampirkan.
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
+          {files.map((f) => (
+            <a
+              key={f.id}
+              href={f.drive_file_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: "flex", alignItems: "center", gap: 10, padding: "10px 14px",
+                background: f.file_type === "undangan" ? "#EFF6FF" : "#F5F3FF",
+                border: "1px solid", borderColor: f.file_type === "undangan" ? "#BFDBFE" : "#C4B5FD",
+                borderRadius: 10, textDecoration: "none", color: "#0A1628"
+              }}
+            >
+              <div style={{ fontSize: 20 }}>{f.file_type === "undangan" ? "📄" : "🎤"}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {f.file_type === "undangan" ? "Surat Undangan" : "Teks Sambutan"}
+                </div>
+                <div style={{ fontSize: 10, color: "#64748B" }}>Diunggah oleh: {f.uploaded_by}</div>
+              </div>
+              <div style={{ fontSize: 11, fontWeight: 800, color: "#2563EB", background: "white", padding: "4px 8px", borderRadius: 6, border: "1px solid #DBEAFE" }}>
+                Buka
+              </div>
+            </a>
+          ))}
+        </div>
+      )}
+
+      {/* Tombol Upload (Hanya untuk Role Tertentu) */}
+      {canUpload && (
+        <div style={{ display: "flex", gap: 10 }}>
+          <label style={{ flex: 1, cursor: uploading ? "not-allowed" : "pointer" }}>
+            <input type="file" accept=".pdf,.doc,.docx" onChange={(e) => handleUpload(e, "undangan")} disabled={uploading} style={{ display: "none" }} />
+            <div style={{ padding: "10px", textAlign: "center", background: "white", border: "1.5px dashed #3B82F6", color: "#3B82F6", borderRadius: 10, fontSize: 12, fontWeight: 700, opacity: uploading ? 0.6 : 1 }}>
+              {uploading ? "Mengunggah..." : "📤 Upload Undangan"}
+            </div>
+          </label>
+
+          <label style={{ flex: 1, cursor: uploading ? "not-allowed" : "pointer" }}>
+            <input type="file" accept=".pdf,.doc,.docx" onChange={(e) => handleUpload(e, "sambutan")} disabled={uploading} style={{ display: "none" }} />
+            <div style={{ padding: "10px", textAlign: "center", background: "white", border: "1.5px dashed #8B5CF6", color: "#8B5CF6", borderRadius: 10, fontSize: 12, fontWeight: 700, opacity: uploading ? 0.6 : 1 }}>
+              {uploading ? "Mengunggah..." : "📤 Upload Sambutan"}
+            </div>
+          </label>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function App(){
   if (window.location.pathname === "/tamu" || window.location.search.includes("tamu")) return <TamuPage />;
   const width=useWindowWidth();const isMobile=width<768;
