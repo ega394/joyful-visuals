@@ -3992,6 +3992,174 @@ function DocumentManager({ agendaId, agendaDate, role, username }) {
   );
 }
 
+// ==================== REPORTING TAMU MODAL ====================
+function ReportingTamuModal({ user, onClose, cetakOleh, showT }) {
+  const [guests, setGuests] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [mode, setMode] = React.useState("all");
+  const [printMode, setPrintMode] = React.useState("a4");
+
+  const STATUS_LABEL = {
+    waiting:   { text:"Baru Masuk" },
+    screened:  { text:"Siap ke Kabag" },
+    forwarded: { text:"Di Meja Pimpinan" },
+    accepted:  { text:"Disetujui / Dijadwalkan" },
+    rejected:  { text:"Ditolak" },
+    disposed:  { text:"Didisposisi" },
+  };
+  const PRIORITY_CONFIG = {
+    mendesak: { label:"Mendesak", color:"#991B1B" },
+    penting:  { label:"Penting",  color:"#92400E" },
+    biasa:    { label:"Biasa",    color:"#065F46" },
+  };
+
+  const getPejabatLabel = (id) => id === "walikota" ? "Wali Kota" : id === "wakilwalikota" ? "Wakil Wali Kota" : (id||"-");
+  const fmtTs = (str) => {
+    if(!str) return "-";
+    return new Date(str).toLocaleString("id-ID", {timeZone:"Asia/Makassar", day:"numeric", month:"short", hour:"2-digit", minute:"2-digit"});
+  };
+  const fmtDateLong = (str) => {
+    if (!str) return "";
+    const d = new Date(str + "T00:00:00+08:00");
+    return d.toLocaleDateString("id-ID", { weekday:"long", day:"numeric", month:"long", year:"numeric" });
+  };
+
+  React.useEffect(() => {
+    setLoading(true);
+    fetch("/api/guest?action=queue&status=all&limit=500")
+      .then(r => r.json())
+      .then(d => setGuests(Array.isArray(d) ? d : []))
+      .catch(() => { if(showT) showT("Gagal memuat data tamu", "error"); })
+      .finally(() => setLoading(false));
+  }, [showT]);
+
+  const filtered = guests.filter(g => mode === "all" || g.status === mode).sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+
+  const doPrint = () => {
+    var w = window.open("", "_blank");
+    var _now = new Date();
+    var printDate = _now.toLocaleDateString("id-ID", { day:"numeric", month:"long", year:"numeric" });
+    var printTime = _now.toLocaleTimeString("id-ID", { hour:"2-digit", minute:"2-digit" });
+    var pLabel = mode==="all" ? "Semua Status (Histori Lengkap)" : STATUS_LABEL[mode]?.text || mode;
+
+    var rows = filtered.map((g, i) => {
+      var pc = PRIORITY_CONFIG[g.priority] || PRIORITY_CONFIG.biasa;
+      var sc = STATUS_LABEL[g.status] || {text:g.status};
+      var jadwalStr = g.scheduled_date ? fmtDateLong(g.scheduled_date) + (g.scheduled_time ? " " + g.scheduled_time + " WITA" : "") : "-";
+      
+      return (
+        "<tr>" +
+        "<td class='c'>" + (i + 1) + "</td>" +
+        "<td><b>" + g.name + "</b><br><span class='sub'>" + (g.organization||"") + "</span></td>" +
+        "<td>" + g.phone + "</td>" +
+        "<td>" + getPejabatLabel(g.tujuan_pejabat) + "</td>" +
+        "<td>" + g.purpose + "</td>" +
+        "<td class='c'><span style='color:" + pc.color + "'>" + pc.label + "</span></td>" +
+        "<td class='c'><b>" + sc.text + "</b></td>" +
+        "<td style='font-size:7.5pt'>" + jadwalStr + "</td>" +
+        "</tr>"
+      );
+    }).join("");
+
+    var html = `<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Laporan Tamu Pimpinan</title>
+    <style>
+      @page { size: ${printMode === "a4" ? "A4" : "330mm 210mm"} landscape; margin: 1.2cm 1.5cm; }
+      * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      body { font-family: Arial, sans-serif; font-size: 9pt; color: #1a1a1a; margin: 0; }
+      .kop { display: flex; align-items: center; gap: 14px; border-bottom: 3px solid #0B2545; padding-bottom: 8px; margin-bottom: 8px; }
+      .kop img { width: 50px; height: 50px; object-fit: contain; }
+      .kop h1 { font-size: 12pt; font-weight: 900; color: #0B2545; margin: 0 0 1px; }
+      .kop h2 { font-size: 9pt; font-weight: 700; color: #0B2545; margin: 0 0 2px; }
+      .kop p { font-size: 8pt; color: #475569; margin: 0; }
+      .jdl { text-align: center; margin: 8px 0 12px; }
+      .jdl h3 { font-size: 13pt; font-weight: 900; color: #0B2545; margin: 0; text-transform: uppercase; letter-spacing: 1px; }
+      .jdl p { font-size: 9pt; color: #475569; margin: 4px 0 0; }
+      table { width: 100%; border-collapse: collapse; }
+      thead th { background: #0B2545; color: white; padding: 8px; text-align: left; font-size: 8.5pt; }
+      thead th.c { text-align: center; }
+      tbody td { padding: 8px; border: 1px solid #d1d9ef; vertical-align: top; line-height: 1.4; }
+      tbody tr:nth-child(even) td { background: #f3f6fb; }
+      .c { text-align: center; }
+      .sub { font-size: 8pt; color: #64748b; }
+      .ttd { margin-top: 25px; display: flex; justify-content: space-between; align-items: flex-end; }
+      .ttd-info { font-size: 8pt; color: #64748b; line-height: 1.6; }
+      .ttd-box { text-align: center; min-width: 240px; }
+      .ttd-box p { margin: 0 0 4px; font-size: 9pt; }
+      .ttd-box .jab { font-weight: 700; color: #0B2545; margin-bottom: 50px; }
+      .ttd-box .nm { font-weight: 900; color: #0B2545; text-decoration: underline; }
+      .foot { margin-top: 10px; font-size: 7.5pt; color: #94a3b8; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 5px; }
+    </style></head><body>
+    <div class="kop"><img src="/logo_tarakan.png" onerror="this.style.display='none'"/><div>
+    <h1>PEMERINTAH KOTA TARAKAN</h1><h2>BAGIAN PROTOKOL DAN KOMUNIKASI PIMPINAN</h2><p>Sekretariat Daerah Kota Tarakan</p></div></div>
+    <div class="jdl"><h3>Laporan Permohonan Audiensi Tamu</h3><p>Filter: <b>${pLabel}</b> • Total: <b>${filtered.length} permohonan</b></p></div>
+    <table><thead><tr><th class="c" style="width:30px">No</th><th>Nama / Instansi</th><th style="width:100px">WhatsApp</th><th style="width:110px">Tujuan</th><th>Keperluan</th><th class="c" style="width:70px">Prioritas</th><th class="c" style="width:100px">Status Akhir</th><th style="width:130px">Jadwal Fix</th></tr></thead>
+    <tbody>${rows}</tbody></table>
+    <div class="ttd">
+      <div class="ttd-info">Dicetak oleh: ${cetakOleh}<br>Waktu cetak: ${printDate} pukul ${printTime} WITA</div>
+      <div class="ttd-box"><p>Tarakan, ${printDate}</p><p class="jab">Kepala Bagian Protokol dan Komunikasi Pimpinan</p><p class="nm">Anugrah Yega Pranatha, M.Si.</p><p>NIP. 198811032007011003</p></div>
+    </div>
+    <p class="foot">Sistem Terpadu Jadwal dan Agenda Kegiatan Pimpinan #TarakanHibot</p>
+    </body></html>`;
+    
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    setTimeout(() => w.print(), 500);
+  };
+
+  return (
+    <div style={{position:"fixed",inset:0,zIndex:9900,background:"rgba(10,22,40,0.65)",backdropFilter:"blur(4px)",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+      <div style={{background:"white",borderRadius:20,width:"100%",maxWidth:540,boxShadow:"0 24px 64px rgba(0,0,0,0.3)"}}>
+        <div style={{padding:"20px 24px",borderBottom:"1px solid #F1F5F9",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div>
+            <div style={{fontSize:18,fontWeight:900,color:"#0A1628"}}>📇 Cetak Laporan Tamu</div>
+            <div style={{fontSize:12,color:"#64748B",marginTop:4}}>Rekapitulasi permohonan audiensi tamu</div>
+          </div>
+          <button onClick={onClose} style={{width:32,height:32,borderRadius:8,border:"1.5px solid #E2E8F0",background:"white",color:"#64748B",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700}}>✕</button>
+        </div>
+        <div style={{padding:"20px 24px"}}>
+          {loading ? (
+            <div style={{textAlign:"center",padding:"30px",color:"#64748B"}}>⏳ Mengambil data tamu dari database...</div>
+          ) : (
+            <>
+              <div style={{marginBottom:16}}>
+                <label style={{display:"block",fontSize:11,fontWeight:800,color:"#475569",textTransform:"uppercase",letterSpacing:1,marginBottom:6}}>Filter Status Tamu</label>
+                <select value={mode} onChange={e => setMode(e.target.value)} style={{width:"100%",padding:"12px 14px",borderRadius:10,border:"1.5px solid #CBD5E1",fontSize:13,color:"#0A1628",fontWeight:600}}>
+                  <option value="all">Semua Status (Histori Lengkap)</option>
+                  <option value="waiting">Baru Masuk (Belum di-review)</option>
+                  <option value="screened">Siap Ditelaah Kabag</option>
+                  <option value="forwarded">Di Meja Pimpinan</option>
+                  <option value="accepted">Telah Disetujui (Diberi Jadwal)</option>
+                  <option value="rejected">Ditolak</option>
+                </select>
+              </div>
+              <div style={{background:"#F8FAFC",borderRadius:10,padding:"12px 16px",marginBottom:16,border:"1px solid #E2E8F0",display:"flex",alignItems:"center",gap:12}}>
+                <div style={{fontSize:24}}>👥</div>
+                <div>
+                  <div style={{fontSize:14,fontWeight:800,color:"#0A1628"}}>{filtered.length} permohonan ditemukan</div>
+                  <div style={{fontSize:11,color:"#64748B",marginTop:2}}>Siap dicetak dengan format kop dan tanda tangan Kabag.</div>
+                </div>
+              </div>
+              <div style={{display:"flex",gap:6,marginBottom:20,background:"#F1F5F9",borderRadius:12,padding:6}}>
+                {[{k:"a4",l:"A4 Landscape"},{k:"f4",l:"F4 Landscape"}].map(o => {
+                  const act = printMode === o.k;
+                  return <button key={o.k} onClick={() => setPrintMode(o.k)} style={{flex:1,padding:"10px",borderRadius:8,border:"none",cursor:"pointer",fontWeight:700,fontSize:12,background:act?"#0A1628":"transparent",color:act?"white":"#64748B",transition:"all 0.15s"}}>📄 {o.l}</button>;
+                })}
+              </div>
+              <div style={{display:"flex",gap:10}}>
+                <button onClick={onClose} style={{flex:1,padding:"14px",borderRadius:12,border:"1.5px solid #E2E8F0",background:"white",color:"#64748B",cursor:"pointer",fontSize:13,fontWeight:700}}>Batal</button>
+                <button onClick={doPrint} disabled={filtered.length === 0} style={{flex:2,padding:"14px",borderRadius:12,border:"none",background:filtered.length?"linear-gradient(135deg,#0A1628,#1B4080)":"#E2E8F0",color:filtered.length?"white":"#94A3B8",cursor:filtered.length?"pointer":"default",fontSize:14,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",gap:8,boxShadow:filtered.length?"0 4px 14px rgba(10,22,40,0.3)":"none"}}>
+                  🖨️ Cetak PDF
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function App(){
   if (window.location.pathname === "/tamu" || window.location.search.includes("tamu")) return <TamuPage />;
   const width=useWindowWidth();const isMobile=width<768;
@@ -4001,7 +4169,7 @@ export default function App(){
   const[events,setEvents]=useState([]);const[dbReady,setDbReady]=useState(false);const[dbError,setDbError]=useState("");
   const[tab,setTab]=useState("jadwal");const[form,setForm]=useState(emptyForm);const[editId,setEditId]=useState(null);
   const[toast,setToast]=useState(null);const[confirmDlg,setConfirmDlg]=useState(null);const[showOnboarding,setShowOnboarding]=useState(false);const[filterDate,setFDate]=useState("");const[filterFrom,setFilterFrom]=useState("");const[filterTo,setFilterTo]=useState("");const[showRangeFilter,setShowRangeFilter]=useState(false);const[searchQ,setSearchQ]=useState("");const[showSearch,setShowSearch]=useState(false);
-  const[showAI,setShowAI]=useState(false);const[showReport,setShowReport]=useState(false);const[showSummary,setShowSummary]=useState(false);const[showAdmin,setShowAdmin]=useState(false);const[showProfile,setShowProfile]=useState(false);const[showLaporan,setShowLaporan]=useState(false);const[showBroadcast,setShowBroadcast]=useState(false);
+  const[showAI,setShowAI]=useState(false);const[showReport,setShowReport]=useState(false);const[showReportTamu,setShowReportTamu]=useState(false);const[showSummary,setShowSummary]=useState(false);const[showAdmin,setShowAdmin]=useState(false);const[showProfile,setShowProfile]=useState(false);const[showLaporan,setShowLaporan]=useState(false);const[showBroadcast,setShowBroadcast]=useState(false);
   const[showForgot,setShowForgot]=useState(false);const[showRegister,setShowRegister]=useState(false);const[pendingRegs,setPendingRegs]=useState(()=>loadPendingRegs());
   const[loginLoading,setLoginLoading]=useState(false);const[loginPhase,setLoginPhase]=useState("");
   const[delegTarget,setDelegTarget]= useState(null);const[expandedId,setExp]=useState(null);const[rejectTexts,setRT]=useState({});const[catatanInput,setCatatanInput]=useState({});const[penugasanEv,setPenugasanEv]=useState(null);const[notifPenugasan,setNotifPenugasan]=useState([]);const[evaluasiEv,setEvaluasiEv]=useState(null);const[showMobMenu,setMobMenu]=useState(false);const[showNotifCenter,setShowNotifCenter]=useState(false);
@@ -4888,6 +5056,7 @@ const TH={
   {label:"LAPORAN & TOOLS",items:[
     {key:"action:summary",icon:"💬",label:"Rekap WA Hari Ini"},
     {key:"action:report", icon:"📄",label:"Cetak Rekap PDF"},
+    {key:"action:report_tamu", icon:"📇",label:"Cetak Rekap Tamu"},
     ...(canReport?[{key:"action:laporan",icon:"📊",label:"Laporan Mingguan/Bulanan"}]:[]),
     ...((KASUBBAG_ROLES.includes(role)||role==="kabag")?[{key:"penugasan",icon:"📈",label:"Rekap Evaluasi Kinerja"}]:[]),
   ]},
@@ -4899,7 +5068,7 @@ const TH={
 ];
 
   const handleNavClick=key=>{
-    if(key==="action:summary"){setShowSummary(true);return;}if(key==="action:report"){setShowReport(true);return;}if(key==="action:laporan"){setShowLaporan(true);return;}if(key==="action:admin"){setShowAdmin(true);return;}if(key==="action:broadcast"){setShowBroadcast(true);return;}if(key==="action:profile"){setShowProfile(true);return;}
+    if(key==="action:summary"){setShowSummary(true);return;}if(key==="action:report"){setShowReport(true);return;}if(key==="action:report_tamu"){setShowReportTamu(true);return;}if(key==="action:laporan"){setShowLaporan(true);return;}if(key==="action:admin"){setShowAdmin(true);return;}if(key==="action:broadcast"){setShowBroadcast(true);return;}if(key==="action:profile"){setShowProfile(true);return;}
     setTab(key);if(key==="form"){setForm(emptyForm);setEditId(null);}
   };
 
@@ -5055,6 +5224,7 @@ const TH={
             {[
               {icon:"💬",label:"Rekap WA",action:()=>{setShowSummary(true);setMobMenu(false);}},
               {icon:"📄",label:"Cetak PDF",action:()=>{setShowReport(true);setMobMenu(false);}},
+              {icon:"📇",label:"Cetak Tamu",action:()=>{setShowReportTamu(true);setMobMenu(false);}},
               ...(canReport?[{icon:"📊",label:"Laporan",action:()=>{setShowLaporan(true);setMobMenu(false);}}]:[]),
               ...((KASUBBAG_ROLES.includes(role)||role==="kabag")?[{icon:"📈",label:"Rekap Evaluasi",action:()=>{setTab("penugasan");setMobMenu(false);}}]:[]),
               {icon:"👤",label:"Profil",action:()=>{setShowProfile(true);setMobMenu(false);}},
@@ -7444,6 +7614,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
     {showBroadcast&&<BroadcastModal onClose={()=>setShowBroadcast(false)} showT={showT} senderNama={user?.nama||"Kabag Protokol dan Komunikasi Pimpinan"}/>}
     {showReport&&<ReportingModal events={events} kabagNama={kabagNama} cetakOleh={user?.nama||user?.username||""} onClose={()=>setShowReport(false)}/>}
     {showProfile&&<ProfileModal user={user} onClose={updated=>{setShowProfile(false);if(updated)setUser(updated);}} showT={showT}/>}
+    {showReportTamu&&<ReportingTamuModal user={user} cetakOleh={user?.nama||user?.username||"Sistem"} showT={showT} onClose={()=>setShowReportTamu(false)}/>}
     {showLaporan&&<LaporanModal events={events} kabagNama={kabagNama} cetakOleh={user?.nama||user?.username||""} onClose={()=>setShowLaporan(false)}/>}
     {delegTarget&&<DelegateModal label={delegTarget.side==="wk"||delegTarget.side==="wk_adminrk"?"Wali Kota":"Wakil Wali Kota"} onConfirm={name=>{const byWK=role==="walikota"?"walikota":role==="admin_rk"?"admin_rk":"ajudan";const byWWK=role==="wakilwalikota"?"wakilwalikota":role==="admin_rk"?"admin_rk":"ajudan";if(delegTarget.side==="wk")upd(delegTarget.id,{statusWK:"diwakilkan",perwakilanWK:name,delegasiKeWWK:false,statusWK_by:byWK});else if(delegTarget.side==="wk_adminrk")upd(delegTarget.id,{statusWK:"diwakilkan",perwakilanWK:name,delegasiKeWWK:false,statusWK_by:"admin_rk"});else upd(delegTarget.id,{statusWWK:"diwakilkan",perwakilanWWK:name,statusWWK_by:byWWK});setDelegTarget(null);showT("Diwakilkan ke "+name);}} onCancel={()=>setDelegTarget(null)}/>}
     {isMobile
