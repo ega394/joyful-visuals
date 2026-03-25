@@ -3545,6 +3545,12 @@ function ExpandedDetail({ev,hariEv}){
             <span style={{fontSize:14}}>&#x1F4C6;</span>Google Cal
           </a>
         </div>
+        <DocumentManager 
+           agendaId={ev.id} 
+           agendaDate={ev.tanggal} 
+           role={role} 
+           username={user?.username} 
+        />
       </div>
       {ev.jenisKegiatan==="Sambutan"&&<div>
         <SambutanBlock ev={ev} canUpload={role==="timkom"||role==="kasubbag_komdokpim"} onUploadDocx={(f)=>handleSambutanDocx(ev.id,f,ev)} onUploadPdf={(f,name)=>handleSambutanUpload(ev.id,f,name).then(()=>showT("Naskah sambutan (PDF) diupload"))} onRemove={()=>{if(ev.sambutanFile&&!ev.sambutanFile.startsWith("data:"))storageDelete("sambutan",ev.sambutanFile).catch(e=>console.warn("Sync:",e?.message||e));if(ev.sambutanDocx&&!ev.sambutanDocx.startsWith("data:")&&!ev.sambutanDocx.startsWith("blob:"))storageDelete("sambutan",ev.sambutanDocx).catch(e=>console.warn("Sync:",e?.message||e));updAndSync(ev.id,{sambutanFile:null,sambutanNama:"",sambutanDocx:null,sambutanDocxNama:""});showT("Naskah sambutan dihapus","warn");}}/>
