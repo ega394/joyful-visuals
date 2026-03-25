@@ -1886,7 +1886,6 @@ function BiometricTab({user,showT}){
   </div>;
 }
 
-// ==================== DRAFT PROGRESS VIEW (Staf) ====================
 // ==================== INPUT & DRAFT PROGRESS VIEW (Admin RK / Staf) ====================
 function DraftProgressView({events,user,upd,showT,askConfirm,setTab,isMobile,setForm,setEditId,deleteAndSync,onAddNew}){
   const NAVY="#0A1628",GOLD="#C9A84C";
@@ -1900,80 +1899,67 @@ function DraftProgressView({events,user,upd,showT,askConfirm,setTab,isMobile,set
   const getStep=(alur)=>steps.findIndex(s=>s.key===alur);
   const fmt=d=>{if(!d)return"";const[y,m,dd]=d.split("-");const M=["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];return dd+" "+M[parseInt(m)-1]+" "+y;};
   
-  if(mine.length===0)return <div style={{padding:40,textAlign:"center",color:"#94a3b8",fontSize:14}}>
-    <div style={{fontSize:32,marginBottom:12}}>📝</div>
-    <div>Belum ada jadwal yang Anda ajukan.</div>
-    <button onClick={onAddNew} style={{marginTop:16,padding:"10px 24px",borderRadius:10,border:"none",background:NAVY,color:"white",cursor:"pointer",fontSize:14,fontWeight:700}}>+ Input Jadwal Baru</button>
-  </div>;
-
-  return <div style={{padding:isMobile?"12px":"20px",maxWidth:680,margin:"0 auto"}}>
-    {/* 👇 TOMBOL INPUT BARU SELALU TAMPIL DI ATAS 👇 */}
-    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-      <div style={{fontSize:15,fontWeight:800,color:NAVY}}>📝 Input & Draft Jadwal</div>
-      <button onClick={onAddNew} style={{padding:"8px 14px",borderRadius:10,border:"none",background:NAVY,color:"white",cursor:"pointer",fontSize:12,fontWeight:700,boxShadow:"0 4px 12px rgba(10,22,40,0.2)"}}>
-        + Input Baru
-      </button>
+  if(mine.length===0)return (
+    <div style={{padding:40,textAlign:"center",color:"#94a3b8",fontSize:14}}>
+      <div style={{fontSize:32,marginBottom:12}}>📝</div>
+      <div>Belum ada jadwal yang Anda ajukan.</div>
+      <button onClick={onAddNew} style={{marginTop:16,padding:"10px 24px",borderRadius:10,border:"none",background:NAVY,color:"white",cursor:"pointer",fontSize:14,fontWeight:700}}>+ Input Jadwal Baru</button>
     </div>
-    
-    {mine.sort((a,b)=>b.tanggal?.localeCompare(a.tanggal||"")||0).map(ev=>{
-      // ... (sisa kode di bawah ini biarkan sama persis sampai selesai)
-        {/* Progress bar */}
-        {!isDraft&&!isDitolak&&<div style={{display:"flex",alignItems:"center",gap:0,marginBottom:12}}>
-          {steps.map((s,i)=><React.Fragment key={s.key}>
-            <div style={{display:"flex",flexDirection:"column",alignItems:"center",minWidth:0,flex:1}}>
-              <div style={{width:24,height:24,borderRadius:"50%",background:i<=stepIdx?s.color:"#e2e8f0",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:"white",fontWeight:700}}>{i<stepIdx?"✓":i===stepIdx?"●":"○"}</div>
-              <div style={{fontSize:9,color:i<=stepIdx?s.color:"#94a3b8",marginTop:2,textAlign:"center",fontWeight:i===stepIdx?700:400}}>{s.label}</div>
+  );
+
+  return (
+    <div style={{padding:isMobile?"12px":"20px",maxWidth:680,margin:"0 auto"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+        <div style={{fontSize:15,fontWeight:800,color:NAVY}}>📝 Input & Draft Jadwal</div>
+        <button onClick={onAddNew} style={{padding:"8px 14px",borderRadius:10,border:"none",background:NAVY,color:"white",cursor:"pointer",fontSize:12,fontWeight:700,boxShadow:"0 4px 12px rgba(10,22,40,0.2)"}}>
+          + Input Baru
+        </button>
+      </div>
+      
+      {mine.sort((a,b)=>b.tanggal?.localeCompare(a.tanggal||"")||0).map(ev=>{
+        const stepIdx=getStep(ev.alur);
+        const isDraft=ev.alur==="draft";
+        const isDitolak=ev.alur==="ditolak";
+        const isDisetujui=ev.alur==="disetujui";
+        return (
+          <div key={ev.id} style={{background:"white",borderRadius:14,padding:"14px 16px",marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,0.07)",border:"1.5px solid "+(isDitolak?"#fca5a5":isDraft?"#e2e8f0":isDisetujui?"#86efac":"#e2e8f0")}}>
+            <div style={{fontSize:13,fontWeight:700,color:"#0F2040",marginBottom:4}}>{ev.namaAcara}</div>
+            <div style={{fontSize:11,color:"#64748b",marginBottom:10}}>{fmt(ev.tanggal)} · {ev.jam} WITA · {ev.penyelenggara}</div>
+            
+            {!isDraft&&!isDitolak&&<div style={{display:"flex",alignItems:"center",gap:0,marginBottom:12}}>
+              {steps.map((s,i)=>(
+                <React.Fragment key={s.key}>
+                  <div style={{display:"flex",flexDirection:"column",alignItems:"center",minWidth:0,flex:1}}>
+                    <div style={{width:24,height:24,borderRadius:"50%",background:i<=stepIdx?s.color:"#e2e8f0",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:"white",fontWeight:700}}>{i<stepIdx?"✓":i===stepIdx?"●":"○"}</div>
+                    <div style={{fontSize:9,color:i<=stepIdx?s.color:"#94a3b8",marginTop:2,textAlign:"center",fontWeight:i===stepIdx?700:400}}>{s.label}</div>
+                  </div>
+                  {i<steps.length-1&&<div style={{flex:1,height:2,background:i<stepIdx?s.color:"#e2e8f0",minWidth:8,marginBottom:14}}/>}
+                </React.Fragment>
+              ))}
+            </div>}
+
+            {isDraft&&!ev.catatanKasubbag&&!ev.catatanKabag&&<div style={{background:"#f1f5f9",borderRadius:8,padding:"8px 12px",fontSize:12,color:"#64748b",marginBottom:10}}>Status: Draft — belum dikirim</div>}
+            {isDitolak&&<div style={{background:"#fff1f2",borderRadius:8,padding:"8px 12px",fontSize:12,color:"#dc2626",marginBottom:10}}><div style={{fontWeight:700}}>❌ Ditolak:</div>{ev.catatanTolak}</div>}
+            {isDisetujui&&<div style={{background:"#f0fdf4",borderRadius:8,padding:"8px 12px",fontSize:12,color:"#16a34a",fontWeight:700,marginBottom:10}}>✅ Disetujui & Tayang</div>}
+
+            <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+              {(isDraft||isDitolak)&&<button onClick={()=>{
+                 setForm({tanggal:ev.tanggal,jam:ev.jam,namaAcara:ev.namaAcara,penyelenggara:ev.penyelenggara,kontak:ev.kontak||"",buktiUndangan:ev.buktiUndangan||"",pakaian:ev.pakaian,jenisKegiatan:ev.jenisKegiatan,catatan:ev.catatan||"",lokasi:ev.lokasi||"",untukPimpinan:ev.untukPimpinan||[],besertaIstriWK:ev.besertaIstriWK||false,besertaIstriWWK:ev.besertaIstriWWK||false,undanganFile:ev.undanganFile||null,undanganNama:ev.undanganNama||""});
+                 setEditId(ev.id);
+                 setTab("form");
+              }} style={{padding:"7px 14px",borderRadius:8,border:"1.5px solid "+NAVY,background:"white",color:NAVY,cursor:"pointer",fontSize:12,fontWeight:600}}>✏️ Edit</button>}
+
+              {(isDraft||isDitolak)&&<button onClick={()=>{
+                askConfirm("Hapus Draft?","Jadwal akan dihapus permanen.",() => {deleteAndSync(ev.id); showT("Draft dihapus", "warn");},"Hapus","#DC2626");
+              }} style={{padding:"7px 14px",borderRadius:8,border:"1.5px solid #FCA5A5",background:"white",color:"#EF4444",cursor:"pointer",fontSize:12,fontWeight:600}}>🗑️ Hapus</button>}
+
+              {isDraft&&<button onClick={()=>{upd(ev.id,{alur:"menunggu_kasubbag"});showT("Dikirim ke Kasubbag","ok");}} style={{padding:"7px 14px",borderRadius:8,border:"none",background:NAVY,color:"white",cursor:"pointer",fontSize:12,fontWeight:700}}>Kirim →</button>}
             </div>
-            {i<steps.length-1&&<div style={{flex:1,height:2,background:i<stepIdx?s.color:"#e2e8f0",minWidth:8,marginBottom:14}}/>}
-          </React.Fragment>)}
-        </div>}
-        {isDraft&&!ev.catatanKasubbag&&!ev.catatanKabag&&<div style={{background:"#f1f5f9",borderRadius:8,padding:"8px 12px",fontSize:12,color:"#64748b",marginBottom:10}}>Status: Draft — belum dikirim ke Kasubbag</div>}
-        {isDraft&&ev.catatanKasubbag&&<div style={{background:"#fffbeb",borderRadius:8,padding:"8px 12px",fontSize:12,color:"#b45309",marginBottom:10,border:"1px solid #fde68a"}}>
-          <div style={{fontWeight:700}}>↩ Dikembalikan oleh Kasubbag — perlu perbaikan</div>
-          <div style={{marginTop:4}}>Catatan: {ev.catatanKasubbag}</div>
-        </div>}
-        {isDraft&&ev.catatanKabag&&<div style={{background:"#fffbeb",borderRadius:8,padding:"8px 12px",fontSize:12,color:"#b45309",marginBottom:10,border:"1px solid #fde68a"}}>
-          <div style={{fontWeight:700}}>↩ Dikembalikan oleh Kabag — perlu perbaikan</div>
-          <div style={{marginTop:4}}>Catatan: {ev.catatanKabag}</div>
-        </div>}
-        {isDitolak&&<div style={{background:"#fff1f2",borderRadius:8,padding:"8px 12px",fontSize:12,color:"#dc2626",marginBottom:10}}>
-          <div style={{fontWeight:700}}>❌ Ditolak</div>
-          {ev.catatanTolak&&<div style={{marginTop:4}}>Catatan: {ev.catatanTolak}</div>}
-        </div>}
-        {isDisetujui&&<div style={{background:"#f0fdf4",borderRadius:8,padding:"8px 12px",fontSize:12,color:"#16a34a",fontWeight:700,marginBottom:10}}>✅ Disetujui & Tayang</div>}
-        
-        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-          {/* 👇 PERBAIKAN TOMBOL EDIT ADA DI SINI 👇 */}
-          {(isDraft||isDitolak)&&<button onClick={()=>{
-             if(setForm && setEditId) {
-               setForm({tanggal:ev.tanggal,jam:ev.jam,namaAcara:ev.namaAcara,penyelenggara:ev.penyelenggara,kontak:ev.kontak||"",buktiUndangan:ev.buktiUndangan||"",pakaian:ev.pakaian,jenisKegiatan:ev.jenisKegiatan,catatan:ev.catatan||"",lokasi:ev.lokasi||"",untukPimpinan:ev.untukPimpinan||[],besertaIstriWK:ev.besertaIstriWK||false,besertaIstriWWK:ev.besertaIstriWWK||false,undanganFile:ev.undanganFile||null,undanganNama:ev.undanganNama||""});
-               setEditId(ev.id);
-               setTab("form");
-             } else {
-               setTab("form");
-             }
-          }} style={{padding:"7px 14px",borderRadius:8,border:"1.5px solid "+NAVY,background:"white",color:NAVY,cursor:"pointer",fontSize:12,fontWeight:600}}>✏️ Edit</button>}
-          {/* 👆 BATAS PERBAIKAN 👆 */}
-          {/* 👇 TOMBOL HAPUS BARU 👇 */}
-          {(isDraft||isDitolak)&&<button onClick={()=>{
-            askConfirm(
-              "Hapus Draft?",
-              "Jadwal '" + ev.namaAcara + "' akan dihapus permanen.",
-              () => {
-                deleteAndSync(ev.id);
-                showT("Draft dihapus", "warn");
-              },
-              "Hapus",
-              "#DC2626"
-            );
-          }} style={{padding:"7px 14px",borderRadius:8,border:"1.5px solid #FCA5A5",background:"white",color:"#EF4444",cursor:"pointer",fontSize:12,fontWeight:600}}>🗑️ Hapus</button>}
-          {/* 👆 AKHIR TOMBOL HAPUS 👆 */}
-          {isDraft&&<button onClick={()=>{upd(ev.id,{alur:"menunggu_kasubbag"});showT("Dikirim ke Kasubbag","ok");loadUsers().filter(u=>(u.role==="kasubbag_protokol")&&u.noWA).forEach(u=>sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"submit",submittedBy:user?.nama}));sendPush({targetRole:"kasubbag_protokol",title:"📋 Jadwal Baru Masuk",body:ev.namaAcara+" — "+ev.jam+" WITA",url:"/",tag:"submit-"+ev.id});sendPush({targetRole:"kasubbag_komdokpim",title:"📋 Jadwal Baru Masuk",body:ev.namaAcara+" — "+ev.jam+" WITA",url:"/",tag:"submit-"+ev.id});}} style={{padding:"7px 14px",borderRadius:8,border:"none",background:NAVY,color:"white",cursor:"pointer",fontSize:12,fontWeight:700}}>Kirim ke Kasubbag →</button>}
-          {isDitolak&&<button onClick={()=>{upd(ev.id,{alur:"menunggu_kasubbag",catatanTolak:""});showT("Dikirim ulang ke Kasubbag","ok");loadUsers().filter(u=>(u.role==="kasubbag_protokol")&&u.noWA).forEach(u=>sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"submit",submittedBy:user?.nama}));sendPush({targetRole:"kasubbag_protokol",title:"📋 Jadwal Dikirim Ulang",body:ev.namaAcara,url:"/",tag:"resubmit-"+ev.id});sendPush({targetRole:"kasubbag_komdokpim",title:"📋 Jadwal Dikirim Ulang",body:ev.namaAcara,url:"/",tag:"resubmit-"+ev.id});}} style={{padding:"7px 14px",borderRadius:8,border:"none",background:"#d97706",color:"white",cursor:"pointer",fontSize:12,fontWeight:700}}>Kirim Ulang →</button>}
-        </div>
-      </div>;
-    })}
-  </div>;
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 // ==================== APPROVAL QUEUE VIEW (Kasubbag / Kabag) ====================
