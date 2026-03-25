@@ -986,27 +986,19 @@ function AIModal({onFill,onClose}){
               if(missing.length>0){setValidErr("Wajib diisi: "+missing.map(k=>({namaAcara:"Nama Acara",tanggal:"Tanggal",jam:"Jam",penyelenggara:"Penyelenggara",kontak:"Kontak",buktiUndangan:"No. Surat",pakaian:"Pakaian",jenisKegiatan:"Jenis Kegiatan",lokasi:"Lokasi"})[k]).join(", "));return;}
               setValidErr("");
               let finalUndanganFile=null;let finalUndanganNama=undanganNama;
-              if(undanganFile){
+    if(undanganFile){
                 setLoading(true);
                 try{
-                  // Kompres ke maks 1MB
                   const compressed=await compressFileTo1MB(undanganFile);
                   finalUndanganNama=compressed.name||undanganNama;
-                  // Upload ke Supabase storage
-                  if(SUPA_OK){
-                    const path="ai-"+Date.now();
-                    const url=await storageUpload("undangan",path,compressed).catch(()=>null);
-                    if(url){finalUndanganFile=url;}
-                    else{
-                      // Fallback: simpan base64 jika upload gagal
-                      finalUndanganFile=await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=rej;r.readAsDataURL(compressed);});
-                    }
-                  } else {
-                    // Offline: simpan base64
-                    const compressed2=await compressFileTo1MB(undanganFile);
-                    finalUndanganFile=await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=rej;r.readAsDataURL(compressed2);});
-                  }
-                }catch(e){console.error("Upload undangan gagal:",e);}
+                  // Konversi langsung ke Base64 agar nanti dikirim ke Google Drive oleh fungsi submit()
+                  finalUndanganFile=await new Promise((res,rej)=>{
+                    const r=new FileReader();
+                    r.onload=e=>res(e.target.result);
+                    r.onerror=rej;
+                    r.readAsDataURL(compressed);
+                  });
+                }catch(e){console.error("Gagal memproses file:",e);}
                 setLoading(false);
               }
               onFill({...edited,undanganFile:finalUndanganFile,undanganNama:finalUndanganNama});
