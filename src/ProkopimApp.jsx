@@ -2216,6 +2216,9 @@ function AdminModal({onClose, showT, events, updAndSync}) {
   const [users, setUsers] = React.useState(loadUsers);
   const [tabA, setTabA] = React.useState("users");
   const [pendRegs, setPendRegs] = React.useState(() => loadPendingRegs());
+  
+  // State untuk memantau progress Drive Sync secara visual
+  const [syncState, setSyncState] = React.useState({ running: false, total: 0, current: 0, fileName: "", done: false });
 
   const refreshPendRegs = async () => {
     const local = loadPendingRegs();
@@ -2290,7 +2293,7 @@ function AdminModal({onClose, showT, events, updAndSync}) {
       return;
     }
 
-    showT(`Memulai sinkronisasi ${pendingSync.length} agenda ke Drive...`, "warn");
+    setSyncState({ running: true, total: pendingSync.length, current: 0, fileName: "Menyiapkan data...", done: false });
     let totalMoved = 0;
 
     for (let i = 0; i < pendingSync.length; i++) {
@@ -2301,10 +2304,10 @@ function AdminModal({onClose, showT, events, updAndSync}) {
 
       for (const type of tasks) {
         try {
-          showT(`[${i + 1}/${pendingSync.length}] Memindah ${type}: ${ev.namaAcara.slice(0, 15)}...`, "warn");
-          const fileSource = type === "undangan" ? ev.undanganFile : ev.sambutanFile;
           const fileName = type === "undangan" ? (ev.undanganNama || "undangan.pdf") : (ev.sambutanNama || "sambutan.pdf");
+          setSyncState(prev => ({ ...prev, current: i + 1, fileName: `Mengupload: ${fileName} (${ev.namaAcara.slice(0, 15)}...)` }));
 
+          const fileSource = type === "undangan" ? ev.undanganFile : ev.sambutanFile;
           const response = await fetch(fileSource);
           if (!response.ok) throw new Error("Gagal ambil file sumber");
           const blob = await response.blob();
@@ -2329,7 +2332,8 @@ function AdminModal({onClose, showT, events, updAndSync}) {
       }
       await new Promise(r => setTimeout(r, 600));
     }
-    showT(`Selesai! ${totalMoved} file berhasil dipindahkan 🚀`, "ok");
+    
+    setSyncState(prev => ({ ...prev, running: false, done: true, fileName: `Selesai! ${totalMoved} file berhasil dipindahkan ke Google Drive.` }));
   };
 
   const inp = {width: "100%", padding: "9px 11px", borderRadius: 8, border: "1.5px solid #e2e8f0", fontSize: 13, background: "white", color: "#1e293b"};
@@ -2465,27 +2469,48 @@ function AdminModal({onClose, showT, events, updAndSync}) {
                 <span style={{ fontSize: 18 }}>📅</span> Export Data Jadwal (JSON)
               </button>
 
-              {/* TOMBOL SINKRONISASI DRIVE */}
+              {/* PROGRESS BAR SINKRONISASI DRIVE */}
               <div style={{ marginTop: 20, borderTop: "2px dashed #E2E8F0", paddingTop: 20 }}>
                 <div style={{ background: "#FFFBEB", padding: 12, borderRadius: 10, border: "1px solid #FDE68A", marginBottom: 12 }}>
                   <div style={{ fontSize: 13, fontWeight: 800, color: "#92400E", marginBottom: 4 }}>☁️ Sinkronisasi Cloud (Google Drive)</div>
                   <div style={{ fontSize: 11, color: "#B45309", lineHeight: 1.5 }}>
-                    Pindahkan semua file lama (Undangan & Sambutan) yang masih tersimpan di database internal ke Google Drive secara otomatis.
+                    Pindahkan semua file lama (Undangan & Sambutan) dari database internal ke Google Drive secara otomatis.
                   </div>
                 </div>
                 
-                <button 
-                  onClick={syncAllToDrive}
-                  style={{
-                    width: "100%", padding: "14px", borderRadius: 12, border: "none",
-                    background: "linear-gradient(135deg, #059669, #047857)",
-                    color: "white", fontWeight: 800, cursor: "pointer",
-                    display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
-                    boxShadow: "0 4px 12px rgba(5, 150, 105, 0.3)"
-                  }}
-                >
-                  <span>🔄</span> Jalankan Sinkronisasi Drive
-                </button>
+                {syncState.running ? (
+                  <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 12, padding: 16, textAlign: "center" }}>
+                    <style>{"@keyframes spinDrive { 100% { transform: rotate(360deg); } }"}</style>
+                    <div style={{ width: 36, height: 36, border: "4px solid #E2E8F0", borderTopColor: "#059669", borderRadius: "50%", animation: "spinDrive 1s linear infinite", margin: "0 auto 12px" }}></div>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: "#0A1628", marginBottom: 4 }}>Memproses {syncState.current} dari {syncState.total} agenda</div>
+                    <div style={{ fontSize: 11, color: "#64748B", marginBottom: 12, fontStyle: "italic", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{syncState.fileName}</div>
+                    
+                    {/* Progress Bar */}
+                    <div style={{ width: "100%", height: 8, background: "#E2E8F0", borderRadius: 4, overflow: "hidden" }}>
+                      <div style={{ width: `${(syncState.current / syncState.total) * 100}%`, height: "100%", background: "linear-gradient(90deg, #059669, #10B981)", transition: "width 0.3s ease" }}></div>
+                    </div>
+                  </div>
+                ) : syncState.done ? (
+                  <div style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 12, padding: 16, textAlign: "center" }}>
+                    <div style={{ fontSize: 32, marginBottom: 8 }}>✅</div>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: "#065F46", marginBottom: 4 }}>Migrasi Selesai</div>
+                    <div style={{ fontSize: 12, color: "#15803D" }}>{syncState.fileName}</div>
+                    <button onClick={() => setSyncState({running: false, total: 0, current: 0, fileName: "", done: false})} style={{ marginTop: 12, padding: "8px 16px", borderRadius: 8, border: "1.5px solid #15803D", background: "white", color: "#15803D", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Kembali</button>
+                  </div>
+                ) : (
+                  <button 
+                    onClick={syncAllToDrive}
+                    style={{
+                      width: "100%", padding: "14px", borderRadius: 12, border: "none",
+                      background: "linear-gradient(135deg, #059669, #047857)",
+                      color: "white", fontWeight: 800, cursor: "pointer",
+                      display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+                      boxShadow: "0 4px 12px rgba(5, 150, 105, 0.3)"
+                    }}
+                  >
+                    <span>🔄</span> Jalankan Sinkronisasi Drive
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -2495,7 +2520,6 @@ function AdminModal({onClose, showT, events, updAndSync}) {
     </div>
   );
 }
-
 // ==================== FORM UNDANGAN UPLOAD (inline, for FormView) ====================
 function FormUndanganUpload({onFile,compact,label}){
   const ref=useRef();
