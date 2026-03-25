@@ -19,7 +19,10 @@
 // ============================================================
 
 const webpush  = require("web-push");
-const { getDistance } = require("./distance");
+// Fungsi sementara pengganti Google Maps (Asumsi selalu 30 menit perjalanan)
+async function getDistance(origin, destination) {
+  return { durationValue: 30 * 60 }; // 1800 detik = 30 menit
+}
 
 const SUPA_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "";
 const SUPA_KEY = process.env.SUPABASE_KEY || process.env.VITE_SUPABASE_ANON_KEY || "";
