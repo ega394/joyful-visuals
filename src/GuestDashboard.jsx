@@ -883,203 +883,115 @@ function PimpinanView({ role, user, events, showT, isMobile }) {
     return detectConflict(events, schedDate, schedTime, role);
   }, [current, schedDate, schedTime, events, role]);
 
-  async function respond(action, extra) {
+ async function respond(action, extra) {
     if (!current) return;
     setActLoad(true);
 
-    // ── Ambil konfigurasi Supabase (ikuti pola ProkopimApp) ──
+    // 1. Ambil Kunci Akses Supabase
     var SUPA_URL = (typeof import.meta !== "undefined" && import.meta.env)
       ? (import.meta.env.VITE_SUPABASE_URL || "") : "";
     var SUPA_KEY = (typeof import.meta !== "undefined" && import.meta.env)
       ? (import.meta.env.VITE_SUPABASE_ANON_KEY || "") : "";
+    
     var supaHeaders = {
       "Content-Type":  "application/json",
-      "apikey":        SUPA_KEY,
+      "apikey":         SUPA_KEY,
       "Authorization": "Bearer " + SUPA_KEY,
     };
-    var supaOK = !!(SUPA_URL && SUPA_KEY);
 
     try {
       // ══════════════════════════════════════════════════
-      // AKSI: accepted — INSERT jadwal + UPDATE permohonan
+      // JEMBATAN OTOMATIS: JIKA DISETUJUI -> JADI AGENDA
       // ══════════════════════════════════════════════════
       if (action === "accepted" && extra.scheduled_date && extra.scheduled_time) {
-
-        if (!supaOK) throw new Error("Konfigurasi Supabase belum ada. Hubungi Admin.");
-
+        
         var schedTanggal = extra.scheduled_date;
         var schedJam     = extra.scheduled_time;
+        var newEventId   = Date.now(); // ID unik untuk jadwal
 
-        // Tentukan untukPimpinan berdasarkan role + tujuan_pejabat tamu
-        var pejabatKey = current.tujuan_pejabat === "wakilwalikota"
-          ? "wakilwalikota"
-          : "walikota";
+        // Tentukan siapa pimpinan yang ditemui
+        var pejabatKey = current.tujuan_pejabat === "wakilwalikota" ? "wakilwalikota" : "walikota";
 
-        // ── Step A: Bentuk object event lengkap (sesuai mkEv di ProkopimApp) ──
-        var newEventId = Date.now();
-        var keteranganCatatan = "Maksud: " + (current.purpose || "-");
-        if (current.kabag_notes) {
-          keteranganCatatan += " | Telaah Kabag: " + current.kabag_notes;
-        }
-        if (current.needs_aksesibilitas) {
-          keteranganCatatan += " | ♿ Aksesibilitas: " + (current.aksesibilitas_detail || "Diperlukan");
-        }
-
+        // Meracik data Agenda (harus persis struktur App.jsx)
         var newEvent = {
-          id:               newEventId,
-          tanggal:          schedTanggal,
-          jam:              schedJam,
-          namaAcara:        "Audiensi: " + (current.name || "-") + " - " + (current.organization || "-"),
-          penyelenggara:    current.name || "-",
-          kontak:           current.phone || "-",
-          buktiUndangan:    "Permohonan #" + (current.id ? String(current.id).slice(0, 8) : "-"),
-          pakaian:          "PDH",
-          jenisKegiatan:    "Menghadiri",
-          catatan:          keteranganCatatan,
-          lokasi:           "Ruang Pimpinan, Kantor Wali Kota Tarakan",
-          untukPimpinan:    [pejabatKey],
-          alur:             "disetujui",
-          // ── Defaults dari mkEv (wajib ada agar tidak crash di ProkopimApp) ──
-          catatanTolak:     "",
-          catatanKasubbag:  "",
-          catatanKabag:     "",
-          statusWK:         null,
-          statusWWK:        null,
-          perwakilanWK:     "",
-          perwakilanWWK:    "",
-          delegasiKeWWK:    false,
-          delegasiWWKJajaran: false,
-          besertaIstriWK:   false,
-          besertaIstriWWK:  false,
-          sambutanFile:     null,
-          sambutanNama:     "",
-          sambutanDocx:     null,
-          sambutanDocxNama: "",
-          undanganFile:     null,
-          undanganNama:     "",
-          catatanPimpinan:  "",
-          tersembunyi:      false,
-          alurHapus:        null,
-          personil:         [],
-          catatanPenugasan: "",
-          evaluasi:         {},
-          // ── Metadata audiensi ──
-          submittedBy:      user ? user.username : "pimpinan",
-          _sumberTamu:      true,   // penanda bahwa event berasal dari modul tamu
+          id: newEventId,
+          tanggal: schedTanggal,
+          jam: schedJam,
+          namaAcara: "Audiensi: " + current.name + (current.organization ? " (" + current.organization + ")" : ""),
+          penyelenggara: current.organization || current.name,
+          kontak: current.phone || "-",
+          buktiUndangan: "Permohonan Tamu #" + String(current.id).slice(-4),
+          pakaian: "Batik Lengan Panjang", // Default SOP pimpinan terima tamu
+          jenisKegiatan: "Menghadiri",
+          lokasi: "Kantor Wali Kota Tarakan",
+          untukPimpinan: [pejabatKey],
+          alur: "disetujui", // Langsung tayang di agenda
+          // Sinkronisasi field tambahan agar tidak error di App.jsx
+          catatan: "Maksud: " + current.purpose + (current.kabag_notes ? " | Telaah Kabag: " + current.kabag_notes : ""),
+          statusWK: pejabatKey === "walikota" ? "hadir" : null,
+          statusWWK: pejabatKey === "wakilwalikota" ? "hadir" : null,
+          submittedBy: user?.username || "pimpinan",
+          personil: [],
+          evaluasi: {},
+          created_from: "guest_module"
         };
 
-        // ── Step B: INSERT ke tabel jadwal ────────────────
-        // Struktur identik dengan dbUpsert di ProkopimApp:
-        // { id: newEventId, data: {...fullEventObject} }
-        var insertJadwalRes = await fetch(SUPA_URL + "/rest/v1/jadwal", {
-          method:  "POST",
-          headers: Object.assign({}, supaHeaders, {
-            "Prefer": "return=representation",
-          }),
+        // AKSI A: Kirim ke Tabel Jadwal (Agenda Utama)
+        var resJadwal = await fetch(SUPA_URL + "/rest/v1/jadwal", {
+          method: "POST",
+          headers: Object.assign({}, supaHeaders, { "Prefer": "resolution=merge-duplicates" }),
           body: JSON.stringify({ id: newEventId, data: newEvent }),
         });
 
-        if (!insertJadwalRes.ok) {
-          var jadwalErr = await insertJadwalRes.json().catch(function() { return {}; });
-          throw new Error("Gagal membuat jadwal: " + (jadwalErr.message || jadwalErr.details || insertJadwalRes.status));
-        }
+        if (!resJadwal.ok) throw new Error("Gagal membuat agenda otomatis");
 
-        // ── Step C: UPDATE permohonan_tamu ─────────────────
-        // SET status='approved', jadwal_id=String(newEventId), jadwal_tanggal, jadwal_jam
-        var updateTamuRes = await fetch(
-          SUPA_URL + "/rest/v1/permohonan_tamu?id=eq." + encodeURIComponent(current.id),
-          {
-            method:  "PATCH",
-            headers: Object.assign({}, supaHeaders, { "Prefer": "return=minimal" }),
-            body: JSON.stringify({
-              status:         "approved",
-              jadwal_id:      String(newEventId),
-              jadwal_tanggal: schedTanggal,
-              jadwal_jam:     schedJam,
-              diputuskan_oleh: user ? user.username : null,
-            }),
-          }
-        );
+        // AKSI B: Update Status di Tabel Tamu
+        await fetch(SUPA_URL + "/rest/v1/permohonan_tamu?id=eq." + current.id, {
+          method: "PATCH",
+          headers: supaHeaders,
+          body: JSON.stringify({
+            status: "accepted",
+            jadwal_id: String(newEventId),
+            jadwal_tanggal: schedTanggal,
+            jadwal_jam: schedJam,
+            diputuskan_oleh: user?.username
+          }),
+        });
 
-        if (!updateTamuRes.ok) {
-          // Jadwal sudah terbuat — log warning tapi jangan throw
-          // agar UI tidak terjebak di loading state
-          var tamuErr = await updateTamuRes.json().catch(function() { return {}; });
-          console.warn("GuestDashboard: UPDATE permohonan_tamu gagal —", tamuErr.message || updateTamuRes.status);
-        }
-
-        showT("✅ Jadwal audiensi berhasil dibuat");
-
-      // ══════════════════════════════════════════════════
-      // AKSI: disposed — UPDATE permohonan_tamu saja
-      // ══════════════════════════════════════════════════
-      } else if (action === "disposed") {
-        if (supaOK && current.id) {
-          await fetch(
-            SUPA_URL + "/rest/v1/permohonan_tamu?id=eq." + encodeURIComponent(current.id),
-            {
-              method:  "PATCH",
-              headers: Object.assign({}, supaHeaders, { "Prefer": "return=minimal" }),
-              body: JSON.stringify({
-                status:          "disposed",
-                disposisi_ke:    extra.disposed_to || null,
-                diputuskan_oleh: user ? user.username : null,
-              }),
-            }
-          ).catch(function(e) { console.warn("GuestDashboard: disposisi update gagal —", e.message); });
-        }
-        showT("↩ Permohonan didisposisi");
-
-      // ══════════════════════════════════════════════════
-      // AKSI: rejected — UPDATE permohonan_tamu saja
-      // ══════════════════════════════════════════════════
-      } else if (action === "rejected") {
-        if (supaOK && current.id) {
-          await fetch(
-            SUPA_URL + "/rest/v1/permohonan_tamu?id=eq." + encodeURIComponent(current.id),
-            {
-              method:  "PATCH",
-              headers: Object.assign({}, supaHeaders, { "Prefer": "return=minimal" }),
-              body: JSON.stringify({
-                status:          "rejected",
-                alasan_tolak:    extra.rejection_reason || null,
-                diputuskan_oleh: user ? user.username : null,
-              }),
-            }
-          ).catch(function(e) { console.warn("GuestDashboard: rejected update gagal —", e.message); });
-        }
-        showT("❌ Permohonan ditolak");
+        showT("✅ Berhasil! Tamu dijadwalkan & otomatis masuk Agenda.");
 
       } else {
-        // Fallback — aksi lain tetap kirim ke /api/guest
+        // ══════════════════════════════════════════════════
+        // AKSI BIASA: Disposisi atau Tolak
+        // ══════════════════════════════════════════════════
         var body = Object.assign({
           id: current.id,
           response: action,
           pimpinan: role,
-          responded_by: user ? user.username : null,
+          responded_by: user?.username,
         }, extra || {});
+
         var r = await fetch(API + "?action=respond", {
-          method: "POST", headers: { "Content-Type": "application/json" },
+          method: "POST", 
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
         });
-        var data = await r.json();
-        if (!r.ok) throw new Error(data.error || "Gagal");
-        showT("Berhasil");
+
+        if (!r.ok) throw new Error("Gagal memproses keputusan");
+        showT(action === "rejected" ? "❌ Permohonan ditolak" : "↩️ Disposisi berhasil");
       }
 
-      // ── Refresh: hapus kartu yang sudah diproses ──────
+      // Refresh tampilan: buang kartu yang sudah diproses
       setGuests(function(prev) { return prev.filter(function(g) { return g.id !== current.id; }); });
       setIdx(0);
       setModal(null);
-      setSchedDate(""); setSchedTime(""); setDispTo(""); setRejectR("");
 
     } catch(e) {
-      showT("Gagal: " + (e.message || "Terjadi kesalahan"));
+      showT("Gagal: " + e.message, "error");
     } finally {
       setActLoad(false);
     }
   }
-
   function closeModal() {
     setModal(null);
     setSchedDate(""); setSchedTime(""); setDispTo(""); setRejectR("");
