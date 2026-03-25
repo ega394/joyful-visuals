@@ -30,7 +30,7 @@ import React, {
 var NAVY     = "#0A1628";
 var NAVY_MID = "#163265";
 var GOLD     = "#C9A84C";
-var WA_ADMIN = "https://wa.me/6281234567890"; // ganti nomor admin Prokopim
+var WA_ADMIN = "https://wa.me/628115961116"; // ganti nomor admin Prokopim
 
 var HARI  = ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
 var BULAN = ["Januari","Februari","Maret","April","Mei","Juni",
