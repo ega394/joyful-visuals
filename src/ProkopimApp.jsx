@@ -7456,6 +7456,11 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
           isMobile={isMobile}
         />
 
+        /* 👇 TAMBAHKAN KODE INI UNTUK AI NEWSROOM 👇 */
+      :tab==="newsroom"
+        ?<NewsroomDashboard events={events} user={user} showT={showT} isMobile={isMobile}/>
+      /* 👆 BATAS PENAMBAHAN KODE 👆 */
+        
         /* 3. Kabag dashboard */
       :role==="kabag"&&tab==="dashboard"
         ?<KabagDashboard events={events} user={user} upd={upd} showT={showT} askConfirm={askConfirm} deleteAndSync={deleteAndSync} isMobile={isMobile}/>
