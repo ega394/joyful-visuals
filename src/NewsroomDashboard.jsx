@@ -1,487 +1,143 @@
-/**
- * src/NewsroomDashboard.jsx — Prokopim v1.5
- * AI Newsroom — Dapur Redaksi Digital Komdokpim Kota Tarakan
- */
+import React, { useState } from "react";
 
-import React, {
-  useState, useEffect, useCallback, useRef,
-} from "react";
+export default function NewsroomDashboard({ events, user, showT, isMobile }) {
+  const NAVY = "#0A1628";
+  const GOLD = "#C9A84C";
 
-// ── Konstanta warna (sesuai tema app) ────────────────────────
-var NAVY     = "#0A1628";
-var NAVY_MID = "#163265";
-var GOLD     = "#C9A84C";
-var GREEN    = "#059669";
+  const [selectedEv, setSelectedEv] = useState(null);
+  const [poinPenting, setPoinPenting] = useState("");
+  const [format, setFormat] = useState("rilis"); // 'rilis' atau 'caption'
+  const [loading, setLoading] = useState(false);
+  const [hasilAI, setHasilAI] = useState("");
 
-// ── Helper: Supabase REST client ─────────────────────────────
-function getSupaConfig() {
-  var url = (typeof import.meta !== "undefined" && import.meta.env)
-    ? (import.meta.env.VITE_SUPABASE_URL || "") : "";
-  var key = (typeof import.meta !== "undefined" && import.meta.env)
-    ? (import.meta.env.VITE_SUPABASE_ANON_KEY || "") : "";
-  return { url: url, key: key, ok: !!(url && key) };
-}
+  // Ambil jadwal tayang (disetujui) yang terbaru
+  const jadwalTayang = events
+    .filter((e) => e.alur === "disetujui")
+    .sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal))
+    .slice(0, 30); // Ambil 30 terakhir
 
-function supaHeaders(key) {
-  return {
-    "Content-Type":  "application/json",
-    "apikey":        key,
-    "Authorization": "Bearer " + key,
+  const fmtDate = (d) => {
+    if (!d) return "";
+    const [y, m, dd] = d.split("-");
+    const M = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
+    return `${dd} ${M[parseInt(m)-1]} ${y}`;
   };
-}
 
-// ── Helper: format tanggal ────────────────────────────────────
-function fmtTs(str) {
-  if (!str) return "-";
-  return new Date(str).toLocaleString("id-ID", {
-    timeZone: "Asia/Makassar",
-    day: "numeric", month: "short", year: "numeric",
-    hour: "2-digit", minute: "2-digit",
-  });
-}
-function fmtDate(str) {
-  if (!str) return "-";
-  return new Date(str).toLocaleDateString("id-ID", {
-    timeZone: "Asia/Makassar",
-    day: "numeric", month: "long", year: "numeric",
-  });
-}
-
-// ── Status config ─────────────────────────────────────────────
-var STATUS_CFG = {
-  draft_timkom:     { label: "Draft",           bg: "#F1F5F9", color: "#475569", dot: "#94A3B8" },
-  pending_kasubbag: { label: "Menunggu Kurasi",  bg: "#FEF3C7", color: "#92400E", dot: "#F59E0B" },
-  published:        { label: "Dipublikasi",      bg: "#D1FAE5", color: "#065F46", dot: "#10B981" },
-  revisi:           { label: "Perlu Revisi",     bg: "#FEE2E2", color: "#991B1B", dot: "#EF4444" },
-};
-
-// ── CSS animasi global ────────────────────────────────────────
-var _nr_injected = false;
-function injectNRStyle() {
-  if (_nr_injected || typeof document === "undefined") return;
-  _nr_injected = true;
-  var s = document.createElement("style");
-  s.textContent = [
-    "@keyframes nr_spin{to{transform:rotate(360deg)}}",
-    "@keyframes nr_fadeup{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}",
-    ".nr-card{animation:nr_fadeup 0.3s ease both;}",
-    ".nr-spinner{animation:nr_spin 0.7s linear infinite}",
-  ].join("\n");
-  document.head.appendChild(s);
-}
-injectNRStyle();
-
-// ════════════════════════════════════════════════════════════
-//  KOMPONEN UTAMA
-// ════════════════════════════════════════════════════════════
-export default function NewsroomDashboard({ role, user }) {
-  if (role === "timkom") return <TimkomView user={user}/>;
-  if (role === "kasubbag_komdokpim") return <KurasiView user={user}/>;
-  if (role === "kabag") return <MonitoringView user={user}/>;
-  
-  return (
-    <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", background:"#F0F4FA", padding:40, textAlign:"center" }}>
-      <div style={{ fontSize:48, marginBottom:16 }}>🔒</div>
-      <div style={{ fontSize:17, fontWeight:800, color:NAVY, marginBottom:8 }}>Akses Terbatas</div>
-      <div style={{ fontSize:13, color:"#64748B" }}>Fitur AI Newsroom hanya tersedia untuk Tim Komdokpim.</div>
-    </div>
-  );
-}
-
-// ════════════════════════════════════════════════════════════
-//  VIEW 1: TIMKOM — Input Keterangan & Generate AI
-// ════════════════════════════════════════════════════════════
-function TimkomView({ user }) {
-  var supa = getSupaConfig();
-
-  // ── State Data ──────────────────────────────────────────
-  var [agendaList,    setAgendaList]    = useState([]);
-  var [judul,         setJudul]         = useState(""); // Kreasi Manual Timkom
-  var [selectedAgenda, setSelectedAgenda] = useState(""); // Sumber 5W1H
-  var [keterangan,    setKeterangan]    = useState(""); // Daging Berita
-
-  // ── State UI ────────────────────────────────────────────
-  var [submitting,    setSubmitting]    = useState(false);
-  var [formErr,       setFormErr]       = useState("");
-  var [formSuccess,   setFormSuccess]   = useState("");
-  var [isPreviewMode, setIsPreviewMode] = useState(false);
-  var [previewDraf,   setPreviewDraf]   = useState("");
-
-  var [riwayat,      setRiwayat]      = useState([]);
-  var [loadRiwayat,  setLoadRiwayat]  = useState(true);
-  var [expandedId,   setExpandedId]   = useState(null);
-
-  // ── Fetch Agenda Terbaru (Untuk Dropdown) ───────────────
-  useEffect(function() {
-    if (!supa.ok) return;
-    var url = supa.url + "/rest/v1/events?order=tanggal.desc&limit=20";
-    fetch(url, { headers: supaHeaders(supa.key) })
-      .then(r => r.json())
-      .then(d => setAgendaList(Array.isArray(d) ? d : []))
-      .catch(e => console.log("Gagal fetch agenda:", e));
-  }, [supa.ok, supa.url, supa.key]);
-
-  var fetchRiwayat = useCallback(function() {
-    if (!supa.ok) { setLoadRiwayat(false); return; }
-    setLoadRiwayat(true);
-    var url = supa.url + "/rest/v1/rilis_berita?pembuat=eq." + encodeURIComponent(user.username) + "&order=created_at.desc&limit=20";
-    fetch(url, { headers: supaHeaders(supa.key) })
-      .then(r => r.json()).then(d => setRiwayat(Array.isArray(d) ? d : []))
-      .catch(() => setRiwayat([])).finally(() => setLoadRiwayat(false));
-  }, [user.username, supa.ok, supa.url, supa.key]);
-
-  useEffect(function() { fetchRiwayat(); }, [fetchRiwayat]);
-
-  // ── STEP 1: Generate AI (Preview) ───────────────────────
-  async function handleGenerate() {
-    setFormErr(""); setFormSuccess("");
-
-    if (!judul.trim()) { setFormErr("Judul Berita wajib dikreasikan oleh Anda."); return; }
-    if (!selectedAgenda) { setFormErr("Silakan pilih Agenda Liputan sebagai sumber kerangka 5W+1H AI."); return; }
-    if (keterangan.trim().length < 15) { setFormErr("Keterangan lapangan terlalu singkat. Berikan minimal sedikit kutipan atau suasana acara."); return; }
-
-    var geminiKey = (typeof import.meta !== "undefined" && import.meta.env) ? (import.meta.env.VITE_GEMINI_API_KEY || "") : "";
-    setSubmitting(true);
-
-    try {
-      if (!geminiKey) throw new Error("VITE_GEMINI_API_KEY belum dikonfigurasi.");
-
-      var agendaObj = agendaList.find(a => a.id == selectedAgenda);
-      var detailAgenda = agendaObj ? `
-- Nama Acara (What): ${agendaObj.nama_acara || agendaObj.judul || "-"}
-- Tanggal (When): ${fmtDate(agendaObj.tanggal)}
-- Waktu (When): ${agendaObj.waktu || "-"}
-- Lokasi (Where): ${agendaObj.lokasi || "-"}
-      ` : `- Fakta agenda tidak diisi, gunakan data dari catatan lapangan.`;
-
-      var systemPrompt = [
-        "Anda adalah Jurnalis dan Staf Ahli Humas Pemerintah Kota Tarakan.",
-        "Tugas Anda menyusun draf rilis berita pemerintahan berdasarkan Judul, Data Agenda (Kerangka 5W+1H), dan Catatan Lapangan berikut:",
-        "",
-        "JUDUL BERITA:",
-        judul.trim(),
-        "",
-        "DATA AGENDA (FAKTA DASAR 5W+1H):",
-        detailAgenda.trim(),
-        "",
-        "CATATAN LAPANGAN DARI PELIPUT (SUASANA, KUTIPAN, INFO PENTING):",
-        keterangan.trim(),
-        "",
-        "ATURAN MUTLAK PENULISAN (JIKA DILANGGAR ANDA GAGAL):",
-        "1. DILARANG KERAS MENGARANG FAKTA ATAU KUTIPAN FIKTIF. Jika peliput tidak menuliskan kutipan tokoh di 'Catatan Lapangan', MAKA JANGAN BUAT kutipan karangan apapun di draf berita.",
-        "2. Semua nama tokoh, angka, dan detail kejadian harus persis sesuai input peliput.",
-        "3. Gunakan gaya bahasa jurnalistik formal (Straight News) minimal 3 paragraf.",
-        "4. Paragraf pertama (Lead) wajib menjawab unsur 5W+1H dengan mengambil informasi dari 'DATA AGENDA'.",
-        "5. Tulis HANYA isi draf berita yang siap rilis, tanpa pengantar, tanpa meniru menulis ulang judul berita.",
-      ].join("\n");
-
-      var geminiRes = await fetch(
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + geminiKey,
-        {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ role: "user", parts: [{ text: systemPrompt }] }],
-            generationConfig: { temperature: 0.2, maxOutputTokens: 1024 }, // Sangat rendah agar tidak berimajinasi liar
-          }),
-        }
-      );
-
-      if (!geminiRes.ok) throw new Error("Gagal menghubungi AI.");
-      var data = await geminiRes.json();
-      var drafAi = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-
-      if (!drafAi.trim()) throw new Error("AI gagal memproses catatan Anda.");
-
-      setPreviewDraf(drafAi.trim());
-      setIsPreviewMode(true);
-      setFormSuccess("✨ Draf berhasil diracik! AI menggunakan Agenda untuk 5W1H dan Keterangan Anda untuk isi berita.");
-
-    } catch(e) { setFormErr(e.message); } 
-    finally { setSubmitting(false); }
-  }
-
-  // ── STEP 2: Kirim ke Kasubbag ───────────────────────────
-  async function handleKirimKeKasubbag() {
-    if (!supa.ok) return;
-    setSubmitting(true); setFormErr("");
-    
-    var agendaObj = agendaList.find(a => a.id == selectedAgenda);
-    var poinGabungan = `[Agenda Referensi: ${agendaObj ? (agendaObj.nama_acara||agendaObj.judul) : "Manual"}]\n\nCatatan:\n${keterangan.trim()}`;
-
-    try {
-      var payload = {
-        judul:         judul.trim(),
-        poin_lapangan: poinGabungan,
-        draf_ai:       previewDraf.trim(),
-        status:        "pending_kasubbag",
-        pembuat:       user.username,
-      };
-
-      var res = await fetch(supa.url + "/rest/v1/rilis_berita", {
-        method: "POST",
-        headers: Object.assign({}, supaHeaders(supa.key), { "Prefer": "return=minimal" }),
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) throw new Error("Gagal menyimpan ke database.");
-
-      setJudul(""); setSelectedAgenda(""); setKeterangan(""); setPreviewDraf(""); setIsPreviewMode(false);
-      setFormSuccess("✅ Berhasil! Draf liputan Anda sudah mendarat di Meja Kasubbag.");
-      fetchRiwayat();
-      setTimeout(() => setFormSuccess(""), 4000);
-
-    } catch(e) { setFormErr(e.message); } 
-    finally { setSubmitting(false); }
-  }
-
-  return (
-    <div style={{ flex:1, overflowY:"auto", background:"#F0F4FA", paddingBottom:40 }}>
-      <div style={{ background:"linear-gradient(135deg," + NAVY + " 0%,#1A3060 100%)", padding:"24px 24px 20px" }}>
-        <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:6 }}>
-          <div style={{ width:42, height:42, borderRadius:12, background:"rgba(201,168,76,0.18)", border:"1.5px solid rgba(201,168,76,0.4)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:20, flexShrink:0 }}>📡</div>
-          <div>
-            <div style={{ color:GOLD, fontSize:9, fontWeight:700, letterSpacing:2, textTransform:"uppercase" }}>AI Newsroom</div>
-            <div style={{ color:"white", fontSize:19, fontWeight:900 }}>Dapur Peliputan</div>
-          </div>
-        </div>
-        <div style={{ color:"rgba(255,255,255,0.5)", fontSize:11 }}>Tulis judul, pilih jadwal acara, dan catat temuan lapangan Anda</div>
-      </div>
-
-      <div style={{ padding:"18px 18px 0" }}>
-        {formErr && <div style={{ background:"#FEF2F2", border:"1px solid #FECACA", borderRadius:9, padding:"10px 13px", marginBottom:12, fontSize:12, color:"#991B1B", fontWeight:600 }}>⚠️ {formErr}</div>}
-        {formSuccess && <div style={{ background:"#D1FAE5", border:"1px solid #6EE7B7", borderRadius:9, padding:"10px 13px", marginBottom:12, fontSize:12, color:"#065F46", fontWeight:600 }}>{formSuccess}</div>}
-
-        <div style={{ background:"white", borderRadius:16, padding:"20px", boxShadow:"0 2px 16px rgba(10,22,40,0.08)", border:"1.5px solid #E8EDF4", marginBottom:20 }}>
-          {!isPreviewMode ? (
-            <>
-              <div style={{ fontSize:13, fontWeight:800, color:NAVY, marginBottom:16, display:"flex", alignItems:"center", gap:7 }}><span>✏️</span> Input Berita Baru</div>
-              
-              {/* 1. Judul Berita (Kreasi Pembuat) */}
-              <div style={{ marginBottom:14 }}>
-                <label style={labelStyle}>Judul Berita (Kreasi Anda) <span style={{ color:"#EF4444" }}>*</span></label>
-                <input type="text" value={judul} onChange={e => setJudul(e.target.value)} placeholder="Contoh: Wali Kota Buka Festival Budaya Iraw Tengkayu..." style={inputStyle} />
-              </div>
-
-              {/* 2. Pilih Agenda (Sumber 5W1H) */}
-              <div style={{ marginBottom:14 }}>
-                <label style={labelStyle}>Agenda Terkait (Sumber 5W+1H) <span style={{ color:"#EF4444" }}>*</span></label>
-                <select value={selectedAgenda} onChange={(e) => setSelectedAgenda(e.target.value)} style={Object.assign({}, inputStyle, { background:"#F8FAFC", border:"1.5px solid #CBD5E1", cursor:"pointer", fontWeight:600 })}>
-                  <option value="">-- Pilih Agenda dari Jadwal --</option>
-                  {agendaList.map(a => <option key={a.id} value={a.id}>{a.nama_acara || a.judul} - {fmtDate(a.tanggal)}</option>)}
-                  <option value="manual">➕ Tidak Ada di Jadwal (Liputan Insidental)</option>
-                </select>
-                <div style={{ fontSize:10, color:"#64748B", marginTop:6 }}>AI akan menggunakan data lokasi dan waktu dari agenda ini.</div>
-              </div>
-
-              {/* 3. Keterangan Tambahan */}
-              <div style={{ marginBottom:16 }}>
-                <label style={labelStyle}>Catatan Lapangan (Suasana & Kutipan) <span style={{ color:"#EF4444" }}>*</span></label>
-                <textarea value={keterangan} onChange={e => setKeterangan(e.target.value)} rows={6} placeholder={`- Wali Kota menyampaikan: "Pemkot akan terus mendukung..."\n- Acara berlangsung meriah dihadiri lebih dari 500 warga\n- Bantuan modal diserahkan langsung kepada perwakilan.`} style={Object.assign({}, inputStyle, { resize:"vertical", lineHeight:1.65 })} />
-              </div>
-
-              <button onClick={handleGenerate} disabled={submitting} style={{ width:"100%", padding:"14px", borderRadius:12, border:"none", background: submitting ? "#94A3B8" : "linear-gradient(135deg,#7C3AED,#5B21B6)", color:"white", fontSize:14, fontWeight:800, cursor: submitting ? "not-allowed" : "pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:10, boxShadow: submitting ? "none" : "0 4px 18px rgba(124,58,237,0.35)" }}>
-                {submitting ? <NRSpinner/> : <><span>✨</span> Racik Draf dengan AI</>}
-              </button>
-            </>
-          ) : (
-            <>
-              <div style={{ fontSize:13, fontWeight:800, color:"#4C1D95", marginBottom:8, display:"flex", alignItems:"center", gap:7 }}><span>👀</span> Pratinjau Draf AI</div>
-              <div style={{ fontSize:11, color:"#64748B", marginBottom:14, lineHeight:1.5 }}>Baca dan edit draf di bawah ini. AI telah menggabungkan Judul kreasi Anda, jadwal dari Agenda, dan fakta dari catatan Anda.</div>
-              
-              <div style={{ fontSize:14, fontWeight:900, color:NAVY, marginBottom:10 }}>{judul}</div>
-              <div style={{ marginBottom:16 }}>
-                <textarea value={previewDraf} onChange={e => setPreviewDraf(e.target.value)} rows={12} style={Object.assign({}, inputStyle, { resize:"vertical", lineHeight:1.75, background:"#FAFBFF", border:"1.5px solid #C4B5FD", color:"#334155" })} />
-              </div>
-
-              <div style={{ display:"flex", gap:10 }}>
-                <button onClick={handleKirimKeKasubbag} disabled={submitting} style={{ flex:2, padding:"13px", borderRadius:12, border:"none", background: submitting ? "#94A3B8" : "linear-gradient(135deg,#059669,#047857)", color:"white", fontSize:13, fontWeight:800, cursor: submitting ? "not-allowed" : "pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>
-                  {submitting ? <NRSpinner/> : <span>🚀 Kirim ke Kasubbag</span>}
-                </button>
-                <button onClick={() => { setIsPreviewMode(false); setFormSuccess(""); }} disabled={submitting} style={{ flex:1, padding:"13px", borderRadius:12, border:"1.5px solid #CBD5E1", background:"white", color:"#475569", fontSize:13, fontWeight:700, cursor: submitting ? "not-allowed" : "pointer" }}>Edit Catatan</button>
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* ── Riwayat ── */}
-        <div style={{ marginBottom:8 }}>
-          <div style={{ fontSize:12, fontWeight:800, color:NAVY, textTransform:"uppercase", letterSpacing:1, marginBottom:12 }}>📋 Riwayat Liputan Anda</div>
-          {loadRiwayat ? <SkeletonList count={2}/> : riwayat.length === 0 ? <EmptyState icon="📰" title="Belum Ada Liputan"/> : riwayat.map(item => {
-            var exp = expandedId === item.id;
-            return (
-              <div key={item.id} className="nr-card" style={{ background:"white", borderRadius:14, marginBottom:10, border:"1.5px solid " + (item.status === "published" ? "#6EE7B7" : item.status === "pending_kasubbag" ? "#FDE68A" : item.catatan_revisi ? "#FECACA" : "#E8EDF4"), overflow:"hidden", boxShadow:"0 1px 8px rgba(10,22,40,0.06)" }}>
-                <div onClick={() => setExpandedId(exp ? null : item.id)} style={{ padding:"13px 16px", cursor:"pointer" }}>
-                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:8, marginBottom:5 }}><div style={{ fontSize:13, fontWeight:700, color:NAVY, flex:1, lineHeight:1.35 }}>{item.judul}</div><StatusBadge status={item.status} hasCatatan={!!item.catatan_revisi}/></div>
-                  <div style={{ fontSize:11, color:"#94A3B8" }}>🕐 {fmtTs(item.created_at)}</div>
-                </div>
-                {exp && (
-                  <div style={{ borderTop:"1px solid #F1F5F9", padding:"12px 16px", background:"#FAFBFF" }}>
-                    {item.catatan_revisi && <div style={{ background:"#FEF2F2", border:"1px solid #FECACA", borderRadius:9, padding:"10px 12px", marginBottom:12 }}><div style={{ fontSize:10, fontWeight:700, color:"#991B1B", marginBottom:4 }}>Revisi Kasubbag</div><p style={{ fontSize:12, color:"#7F1D1D", margin:0 }}>{item.catatan_revisi}</p></div>}
-                    <DetailBlock label="Bahan & Catatan" value={item.poin_lapangan}/>
-                    {item.draf_ai && <DetailBlock label="Draf Berita" value={item.draf_ai} accent/>}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ════════════════════════════════════════════════════════════
-//  VIEW 2: KURASI — Kasubbag Komdokpim
-// ════════════════════════════════════════════════════════════
-function KurasiView({ user }) {
-  var supa = getSupaConfig();
-  var [items,      setItems]      = useState([]);
-  var [loading,    setLoading]    = useState(true);
-  var [actionId,   setActionId]   = useState(null);
-  var [revisiId,   setRevisiId]   = useState(null);
-  var [catatanRev, setCatatanRev] = useState("");
-  var [actionLoad, setActionLoad] = useState(false);
-  var [toast,      setToast]      = useState("");
-
-  function showToast(msg) { setToast(msg); setTimeout(() => setToast(""), 3000); }
-
-  var fetchItems = useCallback(function() {
-    if (!supa.ok) { setLoading(false); return; }
+  const generateNews = async () => {
+    if (!poinPenting.trim()) {
+      showT("Masukkan poin penting atau hasil liputan lapangan dulu", "error");
+      return;
+    }
     setLoading(true);
-    fetch(supa.url + "/rest/v1/rilis_berita?status=eq.pending_kasubbag&order=created_at.asc&limit=50", { headers: supaHeaders(supa.key) })
-      .then(r => r.json()).then(d => setItems(Array.isArray(d) ? d : [])).finally(() => setLoading(false));
-  }, [supa.ok, supa.url, supa.key]);
-
-  useEffect(() => { fetchItems(); }, [fetchItems]);
-
-  async function handlePublish(item) {
-    if (!supa.ok) return;
-    setActionLoad(true); setActionId(item.id);
     try {
-      var res = await fetch(supa.url + "/rest/v1/rilis_berita?id=eq." + item.id, {
-        method: "PATCH", headers: Object.assign({}, supaHeaders(supa.key), { "Prefer": "return=minimal" }),
-        body: JSON.stringify({ status: "published", dikurasi_oleh: user.username, published_at: new Date().toISOString() }),
+      // Panggil backend AI yang sudah Bapak siapkan di api/ai-newsroom.js
+      const res = await fetch("/api/ai-newsroom", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          namaAcara: selectedEv.namaAcara,
+          tanggal: fmtDate(selectedEv.tanggal),
+          lokasi: selectedEv.lokasi || "Kota Tarakan",
+          penyelenggara: selectedEv.penyelenggara,
+          poinPenting: poinPenting,
+          format: format
+        })
       });
-      if (!res.ok) throw new Error("Gagal mempublikasi.");
-      showToast("✅ Berita berhasil dipublikasi!"); fetchItems();
-    } catch(e) { showToast("⚠️ " + e.message); } finally { setActionLoad(false); setActionId(null); }
-  }
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal menghubungi AI");
+      
+      setHasilAI(data.result || data.text || "Tidak ada hasil dari AI");
+      showT("Berita berhasil diracik AI! 🪄", "ok");
+    } catch (err) {
+      showT(err.message, "error");
+      // Fallback jika API belum nyala (Simulasi)
+      setHasilAI(`[DRAF SIMULASI]\n\nPada tanggal ${fmtDate(selectedEv.tanggal)}, bertempat di ${selectedEv.lokasi}, telah berlangsung acara ${selectedEv.namaAcara}.\n\nPoin Utama:\n${poinPenting}\n\n(Catatan: Ini adalah draf simulasi karena koneksi ke API AI terputus. Pastikan file api/ai-newsroom.js sudah terhubung ke OpenAI/Gemini)`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  async function handleRevisi(item) {
-    if (!catatanRev.trim()) { showToast("⚠️ Isi catatan revisi."); return; }
-    setActionLoad(true); setActionId(item.id);
-    try {
-      var res = await fetch(supa.url + "/rest/v1/rilis_berita?id=eq." + item.id, {
-        method: "PATCH", headers: Object.assign({}, supaHeaders(supa.key), { "Prefer": "return=minimal" }),
-        body: JSON.stringify({ status: "draft_timkom", catatan_revisi: catatanRev.trim(), dikurasi_oleh: user.username }),
-      });
-      if (!res.ok) throw new Error("Gagal mengirim revisi.");
-      showToast("↩ Berita dikembalikan ke Timkom."); setRevisiId(null); setCatatanRev(""); fetchItems();
-    } catch(e) { showToast("⚠️ " + e.message); } finally { setActionLoad(false); setActionId(null); }
-  }
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(hasilAI);
+    showT("Teks berhasil disalin!", "ok");
+  };
 
-  return (
-    <div style={{ flex:1, overflowY:"auto", background:"#F0F4FA", paddingBottom:40 }}>
-      {toast && <div style={{ position:"fixed", top:20, left:"50%", transform:"translateX(-50%)", zIndex:9999, padding:"12px 20px", borderRadius:14, background: toast.startsWith("✅") ? "#065F46" : NAVY, color:"white", fontSize:13, fontWeight:700 }}>{toast}</div>}
-      <div style={{ background:"linear-gradient(135deg," + NAVY + " 0%,#1A3060 100%)", padding:"24px 24px 20px" }}>
-        <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:6 }}>
-          <div style={{ width:42, height:42, borderRadius:12, background:"rgba(201,168,76,0.18)", border:"1.5px solid rgba(201,168,76,0.4)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:20 }}>✍️</div>
-          <div><div style={{ color:GOLD, fontSize:9, fontWeight:700, letterSpacing:2, textTransform:"uppercase" }}>AI Newsroom</div><div style={{ color:"white", fontSize:19, fontWeight:900 }}>Meja Kurasi</div></div>
+  if (selectedEv) {
+    return (
+      <div style={{ padding: isMobile ? "16px" : "24px", maxWidth: 800, margin: "0 auto" }}>
+        <button onClick={() => { setSelectedEv(null); setHasilAI(""); setPoinPenting(""); }} style={{ background:"transparent", border:"none", color:NAVY, fontWeight:700, cursor:"pointer", marginBottom:16, fontSize:14 }}>
+          ← Kembali ke Daftar Kegiatan
+        </button>
+        
+        <div style={{ background: "white", borderRadius: 16, padding: "20px", boxShadow: "0 4px 12px rgba(0,0,0,0.05)", border: "1px solid #E2E8F0" }}>
+          <div style={{ fontSize: 12, color: GOLD, fontWeight: 800, textTransform: "uppercase", letterSpacing: 1 }}>Target Liputan</div>
+          <div style={{ fontSize: 18, fontWeight: 900, color: NAVY, marginBottom: 4 }}>{selectedEv.namaAcara}</div>
+          <div style={{ fontSize: 13, color: "#64748b", marginBottom: 20 }}>📅 {fmtDate(selectedEv.tanggal)} · 📍 {selectedEv.lokasi || "-"}</div>
+
+          <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: NAVY, marginBottom: 8 }}>Poin Penting Liputan / Catatan Lapangan 📝</label>
+          <textarea 
+            value={poinPenting}
+            onChange={(e) => setPoinPenting(e.target.value)}
+            placeholder="Contoh: Wali Kota membuka acara. Dihadiri 500 peserta. Penekanan pada pentingnya kolaborasi antar instansi untuk menekan inflasi daerah..."
+            style={{ width: "100%", padding: "12px", borderRadius: 10, border: "1.5px solid #CBD5E1", minHeight: 100, fontSize: 14, marginBottom: 16, fontFamily: "inherit" }}
+          />
+
+          <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: NAVY, marginBottom: 8 }}>Format Output AI 🤖</label>
+          <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+            <button onClick={() => setFormat("rilis")} style={{ flex: 1, padding: "10px", borderRadius: 8, border: format === "rilis" ? "none" : "1.5px solid #E2E8F0", background: format === "rilis" ? NAVY : "white", color: format === "rilis" ? "white" : "#64748B", fontWeight: 700, cursor: "pointer" }}>📰 Rilis Berita Web</button>
+            <button onClick={() => setFormat("caption")} style={{ flex: 1, padding: "10px", borderRadius: 8, border: format === "caption" ? "none" : "1.5px solid #E2E8F0", background: format === "caption" ? "#C9A84C" : "white", color: format === "caption" ? "white" : "#64748B", fontWeight: 700, cursor: "pointer" }}>📱 Caption Instagram</button>
+          </div>
+
+          <button onClick={generateNews} disabled={loading} style={{ width: "100%", padding: "14px", borderRadius: 10, border: "none", background: "linear-gradient(135deg, #0A1628, #1A305E)", color: "white", fontWeight: 800, fontSize: 15, cursor: loading ? "not-allowed" : "pointer", display: "flex", justifyContent: "center", alignItems: "center", gap: 8 }}>
+            {loading ? "⏳ AI Sedang Menulis..." : "✨ Generate Berita dengan AI"}
+          </button>
         </div>
-      </div>
-      <div style={{ padding:"18px 18px 0" }}>
-        {loading ? <SkeletonList count={3}/> : items.length === 0 ? <EmptyState icon="🎉" title="Antrian Kosong" sub="Semua berita sudah dikurasi."/> : items.map(item => {
-          var isRevisi = revisiId === item.id;
-          var isActing = actionId === item.id && actionLoad;
-          return (
-            <div key={item.id} className="nr-card" style={{ background:"white", borderRadius:16, marginBottom:16, border:"1.5px solid #FDE68A", boxShadow:"0 4px 18px rgba(10,22,40,0.09)", overflow:"hidden" }}>
-              <div style={{ background:"linear-gradient(90deg,#FEF9EC,#FFFBEB)", padding:"10px 16px", borderBottom:"1px solid #FDE68A", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                <div style={{ fontSize:10, fontWeight:700, color:"#B45309", textTransform:"uppercase" }}>Menunggu Kurasi</div><div style={{ fontSize:11, color:"#94A3B8" }}>📡 {item.pembuat} · {fmtTs(item.created_at)}</div>
-              </div>
-              <div style={{ padding:"16px" }}>
-                <div style={{ fontSize:16, fontWeight:900, color:NAVY, lineHeight:1.35, marginBottom:14 }}>{item.judul}</div>
-                <div style={{ marginBottom:14 }}><div style={sectionLabelStyle}>📍 Bahan & Catatan Peliput</div><div style={{ background:"#F8FAFC", borderRadius:10, padding:"11px 13px", fontSize:12.5, color:"#334155", lineHeight:1.75, whiteSpace:"pre-wrap", border:"1px solid #E8EDF4" }}>{item.poin_lapangan}</div></div>
-                {item.draf_ai && <div style={{ marginBottom:16 }}><div style={sectionLabelStyle}>✨ Draf AI</div><div style={{ background:"linear-gradient(135deg,#F5F3FF,#EDE9FE)", border:"1.5px solid #C4B5FD", borderRadius:10, padding:"12px 14px", fontSize:12.5, color:"#4C1D95", lineHeight:1.75, whiteSpace:"pre-wrap" }}>{item.draf_ai}</div></div>}
-                
-                {isRevisi ? (
-                  <div style={{ background:"#FEF2F2", border:"1.5px solid #FECACA", borderRadius:12, padding:"14px" }}>
-                    <div style={{ fontSize:12, fontWeight:700, color:"#991B1B", marginBottom:8 }}>✍️ Catatan Revisi</div>
-                    <textarea value={catatanRev} onChange={e => setCatatanRev(e.target.value)} rows={3} style={Object.assign({}, inputStyle, { border:"1.5px solid #FECACA" })} />
-                    <div style={{ display:"flex", gap:8, marginTop:10 }}><button onClick={() => handleRevisi(item)} disabled={isActing} style={{ flex:2, padding:"10px", borderRadius:10, border:"none", background: isActing ? "#94A3B8" : "#DC2626", color:"white", fontWeight:700 }}>{isActing ? "Mengirim..." : "↩ Kirim Revisi"}</button><button onClick={() => { setRevisiId(null); setCatatanRev(""); }} style={{ flex:1, padding:"10px", borderRadius:10, border:"1px solid #E2E8F0", background:"white" }}>Batal</button></div>
-                  </div>
-                ) : (
-                  <div style={{ display:"flex", gap:10 }}>
-                    <button onClick={() => handlePublish(item)} disabled={isActing} style={{ flex:3, padding:"13px", borderRadius:12, border:"none", background: isActing ? "#94A3B8" : "linear-gradient(135deg,#059669,#047857)", color:"white", fontSize:13, fontWeight:800, display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>{isActing && actionId === item.id ? <NRSpinner/> : <span>✅</span>} Setujui & Publish</button>
-                    <button onClick={() => setRevisiId(item.id)} disabled={isActing} style={{ flex:2, padding:"13px", borderRadius:12, border:"1.5px solid #DC2626", background:"white", color:"#DC2626", fontSize:13, fontWeight:700 }}>✍️ Revisi</button>
-                  </div>
-                )}
-              </div>
+
+        {hasilAI && (
+          <div style={{ background: "#F8FAFC", borderRadius: 16, padding: "20px", marginTop: 20, border: "1px solid #E2E8F0" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <div style={{ fontSize: 14, fontWeight: 800, color: NAVY }}>📝 Hasil Draf AI</div>
+              <button onClick={copyToClipboard} style={{ padding: "6px 12px", borderRadius: 6, border: "none", background: "#E2E8F0", color: NAVY, fontWeight: 700, cursor: "pointer", fontSize: 12 }}>📋 Copy Teks</button>
             </div>
-          );
-        })}
+            <div style={{ whiteSpace: "pre-wrap", fontSize: 14, color: "#334155", lineHeight: 1.6 }}>
+              {hasilAI}
+            </div>
+          </div>
+        )}
       </div>
-    </div>
-  );
-}
-
-// ════════════════════════════════════════════════════════════
-//  VIEW 3: MONITORING — Kabag
-// ════════════════════════════════════════════════════════════
-function MonitoringView({ user }) {
-  var supa = getSupaConfig();
-  var [items, setItems] = useState([]);
-  var [loading, setLoading] = useState(true);
-  var [expandedId, setExpandedId] = useState(null);
-
-  useEffect(() => {
-    if (!supa.ok) return;
-    fetch(supa.url + "/rest/v1/rilis_berita?order=created_at.desc&limit=60", { headers: supaHeaders(supa.key) })
-      .then(r => r.json()).then(d => setItems(Array.isArray(d) ? d : [])).finally(() => setLoading(false));
-  }, [supa]);
+    );
+  }
 
   return (
-    <div style={{ flex:1, overflowY:"auto", background:"#F0F4FA", paddingBottom:40 }}>
-      <div style={{ background:"linear-gradient(135deg," + NAVY + " 0%,#1A3060 100%)", padding:"24px 24px 20px" }}>
-        <div style={{ display:"flex", alignItems:"center", gap:12 }}><div style={{ fontSize:20 }}>📊</div><div><div style={{ color:GOLD, fontSize:9, fontWeight:700 }}>AI NEWSROOM</div><div style={{ color:"white", fontSize:19, fontWeight:900 }}>Monitoring</div></div></div>
+    <div style={{ padding: isMobile ? "16px" : "24px", maxWidth: 800, margin: "0 auto" }}>
+      <div style={{ background: "linear-gradient(135deg, #0A1628, #1A305E)", padding: "24px", borderRadius: 16, color: "white", marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div>
+          <div style={{ color: GOLD, fontSize: 11, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Prokopim Studio</div>
+          <div style={{ fontSize: 22, fontWeight: 900 }}>AI Newsroom 📰</div>
+          <div style={{ fontSize: 13, opacity: 0.8, marginTop: 4 }}>Pilih kegiatan yang sudah tayang untuk dibuatkan rilis beritanya.</div>
+        </div>
+        <div style={{ fontSize: 40 }}>🤖</div>
       </div>
-      <div style={{ padding:"18px 18px 0" }}>
-        {loading ? <SkeletonList count={4}/> : items.map(item => {
-          var exp = expandedId === item.id;
-          return (
-            <div key={item.id} className="nr-card" style={{ background:"white", borderRadius:14, marginBottom:10, border:"1px solid #E2E8F0" }}>
-              <div onClick={() => setExpandedId(exp ? null : item.id)} style={{ padding:"13px 16px" }}>
-                <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}><div style={{ fontSize:13, fontWeight:700, color:NAVY }}>{item.judul}</div><StatusBadge status={item.status}/></div>
-                <div style={{ fontSize:11, color:"#94A3B8" }}>📡 {item.pembuat} · {fmtTs(item.created_at)}</div>
+
+      <div style={{ fontSize: 14, fontWeight: 800, color: NAVY, marginBottom: 12 }}>Pilih Kegiatan Terbaru:</div>
+      
+      {jadwalTayang.length === 0 ? (
+        <div style={{ textAlign: "center", padding: "40px 20px", background: "white", borderRadius: 16, border: "1px solid #E2E8F0" }}>Belum ada jadwal tayang.</div>
+      ) : (
+        <div style={{ display: "grid", gap: 12 }}>
+          {jadwalTayang.map(ev => (
+            <div key={ev.id} onClick={() => setSelectedEv(ev)} style={{ background: "white", borderRadius: 12, padding: "16px", border: "1px solid #E2E8F0", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", boxShadow: "0 2px 4px rgba(0,0,0,0.02)" }}>
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 800, color: NAVY, marginBottom: 4 }}>{ev.namaAcara}</div>
+                <div style={{ fontSize: 12, color: "#64748B" }}>📅 {fmtDate(ev.tanggal)} · 📍 {ev.lokasi || "Lokasi tidak diatur"}</div>
               </div>
-              {exp && <div style={{ borderTop:"1px solid #F1F5F9", padding:"13px 16px", background:"#FAFBFF" }}><DetailBlock label="Bahan & Catatan" value={item.poin_lapangan}/>{item.draf_ai && <DetailBlock label="Draf AI" value={item.draf_ai} accent/>}</div>}
+              <div style={{ background: "#F1F5F9", padding: "8px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700, color: NAVY }}>
+                Tulis Berita →
+              </div>
             </div>
-          );
-        })}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
-
-// ════════════════════════════════════════════════════════════
-//  SHARED COMPONENTS
-// ════════════════════════════════════════════════════════════
-function StatusBadge({ status, hasCatatan }) {
-  var key = hasCatatan && status === "draft_timkom" ? "revisi" : (status || "draft_timkom");
-  var cfg = STATUS_CFG[key] || STATUS_CFG.draft_timkom;
-  return <span style={{ display:"inline-flex", alignItems:"center", gap:5, background:cfg.bg, color:cfg.color, borderRadius:20, padding:"3px 10px", fontSize:10, fontWeight:700 }}><span style={{ width:6, height:6, borderRadius:"50%", background:cfg.dot }}/>{cfg.label}</span>;
-}
-
-function DetailBlock({ label, value, accent, warn }) {
-  var bg = warn ? "#FEF2F2" : accent ? "#F5F3FF" : "#F8FAFC", brd = warn ? "#FECACA" : accent ? "#C4B5FD" : "#E8EDF4", clr = warn ? "#7F1D1D" : accent ? "#4C1D95" : "#334155";
-  return <div style={{ marginBottom:12 }}><div style={{ fontSize:10, fontWeight:700, color: warn ? "#991B1B" : accent ? "#5B21B6" : "#94A3B8", textTransform:"uppercase", marginBottom:5 }}>{label}</div><div style={{ background:bg, border:"1px solid " + brd, borderRadius:10, padding:"10px 13px", fontSize:12.5, color:clr, whiteSpace:"pre-wrap" }}>{value}</div></div>;
-}
-
-function SkeletonList({ count }) { return <div>{Array.from({ length: count || 3 }).map((_, i) => <div key={i} style={{ background:"white", borderRadius:14, marginBottom:10, padding:16, border:"1px solid #E8EDF4" }}><div style={{ height:14, background:"#F1F5F9", width:"70%", marginBottom:9 }}/><div style={{ height:10, background:"#F8FAFC", width:"40%" }}/></div>)}</div>; }
-
-function EmptyState({ icon, title, sub }) { return <div style={{ textAlign:"center", padding:"48px 24px", background:"white", borderRadius:16, border:"1px solid #E8EDF4" }}><div style={{ fontSize:44, marginBottom:12 }}>{icon}</div><div style={{ fontSize:15, fontWeight:800, color:NAVY, marginBottom:6 }}>{title}</div><div style={{ fontSize:12, color:"#64748B" }}>{sub}</div></div>; }
-
-function NRSpinner() { return <span className="nr-spinner" style={{ width:15, height:15, borderRadius:"50%", border:"2.5px solid rgba(255,255,255,0.3)", borderTopColor:"white", display:"inline-block" }}/>; }
-
-var labelStyle = { display:"block", fontSize:12, fontWeight:700, color:"#475569", marginBottom:6 };
-var inputStyle = { width:"100%", padding:"11px 13px", borderRadius:11, border:"1.5px solid #D1D9E6", fontSize:14, color:NAVY, background:"white", outline:"none", fontFamily:"inherit", boxSizing:"border-box" };
-var sectionLabelStyle = { fontSize:10, fontWeight:700, color:"#94A3B8", textTransform:"uppercase", marginBottom:6 };
