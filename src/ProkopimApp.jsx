@@ -2296,91 +2296,84 @@ function AdminModal({onClose, showT, events, updAndSync}) {
   // 3. FUNGSI SINKRONISASI DRIVE (Server to Server Anti Gagal)
   const syncAllToDrive = async () => {
     if (!events || events.length === 0) { showT("Data jadwal belum termuat.", "error"); return; }
-    
-    const pendingSync = events.filter(e => 
-      (e.undanganFile && typeof e.undanganFile === 'string' && !e.undanganFile.includes("drive.google.com") && e.undanganFile.length > 50) ||
-      (e.sambutanFile && typeof e.sambutanFile === 'string' && !e.sambutanFile.includes("drive.google.com") && e.sambutanFile.length > 50)
+
+    // Filter: hanya agenda yang masih berupa Base64 atau URL bukan Drive
+    const pendingSync = events.filter(e =>
+      (e.undanganFile && typeof e.undanganFile === "string" &&
+       !e.undanganFile.includes("drive.google.com") && e.undanganFile.length > 50) ||
+      (e.sambutanFile && typeof e.sambutanFile === "string" &&
+       !e.sambutanFile.includes("drive.google.com") && e.sambutanFile.length > 50)
     );
 
     if (pendingSync.length === 0) {
-      setSyncState({ running: false, done: true, fileName: "Semua arsip sudah terstruktur rapi di Google Drive ✅", total: 0, current: 0 });
+      setSyncState({ running: false, done: true, total: 0, current: 0,
+        fileName: "Semua arsip sudah terstruktur rapi di Google Drive ✅" });
       return;
     }
 
-    setSyncState({ running: true, total: pendingSync.length, current: 0, fileName: "Menyiapkan mesin Direct Upload...", done: false });
+    setSyncState({ running: true, total: pendingSync.length, current: 0,
+      fileName: "Memulai sinkronisasi Cloud-to-Cloud...", done: false });
     let totalMoved = 0;
 
     for (let i = 0; i < pendingSync.length; i++) {
       const ev = pendingSync[i];
-      const tasks = [];
-      if (ev.undanganFile && typeof ev.undanganFile === 'string' && !ev.undanganFile.includes("drive.google.com")) tasks.push("undangan");
-      if (ev.sambutanFile && typeof ev.sambutanFile === 'string' && !ev.sambutanFile.includes("drive.google.com")) tasks.push("sambutan");
+      setSyncState(prev => ({
+        ...prev, current: i + 1,
+        fileName: "Memproses: " + (ev.namaAcara || "").slice(0, 50) + "...",
+      }));
 
-      for (const type of tasks) {
-        try {
-          const dateObj = new Date(ev.tanggal);
-          const monthNames = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
-          const yearFolder = dateObj.getFullYear().toString();
-          const monthFolder = monthNames[dateObj.getMonth()];
-          const subFolder = type === "undangan" ? "Undangan" : "Sambutan";
-
-          const cleanEventName = ev.namaAcara.replace(/[^a-zA-Z0-9 \-]/g, "").substring(0, 40);
-          const formattedFileName = `${ev.tanggal} - ${type.toUpperCase()} - ${cleanEventName}.pdf`;
-
-          setSyncState(prev => ({ ...prev, current: i + 1, fileName: `Mengupload: ${formattedFileName}` }));
-
-          const fileSource = type === "undangan" ? ev.undanganFile : ev.sambutanFile;
-
-          // 1. Konversi Teks/URL ke Wujud Fisik (Blob)
-          let blob; let finalMime = "application/pdf";
-          if (fileSource.startsWith('data:')) {
-            const arr = fileSource.split(','); finalMime = arr[0].match(/:(.*?);/)[1];
-            const bstr = atob(arr[1]); let n = bstr.length; const u8arr = new Uint8Array(n);
-            while(n--){ u8arr[n] = bstr.charCodeAt(n); } blob = new Blob([u8arr], {type: finalMime});
-          } else if (fileSource.startsWith('http')) {
-            const res = await fetch(fileSource); blob = await res.blob(); finalMime = blob.type || "application/pdf";
-          } else {
-            const bstr = atob(fileSource); let n = bstr.length; const u8arr = new Uint8Array(n);
-            while(n--){ u8arr[n] = bstr.charCodeAt(n); } blob = new Blob([u8arr], {type: "application/pdf"});
-          }
-
-          // 2. Konversi blob ke base64 lalu kirim ke server (server yang upload ke Drive)
-          const base64 = await new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onload = e => resolve(e.target.result); // data:mime;base64,...
-            reader.readAsDataURL(blob);
-          });
-
-          // 3. Server-to-Server upload (aman dari CORS & batas payload)
-          const resUpload = await fetch("/api/drive?action=upload", {
-            method:  "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              fileBase64: base64,
-              mimeType:   finalMime,
-              fileName:   formattedFileName,
-              agendaId:   String(ev.id),
-              agendaDate: ev.tanggal,
-              fileType:   type,
-            }),
-          });
-          const dataUpload = await resUpload.json();
-
-          if (dataUpload.ok) {
-            await updAndSync(ev.id, { [type === "undangan" ? "undanganFile" : "sambutanFile"]: dataUpload.fileUrl });
-            totalMoved++;
-          } else {
-            throw new Error(dataUpload.error || "Upload gagal");
-          }
-        } catch (err) {
-          console.error(`Error ${ev.id}:`, err);
+      try {
+        // ── STEP A: Jika file masih base64 di state browser,
+        //    upload dulu ke Supabase Storage (browser → Supabase, tidak lewat Vercel)
+        const toUpload = {};
+        if (ev.undanganFile && ev.undanganFile.startsWith("data:")) {
+          const blob = await (await fetch(ev.undanganFile)).blob();
+          const url  = await storageUpload("undangan", ev.id, blob);
+          if (url) toUpload.undanganFile = url;
         }
+        if (ev.sambutanFile && ev.sambutanFile.startsWith("data:")) {
+          const blob = await (await fetch(ev.sambutanFile)).blob();
+          const url  = await storageUpload("sambutan", ev.id, blob);
+          if (url) toUpload.sambutanFile = url;
+        }
+        // Simpan URL Storage ke Supabase dulu (updAndSync → dbUpsert)
+        if (Object.keys(toUpload).length > 0) {
+          updAndSync(ev.id, toUpload);
+          // Tunggu sebentar agar Supabase menerima data sebelum server fetch
+          await new Promise(r => setTimeout(r, 600));
+        }
+
+        // ── STEP B: Kirim HANYA agendaId ke Vercel
+        //    Server fetch dari Supabase (URL Storage/Drive) → upload ke Drive
+        const res  = await fetch("/api/drive?action=sync_one_from_db", {
+          method:  "POST",
+          headers: { "Content-Type": "application/json" },
+          body:    JSON.stringify({ agendaId: String(ev.id) }),
+        });
+        const data = await res.json();
+
+        if (data.ok) {
+          const localPatch = {};
+          if (data.undangan) localPatch.undanganFile = data.undangan;
+          if (data.sambutan) localPatch.sambutanFile = data.sambutan;
+          if (Object.keys(localPatch).length > 0) {
+            setEvents(prev => prev.map(e => e.id === ev.id ? { ...e, ...localPatch } : e));
+            totalMoved++;
+          }
+        } else if (data.error) {
+          console.warn("sync_one_from_db gagal untuk", ev.id, ":", data.error);
+        }
+      } catch (err) {
+        console.error("Error sinkronisasi agenda", ev.id, ":", err.message);
       }
-      // Jeda 1 detik agar tidak dikira spam oleh Google
-      await new Promise(r => setTimeout(r, 1000)); 
+
+      await new Promise(r => setTimeout(r, 800));
     }
-    
-    setSyncState(prev => ({ ...prev, running: false, done: true, fileName: `Misi Selesai! ${totalMoved} file berhasil mendarat di Drive.` }));
+
+    setSyncState(prev => ({
+      ...prev, running: false, done: true,
+      fileName: "Misi Selesai! " + totalMoved + " agenda berhasil diarsipkan ke Drive.",
+    }));
   };
   const inp = {width: "100%", padding: "9px 11px", borderRadius: 8, border: "1.5px solid #e2e8f0", fontSize: 13, background: "white", color: "#1e293b"};
 
@@ -4634,30 +4627,31 @@ export default function App(){
     showT("Mengunggah naskah ke Google Drive...", "warn");
     try {
       // Konversi file ke base64 dulu, lalu kirim ke server (bukan langsung ke Drive)
-      const fileBase64 = await new Promise((resolve, reject) => {
+      // Simpan ke Supabase dulu (sebagai Base64/blob URL cadangan)
+      const b64temp = await new Promise((resolve, reject) => {
         const r = new FileReader();
-        r.onload  = e => resolve(e.target.result); // data:mime;base64,xxx
+        r.onload  = e => resolve(e.target.result);
         r.onerror = reject;
         r.readAsDataURL(file);
       });
-      const res = await fetch("/api/drive?action=upload", {
+      // Simpan Base64 ke Supabase terlebih dahulu
+      await updAndSync(evId, { sambutanFile: b64temp, sambutanNama: name });
+      showT("Naskah tersimpan, mengarsipkan ke Drive...", "warn");
+
+      // Setelah tersimpan di Supabase, trigger Cloud-to-Cloud upload
+      // Server Vercel yang fetch dari Supabase & upload ke Drive
+      const res = await fetch("/api/drive?action=sync_one_from_db", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          fileBase64,
-          mimeType:  file.type || "application/pdf",
-          fileName:  name,
-          agendaId:  String(evId),
-          agendaDate: ev?.tanggal || todayStr(),
-          fileType:  "sambutan",
-        }),
+        body:    JSON.stringify({ agendaId: String(evId) }),
       });
       const data = await res.json();
-      if (data.ok) {
-        updAndSync(evId, { sambutanFile: data.fileUrl, sambutanNama: name });
-        showT("Naskah sambutan berhasil diamankan ke Drive ✓", "ok");
+      if (data.ok && data.patched && data.patched.sambutanFile) {
+        // Update state lokal dengan URL Drive yang baru
+        setEvents(prev => prev.map(e => e.id === evId ? { ...e, sambutanFile: data.patched.sambutanFile } : e));
+        showT("Naskah sambutan berhasil diarsipkan ke Drive ✓", "ok");
       } else {
-        throw new Error(data.error || "Drive gagal");
+        showT("Tersimpan di database. Arsip ke Drive akan dilakukan via Sinkronisasi.", "warn");
       }
     } catch (err) {
       console.error("Gagal sync ke Drive:", err);
@@ -4832,35 +4826,30 @@ const submit=async()=>{
     let finalUndanganFile = form.undanganFile;
 
     // ════════════════════════════════════════════════════════
-    // INTERCEPTOR: KIRIM FILE KE GOOGLE DRIVE (Server-to-Server)
+    // ARSITEKTUR CLOUD-TO-CLOUD — 3 langkah:
+    // 1. Jika file base64 → upload ke Supabase Storage dari browser
+    //    (browser → Supabase Storage langsung, tidak lewat Vercel)
+    // 2. Simpan data jadwal ke Supabase (dengan URL Storage, bukan base64)
+    // 3. Trigger Vercel: server fetch URL dari Supabase → upload ke Drive
     // ════════════════════════════════════════════════════════
+    let hasNewFile = false;
     if (finalUndanganFile && finalUndanganFile.startsWith("data:")) {
-      showT("Mengamankan file ke Google Drive...", "warn");
+      hasNewFile = true;
+      showT("Mengamankan file ke penyimpanan...", "warn");
       try {
-        const res = await fetch("/api/drive?action=upload", {
-          method:  "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            fileBase64: finalUndanganFile,
-            mimeType:   finalUndanganFile.split(";")[0].split(":")[1] || "application/pdf",
-            fileName:   form.undanganNama || "undangan.pdf",
-            agendaId:   String(evId),
-            agendaDate: form.tanggal,
-            fileType:   "undangan",
-          }),
-        });
-        const data = await res.json();
-        if (data.ok) {
-          finalUndanganFile = data.fileUrl || null;
-          showT("File berhasil masuk ke Google Drive ✓", "ok");
+        // Upload base64 → Supabase Storage (tidak lewat Vercel, tidak ada limit)
+        const blob = await (await fetch(finalUndanganFile)).blob();
+        const storageUrl = await storageUpload("undangan", evId, blob);
+        if (storageUrl) {
+          finalUndanganFile = storageUrl; // ganti base64 dengan URL Storage
         } else {
-          console.warn("Drive upload gagal:", data.error);
+          finalUndanganFile = null; // storage gagal, jangan simpan base64 besar
         }
       } catch(e) {
-        console.error("Gagal upload GDrive:", e);
+        console.warn("Storage upload gagal:", e.message);
+        finalUndanganFile = null;
       }
     }
-    // ════════════════════════════════════════════════════════
 
     const formDataToSave = { ...form, undanganFile: finalUndanganFile };
     const conflict=hasConflict(events,{...formDataToSave,id:evId,alur:"disetujui"});
@@ -4886,8 +4875,24 @@ const submit=async()=>{
     }
     else{
       const n={...formDataToSave,id:evId,alur:"draft",submittedBy:user?.username,catatanTolak:"",statusWK:null,statusWWK:null,perwakilanWK:"",perwakilanWWK:"",delegasiKeWWK:false,besertaIstriWK:!!form.besertaIstriWK,besertaIstriWWK:!!form.besertaIstriWWK,sambutanFile:null,sambutanNama:"",catatanPimpinan:"",tersembunyi:false,alurHapus:null};
-      setEvents(p=>[...p,n]);dbUpsert(n).catch(console.error);
+      setEvents(p=>[...p,n]);
+      // 1. Simpan ke Supabase (termasuk Base64 jika ada)
+      await dbUpsert(n).catch(console.error);
       if(conflict)showT("Potensi tabrakan jadwal!","warn");else showT("Draft disimpan. Kirim ke Kasubbag.");
+      // 2. Jika ada file baru, trigger Cloud-to-Cloud upload (agendaId saja, tidak ada Base64 dikirim ke Vercel)
+      if(hasNewFile){
+        fetch("/api/drive?action=sync_one_from_db",{
+          method:"POST",headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({agendaId:String(evId)}),
+        }).then(r=>r.json()).then(d=>{
+          if(d.ok&&d.patched){
+            const lp={};
+            if(d.patched.undanganFile)lp.undanganFile=d.patched.undanganFile;
+            if(d.patched.sambutanFile)lp.sambutanFile=d.patched.sambutanFile;
+            if(Object.keys(lp).length>0)setEvents(p=>p.map(e=>e.id===evId?{...e,...lp}:e));
+          }
+        }).catch(e=>console.warn("Auto-sync Drive:",e.message));
+      }
       const jamWITA=new Date().getUTCHours()+8;const jamLokal=jamWITA>=24?jamWITA-24:jamWITA;
       if(jamLokal>=16){
         const tgtRoles=[];
