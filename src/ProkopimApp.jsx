@@ -2278,20 +2278,16 @@ function AdminModal({onClose, showT, events, updAndSync}) {
     showT("Data disimpan ✓");
   };
 
-  const syncAllToDrive = async () => {
-    if (!events || events.length === 0) {
-      showT("Data jadwal belum termuat.", "error");
-      return;
-    }
+const syncAllToDrive = async () => {
+    if (!events || events.length === 0) { showT("Data jadwal belum termuat.", "error"); return; }
     
-    // Filter file yang valid untuk dipindah
     const pendingSync = events.filter(e => 
       (e.undanganFile && typeof e.undanganFile === 'string' && !e.undanganFile.includes("drive.google.com") && e.undanganFile.length > 50) ||
       (e.sambutanFile && typeof e.sambutanFile === 'string' && !e.sambutanFile.includes("drive.google.com") && e.sambutanFile.length > 50)
     );
 
     if (pendingSync.length === 0) {
-      setSyncState({ running: false, done: true, fileName: "Semua arsip sudah terstruktur di Google Drive ✅", total: 0, current: 0 });
+      setSyncState({ running: false, done: true, fileName: "Semua arsip sudah terstruktur rapi di Google Drive ✅", total: 0, current: 0 });
       return;
     }
 
@@ -2306,78 +2302,80 @@ function AdminModal({onClose, showT, events, updAndSync}) {
 
       for (const type of tasks) {
         try {
-          // 1. STRUKTUR FOLDER: Tahun -> Bulan -> Tipe (Undangan/Sambutan)
+          // STRUKTUR FOLDER: Tahun -> Bulan -> Undangan/Sambutan
           const dateObj = new Date(ev.tanggal);
           const monthNames = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
           
-          const yearFolder = dateObj.getFullYear().toString(); // Cth: "2026"
-          const monthFolder = monthNames[dateObj.getMonth()];  // Cth: "Maret"
+          const yearFolder = dateObj.getFullYear().toString();
+          const monthFolder = monthNames[dateObj.getMonth()];
           const subFolder = type === "undangan" ? "Undangan" : "Sambutan";
 
-          // Format Nama File (YYYY-MM-DD - TIPE - Nama Acara)
+          // NAMA FILE: YYYY-MM-DD - TIPE - Nama Acara.pdf
           const cleanEventName = ev.namaAcara.replace(/[^a-zA-Z0-9 \-]/g, "").substring(0, 40);
           const formattedFileName = `${ev.tanggal} - ${type.toUpperCase()} - ${cleanEventName}.pdf`;
 
-          setSyncState(prev => ({ ...prev, current: i + 1, fileName: `Mengupload: ${formattedFileName}` }));
+          setSyncState(prev => ({ ...prev, current: i + 1, fileName: `Mengamankan: ${formattedFileName}` }));
 
           const fileSource = type === "undangan" ? ev.undanganFile : ev.sambutanFile;
           
-          // 2. METODE ABSOLUT: Ubah Data URI / Base64 menjadi Wujud Fisik (Blob)
-          let blob;
+          // CONVERT FILE KE BASE64 SECARA SEMPURNA
+          let base64Data = "";
+          let finalMime = "application/pdf";
+
           if (fileSource.startsWith('data:')) {
             const arr = fileSource.split(',');
-            const mime = arr[0].match(/:(.*?);/)[1];
-            const bstr = atob(arr[1]);
-            let n = bstr.length;
-            const u8arr = new Uint8Array(n);
-            while(n--){ u8arr[n] = bstr.charCodeAt(n); }
-            blob = new Blob([u8arr], {type: mime});
+            finalMime = arr[0].match(/:(.*?);/)[1];
+            base64Data = arr[1];
           } else if (fileSource.startsWith('http')) {
             const res = await fetch(fileSource);
-            blob = await res.blob();
+            const blob = await res.blob();
+            finalMime = blob.type || "application/pdf";
+            base64Data = await new Promise((resolve) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result.split(',')[1]);
+              reader.readAsDataURL(blob);
+            });
           } else {
-            // Jika murni teks base64 tanpa header data:
-            const bstr = atob(fileSource);
-            let n = bstr.length;
-            const u8arr = new Uint8Array(n);
-            while(n--) u8arr[n] = bstr.charCodeAt(n);
-            blob = new Blob([u8arr], { type: 'application/pdf' });
+            base64Data = fileSource;
           }
 
-          // 3. KIRIM KE API GOOGLE DRIVE BAPAK
-          const fd = new FormData();
-          fd.append("file", blob, formattedFileName);
-          fd.append("agendaId", ev.id);
-          fd.append("agendaDate", ev.tanggal);
-          fd.append("fileType", type);
-          
-          // Titipkan instruksi pembuatan hirarki folder ke Backend
-          fd.append("targetYear", yearFolder);
-          fd.append("targetMonth", monthFolder);
-          fd.append("targetSub", subFolder);
-          
-          fd.append("uploadedBy", "Sistem Pengarsipan Otomatis");
+          // KIRIM KE BACKEND VIA JSON (Jalur Anti-Macet)
+          const payload = {
+            agendaId: ev.id,
+            agendaDate: ev.tanggal,
+            targetYear: yearFolder,
+            targetMonth: monthFolder,
+            targetSub: subFolder,
+            uploadedBy: "Sistem Pengarsipan Pimpinan",
+            fileName: formattedFileName,
+            mimeType: finalMime,
+            fileBase64: base64Data
+          };
 
-          const resDrive = await fetch("/api/drive?action=upload", { method: "POST", body: fd });
+          const resDrive = await fetch("/api/drive?action=upload_base64", { 
+            method: "POST", 
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+          
           const dataDrive = await resDrive.json();
 
           if (dataDrive.ok && dataDrive.fileUrl) {
-            // Update database Supabase dengan link gdrive
             await updAndSync(ev.id, { [type === "undangan" ? "undanganFile" : "sambutanFile"]: dataDrive.fileUrl });
             totalMoved++;
           } else {
-            console.error(`Gagal upload API Drive (Agenda ID ${ev.id})`, dataDrive);
+            console.error(`Gagal API Drive:`, dataDrive.error);
           }
         } catch (err) {
-          console.error(`Gagal proses file pada agenda ${ev.id}:`, err);
+          console.error(`Error pada agenda ${ev.id}:`, err);
         }
       }
-      // Jeda nafas untuk API
-      await new Promise(r => setTimeout(r, 800));
+      await new Promise(r => setTimeout(r, 1000)); // Jeda nafas API
     }
     
     setSyncState(prev => ({ ...prev, running: false, done: true, fileName: `Misi Selesai! ${totalMoved} file berhasil diarsipkan dengan struktur yang rapi.` }));
   };
+  
   const inp = {width: "100%", padding: "9px 11px", borderRadius: 8, border: "1.5px solid #e2e8f0", fontSize: 13, background: "white", color: "#1e293b"};
 
   return (
