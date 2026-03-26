@@ -1,5 +1,5 @@
 /**
- * api/drive.js — Prokopim Server-to-Server Sync
+ * api/drive.js — Prokopim Direct Upload via Token
  */
 
 const SUPA_URL   = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
@@ -7,11 +7,8 @@ const SUPA_KEY   = process.env.SUPABASE_KEY || process.env.VITE_SUPABASE_ANON_KE
 const SA_EMAIL   = process.env.GOOGLE_SA_EMAIL;
 const SA_KEY_RAW = process.env.GOOGLE_SA_PRIVATE_KEY;
 const ROOT_FOLDER= process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID;
+
 const SH = () => ({ "Content-Type": "application/json", "apikey": SUPA_KEY, "Authorization": `Bearer ${SUPA_KEY}`, "Prefer": "return=representation" });
-// Wajib ditambahkan agar Vercel mengizinkan file besar masuk
-export const config = {
-  api: { bodyParser: { sizeLimit: '30mb' } }
-};
 async function sbGet(path) { const r = await fetch(`${SUPA_URL}/rest/v1/${path}`, { headers: SH() }); if (!r.ok) throw new Error(await r.text()); return r.json(); }
 async function sbPost(table, body) { const r = await fetch(`${SUPA_URL}/rest/v1/${table}`, { method: "POST", headers: SH(), body: JSON.stringify(body) }); if (!r.ok) throw new Error(await r.text()); return r.json(); }
 async function sbPatch(table, filter, body) { const r = await fetch(`${SUPA_URL}/rest/v1/${table}?${filter}`, { method: "PATCH", headers: SH(), body: JSON.stringify(body) }); if (!r.ok) throw new Error(await r.text()); return r.json(); }
@@ -51,60 +48,24 @@ async function getOrCreateFolder(token, folderPath) {
 export default async function handler(req, res) {
   const action = req.query.action;
   try {
-    if (req.method === "POST" && action === "upload_server_to_server") {
-      const { fileSource, fileName, targetYear, targetMonth, targetSub, agendaId } = req.body;
-      
-      // 1. VERCEL MENDOWNLOAD FILE LANGSUNG DARI SUMBERNYA
-      let fileBuffer;
-      let mimeType = "application/pdf";
-
-      if (fileSource.startsWith("http")) {
-        const fetchRes = await fetch(fileSource);
-        if (!fetchRes.ok) throw new Error("Gagal mengambil file dari database sumber");
-        const arrBuffer = await fetchRes.arrayBuffer();
-        fileBuffer = Buffer.from(arrBuffer);
-        mimeType = fetchRes.headers.get("content-type") || "application/pdf";
-      } else if (fileSource.startsWith("data:")) {
-        const parts = fileSource.split(",");
-        mimeType = parts[0].match(/:(.*?);/)[1];
-        fileBuffer = Buffer.from(parts[1], "base64");
-      } else {
-        fileBuffer = Buffer.from(fileSource, "base64");
-      }
-
-      if (!fileBuffer || fileBuffer.length === 0) {
-        return res.status(400).json({ error: "Isi file terdeteksi kosong" });
-      }
-
-      // 2. SIAPKAN FOLDER GOOGLE DRIVE
+    // 1. Berikan Kunci Akses & Folder ID ke Frontend
+    if (req.method === "POST" && action === "get_credentials") {
+      const { targetYear, targetMonth, targetSub } = req.body;
       const token = await getGoogleAccessToken();
       const folderPath = `${targetYear}/${targetMonth}/${targetSub}`;
       const folderId = await getOrCreateFolder(token, folderPath);
-
-      // 3. VERCEL MENGIRIM FILE UTUH KE GOOGLE DRIVE (Tanpa masalah CORS)
-      const metadata = JSON.stringify({ name: fileName, parents: [folderId] });
-      const boundary = "prokopim_batas_file_" + Date.now();
-      const body = Buffer.concat([
-        Buffer.from(`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n--${boundary}\r\nContent-Type: ${mimeType}\r\n\r\n`),
-        fileBuffer,
-        Buffer.from(`\r\n--${boundary}--`)
-      ]);
-
-      const uploadRes = await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink", {
-        method: "POST", headers: { "Authorization": `Bearer ${token}`, "Content-Type": `multipart/related; boundary="${boundary}"`, "Content-Length": body.length.toString() }, body
-      });
+      return res.status(200).json({ ok: true, token, folderId, folderPath });
+    }
+    
+    // 2. Rapikan Izin & Simpan di Database setelah Upload Selesai
+    else if (req.method === "POST" && action === "finalize") {
+      const { fileId, agendaId, fileName, mimeType, fileSizeBytes, folderId, folderPath, targetSub } = req.body;
+      const token = await getGoogleAccessToken();
       
-      if (!uploadRes.ok) throw new Error(`Google Drive menolak file: ${await uploadRes.text()}`);
-      const uploaded = await uploadRes.json();
-
-      // Buka akses file agar bisa dibaca dari aplikasi
-      await fetch(`https://www.googleapis.com/drive/v3/files/${uploaded.id}/permissions`, { method: "POST", headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify({ role: "reader", type: "anyone" }) });
-
-      const fileUrl = uploaded.webViewLink || `https://drive.google.com/file/d/${uploaded.id}/view`;
+      await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}/permissions`, { method: "POST", headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify({ role: "reader", type: "anyone" }) });
+      const fileUrl = `https://drive.google.com/file/d/${fileId}/view`;
+      await sbPost("drive_files", { agenda_id: agendaId || null, file_name: fileName, file_type: targetSub.toLowerCase(), mime_type: mimeType, file_size_bytes: fileSizeBytes, drive_file_id: fileId, drive_file_url: fileUrl, drive_folder_id: folderId, drive_folder_path: folderPath, uploaded_by: "Sistem Pengarsipan" }).catch(() => null);
       
-      // Catat di database
-      await sbPost("drive_files", { agenda_id: agendaId || null, file_name: fileName, file_type: targetSub.toLowerCase(), mime_type: mimeType, file_size_bytes: fileBuffer.length, drive_file_id: uploaded.id, drive_file_url: fileUrl, drive_folder_id: folderId, drive_folder_path: folderPath, uploaded_by: "Server Vercel" }).catch(() => null);
-
       return res.status(200).json({ ok: true, fileUrl });
     }
     
