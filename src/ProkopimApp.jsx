@@ -5158,7 +5158,7 @@ const TH={
               </div>}
           </>}
 
-          <div style={{marginTop:"auto",paddingTop:24,textAlign:"center",color:MUTED,fontSize:10,letterSpacing:1.5,opacity:0.5}}>v1.0 · Prokopim Tarakan · 2026</div>
+          <div style={{marginTop:"auto",paddingTop:24,textAlign:"center",color:MUTED,fontSize:10,letterSpacing:1.5,opacity:0.5}}>v{import.meta.env.VITE_APP_VERSION || "1.0.0"} (Build {import.meta.env.VITE_BUILD_TIME}) · Prokopim Tarakan</div>
         </div>
       </>}
 
@@ -5186,7 +5186,7 @@ const TH={
               </div>)}
             </div>
           </div>
-          <div style={{color:MUTED,fontSize:10,letterSpacing:1.5,opacity:0.5,marginTop:20}}>v1.0 · Prokopim Tarakan · 2026</div>
+          <div style={{color:MUTED,fontSize:10,letterSpacing:1.5,opacity:0.5,marginTop:20}}>v{import.meta.env.VITE_APP_VERSION || "1.0.0"} (Build {import.meta.env.VITE_BUILD_TIME}) · Prokopim Tarakan</div>
         </div>
 
         {/* Right panel login */}
