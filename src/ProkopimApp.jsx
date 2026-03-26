@@ -2291,7 +2291,7 @@ const syncAllToDrive = async () => {
       return;
     }
 
-    setSyncState({ running: true, total: pendingSync.length, current: 0, fileName: "Menyiapkan mesin pengarsipan...", done: false });
+    setSyncState({ running: true, total: pendingSync.length, current: 0, fileName: "Menghubungi Server Pemindah...", done: false });
     let totalMoved = 0;
 
     for (let i = 0; i < pendingSync.length; i++) {
@@ -2302,57 +2302,30 @@ const syncAllToDrive = async () => {
 
       for (const type of tasks) {
         try {
-          // STRUKTUR FOLDER: Tahun -> Bulan -> Undangan/Sambutan
           const dateObj = new Date(ev.tanggal);
           const monthNames = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
-          
           const yearFolder = dateObj.getFullYear().toString();
           const monthFolder = monthNames[dateObj.getMonth()];
           const subFolder = type === "undangan" ? "Undangan" : "Sambutan";
 
-          // NAMA FILE: YYYY-MM-DD - TIPE - Nama Acara.pdf
           const cleanEventName = ev.namaAcara.replace(/[^a-zA-Z0-9 \-]/g, "").substring(0, 40);
           const formattedFileName = `${ev.tanggal} - ${type.toUpperCase()} - ${cleanEventName}.pdf`;
 
           setSyncState(prev => ({ ...prev, current: i + 1, fileName: `Mengamankan: ${formattedFileName}` }));
 
           const fileSource = type === "undangan" ? ev.undanganFile : ev.sambutanFile;
-          
-          // CONVERT FILE KE BASE64 SECARA SEMPURNA
-          let base64Data = "";
-          let finalMime = "application/pdf";
 
-          if (fileSource.startsWith('data:')) {
-            const arr = fileSource.split(',');
-            finalMime = arr[0].match(/:(.*?);/)[1];
-            base64Data = arr[1];
-          } else if (fileSource.startsWith('http')) {
-            const res = await fetch(fileSource);
-            const blob = await res.blob();
-            finalMime = blob.type || "application/pdf";
-            base64Data = await new Promise((resolve) => {
-              const reader = new FileReader();
-              reader.onloadend = () => resolve(reader.result.split(',')[1]);
-              reader.readAsDataURL(blob);
-            });
-          } else {
-            base64Data = fileSource;
-          }
-
-          // KIRIM KE BACKEND VIA JSON (Jalur Anti-Macet)
+          // HANYA MENGIRIMKAN PERINTAH KE SERVER VERCEL
           const payload = {
             agendaId: ev.id,
-            agendaDate: ev.tanggal,
             targetYear: yearFolder,
             targetMonth: monthFolder,
             targetSub: subFolder,
-            uploadedBy: "Sistem Pengarsipan Pimpinan",
             fileName: formattedFileName,
-            mimeType: finalMime,
-            fileBase64: base64Data
+            fileSource: fileSource // Cukup kirim alamat URL / Teks Mentahnya saja!
           };
 
-          const resDrive = await fetch("/api/drive?action=upload_base64", { 
+          const resDrive = await fetch("/api/drive?action=upload_server_to_server", { 
             method: "POST", 
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload)
@@ -2364,16 +2337,14 @@ const syncAllToDrive = async () => {
             await updAndSync(ev.id, { [type === "undangan" ? "undanganFile" : "sambutanFile"]: dataDrive.fileUrl });
             totalMoved++;
           } else {
-            console.error(`Gagal API Drive:`, dataDrive.error);
+            console.error(`Gagal diproses server:`, dataDrive.error);
           }
-        } catch (err) {
-          console.error(`Error pada agenda ${ev.id}:`, err);
-        }
+        } catch (err) { console.error(`Error pada agenda ${ev.id}:`, err); }
       }
-      await new Promise(r => setTimeout(r, 1000)); // Jeda nafas API
+      await new Promise(r => setTimeout(r, 600)); // Jeda lebih cepat karena server yang bekerja
     }
     
-    setSyncState(prev => ({ ...prev, running: false, done: true, fileName: `Misi Selesai! ${totalMoved} file berhasil diarsipkan dengan struktur yang rapi.` }));
+    setSyncState(prev => ({ ...prev, running: false, done: true, fileName: `Misi Selesai! ${totalMoved} file berhasil diarsipkan dengan utuh.` }));
   };
   
   const inp = {width: "100%", padding: "9px 11px", borderRadius: 8, border: "1.5px solid #e2e8f0", fontSize: 13, background: "white", color: "#1e293b"};
