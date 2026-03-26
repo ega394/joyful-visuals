@@ -2294,68 +2294,94 @@ function AdminModal({onClose, showT, events, updAndSync}) {
   };
 
   // 3. FUNGSI SINKRONISASI DRIVE (Server to Server Anti Gagal)
-const syncAllToDrive = async () => {
-    if (!events || events.length === 0) {
-      showT("Data jadwal belum termuat.", "error"); return;
-    }
- 
-    const pendingSync = events.filter(e =>
-      (e.undanganFile && typeof e.undanganFile === "string" &&
-       !e.undanganFile.includes("drive.google.com") && e.undanganFile.length > 50) ||
-      (e.sambutanFile && typeof e.sambutanFile === "string" &&
-       !e.sambutanFile.includes("drive.google.com") && e.sambutanFile.length > 50)
+  const syncAllToDrive = async () => {
+    if (!events || events.length === 0) { showT("Data jadwal belum termuat.", "error"); return; }
+    
+    const pendingSync = events.filter(e => 
+      (e.undanganFile && typeof e.undanganFile === 'string' && !e.undanganFile.includes("drive.google.com") && e.undanganFile.length > 50) ||
+      (e.sambutanFile && typeof e.sambutanFile === 'string' && !e.sambutanFile.includes("drive.google.com") && e.sambutanFile.length > 50)
     );
- 
+
     if (pendingSync.length === 0) {
-      setSyncState({ running: false, done: true, current: 0, total: 0,
-        fileName: "Semua arsip sudah terstruktur rapi di Google Drive ✅" });
+      setSyncState({ running: false, done: true, fileName: "Semua arsip sudah terstruktur rapi di Google Drive ✅", total: 0, current: 0 });
       return;
     }
- 
-    setSyncState({ running: true, total: pendingSync.length, current: 0,
-      fileName: "Menyiapkan sinkronisasi ke Google Drive...", done: false });
+
+    setSyncState({ running: true, total: pendingSync.length, current: 0, fileName: "Menyiapkan mesin Direct Upload...", done: false });
     let totalMoved = 0;
- 
+
     for (let i = 0; i < pendingSync.length; i++) {
       const ev = pendingSync[i];
-      setSyncState(prev => ({
-        ...prev, current: i + 1,
-        fileName: "Mengupload: " + (ev.namaAcara || ev.id),
-      }));
- 
-      try {
-        // Kirim seluruh event ke server — server yang handle upload
-        const res = await fetch("/api/drive?action=sync_one", {
-          method:  "POST",
-          headers: { "Content-Type": "application/json" },
-          body:    JSON.stringify({ event: ev }),
-        });
-        const data = await res.json();
- 
-        if (!data.ok) throw new Error(data.error || "Gagal sync");
- 
-        // Update URL di state & Supabase jika ada perubahan
-        const patch = {};
-        if (data.undanganFile) patch.undanganFile = data.undanganFile;
-        if (data.sambutanFile) patch.sambutanFile = data.sambutanFile;
-        if (Object.keys(patch).length > 0) {
-          await updAndSync(ev.id, patch);
-          totalMoved++;
+      const tasks = [];
+      if (ev.undanganFile && typeof ev.undanganFile === 'string' && !ev.undanganFile.includes("drive.google.com")) tasks.push("undangan");
+      if (ev.sambutanFile && typeof ev.sambutanFile === 'string' && !ev.sambutanFile.includes("drive.google.com")) tasks.push("sambutan");
+
+      for (const type of tasks) {
+        try {
+          const dateObj = new Date(ev.tanggal);
+          const monthNames = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+          const yearFolder = dateObj.getFullYear().toString();
+          const monthFolder = monthNames[dateObj.getMonth()];
+          const subFolder = type === "undangan" ? "Undangan" : "Sambutan";
+
+          const cleanEventName = ev.namaAcara.replace(/[^a-zA-Z0-9 \-]/g, "").substring(0, 40);
+          const formattedFileName = `${ev.tanggal} - ${type.toUpperCase()} - ${cleanEventName}.pdf`;
+
+          setSyncState(prev => ({ ...prev, current: i + 1, fileName: `Mengupload: ${formattedFileName}` }));
+
+          const fileSource = type === "undangan" ? ev.undanganFile : ev.sambutanFile;
+
+          // 1. Konversi Teks/URL ke Wujud Fisik (Blob)
+          let blob; let finalMime = "application/pdf";
+          if (fileSource.startsWith('data:')) {
+            const arr = fileSource.split(','); finalMime = arr[0].match(/:(.*?);/)[1];
+            const bstr = atob(arr[1]); let n = bstr.length; const u8arr = new Uint8Array(n);
+            while(n--){ u8arr[n] = bstr.charCodeAt(n); } blob = new Blob([u8arr], {type: finalMime});
+          } else if (fileSource.startsWith('http')) {
+            const res = await fetch(fileSource); blob = await res.blob(); finalMime = blob.type || "application/pdf";
+          } else {
+            const bstr = atob(fileSource); let n = bstr.length; const u8arr = new Uint8Array(n);
+            while(n--){ u8arr[n] = bstr.charCodeAt(n); } blob = new Blob([u8arr], {type: "application/pdf"});
+          }
+
+          // 2. Konversi blob ke base64 lalu kirim ke server (server yang upload ke Drive)
+          const base64 = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = e => resolve(e.target.result); // data:mime;base64,...
+            reader.readAsDataURL(blob);
+          });
+
+          // 3. Server-to-Server upload (aman dari CORS & batas payload)
+          const resUpload = await fetch("/api/drive?action=upload", {
+            method:  "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              fileBase64: base64,
+              mimeType:   finalMime,
+              fileName:   formattedFileName,
+              agendaId:   String(ev.id),
+              agendaDate: ev.tanggal,
+              fileType:   type,
+            }),
+          });
+          const dataUpload = await resUpload.json();
+
+          if (dataUpload.ok) {
+            await updAndSync(ev.id, { [type === "undangan" ? "undanganFile" : "sambutanFile"]: dataUpload.fileUrl });
+            totalMoved++;
+          } else {
+            throw new Error(dataUpload.error || "Upload gagal");
+          }
+        } catch (err) {
+          console.error(`Error ${ev.id}:`, err);
         }
-      } catch (err) {
-        console.error("Error sync ev=" + ev.id + ":", err.message);
       }
- 
-      // Jeda kecil agar tidak dianggap spam
-      await new Promise(r => setTimeout(r, 800));
+      // Jeda 1 detik agar tidak dikira spam oleh Google
+      await new Promise(r => setTimeout(r, 1000)); 
     }
- 
-    setSyncState(prev => ({
-      ...prev, running: false, done: true,
-      fileName: "Misi Selesai! " + totalMoved + " file berhasil mendarat di Drive.",
-    }));
+    
+    setSyncState(prev => ({ ...prev, running: false, done: true, fileName: `Misi Selesai! ${totalMoved} file berhasil mendarat di Drive.` }));
   };
-  
   const inp = {width: "100%", padding: "9px 11px", borderRadius: 8, border: "1.5px solid #e2e8f0", fontSize: 13, background: "white", color: "#1e293b"};
 
   return (
@@ -2390,72 +2416,70 @@ const syncAllToDrive = async () => {
                   <button onClick={() => doDelete(u.username)} style={{padding: "5px 10px", borderRadius: 7, border: "1.5px solid #fca5a5", background: "white", color: "#ef4444", cursor: "pointer", fontSize: 11, fontWeight: 700}}>Hapus</button>
                 </div>
               ))}
+              {/* ── Form Edit User ── */}
               {editUser && (
-                <div style={{background: "#f0f6ff", border: "1.5px solid #bfdbfe", borderRadius: 12, padding: "14px 16px", marginTop: 12}}>
-                  <div style={{fontSize: 13, fontWeight: 700, color: "#0A1628", marginBottom: 12}}>
-                    Edit: {editUser.nama}
+                <div style={{
+                  marginTop: 12, padding: "14px 16px",
+                  background: "#F0F6FF", borderRadius: 12,
+                  border: "2px solid #3B82F6",
+                }}>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: "#1D4ED8", marginBottom: 12 }}>
+                    ✏️ Edit Pengguna: {editUser.username}
                   </div>
+
                   {[
-                    {k: "nama",    l: "Nama Lengkap *"},
-                    {k: "jabatan", l: "Jabatan"},
-                    {k: "noWA",    l: "No. WhatsApp"},
+                    { k: "nama",    l: "Nama Lengkap *" },
+                    { k: "jabatan", l: "Jabatan" },
+                    { k: "noWA",    l: "No WhatsApp (62xxx)" },
                   ].map(f => (
-                    <div key={f.k} style={{marginBottom: 9}}>
-                      <label style={{display: "block", fontSize: 11, color: "#64748b", fontWeight: 600, marginBottom: 3}}>
+                    <div key={f.k} style={{ marginBottom: 10 }}>
+                      <label style={{ display: "block", fontSize: 11, color: "#475569", fontWeight: 600, marginBottom: 3 }}>
                         {f.l}
                       </label>
                       <input
                         value={editUser[f.k] || ""}
-                        onChange={e => setEditUser(p => ({...p, [f.k]: e.target.value}))}
-                        style={inp}
+                        onChange={e => setEditUser(p => ({ ...p, [f.k]: e.target.value }))}
+                        style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1.5px solid #BFDBFE", fontSize: 13, background: "white", color: "#1e293b", boxSizing: "border-box" }}
                       />
                     </div>
                   ))}
-                  <div style={{marginBottom: 9}}>
-                    <label style={{display: "block", fontSize: 11, color: "#64748b", fontWeight: 600, marginBottom: 3}}>
+
+                  <div style={{ marginBottom: 10 }}>
+                    <label style={{ display: "block", fontSize: 11, color: "#475569", fontWeight: 600, marginBottom: 3 }}>
                       Role / Hak Akses
                     </label>
                     <select
                       value={editUser.role || "staf"}
-                      onChange={e => setEditUser(p => ({...p, role: e.target.value}))}
-                      style={{...inp, WebkitAppearance: "none"}}
+                      onChange={e => setEditUser(p => ({ ...p, role: e.target.value }))}
+                      style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1.5px solid #BFDBFE", fontSize: 13, background: "white", color: "#1e293b", WebkitAppearance: "none", boxSizing: "border-box" }}
                     >
-                      {ALL_ROLE_DEFS.map(r => (
-                        <option key={r.key} value={r.key}>{r.label}</option>
-                      ))}
+                      {ALL_ROLE_DEFS.map(r => <option key={r.key} value={r.key}>{r.label}</option>)}
                     </select>
                   </div>
-                  <div style={{marginBottom: 14}}>
-                    <label style={{display: "block", fontSize: 11, color: "#64748b", fontWeight: 600, marginBottom: 3}}>
-                      Password Baru (kosongkan jika tidak diubah)
+
+                  <div style={{ marginBottom: 14 }}>
+                    <label style={{ display: "block", fontSize: 11, color: "#475569", fontWeight: 600, marginBottom: 3 }}>
+                      Password Baru <span style={{ color: "#94A3B8", fontWeight: 400 }}>(kosongkan jika tidak ingin mengganti)</span>
                     </label>
                     <input
                       type="password"
                       value={editUser._newPw || ""}
-                      onChange={e => setEditUser(p => ({...p, _newPw: e.target.value}))}
-                      placeholder="Kosongkan jika tidak diubah"
-                      style={inp}
+                      onChange={e => setEditUser(p => ({ ...p, _newPw: e.target.value }))}
+                      placeholder="Isi untuk ganti password"
+                      style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1.5px solid #BFDBFE", fontSize: 13, background: "white", color: "#1e293b", boxSizing: "border-box" }}
                     />
                   </div>
-                  <div style={{display: "flex", gap: 8}}>
+
+                  <div style={{ display: "flex", gap: 8 }}>
                     <button
                       onClick={doSaveEdit}
-                      style={{
-                        flex: 2, padding: "10px", borderRadius: 9, border: "none",
-                        background: "#0A1628", color: "white", cursor: "pointer",
-                        fontSize: 13, fontWeight: 700,
-                      }}
+                      style={{ flex: 2, padding: "10px", borderRadius: 9, border: "none", background: "#1D4ED8", color: "white", fontSize: 13, fontWeight: 700, cursor: "pointer" }}
                     >
-                      Simpan Perubahan
+                      💾 Simpan Perubahan
                     </button>
                     <button
-                      onClick={() => setEditUser(null)}
-                      style={{
-                        flex: 1, padding: "10px", borderRadius: 9,
-                        border: "1.5px solid #e2e8f0", background: "white",
-                        color: "#64748b", cursor: "pointer",
-                        fontSize: 13, fontWeight: 600,
-                      }}
+                      onClick={() => { setEditUser(null); setErr(""); }}
+                      style={{ flex: 1, padding: "10px", borderRadius: 9, border: "1.5px solid #CBD5E1", background: "white", color: "#64748B", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
                     >
                       Batal
                     </button>
@@ -4606,44 +4630,42 @@ export default function App(){
   },[updAndSync]);
 
   const handleSambutanUpload = useCallback(async (evId, file, name) => {
-    // 1. Dapatkan data event untuk informasi folder Drive
     const ev = events.find(e => e.id === evId);
-    
     showT("Mengunggah naskah ke Google Drive...", "warn");
-
     try {
-      // 2. Kirim ke API Google Drive
-      const fd = new FormData();
-      fd.append("file", file);
-      fd.append("agendaId", evId);
-      fd.append("agendaDate", ev?.tanggal || todayStr());
-      fd.append("fileType", "sambutan");
-      fd.append("uploadedBy", user?.username || "timkom");
-
+      // Konversi file ke base64 dulu, lalu kirim ke server (bukan langsung ke Drive)
+      const fileBase64 = await new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onload  = e => resolve(e.target.result); // data:mime;base64,xxx
+        r.onerror = reject;
+        r.readAsDataURL(file);
+      });
       const res = await fetch("/api/drive?action=upload", {
-        method: "POST",
-        body: fd,
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fileBase64,
+          mimeType:  file.type || "application/pdf",
+          fileName:  name,
+          agendaId:  String(evId),
+          agendaDate: ev?.tanggal || todayStr(),
+          fileType:  "sambutan",
+        }),
       });
       const data = await res.json();
-
       if (data.ok) {
-        // 3. Simpan URL Drive ke database utama (Supabase)
-        const driveUrl = data.fileUrl;
-        updAndSync(evId, { 
-          sambutanFile: driveUrl, 
-          sambutanNama: name 
-        });
+        updAndSync(evId, { sambutanFile: data.fileUrl, sambutanNama: name });
         showT("Naskah sambutan berhasil diamankan ke Drive ✓", "ok");
       } else {
-        throw new Error(data.error);
+        throw new Error(data.error || "Drive gagal");
       }
     } catch (err) {
       console.error("Gagal sync ke Drive:", err);
-      // Fallback: Jika Drive gagal, simpan ke database internal sebagai cadangan
-      const b64 = await new Promise((res, rej) => {
+      // Fallback ke database internal
+      const b64 = await new Promise((resolve, reject) => {
         const r = new FileReader();
-        r.onload = e => res(e.target.result);
-        r.onerror = rej;
+        r.onload  = e => resolve(e.target.result);
+        r.onerror = reject;
         r.readAsDataURL(file);
       });
       updAndSync(evId, { sambutanFile: b64, sambutanNama: name });
@@ -4810,37 +4832,34 @@ const submit=async()=>{
     let finalUndanganFile = form.undanganFile;
 
     // ════════════════════════════════════════════════════════
-    // INTERCEPTOR: KIRIM FILE KE GOOGLE DRIVE (server-side)
-    // Kirim sebagai JSON body — aman dari CORS & size limit
+    // INTERCEPTOR: KIRIM FILE KE GOOGLE DRIVE (Server-to-Server)
     // ════════════════════════════════════════════════════════
     if (finalUndanganFile && finalUndanganFile.startsWith("data:")) {
       showT("Mengamankan file ke Google Drive...", "warn");
       try {
-        const driveRes = await fetch("/api/drive?action=upload", {
+        const res = await fetch("/api/drive?action=upload", {
           method:  "POST",
           headers: { "Content-Type": "application/json" },
-          body:    JSON.stringify({
-            fileSource: finalUndanganFile,
-            fileName:   form.undanganNama || ("undangan_" + evId + ".pdf"),
+          body: JSON.stringify({
+            fileBase64: finalUndanganFile,
+            mimeType:   finalUndanganFile.split(";")[0].split(":")[1] || "application/pdf",
+            fileName:   form.undanganNama || "undangan.pdf",
             agendaId:   String(evId),
             agendaDate: form.tanggal,
             fileType:   "undangan",
-            uploadedBy: user?.username || "admin_rk",
           }),
         });
-        const driveData = await driveRes.json();
-        if (driveData.ok && driveData.fileUrl) {
-          finalUndanganFile = driveData.fileUrl;
+        const data = await res.json();
+        if (data.ok) {
+          finalUndanganFile = data.fileUrl || null;
           showT("File berhasil masuk ke Google Drive ✓", "ok");
         } else {
-          console.warn("Drive upload gagal:", driveData.error);
+          console.warn("Drive upload gagal:", data.error);
         }
       } catch(e) {
         console.error("Gagal upload GDrive:", e);
       }
     }
-    // ════════════════════════════════════════════════════════
-*/
     // ════════════════════════════════════════════════════════
 
     const formDataToSave = { ...form, undanganFile: finalUndanganFile };
