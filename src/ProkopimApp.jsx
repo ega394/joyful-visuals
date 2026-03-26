@@ -2307,7 +2307,7 @@ function AdminModal({onClose, showT, events, updAndSync}) {
       return;
     }
 
-    setSyncState({ running: true, total: pendingSync.length, current: 0, fileName: "Menghubungi Server Pemindah...", done: false });
+    setSyncState({ running: true, total: pendingSync.length, current: 0, fileName: "Menyiapkan mesin Direct Upload...", done: false });
     let totalMoved = 0;
 
     for (let i = 0; i < pendingSync.length; i++) {
@@ -2327,35 +2327,72 @@ function AdminModal({onClose, showT, events, updAndSync}) {
           const cleanEventName = ev.namaAcara.replace(/[^a-zA-Z0-9 \-]/g, "").substring(0, 40);
           const formattedFileName = `${ev.tanggal} - ${type.toUpperCase()} - ${cleanEventName}.pdf`;
 
-          setSyncState(prev => ({ ...prev, current: i + 1, fileName: `Mengamankan: ${formattedFileName}` }));
+          setSyncState(prev => ({ ...prev, current: i + 1, fileName: `Mengupload: ${formattedFileName}` }));
 
           const fileSource = type === "undangan" ? ev.undanganFile : ev.sambutanFile;
 
-          const payload = {
-            agendaId: ev.id, targetYear: yearFolder, targetMonth: monthFolder, targetSub: subFolder,
-            fileName: formattedFileName, fileSource: fileSource 
-          };
-
-          const resDrive = await fetch("/api/drive?action=upload_server_to_server", { 
-            method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload)
-          });
-          
-          const dataDrive = await resDrive.json();
-
-          if (dataDrive.ok && dataDrive.fileUrl) {
-            await updAndSync(ev.id, { [type === "undangan" ? "undanganFile" : "sambutanFile"]: dataDrive.fileUrl });
-            totalMoved++;
+          // 1. Konversi Teks/URL ke Wujud Fisik (Blob)
+          let blob; let finalMime = "application/pdf";
+          if (fileSource.startsWith('data:')) {
+            const arr = fileSource.split(','); finalMime = arr[0].match(/:(.*?);/)[1];
+            const bstr = atob(arr[1]); let n = bstr.length; const u8arr = new Uint8Array(n);
+            while(n--){ u8arr[n] = bstr.charCodeAt(n); } blob = new Blob([u8arr], {type: finalMime});
+          } else if (fileSource.startsWith('http')) {
+            const res = await fetch(fileSource); blob = await res.blob(); finalMime = blob.type || "application/pdf";
           } else {
-            console.error(`Gagal diproses server:`, dataDrive.error);
+            const bstr = atob(fileSource); let n = bstr.length; const u8arr = new Uint8Array(n);
+            while(n--){ u8arr[n] = bstr.charCodeAt(n); } blob = new Blob([u8arr], {type: "application/pdf"});
           }
-        } catch (err) { console.error(`Error pada agenda ${ev.id}:`, err); }
+
+          // 2. Minta Kunci Akses ke Server Kita
+          const resCred = await fetch("/api/drive?action=get_credentials", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ targetYear: yearFolder, targetMonth: monthFolder, targetSub: subFolder })
+          });
+          const dataCred = await resCred.json();
+          if (!dataCred.ok) throw new Error("Gagal mendapat akses: " + (dataCred.error || ""));
+
+          // 3. UPLOAD LANGSUNG KE GOOGLE DRIVE (Lewati Vercel!)
+          const boundary = "prokopim_batas_" + Date.now();
+          const metadata = JSON.stringify({ name: formattedFileName, parents: [dataCred.folderId] });
+          const prefix = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n--${boundary}\r\nContent-Type: ${finalMime}\r\n\r\n`;
+          const postfix = `\r\n--${boundary}--`;
+
+          const bodyBlob = new Blob(
+            [new Blob([prefix]), blob, new Blob([postfix])],
+            { type: `multipart/related; boundary=${boundary}` }
+          );
+
+          const uploadRes = await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id", {
+            method: "POST",
+            headers: { "Authorization": `Bearer ${dataCred.token}` },
+            body: bodyBlob // Browser otomatis menyematkan header Content-Type multipart/related!
+          });
+
+          if (!uploadRes.ok) throw new Error("Google Drive menolak: " + await uploadRes.text());
+          const uploadedFile = await uploadRes.json();
+
+          // 4. Lapor kembali ke Server untuk Finalisasi (Set Public & Masuk Database)
+          const resFinal = await fetch("/api/drive?action=finalize", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ fileId: uploadedFile.id, agendaId: ev.id, fileName: formattedFileName, mimeType: finalMime, fileSizeBytes: blob.size, folderId: dataCred.folderId, folderPath: dataCred.folderPath, targetSub: subFolder })
+          });
+          const dataFinal = await resFinal.json();
+
+          if (dataFinal.ok) {
+            await updAndSync(ev.id, { [type === "undangan" ? "undanganFile" : "sambutanFile"]: dataFinal.fileUrl });
+            totalMoved++;
+          }
+        } catch (err) {
+          console.error(`Error ${ev.id}:`, err);
+        }
       }
-      await new Promise(r => setTimeout(r, 600)); 
+      // Jeda 1 detik agar tidak dikira spam oleh Google
+      await new Promise(r => setTimeout(r, 1000)); 
     }
     
-    setSyncState(prev => ({ ...prev, running: false, done: true, fileName: `Misi Selesai! ${totalMoved} file berhasil diarsipkan dengan utuh.` }));
+    setSyncState(prev => ({ ...prev, running: false, done: true, fileName: `Misi Selesai! ${totalMoved} file berhasil mendarat di Drive.` }));
   };
-
   const inp = {width: "100%", padding: "9px 11px", borderRadius: 8, border: "1.5px solid #e2e8f0", fontSize: 13, background: "white", color: "#1e293b"};
 
   return (
