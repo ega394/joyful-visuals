@@ -7,8 +7,11 @@ const SUPA_KEY   = process.env.SUPABASE_KEY || process.env.VITE_SUPABASE_ANON_KE
 const SA_EMAIL   = process.env.GOOGLE_SA_EMAIL;
 const SA_KEY_RAW = process.env.GOOGLE_SA_PRIVATE_KEY;
 const ROOT_FOLDER= process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID;
-
 const SH = () => ({ "Content-Type": "application/json", "apikey": SUPA_KEY, "Authorization": `Bearer ${SUPA_KEY}`, "Prefer": "return=representation" });
+// Wajib ditambahkan agar Vercel mengizinkan file besar masuk
+export const config = {
+  api: { bodyParser: { sizeLimit: '30mb' } }
+};
 async function sbGet(path) { const r = await fetch(`${SUPA_URL}/rest/v1/${path}`, { headers: SH() }); if (!r.ok) throw new Error(await r.text()); return r.json(); }
 async function sbPost(table, body) { const r = await fetch(`${SUPA_URL}/rest/v1/${table}`, { method: "POST", headers: SH(), body: JSON.stringify(body) }); if (!r.ok) throw new Error(await r.text()); return r.json(); }
 async function sbPatch(table, filter, body) { const r = await fetch(`${SUPA_URL}/rest/v1/${table}?${filter}`, { method: "PATCH", headers: SH(), body: JSON.stringify(body) }); if (!r.ok) throw new Error(await r.text()); return r.json(); }
