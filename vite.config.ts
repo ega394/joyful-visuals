@@ -8,6 +8,19 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from "vite-plugin-pwa";
 
+// ✅ 1. Import package.json untuk mengambil nomor versi secara otomatis
+import pkg from "./package.json";
+
+// ✅ 2. Buat penanda waktu otomatis zona WITA (Makassar/Tarakan)
+const buildTime = new Date().toLocaleString('id-ID', { 
+  timeZone: 'Asia/Makassar', 
+  day: '2-digit', 
+  month: 'short', 
+  year: 'numeric', 
+  hour: '2-digit', 
+  minute: '2-digit' 
+});
+
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
@@ -32,6 +45,13 @@ export default defineConfig(({ mode }) => ({
       ],
     },
   },
+  
+  // ✅ 3. Suntikkan variabel ini agar bisa dibaca di seluruh aplikasi React Bapak
+  define: {
+    'import.meta.env.VITE_APP_VERSION': JSON.stringify(pkg.version),
+    'import.meta.env.VITE_BUILD_TIME': JSON.stringify(buildTime)
+  },
+
   plugins: [
     react(),
     mode === "development" && componentTagger(),
