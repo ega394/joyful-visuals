@@ -2283,17 +2283,19 @@ function AdminModal({onClose, showT, events, updAndSync}) {
       showT("Data jadwal belum termuat.", "error");
       return;
     }
+    
+    // Filter file yang valid untuk dipindah
     const pendingSync = events.filter(e => 
-      (e.undanganFile && typeof e.undanganFile === 'string' && !e.undanganFile.includes("drive.google.com") && e.undanganFile.length > 20) ||
-      (e.sambutanFile && typeof e.sambutanFile === 'string' && !e.sambutanFile.includes("drive.google.com") && e.sambutanFile.length > 20)
+      (e.undanganFile && typeof e.undanganFile === 'string' && !e.undanganFile.includes("drive.google.com") && e.undanganFile.length > 50) ||
+      (e.sambutanFile && typeof e.sambutanFile === 'string' && !e.sambutanFile.includes("drive.google.com") && e.sambutanFile.length > 50)
     );
 
     if (pendingSync.length === 0) {
-      showT("Semua file sudah aman di Google Drive ✅", "ok");
+      setSyncState({ running: false, done: true, fileName: "Semua arsip sudah terstruktur di Google Drive ✅", total: 0, current: 0 });
       return;
     }
 
-    setSyncState({ running: true, total: pendingSync.length, current: 0, fileName: "Menyiapkan data...", done: false });
+    setSyncState({ running: true, total: pendingSync.length, current: 0, fileName: "Menyiapkan mesin pengarsipan...", done: false });
     let totalMoved = 0;
 
     for (let i = 0; i < pendingSync.length; i++) {
@@ -2304,38 +2306,78 @@ function AdminModal({onClose, showT, events, updAndSync}) {
 
       for (const type of tasks) {
         try {
-          const fileName = type === "undangan" ? (ev.undanganNama || "undangan.pdf") : (ev.sambutanNama || "sambutan.pdf");
-          setSyncState(prev => ({ ...prev, current: i + 1, fileName: `Mengupload: ${fileName} (${ev.namaAcara.slice(0, 15)}...)` }));
+          // 1. STRUKTUR FOLDER: Tahun -> Bulan -> Tipe (Undangan/Sambutan)
+          const dateObj = new Date(ev.tanggal);
+          const monthNames = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+          
+          const yearFolder = dateObj.getFullYear().toString(); // Cth: "2026"
+          const monthFolder = monthNames[dateObj.getMonth()];  // Cth: "Maret"
+          const subFolder = type === "undangan" ? "Undangan" : "Sambutan";
+
+          // Format Nama File (YYYY-MM-DD - TIPE - Nama Acara)
+          const cleanEventName = ev.namaAcara.replace(/[^a-zA-Z0-9 \-]/g, "").substring(0, 40);
+          const formattedFileName = `${ev.tanggal} - ${type.toUpperCase()} - ${cleanEventName}.pdf`;
+
+          setSyncState(prev => ({ ...prev, current: i + 1, fileName: `Mengupload: ${formattedFileName}` }));
 
           const fileSource = type === "undangan" ? ev.undanganFile : ev.sambutanFile;
-          const response = await fetch(fileSource);
-          if (!response.ok) throw new Error("Gagal ambil file sumber");
-          const blob = await response.blob();
+          
+          // 2. METODE ABSOLUT: Ubah Data URI / Base64 menjadi Wujud Fisik (Blob)
+          let blob;
+          if (fileSource.startsWith('data:')) {
+            const arr = fileSource.split(',');
+            const mime = arr[0].match(/:(.*?);/)[1];
+            const bstr = atob(arr[1]);
+            let n = bstr.length;
+            const u8arr = new Uint8Array(n);
+            while(n--){ u8arr[n] = bstr.charCodeAt(n); }
+            blob = new Blob([u8arr], {type: mime});
+          } else if (fileSource.startsWith('http')) {
+            const res = await fetch(fileSource);
+            blob = await res.blob();
+          } else {
+            // Jika murni teks base64 tanpa header data:
+            const bstr = atob(fileSource);
+            let n = bstr.length;
+            const u8arr = new Uint8Array(n);
+            while(n--) u8arr[n] = bstr.charCodeAt(n);
+            blob = new Blob([u8arr], { type: 'application/pdf' });
+          }
 
+          // 3. KIRIM KE API GOOGLE DRIVE BAPAK
           const fd = new FormData();
-          fd.append("file", blob, fileName);
+          fd.append("file", blob, formattedFileName);
           fd.append("agendaId", ev.id);
           fd.append("agendaDate", ev.tanggal);
           fd.append("fileType", type);
-          fd.append("uploadedBy", "Sistem Migrasi");
+          
+          // Titipkan instruksi pembuatan hirarki folder ke Backend
+          fd.append("targetYear", yearFolder);
+          fd.append("targetMonth", monthFolder);
+          fd.append("targetSub", subFolder);
+          
+          fd.append("uploadedBy", "Sistem Pengarsipan Otomatis");
 
           const resDrive = await fetch("/api/drive?action=upload", { method: "POST", body: fd });
           const dataDrive = await resDrive.json();
 
           if (dataDrive.ok && dataDrive.fileUrl) {
+            // Update database Supabase dengan link gdrive
             await updAndSync(ev.id, { [type === "undangan" ? "undanganFile" : "sambutanFile"]: dataDrive.fileUrl });
             totalMoved++;
+          } else {
+            console.error(`Gagal upload API Drive (Agenda ID ${ev.id})`, dataDrive);
           }
         } catch (err) {
-          console.error(`Error migrasi ${ev.id}:`, err);
+          console.error(`Gagal proses file pada agenda ${ev.id}:`, err);
         }
       }
-      await new Promise(r => setTimeout(r, 600));
+      // Jeda nafas untuk API
+      await new Promise(r => setTimeout(r, 800));
     }
     
-    setSyncState(prev => ({ ...prev, running: false, done: true, fileName: `Selesai! ${totalMoved} file berhasil dipindahkan ke Google Drive.` }));
+    setSyncState(prev => ({ ...prev, running: false, done: true, fileName: `Misi Selesai! ${totalMoved} file berhasil diarsipkan dengan struktur yang rapi.` }));
   };
-
   const inp = {width: "100%", padding: "9px 11px", borderRadius: 8, border: "1.5px solid #e2e8f0", fontSize: 13, background: "white", color: "#1e293b"};
 
   return (
