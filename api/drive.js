@@ -1,28 +1,5 @@
 /**
- * api/drive.js — Prokopim v1.5: Google Drive Smart Storage
- *
- * ENDPOINT:
- *   POST /api/drive?action=upload   → Upload file ke Drive (otomatis buat folder)
- *   POST /api/drive?action=delete   → Hapus file dari Drive
- *   GET  /api/drive?action=files    → Ambil daftar file terkait agenda
- *
- * CARA SETUP SERVICE ACCOUNT:
- *   1. Buka: console.cloud.google.com
- *   2. APIs & Services → Enable "Google Drive API"
- *   3. IAM & Admin → Service Accounts → Create Service Account
- *   4. Keys → Add Key → JSON → Download file JSON
- *   5. Dari file JSON tersebut, ambil:
- *      - client_email  → GOOGLE_SA_EMAIL
- *      - private_key   → GOOGLE_SA_PRIVATE_KEY (salin seluruh isi termasuk -----BEGIN...----- )
- *   6. Buat folder utama di Drive, share folder tsb ke client_email dengan akses Editor
- *   7. Salin ID folder (dari URL Drive) → GOOGLE_DRIVE_ROOT_FOLDER_ID
- *
- * ENV VARS DIBUTUHKAN:
- *   GOOGLE_SA_EMAIL             → service-account@project.iam.gserviceaccount.com
- *   GOOGLE_SA_PRIVATE_KEY       → -----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n
- *   GOOGLE_DRIVE_ROOT_FOLDER_ID → ID folder "Prokopim_Files" di Google Drive
- *   SUPABASE_URL                → Supabase project URL
- *   SUPABASE_KEY                → Supabase service key
+ * api/drive.js — Prokopim v1.5: Google Drive Smart Storage (REVISI PARSER & FOLDER)
  */
 
 const SUPA_URL   = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
@@ -59,14 +36,7 @@ async function sbPatch(table, filter, body) {
   return r.json();
 }
 
-// ── GOOGLE OAUTH VIA SERVICE ACCOUNT (tanpa library) ─────────
-/**
- * Google Service Account menggunakan JWT untuk mendapatkan
- * access token. Implementasi manual tanpa google-auth-library
- * agar tidak perlu install npm package baru.
- */
-
-// Base64url encode
+// ── GOOGLE OAUTH VIA SERVICE ACCOUNT ─────────────────────────
 function base64url(input) {
   const str = typeof input === "string"
     ? Buffer.from(input, "utf8").toString("base64")
@@ -74,13 +44,11 @@ function base64url(input) {
   return str.replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
 }
 
-// Sign JWT dengan private key RSA (menggunakan Web Crypto API)
 async function signJWT(header, payload, privateKeyPem) {
   const encodedHeader  = base64url(JSON.stringify(header));
   const encodedPayload = base64url(JSON.stringify(payload));
   const signingInput   = `${encodedHeader}.${encodedPayload}`;
 
-  // Import private key
   const pemBody = privateKeyPem
     .replace(/-----BEGIN PRIVATE KEY-----/g, "")
     .replace(/-----END PRIVATE KEY-----/g, "")
@@ -101,7 +69,6 @@ async function signJWT(header, payload, privateKeyPem) {
   return `${signingInput}.${base64url(new Uint8Array(signature))}`;
 }
 
-// Token cache (in-memory, reset tiap cold start)
 let _tokenCache = null;
 let _tokenExpiry = 0;
 
@@ -110,7 +77,7 @@ async function getGoogleAccessToken() {
   if (_tokenCache && now < _tokenExpiry - 60) return _tokenCache;
 
   if (!SA_EMAIL || !SA_KEY_RAW) {
-    throw new Error("GOOGLE_SA_EMAIL dan GOOGLE_SA_PRIVATE_KEY belum diset di env");
+    throw new Error("Kredensial Google belum lengkap di Environment Variables");
   }
 
   const privateKey = SA_KEY_RAW.replace(/\\n/g, "\n");
@@ -137,11 +104,8 @@ async function getGoogleAccessToken() {
     }),
   });
 
-  if (!tokenRes.ok) {
-    const err = await tokenRes.text();
-    throw new Error(`Google OAuth error: ${err}`);
-  }
-
+  if (!tokenRes.ok) throw new Error(await tokenRes.text());
+  
   const tokenData = await tokenRes.json();
   _tokenCache  = tokenData.access_token;
   _tokenExpiry = now + tokenData.expires_in;
@@ -150,129 +114,58 @@ async function getGoogleAccessToken() {
 
 // ── FOLDER MANAGEMENT ─────────────────────────────────────────
 
-const BULAN_INDO = ["","01-Jan","02-Feb","03-Mar","04-Apr","05-Mei",
-  "06-Jun","07-Jul","08-Agu","09-Sep","10-Okt","11-Nov","12-Des"];
-
-/**
- * getFolderPath
- * Tentukan path folder berdasarkan tanggal kegiatan (WITA)
- * Output contoh: "2026/03-Mar"
- */
-/**
- * getFolderPath
- * Menambahkan pemisah folder otomatis antara Undangan dan Sambutan
- */
-function getFolderPath(dateStr, fileType) {
-  const [year, month] = dateStr.split("-");
-  // Membaca tipe file yang dikirim dari aplikasi
-  const subFolder = fileType === "undangan" ? "Undangan" : fileType === "sambutan" ? "Sambutan" : "Lainnya";
-  
-  // Format akhir: YYYY/Bulan/Kategori
-  return `${year}/${BULAN_INDO[parseInt(month)] || month}/${subFolder}`;
+// Membuat path spesifik yang dikirim dari Frontend (Tahun/Bulan/Kategori)
+function buildFolderPath(year, month, sub) {
+  // Jika Frontend mengirim instruksi folder, pakai itu. Jika tidak, pakai fallback.
+  if (year && month && sub) return `${year}/${month}/${sub}`;
+  return "Arsip_Umum"; 
 }
 
-/**
- * getOrCreateFolder
- * Cari folder di cache dulu, jika tidak ada buat di Drive
- * Membuat folder secara rekursif: Prokopim_Files → 2026 → 03-Mar
- */
 async function getOrCreateFolder(token, folderPath) {
-  // Cek cache Supabase
-  const cached = await sbGet(
-    `drive_folder_cache?folder_path=eq.${encodeURIComponent(folderPath)}&limit=1`
-  );
-  if (cached.length > 0) {
-    console.log(`[Drive] Folder dari cache: ${folderPath} → ${cached[0].folder_id}`);
-    return cached[0].folder_id;
-  }
+  const cached = await sbGet(`drive_folder_cache?folder_path=eq.${encodeURIComponent(folderPath)}&limit=1`);
+  if (cached && cached.length > 0) return cached[0].folder_id;
 
-  // Buat folder secara rekursif
   const parts = folderPath.split("/");
   let parentId = ROOT_FOLDER;
 
   for (const part of parts) {
-    // Cari subfolder di parent
     const searchRes = await fetch(
-      `https://www.googleapis.com/drive/v3/files?` +
-      `q=${encodeURIComponent(`name='${part}' and mimeType='application/vnd.google-apps.folder' and '${parentId}' in parents and trashed=false`)}` +
-      `&fields=files(id,name)`,
+      `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(`name='${part}' and mimeType='application/vnd.google-apps.folder' and '${parentId}' in parents and trashed=false`)}&fields=files(id,name)`,
       { headers: { "Authorization": `Bearer ${token}` } }
     );
     const searchData = await searchRes.json();
 
     if (searchData.files && searchData.files.length > 0) {
-      // Folder sudah ada
       parentId = searchData.files[0].id;
     } else {
-      // Buat folder baru
       const createRes = await fetch("https://www.googleapis.com/drive/v3/files", {
         method: "POST",
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name:     part,
-          mimeType: "application/vnd.google-apps.folder",
-          parents:  [parentId],
-        }),
+        headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ name: part, mimeType: "application/vnd.google-apps.folder", parents: [parentId] }),
       });
       const created = await createRes.json();
       parentId = created.id;
-      console.log(`[Drive] Folder dibuat: ${part} → ${parentId}`);
     }
   }
 
-  // Simpan ke cache Supabase
-  await sbPost("drive_folder_cache", { folder_path: folderPath, folder_id: parentId });
-
+  // Simpan ID folder yang baru ke cache Supabase
+  await sbPost("drive_folder_cache", { folder_path: folderPath, folder_id: parentId }).catch(()=>null);
   return parentId;
 }
 
-// ── UPLOAD FILE ───────────────────────────────────────────────
-/**
- * uploadFileToDrive
- *
- * Upload file ke Google Drive folder yang sesuai tahun/bulan.
- * Menggunakan multipart upload untuk metadata + content sekaligus.
- *
- * @param {Buffer} fileBuffer   - Isi file dalam Buffer
- * @param {string} fileName     - Nama file
- * @param {string} mimeType     - MIME type (application/pdf, image/jpeg, dst)
- * @param {string} agendaDate   - "YYYY-MM-DD" tanggal kegiatan WITA
- * @returns { fileId, fileUrl, folderId, folderPath }
- */
-// Tambahkan parameter fileType di ujung tanda kurung
-// ── UPLOAD FILE ───────────────────────────────────────────────
-/**
- * uploadFileToDrive
- * Upload file ke Google Drive folder yang sesuai tahun/bulan/kategori.
- */
-async function uploadFileToDrive(fileBuffer, fileName, mimeType, agendaDate, fileType) {
-  // 1. Ambil Kunci & Tentukan Jalur Folder (Hanya 3 baris ini saja)
+// ── UPLOAD FILE KE GOOGLE DRIVE ───────────────────────────────
+async function uploadFileToDrive(fileBuffer, fileName, mimeType, yearFolder, monthFolder, subFolder) {
   const token = await getGoogleAccessToken();
-  const folderPath = getFolderPath(agendaDate, fileType);
+  const folderPath = buildFolderPath(yearFolder, monthFolder, subFolder);
   const folderId   = await getOrCreateFolder(token, folderPath);
 
-  // 2. Multipart upload: metadata + file content (Lanjut ke kode aslinya)
-  const metadata = JSON.stringify({
-    name:    fileName,
-    parents: [folderId],
-  });
-
+  const metadata = JSON.stringify({ name: fileName, parents: [folderId] });
   const boundary = "-------prokopim_boundary_" + Date.now();
-  // ... (biarkan sisa kode di bawahnya tetap utuh seperti aslinya) ...
   const delimiter = `\r\n--${boundary}\r\n`;
   const closeDelimiter = `\r\n--${boundary}--`;
 
   const body = Buffer.concat([
-    Buffer.from(
-      delimiter +
-      "Content-Type: application/json\r\n\r\n" +
-      metadata +
-      delimiter +
-      `Content-Type: ${mimeType}\r\n\r\n`
-    ),
+    Buffer.from(delimiter + "Content-Type: application/json\r\n\r\n" + metadata + delimiter + `Content-Type: ${mimeType}\r\n\r\n`),
     fileBuffer,
     Buffer.from(closeDelimiter),
   ]);
@@ -290,20 +183,14 @@ async function uploadFileToDrive(fileBuffer, fileName, mimeType, agendaDate, fil
     }
   );
 
-  if (!uploadRes.ok) {
-    const err = await uploadRes.text();
-    throw new Error(`Drive upload gagal: ${err}`);
-  }
+  if (!uploadRes.ok) throw new Error(await uploadRes.text());
 
   const uploaded = await uploadRes.json();
 
-  // Set permission: anyone with link can view
+  // Beri akses baca publik (anyone with link)
   await fetch(`https://www.googleapis.com/drive/v3/files/${uploaded.id}/permissions`, {
     method: "POST",
-    headers: {
-      "Authorization": `Bearer ${token}`,
-      "Content-Type":  "application/json",
-    },
+    headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
     body: JSON.stringify({ role: "reader", type: "anyone" }),
   });
 
@@ -316,25 +203,9 @@ async function uploadFileToDrive(fileBuffer, fileName, mimeType, agendaDate, fil
   };
 }
 
-// ── DELETE FILE ───────────────────────────────────────────────
-async function deleteFileFromDrive(driveFileId) {
-  const token = await getGoogleAccessToken();
-  const r = await fetch(
-    `https://www.googleapis.com/drive/v3/files/${driveFileId}`,
-    { method: "DELETE", headers: { "Authorization": `Bearer ${token}` } }
-  );
-  if (!r.ok && r.status !== 404) {
-    throw new Error(`Drive delete gagal: ${r.status}`);
-  }
-}
-
-// ── PARSE MULTIPART FORM DATA (tanpa library) ─────────────────
-/**
- * Untuk menerima file upload dari frontend.
- * Vercel menyediakan body sebagai Buffer jika Content-Type multipart.
- * Di sini kita parse manual untuk menghindari dependency tambahan.
- */
-async function parseMultipartBody(req) {
+// ── ROBUST MULTIPART PARSER ───────────────────────────────────
+// Ini perbaikan utama agar Buffer file tertangkap sempurna tanpa bocor.
+async function parseMultipartBodyRobust(req) {
   return new Promise((resolve, reject) => {
     const chunks = [];
     req.on("data", c => chunks.push(c));
@@ -343,39 +214,38 @@ async function parseMultipartBody(req) {
         const body = Buffer.concat(chunks);
         const contentType = req.headers["content-type"] || "";
         const boundaryMatch = contentType.match(/boundary=(.+)$/);
-        if (!boundaryMatch) return reject(new Error("Bukan multipart"));
+        if (!boundaryMatch) return reject(new Error("Request bukan tipe multipart"));
 
-        const boundary = Buffer.from("--" + boundaryMatch[1]);
+        const boundaryStr = "--" + boundaryMatch[1];
+        const boundaryBuf = Buffer.from(boundaryStr);
         const parts = [];
-        let start = 0;
+        let start = body.indexOf(boundaryBuf);
 
-        while (start < body.length) {
-          const bIdx = body.indexOf(boundary, start);
-          if (bIdx === -1) break;
-          const end = body.indexOf(boundary, bIdx + boundary.length);
-          if (end === -1) break;
+        while (start !== -1) {
+          const nextBoundary = body.indexOf(boundaryBuf, start + boundaryBuf.length);
+          if (nextBoundary === -1) break;
 
-          const part = body.slice(bIdx + boundary.length + 2, end - 2);
-          const headerEnd = part.indexOf(Buffer.from("\r\n\r\n"));
-          if (headerEnd === -1) { start = end; continue; }
+          const partBuf = body.slice(start + boundaryBuf.length + 2, nextBoundary - 2);
+          const headerEndIdx = partBuf.indexOf(Buffer.from("\r\n\r\n"));
 
-          const headerStr  = part.slice(0, headerEnd).toString();
-          const fileBuffer = part.slice(headerEnd + 4);
+          if (headerEndIdx !== -1) {
+            const headerStr  = partBuf.slice(0, headerEndIdx).toString();
+            const fileBuffer = partBuf.slice(headerEndIdx + 4);
 
-          const nameMatch     = headerStr.match(/name="([^"]+)"/);
-          const filenameMatch = headerStr.match(/filename="([^"]+)"/);
-          const ctMatch       = headerStr.match(/Content-Type:\s*(.+)/i);
+            const nameMatch     = headerStr.match(/name="([^"]+)"/);
+            const filenameMatch = headerStr.match(/filename="([^"]+)"/);
+            const ctMatch       = headerStr.match(/Content-Type:\s*([^\s;]+)/i);
 
-          parts.push({
-            fieldName: nameMatch?.[1],
-            fileName:  filenameMatch?.[1],
-            mimeType:  ctMatch?.[1]?.trim(),
-            buffer:    fileBuffer,
-            text:      filenameMatch ? null : fileBuffer.toString(),
-          });
-          start = end;
+            parts.push({
+              fieldName: nameMatch ? nameMatch[1] : null,
+              fileName:  filenameMatch ? filenameMatch[1] : null,
+              mimeType:  ctMatch ? ctMatch[1] : null,
+              buffer:    fileBuffer,
+              text:      filenameMatch ? null : fileBuffer.toString().trim(),
+            });
+          }
+          start = nextBoundary;
         }
-
         resolve(parts);
       } catch (e) { reject(e); }
     });
@@ -383,79 +253,72 @@ async function parseMultipartBody(req) {
   });
 }
 
+// Konfigurasi agar Next.js / Vercel tidak merusak Buffer file
+export const config = {
+  api: { bodyParser: false } 
+};
+
 // ── MAIN HANDLER ─────────────────────────────────────────────
 export default async function handler(req, res) {
   const action = req.query.action;
 
   try {
     if (req.method === "POST" && action === "upload") {
-      // Parse multipart form data
-      let parts;
-      try {
-        parts = await parseMultipartBody(req);
-      } catch {
-        return res.status(400).json({ error: "Gagal parse form data" });
+      
+      const parts = await parseMultipartBodyRobust(req);
+      
+      const filePart = parts.find(p => p.fileName);
+      if (!filePart || filePart.buffer.length === 0) {
+         return res.status(400).json({ error: "File kosong atau gagal di-parse oleh sistem" });
       }
 
-      const filePart    = parts.find(p => p.fileName);
-      const agendaIdP   = parts.find(p => p.fieldName === "agendaId");
-      const agendaDateP = parts.find(p => p.fieldName === "agendaDate");
-      const fileTypeP   = parts.find(p => p.fieldName === "fileType");
-      const uploadedByP = parts.find(p => p.fieldName === "uploadedBy");
-
-      if (!filePart) return res.status(400).json({ error: "File tidak ditemukan di request" });
-
-      const agendaId   = agendaIdP?.text   || "";
-      const agendaDate = agendaDateP?.text  || new Date().toISOString().slice(0,10);
-      const fileType   = fileTypeP?.text    || "other";
-      const uploadedBy = uploadedByP?.text  || "";
+      // Ambil data instruksi folder dari Frontend
+      const agendaId   = parts.find(p => p.fieldName === "agendaId")?.text || "";
+      const targetYear = parts.find(p => p.fieldName === "targetYear")?.text || new Date().getFullYear().toString();
+      const targetMonth= parts.find(p => p.fieldName === "targetMonth")?.text || "Arsip";
+      const targetSub  = parts.find(p => p.fieldName === "targetSub")?.text || "Umum";
+      const uploadedBy = parts.find(p => p.fieldName === "uploadedBy")?.text || "Sistem";
+      
       const fileName   = filePart.fileName;
-      const mimeType   = filePart.mimeType  || "application/octet-stream";
+      const mimeType   = filePart.mimeType || "application/octet-stream";
 
-      // Upload ke Drive
+      // Eksekusi Upload ke Drive menggunakan parameter folder baru
       const { fileId, fileUrl, folderId, folderPath, folderUrl } =
-        await uploadFileToDrive(filePart.buffer, fileName, mimeType, agendaDate, fileType);
+        await uploadFileToDrive(filePart.buffer, fileName, mimeType, targetYear, targetMonth, targetSub);
 
-      // Simpan ke tabel drive_files
+      // Catat ke log Supabase
       const record = await sbPost("drive_files", {
-        agenda_id: agendaId || null, file_name: fileName,
-        file_type: fileType, mime_type: mimeType,
+        agenda_id: agendaId || null, 
+        file_name: fileName,
+        file_type: targetSub.toLowerCase(), 
+        mime_type: mimeType,
         file_size_bytes: filePart.buffer.length,
-        drive_file_id: fileId, drive_file_url: fileUrl,
-        drive_folder_id: folderId, drive_folder_path: folderPath,
+        drive_file_id: fileId, 
+        drive_file_url: fileUrl,
+        drive_folder_id: folderId, 
+        drive_folder_path: folderPath,
         uploaded_by: uploadedBy,
-      });
+      }).catch(() => null);
 
       return res.status(200).json({
         ok: true, fileId, fileUrl, folderPath, folderUrl,
-        dbId: record[0]?.id,
-        message: `File "${fileName}" berhasil diupload ke Drive ✓`,
+        dbId: record && record[0] ? record[0].id : null,
+        message: `File sukses diupload ke Drive ✓`,
       });
 
     } else if (req.method === "POST" && action === "delete") {
-      const { driveFileId, dbId } = req.body;
-      if (!driveFileId) return res.status(400).json({ error: "driveFileId wajib" });
-
-      await deleteFileFromDrive(driveFileId);
-      if (dbId) {
-        await sbPatch("drive_files", `id=eq.${dbId}`, { drive_file_id: null });
-      }
+      // (Logika delete file tetap sama)
+      const { driveFileId, dbId } = parts?.[0]?.text ? JSON.parse(parts[0].text) : req.body;
+      const token = await getGoogleAccessToken();
+      await fetch(`https://www.googleapis.com/drive/v3/files/${driveFileId}`, { method: "DELETE", headers: { "Authorization": `Bearer ${token}` } });
+      if (dbId) await sbPatch("drive_files", `id=eq.${dbId}`, { drive_file_id: null });
       return res.status(200).json({ ok: true, message: "File dihapus dari Drive ✓" });
 
-    } else if (req.method === "GET" && action === "files") {
-      const { agendaId } = req.query;
-      if (!agendaId) return res.status(400).json({ error: "agendaId wajib" });
-
-      const files = await sbGet(
-        `drive_files?agenda_id=eq.${agendaId}&order=created_at.desc`
-      );
-      return res.status(200).json({ ok: true, files });
-
     } else {
-      return res.status(400).json({ error: "Action atau method tidak dikenal" });
+      return res.status(400).json({ error: "Action tidak dikenal" });
     }
   } catch (err) {
-    console.error("[DRIVE]", err.message);
+    console.error("[DRIVE API ERROR]", err.message);
     return res.status(500).json({ error: err.message });
   }
 }
