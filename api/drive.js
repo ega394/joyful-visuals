@@ -65,6 +65,7 @@ async function getToken() {
 
 // ── Folder helper ─────────────────────────────────────────────
 async function getOrCreateFolder(token, folderPath) {
+  if (!ROOT_FOLDER) throw new Error("GOOGLE_DRIVE_ROOT_FOLDER_ID belum diset di environment variables Vercel");
   const cached=await sbGet("drive_folder_cache?folder_path=eq."+encodeURIComponent(folderPath)+"&limit=1").catch(()=>[]);
   if (cached&&cached.length>0) return cached[0].folder_id;
   let parentId=ROOT_FOLDER;
@@ -77,7 +78,7 @@ async function getOrCreateFolder(token, folderPath) {
       parentId=cr.id;
     }
   }
-  await sbPost("drive_folder_cache",{folder_path:folderPath,folder_id:parentId}).catch(()=>null);
+  await sbPost("drive_folder_cache",{folder_path:folderPath,folder_id:parentId}).catch(e=>console.warn("[drive] folder cache skip:",e.message));
   return parentId;
 }
 
@@ -131,17 +132,21 @@ function buildFileName(ev, fileType) {
 // ── Proses satu file: Base64/URL dari DB → Upload ke Drive ────
 async function syncOneFile(token, ev, fileType) {
   const fileUrl = fileType==="sambutan" ? ev.sambutanFile : ev.undanganFile;
+  console.log("[drive] syncOneFile", fileType, "ev.id=", ev.id||ev.namaAcara, "fileUrl type=", typeof fileUrl, "starts=", typeof fileUrl==="string" ? fileUrl.substring(0,30) : "N/A");
   const isUrl   = typeof fileUrl==="string" && (fileUrl.startsWith("http://") || fileUrl.startsWith("https://"));
   const isB64   = typeof fileUrl==="string" && fileUrl.startsWith("data:");
 
   let buffer, mimeType;
   if (isUrl) {
+    console.log("[drive] fetching URL...");
     ({ buffer, mimeType } = await fetchBuf(fileUrl));
   } else if (isB64) {
+    console.log("[drive] decoding Base64, length=", fileUrl.length);
     const arr=fileUrl.split(",");
     mimeType=arr[0].match(/:(.*?);/)?.[1]||"application/pdf";
     buffer=Buffer.from(arr[1],"base64");
   } else {
+    console.log("[drive] skip — bukan URL/Base64, value=", String(fileUrl).substring(0,50));
     return null; 
   }
 
@@ -169,7 +174,7 @@ async function syncOneFile(token, ev, fileType) {
 export default async function handler(req, res) {
   // CORS Headers
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   if (req.method === "OPTIONS") return res.status(200).end();
 
@@ -240,6 +245,8 @@ export default async function handler(req, res) {
       // Jadi ev ada di rows[0].data, bukan rows[0]
       const rowRaw = rows[0];
       const ev = rowRaw.data || rowRaw; // fallback jika struktur flat
+      console.log("[drive] ev parsed, id=", ev.id, "namaAcara=", ev.namaAcara, "hasUndangan=", !!ev.undanganFile, "hasSambutan=", !!ev.sambutanFile);
+      console.log("[drive] undanganFile start=", ev.undanganFile ? String(ev.undanganFile).substring(0,40) : "null");
       const isDriveUrl=(s)=>typeof s==="string"&&s.includes("drive.google.com");
       const hasFile   =(s)=>typeof s==="string"&&s.length>50&&!isDriveUrl(s);
 
