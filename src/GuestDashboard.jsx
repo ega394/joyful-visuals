@@ -201,8 +201,8 @@ function KasubbagView({ role, user, showT, isMobile }) {
 
 // ── Detail Verifikasi Kasubbag ─────────────────────────────
 function KasubbagDetailView({ guest, user, role, onBack, showT, isMobile }) {
-  var [priority, setPriority] = useState(guest.priority || "biasa");
-  var [catatan,  setCatatan]  = useState(guest.staff_notes || "");
+  var [priority, setPriority] = useState(guest.prioritas || "biasa");
+  var [catatan,  setCatatan]  = useState(guest.catatan_staf || "");
   var [loading,  setLoading]  = useState(false);
   var [waLoading,setWaLoading]= useState(false);
 
@@ -228,8 +228,8 @@ function KasubbagDetailView({ guest, user, role, onBack, showT, isMobile }) {
         body: JSON.stringify({
           id: guest.id,
           priority: priority,
-          staff_notes: catatan.trim(),
-          screened_by: user?.username,
+          catatan_staf: catatan.trim(),
+          dikurasi_oleh: user?.username,
         }),
       });
       var data = await r.json();
@@ -372,8 +372,8 @@ function KabagView({ user, showT, isMobile }) {
 
 // ── Detail Telaah Kabag ───────────────────────────────────────
 function KabagDetailView({ guest, user, onBack, showT, isMobile }) {
-  var [catatanKabag, setCatatanKabag] = useState(guest.kabag_notes || "");
-  var [priority, setPriority] = useState(guest.priority || "biasa");
+  var [catatanKabag, setCatatanKabag] = useState(guest.telaah_kabag || "");
+  var [priority, setPriority] = useState(guest.prioritas || "biasa");
   var [loading, setLoading] = useState(false);
 
   async function teruskan() {
@@ -384,8 +384,8 @@ function KabagDetailView({ guest, user, onBack, showT, isMobile }) {
         body: JSON.stringify({
           id: guest.id,
           priority: priority, // Kabag bisa mengkoreksi prioritas dari kasubbag
-          kabag_notes: catatanKabag.trim(),
-          forwarded_by: user?.username,
+          telaah_kabag: catatanKabag.trim(),
+          ditelaah_oleh: user?.username,
         }),
       });
       var data = await r.json();
@@ -403,8 +403,8 @@ function KabagDetailView({ guest, user, onBack, showT, isMobile }) {
         method:"POST", headers:{"Content-Type":"application/json"},
         body: JSON.stringify({
           id: guest.id,
-          kabag_notes: catatanKabag.trim() || "(Dikembalikan oleh Kabag)",
-          returned_by: user?.username,
+          telaah_kabag: catatanKabag.trim() || "(Dikembalikan oleh Kabag)",
+          dikurasi_oleh: user?.username,
         }),
       });
       var data = await r.json();
@@ -436,10 +436,10 @@ function KabagDetailView({ guest, user, onBack, showT, isMobile }) {
           ]}/>
         </SectionCard>
 
-        {guest.staff_notes && (
+        {guest.catatan_staf && (
           <div style={{ background:"#FFFBEB", border:"1.5px solid #FDE68A", borderRadius:12, padding:"12px 14px", marginBottom:14 }}>
             <div style={{ fontSize:10, fontWeight:700, color:"#92400E", textTransform:"uppercase", letterSpacing:1, marginBottom:6 }}>Catatan Kasubbag</div>
-            <p style={{ fontSize:13, color:"#78350F", lineHeight:1.6, margin:0 }}>{guest.staff_notes}</p>
+            <p style={{ fontSize:13, color:"#78350F", lineHeight:1.6, margin:0 }}>{guest.catatan_staf}</p>
           </div>
         )}
 
@@ -527,7 +527,7 @@ function PimpinanView({ role, user, events, showT, isMobile }) {
           buktiUndangan: "Permohonan Tamu #" + String(current.id).slice(-4),
           pakaian: "Batik Lengan Panjang", jenisKegiatan: "Menghadiri", lokasi: "Kantor Wali Kota Tarakan",
           untukPimpinan: [pejabatKey], alur: "disetujui",
-          catatan: "Maksud: " + current.purpose + (current.kabag_notes ? " | Telaah Kabag: " + current.kabag_notes : ""),
+          catatan: "Maksud: " + current.purpose + (current.telaah_kabag ? " | Telaah Kabag: " + current.telaah_kabag : ""),
           statusWK: pejabatKey === "walikota" ? "hadir" : null, statusWWK: pejabatKey === "wakilwalikota" ? "hadir" : null,
           submittedBy: user?.username || "pimpinan", personil: [], evaluasi: {}, created_from: "guest_module"
         };
@@ -591,10 +591,10 @@ function PimpinanView({ role, user, events, showT, isMobile }) {
                 <div style={{ fontSize:14, color:NAVY, lineHeight:1.6 }}>{current.purpose}</div>
               </div>
 
-              {current.kabag_notes && (
+              {current.telaah_kabag && (
                 <div style={{ background:"#EDE9FE", border:"1.5px solid #C4B5FD", borderRadius:11, padding:"11px 13px", marginBottom:12 }}>
                   <div style={{ fontSize:10, fontWeight:700, color:"#5B21B6", textTransform:"uppercase", letterSpacing:1, marginBottom:5 }}>Telaah Kabag Prokopim</div>
-                  <p style={{ fontSize:13, color:"#4C1D95", lineHeight:1.6, margin:0 }}>{current.kabag_notes}</p>
+                  <p style={{ fontSize:13, color:"#4C1D95", lineHeight:1.6, margin:0 }}>{current.telaah_kabag}</p>
                 </div>
               )}
 
@@ -625,7 +625,7 @@ function PimpinanView({ role, user, events, showT, isMobile }) {
                   <div style={{ fontSize:12, fontWeight:700, color:"#5B21B6", marginBottom:8 }}>Disposisi ke:</div>
                   <input value={dispTo} onChange={function(e) { setDispTo(e.target.value); }} placeholder="Pejabat / Instansi penerima disposisi" style={inputStyle} />
                   <div style={{ display:"flex", gap:8, marginTop:10 }}>
-                    <button onClick={function() { if (!dispTo.trim()) { showT("Isi tujuan disposisi"); return; } respond("disposed", { disposed_to: dispTo }); }} disabled={actLoading} style={{ flex:2, padding:"10px", borderRadius:10, border:"none", background:"linear-gradient(135deg,#7C3AED,#5B21B6)", color:"white", fontSize:13, fontWeight:800, cursor:"pointer" }}>
+                    <button onClick={function() { if (!dispTo.trim()) { showT("Isi tujuan disposisi"); return; } respond("disposed", { disposisi_ke: dispTo }); }} disabled={actLoading} style={{ flex:2, padding:"10px", borderRadius:10, border:"none", background:"linear-gradient(135deg,#7C3AED,#5B21B6)", color:"white", fontSize:13, fontWeight:800, cursor:"pointer" }}>
                       {actLoading ? <Spinner/> : "↩ Konfirmasi Disposisi"}
                     </button>
                     <button onClick={closeModal} style={cancelBtnStyle}>Batal</button>
@@ -638,7 +638,7 @@ function PimpinanView({ role, user, events, showT, isMobile }) {
                   <div style={{ fontSize:12, fontWeight:700, color:"#DC2626", marginBottom:8 }}>Alasan penolakan (opsional):</div>
                   <input value={rejectR} onChange={function(e) { setRejectR(e.target.value); }} placeholder="Contoh: Jadwal penuh" style={inputStyle} />
                   <div style={{ display:"flex", gap:8, marginTop:10 }}>
-                    <button onClick={function() { respond("rejected", { rejection_reason: rejectR }); }} disabled={actLoading} style={{ flex:2, padding:"10px", borderRadius:10, border:"none", background:"linear-gradient(135deg,#DC2626,#B91C1C)", color:"white", fontSize:13, fontWeight:800, cursor:"pointer" }}>
+                    <button onClick={function() { respond("rejected", { alasan_tolak: rejectR }); }} disabled={actLoading} style={{ flex:2, padding:"10px", borderRadius:10, border:"none", background:"linear-gradient(135deg,#DC2626,#B91C1C)", color:"white", fontSize:13, fontWeight:800, cursor:"pointer" }}>
                       {actLoading ? <Spinner/> : "❌ Konfirmasi Penolakan"}
                     </button>
                     <button onClick={closeModal} style={cancelBtnStyle}>Batal</button>
@@ -727,7 +727,7 @@ function AjudanView({ role, isMobile }) {
 }
 
 function AjudanCard({ guest }) {
-  var pc = PRIORITY_CONFIG[guest.priority] || PRIORITY_CONFIG.biasa;
+  var pc = PRIORITY_CONFIG[guest.prioritas] || PRIORITY_CONFIG.biasa;
   return (
     <div style={{ background:"white", borderRadius:16, marginBottom:10, overflow:"hidden", boxShadow:"0 2px 10px rgba(10,22,40,0.07)", border:"1.5px solid " + pc.ring }}>
       <div style={{ background: "linear-gradient(135deg," + NAVY + "," + NAVY_MID + ")", padding:"8px 16px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
@@ -739,7 +739,7 @@ function AjudanCard({ guest }) {
         {guest.organization && <div style={{ fontSize:12, color:"#64748B", marginBottom:4 }}>🏢 {guest.organization}</div>}
         <div style={{ fontSize:12, color:"#64748B", marginBottom:6 }}>📱 {guest.phone}{guest.tujuan_pejabat && <span style={{ marginLeft:8 }}>→ {getPejabatLabel(guest.tujuan_pejabat)}</span>}</div>
         <div style={{ background:"#F8FAFC", borderRadius:9, padding:"8px 11px", fontSize:13, color:NAVY, lineHeight:1.5 }}>{guest.purpose}</div>
-        {guest.kabag_notes && <div style={{ marginTop:7, background:"#EDE9FE", borderRadius:8, padding:"7px 10px", fontSize:12, color:"#4C1D95" }}>📌 Catatan Kabag: {guest.kabag_notes}</div>}
+        {guest.telaah_kabag && <div style={{ marginTop:7, background:"#EDE9FE", borderRadius:8, padding:"7px 10px", fontSize:12, color:"#4C1D95" }}>📌 Catatan Kabag: {guest.telaah_kabag}</div>}
       </div>
     </div>
   );
@@ -775,7 +775,7 @@ function ReadOnlyView({ role, isMobile }) {
 }
 
 function ReadOnlyCard({ guest }) {
-  var pc = PRIORITY_CONFIG[guest.priority] || PRIORITY_CONFIG.biasa;
+  var pc = PRIORITY_CONFIG[guest.prioritas] || PRIORITY_CONFIG.biasa;
   var sc = STATUS_LABEL[guest.status]       || STATUS_LABEL.waiting;
   return (
     <div style={{ background:"white", borderRadius:14, marginBottom:9, overflow:"hidden", border:"1.5px solid #E8EDF4", boxShadow:"0 1px 6px rgba(10,22,40,0.05)" }}>
@@ -1110,7 +1110,7 @@ function InputManualModal({ user, onClose, onSuccess }) {
 
 // ── GuestCardItem: Kartu tamu untuk list KasubbagView ──────
 function GuestCardItem({ guest, onClick, showPriority, showStaffNote }) {
-  var pc = PRIORITY_CONFIG[guest.priority] || PRIORITY_CONFIG.biasa;
+  var pc = PRIORITY_CONFIG[guest.prioritas] || PRIORITY_CONFIG.biasa;
   var sc = STATUS_LABEL[guest.status]     || STATUS_LABEL.waiting;
   return (
     <div
@@ -1118,7 +1118,7 @@ function GuestCardItem({ guest, onClick, showPriority, showStaffNote }) {
       style={{ background:"white", borderRadius:16, marginBottom:10, overflow:"hidden", boxShadow:"0 2px 8px rgba(10,22,40,0.06)", border:"1.5px solid #E8EDF4", cursor:"pointer", WebkitTapHighlightColor:"transparent" }}
     >
       {/* Priority bar */}
-      <div style={{ height:4, background: guest.priority === "mendesak" ? "linear-gradient(90deg,#EF4444,#B91C1C)" : guest.priority === "penting" ? "linear-gradient(90deg,#F59E0B,#D97706)" : "linear-gradient(90deg,#10B981,#059669)" }}/>
+      <div style={{ height:4, background: guest.prioritas === "mendesak" ? "linear-gradient(90deg,#EF4444,#B91C1C)" : guest.prioritas === "penting" ? "linear-gradient(90deg,#F59E0B,#D97706)" : "linear-gradient(90deg,#10B981,#059669)" }}/>
 
       <div style={{ padding:"12px 14px" }}>
         {/* Baris atas: nama + badge */}
@@ -1141,9 +1141,9 @@ function GuestCardItem({ guest, onClick, showPriority, showStaffNote }) {
         </div>
 
         {/* Catatan staf */}
-        {showStaffNote && guest.staff_notes && (
+        {showStaffNote && guest.catatan_staf && (
           <div style={{ background:"#F0F9FF", borderRadius:8, padding:"6px 10px", fontSize:11, color:"#0369A1", marginBottom:6, lineHeight:1.45 }}>
-            📝 {guest.staff_notes}
+            📝 {guest.catatan_staf}
           </div>
         )}
 
