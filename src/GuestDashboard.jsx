@@ -61,7 +61,7 @@ function KasubbagView({ role, user, showT, isMobile }) {
     fetch(API + "?action=queue&status=" + filterStatus + "&limit=50")
       .then(function(r) { return r.json(); })
       .then(function(data) { setGuests(Array.isArray(data) ? data : []); })
-      .catch(function() { setGuests([]); })
+      .catch(function(err) {    console.error("🚨 ERROR DARI API:", err);    alert("Gagal mengambil data! Cek F12 Console.");   setGuests([]);  })
       .finally(function() { setLoading(false); });
   }, [filterStatus]);
 
