@@ -1,20 +1,12 @@
 /**
- * api/drive.js — Prokopim v1.5
- * Arsitektur Cloud-to-Cloud — Tidak ada payload besar lewat Vercel
- *
- * Actions:
- *   POST ?action=sync_one_from_db   ← UTAMA: fetch jadwal Supabase → upload Drive
- *   POST ?action=get_credentials    ← beri token + folderId ke frontend
- *   POST ?action=finalize           ← set permission + catat DB
- *   POST ?action=delete             ← hapus file dari Drive + DB
- *
- * Flow Cloud-to-Cloud (tidak ada payload besar melewati Vercel):
- *   Browser → Supabase Storage  (langsung, tidak lewat Vercel)
- *   Vercel  → Supabase (fetch URL kecil) → Download file → Google Drive
+ * api/drive.js — Prokopim v2.0 (True Cloud-to-Cloud Sync)
+ * * Vercel HANYA menerima ID Jadwal. File raksasa (Base64) akan disedot 
+ * langsung dari Supabase oleh Vercel, lalu dilempar ke Google Drive.
+ * 100% BEBAS DARI LIMIT 4.5MB VERCEL!
  */
 
 export const config = {
-  api: { bodyParser: { sizeLimit: "1mb" } },
+  api: { bodyParser: { sizeLimit: "1mb" } }, // 1MB sudah sangat cukup karena hanya terima ID
 };
 
 const SUPA_URL    = process.env.SUPABASE_URL    || process.env.VITE_SUPABASE_URL;
@@ -114,7 +106,7 @@ async function setPublic(token, fileId) {
   });
 }
 
-// ── Ambil file dari URL → Buffer ──────────────────────────────
+// ── Ambil file dari URL ───────────────────────────────────────
 async function fetchBuf(url) {
   const headers={};
   if (SUPA_URL && url.startsWith(SUPA_URL)) {
@@ -128,7 +120,7 @@ async function fetchBuf(url) {
 
 function datePath(dateStr, fileType) {
   const d=new Date((dateStr||new Date().toISOString().slice(0,10))+"T00:00:00Z");
-  return d.getUTCFullYear()+"/"+BULAN[d.getUTCMonth()]+"/"+(fileType==="sambutan"?"Sambutan":"Undangan");
+  return d.getFullYear()+"/"+BULAN[d.getMonth()]+"/"+(fileType==="sambutan"?"Sambutan":"Undangan");
 }
 
 function buildFileName(ev, fileType) {
@@ -136,7 +128,7 @@ function buildFileName(ev, fileType) {
   return (ev.tanggal||"")+" - "+fileType.toUpperCase()+" - "+cleanName+".pdf";
 }
 
-// ── Proses satu file: URL/base64 → Drive URL ─────────────────
+// ── Proses satu file: Base64/URL dari DB → Upload ke Drive ────
 async function syncOneFile(token, ev, fileType) {
   const fileUrl = fileType==="sambutan" ? ev.sambutanFile : ev.undanganFile;
   const isUrl   = typeof fileUrl==="string" && (fileUrl.startsWith("http://") || fileUrl.startsWith("https://"));
@@ -150,7 +142,7 @@ async function syncOneFile(token, ev, fileType) {
     mimeType=arr[0].match(/:(.*?);/)?.[1]||"application/pdf";
     buffer=Buffer.from(arr[1],"base64");
   } else {
-    return null; // tidak ada file atau sudah Drive URL
+    return null; 
   }
 
   const folderPath = datePath(ev.tanggal, fileType);
@@ -165,69 +157,71 @@ async function syncOneFile(token, ev, fileType) {
     mime_type:mimeType, file_size_bytes:buffer.length,
     drive_file_id:fileId, drive_file_url:driveUrl,
     drive_folder_id:folderId, drive_folder_path:folderPath,
-    uploaded_by:"Sistem Pengarsipan",
+    uploaded_by:"Server Vercel",
   }).catch(()=>null);
 
   return driveUrl;
 }
 
 // ════════════════════════════════════════════════════════════
-//  MAIN HANDLER
+//  MAIN HANDLER VERCEL
 // ════════════════════════════════════════════════════════════
 export default async function handler(req, res) {
+  // CORS Headers
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  if (req.method === "OPTIONS") return res.status(200).end();
+
   const action=req.query.action;
   try {
 
     // ──────────────────────────────────────────────────────
-    // sync_one_from_db — INTI CLOUD-TO-CLOUD
-    // Payload: { agendaId: string }  (hanya ID, tidak ada file)
+    // 1. INTI CLOUD-TO-CLOUD (Tarik dari DB -> Upload ke Drive)
     // ──────────────────────────────────────────────────────
     if (req.method==="POST" && action==="sync_one_from_db") {
       const { agendaId } = req.body;
       if (!agendaId) return res.status(400).json({ error:"agendaId wajib ada" });
 
-      // 1. Fetch data jadwal dari Supabase (server → Supabase)
-      const rows=await sbGet("jadwal?id=eq."+encodeURIComponent(agendaId)+"&select=data&limit=1");
-      if (!rows||rows.length===0) return res.status(404).json({ error:"Agenda tidak ditemukan: "+agendaId });
-      const ev=rows[0].data;
-
+      // Tarik langsung dari tabel 'jadwal'
+      const rows=await sbGet("jadwal?id=eq."+encodeURIComponent(agendaId)+"&limit=1");
+      if (!rows||rows.length===0) return res.status(404).json({ error:"Jadwal tidak ditemukan: "+agendaId });
+      
+      const ev=rows[0]; 
       const isDriveUrl=(s)=>typeof s==="string"&&s.includes("drive.google.com");
-      const hasFile   =(s)=>typeof s==="string"&&s.length>10&&!isDriveUrl(s);
+      const hasFile   =(s)=>typeof s==="string"&&s.length>50&&!isDriveUrl(s);
 
       const token=await getToken();
       const patch={};
 
-      // 2. Proses undanganFile jika ada dan bukan sudah Drive URL
+      // Eksekusi pemindahan file
       if (hasFile(ev.undanganFile)) {
         const driveUrl=await syncOneFile(token,ev,"undangan");
         if (driveUrl) patch.undanganFile=driveUrl;
       }
-
-      // 3. Proses sambutanFile jika ada dan bukan sudah Drive URL
       if (hasFile(ev.sambutanFile)) {
         const driveUrl=await syncOneFile(token,ev,"sambutan");
         if (driveUrl) patch.sambutanFile=driveUrl;
       }
 
-      // 4. Patch tabel jadwal di Supabase dengan URL Drive yang baru
+      // Timpa field lama di Supabase dengan URL Google Drive
       if (Object.keys(patch).length>0) {
-        const updatedData={ ...ev, ...patch };
-        await sbPatch("jadwal","id=eq."+encodeURIComponent(agendaId),{ data:updatedData });
+        await sbPatch("jadwal","id=eq."+encodeURIComponent(agendaId), patch);
       }
 
       return res.status(200).json({
-        ok:      Object.keys(patch).length>0,
+        ok:      true,
         patched: Object.keys(patch),
         undangan: patch.undanganFile||null,
         sambutan: patch.sambutanFile||null,
         message:  Object.keys(patch).length>0
           ? Object.keys(patch).length+" file berhasil dipindahkan ke Drive"
-          : "Tidak ada file yang perlu dipindahkan",
+          : "Selesai. Tidak ada file Base64 yang perlu dipindah.",
       });
     }
 
     // ──────────────────────────────────────────────────────
-    // get_credentials — beri token + folderId ke frontend
+    // 2. GET CREDENTIALS (Cadangan untuk Direct Upload)
     // ──────────────────────────────────────────────────────
     else if (req.method==="POST" && action==="get_credentials") {
       const { targetYear,targetMonth,targetSub }=req.body;
@@ -238,7 +232,7 @@ export default async function handler(req, res) {
     }
 
     // ──────────────────────────────────────────────────────
-    // finalize — set permission + catat DB
+    // 3. FINALIZE (Cadangan untuk Direct Upload)
     // ──────────────────────────────────────────────────────
     else if (req.method==="POST" && action==="finalize") {
       const { fileId,agendaId,fileName,mimeType,fileSizeBytes,folderId,folderPath,targetSub }=req.body;
@@ -250,13 +244,13 @@ export default async function handler(req, res) {
     }
 
     // ──────────────────────────────────────────────────────
-    // delete — hapus file dari Drive + DB
+    // 4. DELETE (Hapus File dari Drive)
     // ──────────────────────────────────────────────────────
     else if (req.method==="POST" && action==="delete") {
       const { driveFileId,dbId }=req.body;
       const token=await getToken();
       await fetch("https://www.googleapis.com/drive/v3/files/"+driveFileId,{ method:"DELETE",headers:{"Authorization":"Bearer "+token} });
-      if (dbId) await sbPatch("drive_files","id=eq."+dbId,{ drive_file_id:null });
+      if (dbId) await sbPatch("drive_files","id=eq."+dbId,{ drive_file_id:null }).catch(()=>null);
       return res.status(200).json({ ok:true });
     }
 
