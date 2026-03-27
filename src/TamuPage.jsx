@@ -291,7 +291,7 @@ export default function TamuPage() {
       var insertRes = await fetch(SUPA_URL + "/rest/v1/permohonan_tamu", {
         method:  "POST",
         headers: Object.assign({}, headers, {
-          "Prefer": "return=representation",  // kembalikan row yang diinsert
+          "Prefer": "return=minimal",
         }),
         body: JSON.stringify(insertPayload),
       });
