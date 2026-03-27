@@ -942,7 +942,6 @@ function InputManualModal({ user, onClose, onSuccess }) {
         pesan:            form.message.trim() || null,
         priority:         form.priority,
         status:           "waiting",          // langsung masuk antrian Kasubbag
-        input_manual_by:  user ? (user.username || "admin_rk") : "admin_rk",
       };
 
       var r = await fetch(SUPA_URL + "/rest/v1/permohonan_tamu", {
