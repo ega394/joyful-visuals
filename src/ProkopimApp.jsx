@@ -4751,20 +4751,35 @@ export default function App(){
     });
     if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error||"Gagal konversi");}
     const {pdfBase64,fileName}=await resp.json();
-    // 3. Upload ke Supabase storage
+    // 3. Upload PDF langsung ke Google Drive (tidak melalui Supabase Storage)
     const pdfName=fileName+".pdf";
     const docxName=fileName+".docx";
-    let pdfUrl=null,docxUrl=null;
-    if(SUPA_OK){
-      // Upload PDF
-      const pdfBlob=new Blob([Uint8Array.from(atob(pdfBase64),ch=>ch.charCodeAt(0))],{type:"application/pdf"});
-      const pdfFile=new File([pdfBlob],pdfName,{type:"application/pdf"});
-      pdfUrl=await storageUpload("sambutan",evId+"/pdf",pdfFile).catch(()=>null);
-      // Upload DOCX asli
-      const docxFile=new File([file],docxName,{type:"application/vnd.openxmlformats-officedocument.wordprocessingml.document"});
-      docxUrl=await storageUpload("sambutan",evId+"/docx",docxFile).catch(()=>null);
+    let pdfUrl=null, docxUrl=null;
+    try{
+      // Upload PDF ke Drive
+      const pdfResp=await fetch("/api/drive?action=upload",{
+        method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({base64:pdfBase64,mimeType:"application/pdf",fileName:pdfName,
+          agendaId:String(evId),agendaDate:ev?.tanggal||"",fileType:"sambutan",
+          uploadedBy:user?.nama||user?.username})
+      });
+      const pdfData=await pdfResp.json();
+      if(pdfData.ok&&pdfData.driveUrl) pdfUrl=pdfData.driveUrl;
+
+      // Upload DOCX asli ke Drive juga
+      const docxB64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result.split(",")[1]);r.onerror=rej;r.readAsDataURL(file);});
+      const docxResp=await fetch("/api/drive?action=upload",{
+        method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({base64:docxB64,mimeType:"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          fileName:docxName,agendaId:String(evId),agendaDate:ev?.tanggal||"",fileType:"sambutan",
+          uploadedBy:user?.nama||user?.username})
+      });
+      const docxData=await docxResp.json();
+      if(docxData.ok&&docxData.driveUrl) docxUrl=docxData.driveUrl;
+    }catch(driveErr){
+      console.warn("Drive upload gagal, fallback lokal:",driveErr.message);
     }
-    // Fallback ke data-URI jika storage belum aktif
+    // Fallback ke data-URI jika Drive gagal
     if(!pdfUrl) pdfUrl="data:application/pdf;base64,"+pdfBase64;
     if(!docxUrl) docxUrl=URL.createObjectURL(file);
     updAndSync(evId,{sambutanFile:pdfUrl,sambutanNama:pdfName,sambutanDocx:docxUrl,sambutanDocxNama:docxName});
@@ -4772,47 +4787,38 @@ export default function App(){
   },[updAndSync]);
 
   const handleSambutanUpload = useCallback(async (evId, file, name) => {
-    const ev = events.find(e => e.id === evId);
     showT("Mengunggah naskah ke Google Drive...", "warn");
     try {
-      // Konversi file ke base64 dulu, lalu kirim ke server (bukan langsung ke Drive)
-      // Simpan ke Supabase dulu (sebagai Base64/blob URL cadangan)
-      const b64temp = await new Promise((resolve, reject) => {
+      const ev = events.find(e => e.id === evId);
+      const b64 = await new Promise((res, rej) => {
         const r = new FileReader();
-        r.onload  = e => resolve(e.target.result);
-        r.onerror = reject;
+        r.onload  = e => res(e.target.result.split(",")[1]);
+        r.onerror = rej;
         r.readAsDataURL(file);
       });
-      // Simpan Base64 ke Supabase terlebih dahulu
-      await updAndSync(evId, { sambutanFile: b64temp, sambutanNama: name });
-      showT("Naskah tersimpan, mengarsipkan ke Drive...", "warn");
-
-      // Setelah tersimpan di Supabase, trigger Cloud-to-Cloud upload
-      // Server Vercel yang fetch dari Supabase & upload ke Drive
-      const res = await fetch("/api/drive?action=sync_one_from_db", {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ agendaId: String(evId) }),
+      const resp = await fetch("/api/drive?action=upload", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ base64:b64, mimeType:file.type, fileName:name,
+          agendaId:String(evId), agendaDate:ev?.tanggal||"",
+          fileType:"sambutan", uploadedBy:user?.nama||user?.username })
       });
-      const data = await res.json();
-      if (data.ok && data.patched && data.patched.sambutanFile) {
-        // Update state lokal dengan URL Drive yang baru
-        setEvents(prev => prev.map(e => e.id === evId ? { ...e, sambutanFile: data.patched.sambutanFile } : e));
-        showT("Naskah sambutan berhasil diarsipkan ke Drive ✓", "ok");
+      const data = await resp.json();
+      if (data.ok && data.driveUrl) {
+        updAndSync(evId, { sambutanFile: data.driveUrl, sambutanNama: name });
+        showT("Naskah sambutan berhasil diarsipkan ke Google Drive ✓");
       } else {
-        showT("Tersimpan di database. Arsip ke Drive akan dilakukan via Sinkronisasi.", "warn");
+        throw new Error(data.error || "Gagal upload ke Drive");
       }
     } catch (err) {
-      console.error("Gagal sync ke Drive:", err);
-      // Fallback ke database internal
-      const b64 = await new Promise((resolve, reject) => {
+      console.error("handleSambutanUpload error:", err);
+      const b64full = await new Promise((res, rej) => {
         const r = new FileReader();
-        r.onload  = e => resolve(e.target.result);
-        r.onerror = reject;
+        r.onload  = e => res(e.target.result);
+        r.onerror = rej;
         r.readAsDataURL(file);
       });
-      updAndSync(evId, { sambutanFile: b64, sambutanNama: name });
-      showT("Gagal ke Drive, tersimpan di database internal", "warn");
+      updAndSync(evId, { sambutanFile: b64full, sambutanNama: name });
+      showT("Gagal ke Drive, tersimpan sementara di lokal", "warn");
     }
   }, [updAndSync, events, user]);
 
@@ -4892,9 +4898,29 @@ export default function App(){
   },[events,role]);
 
   const handleUndanganUpload=useCallback(async(evId,file,name)=>{
-    if(SUPA_OK){const url=await storageUpload("undangan",evId,file);if(url){updAndSync(evId,{undanganFile:url,undanganNama:name});return;}}
-    const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=rej;r.readAsDataURL(file);});updAndSync(evId,{undanganFile:b64,undanganNama:name});
-  },[updAndSync]);
+    showT("Mengunggah undangan ke Google Drive...","warn");
+    try{
+      const ev=events.find(e=>e.id===evId);
+      const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result.split(",")[1]);r.onerror=rej;r.readAsDataURL(file);});
+      const resp=await fetch("/api/drive?action=upload",{
+        method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({base64:b64,mimeType:file.type,fileName:name,agendaId:String(evId),agendaDate:ev?.tanggal||"",fileType:"undangan",uploadedBy:user?.nama||user?.username})
+      });
+      const data=await resp.json();
+      if(data.ok&&data.driveUrl){
+        updAndSync(evId,{undanganFile:data.driveUrl,undanganNama:name});
+        showT("Undangan berhasil diarsipkan ke Google Drive ✓");
+      } else {
+        throw new Error(data.error||"Gagal upload ke Drive");
+      }
+    }catch(err){
+      console.error("handleUndanganUpload error:",err);
+      // Fallback: simpan sebagai data-URI jika Drive gagal
+      const b64full=await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=rej;r.readAsDataURL(file);});
+      updAndSync(evId,{undanganFile:b64full,undanganNama:name});
+      showT("Gagal ke Drive, tersimpan sementara di lokal","warn");
+    }
+  },[updAndSync,events,user]);
 
   const getVisible=()=>{
     if(tab==="tayang"){
@@ -4980,17 +5006,26 @@ const submit = async () => {
     let hasNewFile = false;
     if (finalUndanganFile && finalUndanganFile.startsWith("data:")) {
       hasNewFile = true;
-      showT("Mengamankan file ke penyimpanan...", "warn");
+      showT("Mengunggah berkas undangan ke Google Drive...", "warn");
       try {
-        const blob = await (await fetch(finalUndanganFile)).blob();
-        const storageUrl = await storageUpload("undangan", evId, blob);
-        if (storageUrl) {
-          finalUndanganFile = storageUrl; 
+        const rawB64 = finalUndanganFile.includes(",") ? finalUndanganFile.split(",")[1] : finalUndanganFile;
+        const mimeMatch = finalUndanganFile.match(/:(.*?);/);
+        const mime = mimeMatch ? mimeMatch[1] : "application/pdf";
+        const driveResp = await fetch("/api/drive?action=upload", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ base64: rawB64, mimeType: mime,
+            fileName: form.undanganNama || (evId+"-undangan.pdf"),
+            agendaId: String(evId), agendaDate: form.tanggal||"",
+            fileType: "undangan", uploadedBy: user?.nama||user?.username })
+        });
+        const driveData = await driveResp.json();
+        if (driveData.ok && driveData.driveUrl) {
+          finalUndanganFile = driveData.driveUrl;
         } else {
-          finalUndanganFile = null; 
+          finalUndanganFile = null;
         }
       } catch(e) {
-        console.warn("Storage upload gagal:", e.message);
+        console.warn("Drive upload gagal:", e.message);
         finalUndanganFile = null;
       }
     }
@@ -5755,13 +5790,18 @@ function AIModalRK({onFill,onClose}){
       const m=txt.match(/{[\s\S]*}/);
       if(!m)throw new Error("AI tidak mengembalikan JSON");
       setEdited(JSON.parse(m[0]));
-      // Simpan file otomatis ke storage
+      // Simpan file otomatis ke Google Drive
       try{
-        let url;
-        if(SUPA_OK){url=await storageUpload("undangan",f,f.name);}
-        else{url=await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=rej;r.readAsDataURL(f);});}
-        setSavedFile({url,nama:f.name});
-      }catch(e2){console.warn("Gagal simpan file:",e2);}
+        const b64rk=await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result.split(",")[1]);r.onerror=rej;r.readAsDataURL(f);});
+        const rkResp=await fetch("/api/drive?action=upload",{
+          method:"POST",headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({base64:b64rk,mimeType:f.type||"application/pdf",fileName:f.name,
+            agendaId:"rk-"+Date.now(),agendaDate:new Date().toISOString().slice(0,10),
+            fileType:"undangan",uploadedBy:"Admin RK"})
+        });
+        const rkData=await rkResp.json();
+        setSavedFile({url:rkData.driveUrl||f.name,nama:f.name});
+      }catch(e2){console.warn("Gagal simpan file ke Drive:",e2);}
     }catch(e){setErr(e.message);}
     setLoading(false);
   };
