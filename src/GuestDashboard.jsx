@@ -834,9 +834,294 @@ function Spinner({ color }) {
   return <span style={{ width:14, height:14, borderRadius:"50%", border:"2.5px solid rgba(255,255,255,0.25)", borderTopColor: color || "white", animation:"gd_spin .7s linear infinite", display:"inline-block", flexShrink:0 }}/>;
 }
 
-function BukuPanduanModal({ onClose }) { /* Same as before, omitted for brevity but assumed present in real code */ return <ModalOverlay onClose={onClose}><div style={{textAlign:"center", padding:40}}>Fitur Panduan SOP</div><button onClick={onClose} style={cancelBtnStyle}>Tutup</button></ModalOverlay>; }
-function InputManualModal({ user, onClose, onSuccess }) { /* Same as before, omitted for brevity */ return <ModalOverlay onClose={onClose}><div style={{textAlign:"center", padding:40}}>Fitur Input Manual</div><button onClick={onClose} style={cancelBtnStyle}>Tutup</button></ModalOverlay>; }
-function GuestCardItem({ guest, onClick, showPriority, showStaffNote }) { /* Same as before, omitted for brevity */ return <div onClick={onClick} style={{padding:15, background:"white", borderRadius:10, marginBottom:10, border:"1px solid #E2E8F0"}}>{guest.name}</div>; }
+// ── BukuPanduanModal: Panduan SOP lengkap ──────────────────
+function BukuPanduanModal({ onClose }) {
+  return (
+    <ModalOverlay onClose={onClose}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
+        <div style={{ fontSize:17, fontWeight:900, color:NAVY }}>📖 Buku Panduan SOP Tamu</div>
+        <button onClick={onClose} style={closeXStyle}>✕</button>
+      </div>
+      <div style={{ fontSize:11, color:"#92400E", marginBottom:14, background:"#FFFBEB", borderRadius:9, padding:"9px 12px", border:"1px solid #FDE68A", lineHeight:1.5 }}>
+        ⚠️ {SOP_DISCLAIMER}
+      </div>
+      {SOP_BAGIAN.map(function(bagian) {
+        return (
+          <div key={bagian.bagian} style={{ marginBottom:16, borderRadius:12, border:"1.5px solid " + bagian.warnaBorder, background:bagian.warnaBg, overflow:"hidden" }}>
+            <div style={{ background:bagian.warna, padding:"9px 14px", display:"flex", alignItems:"center", gap:9 }}>
+              <span style={{ fontSize:18 }}>{bagian.icon}</span>
+              <div>
+                <div style={{ fontSize:9, color:"rgba(255,255,255,0.65)", fontWeight:700, letterSpacing:1, textTransform:"uppercase" }}>{bagian.bagian}</div>
+                <div style={{ fontSize:13, color:"white", fontWeight:800 }}>{bagian.judul}</div>
+              </div>
+            </div>
+            {bagian.kelompok.map(function(kel, ki) {
+              return (
+                <div key={ki} style={{ padding:"11px 14px", borderBottom: ki < bagian.kelompok.length - 1 ? ("1px solid " + bagian.warnaBorder) : "none" }}>
+                  <div style={{ fontSize:12, fontWeight:800, color:kel.warna, marginBottom:2 }}>{kel.label}</div>
+                  {kel.sublabel && <div style={{ fontSize:10, color:kel.warna, opacity:0.75, marginBottom:6 }}>{kel.sublabel}</div>}
+                  {kel.isi.map(function(item, ii) {
+                    return (
+                      <div key={ii} style={{ fontSize:12, color:"#334155", marginBottom:3, lineHeight:1.55 }}>
+                        {item.bold && <strong style={{ color:kel.warna }}>{item.bold} </strong>}
+                        {item.teks}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
+        );
+      })}
+      <button onClick={onClose} style={Object.assign({}, cancelBtnStyle, { width:"100%", marginTop:6, textAlign:"center" })}>Tutup</button>
+    </ModalOverlay>
+  );
+}
+
+// ── InputManualModal: Form input manual tamu oleh Admin RK ──
+function InputManualModal({ user, onClose, onSuccess }) {
+  var emptyForm = { name:"", organization:"", phone:"", tujuan_pejabat:"walikota", purpose:"", message:"", priority:"biasa" };
+  var [form, setForm] = useState(emptyForm);
+  var [loading, setLoading] = useState(false);
+  var [errors, setErrors] = useState({});
+
+  function set(field, val) {
+    setForm(function(prev) {
+      var next = {};
+      Object.keys(prev).forEach(function(k) { next[k] = prev[k]; });
+      next[field] = val;
+      return next;
+    });
+    if (errors[field]) {
+      setErrors(function(prev) {
+        var next = {};
+        Object.keys(prev).forEach(function(k) { next[k] = prev[k]; });
+        delete next[field];
+        return next;
+      });
+    }
+  }
+
+  function validate() {
+    var e = {};
+    if (!form.name.trim())    e.name    = "Nama wajib diisi";
+    if (!form.phone.trim())   e.phone   = "Nomor WhatsApp wajib diisi";
+    if (!form.purpose.trim()) e.purpose = "Keperluan wajib diisi";
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  }
+
+  async function handleSubmit() {
+    if (!validate()) return;
+    setLoading(true);
+    try {
+      var payload = {
+        name:           form.name.trim(),
+        organization:   form.organization.trim(),
+        phone:          form.phone.trim(),
+        tujuan_pejabat: form.tujuan_pejabat,
+        purpose:        form.purpose.trim(),
+        message:        form.message.trim(),
+        priority:       form.priority,
+        manual_by:      user ? user.username : "admin_rk",
+      };
+      var r = await fetch(API + "?action=register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      var data = await r.json();
+      if (!r.ok) throw new Error(data.error || "Gagal menyimpan data");
+      onSuccess();
+    } catch(e) {
+      setErrors({ submit: e.message });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  var fieldBox = { marginBottom:13 };
+  var errStyle = { fontSize:11, color:"#DC2626", marginTop:4, fontWeight:600 };
+
+  return (
+    <ModalOverlay onClose={onClose}>
+      {/* Header */}
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:18 }}>
+        <div>
+          <div style={{ fontSize:17, fontWeight:900, color:NAVY }}>✍️ Input Manual Tamu</div>
+          <div style={{ fontSize:11, color:"#64748B", marginTop:2 }}>Diinput oleh staf Admin RK · Langsung masuk antrian Kasubbag</div>
+        </div>
+        <button onClick={onClose} style={closeXStyle}>✕</button>
+      </div>
+
+      {/* Nama */}
+      <div style={fieldBox}>
+        <label style={sectionSubLabel}>Nama Lengkap *</label>
+        <input
+          value={form.name}
+          onChange={function(e) { set("name", e.target.value); }}
+          placeholder="Nama lengkap tamu..."
+          style={Object.assign({}, inputStyle, errors.name ? { borderColor:"#EF4444" } : {})}
+        />
+        {errors.name && <div style={errStyle}>⚠ {errors.name}</div>}
+      </div>
+
+      {/* Instansi */}
+      <div style={fieldBox}>
+        <label style={sectionSubLabel}>Instansi / Organisasi</label>
+        <input
+          value={form.organization}
+          onChange={function(e) { set("organization", e.target.value); }}
+          placeholder="Opsional — cth: DPR Tarakan, FKUB, dst."
+          style={inputStyle}
+        />
+      </div>
+
+      {/* WhatsApp */}
+      <div style={fieldBox}>
+        <label style={sectionSubLabel}>Nomor WhatsApp *</label>
+        <input
+          type="tel"
+          value={form.phone}
+          onChange={function(e) { set("phone", e.target.value); }}
+          placeholder="08xx-xxxx-xxxx"
+          style={Object.assign({}, inputStyle, errors.phone ? { borderColor:"#EF4444" } : {})}
+        />
+        {errors.phone && <div style={errStyle}>⚠ {errors.phone}</div>}
+      </div>
+
+      {/* Tujuan Pimpinan */}
+      <div style={fieldBox}>
+        <label style={sectionSubLabel}>Tujuan Pimpinan *</label>
+        <select
+          value={form.tujuan_pejabat}
+          onChange={function(e) { set("tujuan_pejabat", e.target.value); }}
+          style={inputStyle}
+        >
+          <option value="walikota">Wali Kota</option>
+          <option value="wakilwalikota">Wakil Wali Kota</option>
+        </select>
+      </div>
+
+      {/* Keperluan */}
+      <div style={fieldBox}>
+        <label style={sectionSubLabel}>Keperluan / Maksud Kunjungan *</label>
+        <textarea
+          value={form.purpose}
+          onChange={function(e) { set("purpose", e.target.value); }}
+          rows={3}
+          placeholder="Uraikan maksud dan keperluan tamu..."
+          style={Object.assign({}, textareaStyle, errors.purpose ? { borderColor:"#EF4444" } : {})}
+        />
+        {errors.purpose && <div style={errStyle}>⚠ {errors.purpose}</div>}
+      </div>
+
+      {/* Pesan Tambahan */}
+      <div style={fieldBox}>
+        <label style={sectionSubLabel}>Keterangan Tambahan</label>
+        <textarea
+          value={form.message}
+          onChange={function(e) { set("message", e.target.value); }}
+          rows={2}
+          placeholder="Opsional — informasi lain yang perlu disampaikan..."
+          style={textareaStyle}
+        />
+      </div>
+
+      {/* Prioritas */}
+      <div style={{ marginBottom:18 }}>
+        <label style={sectionSubLabel}>Prioritas Awal</label>
+        <div style={{ display:"flex", gap:8 }}>
+          {Object.entries(PRIORITY_CONFIG).map(function(entry) {
+            var k = entry[0]; var c = entry[1];
+            var active = form.priority === k;
+            return (
+              <button
+                key={k}
+                onClick={function() { set("priority", k); }}
+                style={{ flex:1, padding:"9px 6px", borderRadius:11, border:"2px solid " + (active ? c.color : "#E2E8F0"), background: active ? c.bg : "white", color: active ? c.color : "#64748B", fontSize:11, fontWeight:700, cursor:"pointer", transition:"all 0.15s", display:"flex", flexDirection:"column", alignItems:"center", gap:4 }}
+              >
+                <span style={{ width:9, height:9, borderRadius:"50%", background:c.dot, flexShrink:0 }}/>
+                {c.label}
+                {active && <span style={{ fontSize:9 }}>✓</span>}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Error submit */}
+      {errors.submit && (
+        <div style={{ background:"#FEF2F2", borderRadius:9, padding:"10px 12px", marginBottom:12, fontSize:12, color:"#DC2626", fontWeight:600 }}>
+          ❌ {errors.submit}
+        </div>
+      )}
+
+      {/* Tombol */}
+      <div style={{ display:"flex", gap:8 }}>
+        <button
+          onClick={handleSubmit}
+          disabled={loading}
+          style={{ flex:2, padding:"13px", borderRadius:11, border:"none", background: loading ? "#94A3B8" : ("linear-gradient(135deg," + NAVY + "," + NAVY_MID + ")"), color:"white", fontSize:13, fontWeight:800, cursor: loading ? "not-allowed" : "pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}
+        >
+          {loading ? <Spinner/> : null}
+          {loading ? "Menyimpan..." : "💾 Simpan & Masukkan ke Antrian"}
+        </button>
+        <button onClick={onClose} style={cancelBtnStyle}>Batal</button>
+      </div>
+    </ModalOverlay>
+  );
+}
+
+// ── GuestCardItem: Kartu tamu untuk list KasubbagView ──────
+function GuestCardItem({ guest, onClick, showPriority, showStaffNote }) {
+  var pc = PRIORITY_CONFIG[guest.priority] || PRIORITY_CONFIG.biasa;
+  var sc = STATUS_LABEL[guest.status]     || STATUS_LABEL.waiting;
+  return (
+    <div
+      onClick={onClick}
+      style={{ background:"white", borderRadius:16, marginBottom:10, overflow:"hidden", boxShadow:"0 2px 8px rgba(10,22,40,0.06)", border:"1.5px solid #E8EDF4", cursor:"pointer", WebkitTapHighlightColor:"transparent" }}
+    >
+      {/* Priority bar */}
+      <div style={{ height:4, background: guest.priority === "mendesak" ? "linear-gradient(90deg,#EF4444,#B91C1C)" : guest.priority === "penting" ? "linear-gradient(90deg,#F59E0B,#D97706)" : "linear-gradient(90deg,#10B981,#059669)" }}/>
+
+      <div style={{ padding:"12px 14px" }}>
+        {/* Baris atas: nama + badge */}
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:8, marginBottom:6 }}>
+          <div style={{ flex:1, minWidth:0 }}>
+            <div style={{ fontSize:14, fontWeight:800, color:NAVY, marginBottom:2, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{guest.name}</div>
+            {guest.organization && <div style={{ fontSize:11, color:"#64748B" }}>🏢 {guest.organization}</div>}
+          </div>
+          <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:4, flexShrink:0 }}>
+            {showPriority && (
+              <span style={{ background:pc.bg, color:pc.color, borderRadius:20, padding:"2px 9px", fontSize:10, fontWeight:700 }}>{pc.label}</span>
+            )}
+            <span style={{ background:sc.bg, color:sc.color, borderRadius:20, padding:"2px 9px", fontSize:10, fontWeight:700 }}>{sc.text}</span>
+          </div>
+        </div>
+
+        {/* Keperluan */}
+        <div style={{ fontSize:12, color:"#475569", lineHeight:1.5, marginBottom:6, overflow:"hidden", display:"-webkit-box", WebkitLineClamp:2, WebkitBoxOrient:"vertical" }}>
+          📋 {guest.purpose}
+        </div>
+
+        {/* Catatan staf */}
+        {showStaffNote && guest.staff_notes && (
+          <div style={{ background:"#F0F9FF", borderRadius:8, padding:"6px 10px", fontSize:11, color:"#0369A1", marginBottom:6, lineHeight:1.45 }}>
+            📝 {guest.staff_notes}
+          </div>
+        )}
+
+        {/* Footer: telp + waktu */}
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+          <span style={{ fontSize:11, color:"#94A3B8" }}>📱 {guest.phone}</span>
+          <span style={{ fontSize:11, color:"#94A3B8" }}>{fmtTs(guest.created_at)}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 var backBtnStyle = { background:"rgba(255,255,255,0.1)", border:"none", borderRadius:10, padding:"8px 13px", color:"white", cursor:"pointer", fontSize:12, fontWeight:700, flexShrink:0 };
 var closeXStyle = { width:32, height:32, borderRadius:8, border:"1.5px solid #E2E8F0", background:"white", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, color:"#64748B" };
