@@ -2295,86 +2295,49 @@ function AdminModal({onClose, showT, events, updAndSync}) {
 
   // 3. FUNGSI SINKRONISASI DRIVE (Server to Server Anti Gagal)
   const syncAllToDrive = async () => {
-    if (!events || events.length === 0) { showT("Data jadwal belum termuat.", "error"); return; }
-
-    // Filter: hanya agenda yang masih berupa Base64 atau URL bukan Drive
-    const pendingSync = events.filter(e =>
-      (e.undanganFile && typeof e.undanganFile === "string" &&
-       !e.undanganFile.includes("drive.google.com") && e.undanganFile.length > 50) ||
-      (e.sambutanFile && typeof e.sambutanFile === "string" &&
-       !e.sambutanFile.includes("drive.google.com") && e.sambutanFile.length > 50)
+    if (!events || events.length === 0) return;
+    
+    // Cari jadwal yang filenya masih Base64 (panjang karakter > 50 dan bukan link Drive)
+    const pendingSync = events.filter(e => 
+      (e.undanganFile && e.undanganFile.length > 50 && !e.undanganFile.includes("drive.google.com")) ||
+      (e.sambutanFile && e.sambutanFile.length > 50 && !e.sambutanFile.includes("drive.google.com"))
     );
 
     if (pendingSync.length === 0) {
-      setSyncState({ running: false, done: true, total: 0, current: 0,
-        fileName: "Semua arsip sudah terstruktur rapi di Google Drive ✅" });
+      setSyncState({ running: false, done: true, fileName: "Semua arsip sudah aman di Google Drive ✅", total: 0, current: 0 });
       return;
     }
 
-    setSyncState({ running: true, total: pendingSync.length, current: 0,
-      fileName: "Memulai sinkronisasi Cloud-to-Cloud...", done: false });
-    let totalMoved = 0;
+    setSyncState({ running: true, total: pendingSync.length, current: 0, fileName: "Memulai Cloud-to-Cloud Sync...", done: false });
 
     for (let i = 0; i < pendingSync.length; i++) {
       const ev = pendingSync[i];
-      setSyncState(prev => ({
-        ...prev, current: i + 1,
-        fileName: "Memproses: " + (ev.namaAcara || "").slice(0, 50) + "...",
-      }));
+      setSyncState(prev => ({ ...prev, current: i + 1, fileName: `Memerintahkan server memproses ID: ${ev.id}` }));
 
       try {
-        // ── STEP A: Jika file masih base64 di state browser,
-        //    upload dulu ke Supabase Storage (browser → Supabase, tidak lewat Vercel)
-        const toUpload = {};
-        if (ev.undanganFile && ev.undanganFile.startsWith("data:")) {
-          const blob = await (await fetch(ev.undanganFile)).blob();
-          const url  = await storageUpload("undangan", ev.id, blob);
-          if (url) toUpload.undanganFile = url;
-        }
-        if (ev.sambutanFile && ev.sambutanFile.startsWith("data:")) {
-          const blob = await (await fetch(ev.sambutanFile)).blob();
-          const url  = await storageUpload("sambutan", ev.id, blob);
-          if (url) toUpload.sambutanFile = url;
-        }
-        // Simpan URL Storage ke Supabase dulu (updAndSync → dbUpsert)
-        if (Object.keys(toUpload).length > 0) {
-          updAndSync(ev.id, toUpload);
-          // Tunggu sebentar agar Supabase menerima data sebelum server fetch
-          await new Promise(r => setTimeout(r, 600));
-        }
-
-        // ── STEP B: Kirim HANYA agendaId ke Vercel
-        //    Server fetch dari Supabase (URL Storage/Drive) → upload ke Drive
-        const res  = await fetch("/api/drive?action=sync_one_from_db", {
-          method:  "POST",
-          headers: { "Content-Type": "application/json" },
-          body:    JSON.stringify({ agendaId: String(ev.id) }),
+        // KITA HANYA MENGIRIM ID! (Sangat ringan)
+        const res = await fetch("/api/drive?action=sync_one_from_db", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ agendaId: ev.id })
         });
         const data = await res.json();
 
+        // Jika Vercel berhasil mengubahnya, kita perbarui tampilan di layar
         if (data.ok) {
-          const localPatch = {};
-          if (data.undangan) localPatch.undanganFile = data.undangan;
-          if (data.sambutan) localPatch.sambutanFile = data.sambutan;
-          if (Object.keys(localPatch).length > 0) {
-            setEvents(prev => prev.map(e => e.id === ev.id ? { ...e, ...localPatch } : e));
-            totalMoved++;
-          }
-        } else if (data.error) {
-          console.warn("sync_one_from_db gagal untuk", ev.id, ":", data.error);
+          let patch = {};
+          if (data.undangan) patch.undanganFile = data.undangan;
+          if (data.sambutan) patch.sambutanFile = data.sambutan;
+          await updAndSync(ev.id, patch); 
         }
-      } catch (err) {
-        console.error("Error sinkronisasi agenda", ev.id, ":", err.message);
-      }
-
-      await new Promise(r => setTimeout(r, 800));
+      } catch (err) { console.error(`Error sync ${ev.id}:`, err); }
+      
+      await new Promise(r => setTimeout(r, 600)); // Jeda aman antar request
     }
-
-    setSyncState(prev => ({
-      ...prev, running: false, done: true,
-      fileName: "Misi Selesai! " + totalMoved + " agenda berhasil diarsipkan ke Drive.",
-    }));
+    
+    setSyncState(prev => ({ ...prev, running: false, done: true, fileName: `Misi Selesai! File berhasil dipindahkan via Server.` }));
   };
+
+  
   const inp = {width: "100%", padding: "9px 11px", borderRadius: 8, border: "1.5px solid #e2e8f0", fontSize: 13, background: "white", color: "#1e293b"};
 
   return (
