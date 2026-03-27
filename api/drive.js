@@ -236,35 +236,39 @@ export default async function handler(req, res) {
       const rows=await sbGet("jadwal?id=eq."+encodeURIComponent(agendaId)+"&limit=1");
       if (!rows||rows.length===0) return res.status(404).json({ error:"Jadwal tidak ditemukan: "+agendaId });
       
-      const ev=rows[0]; 
+      // Tabel jadwal menyimpan: { id, data: { ...eventObj } }
+      // Jadi ev ada di rows[0].data, bukan rows[0]
+      const rowRaw = rows[0];
+      const ev = rowRaw.data || rowRaw; // fallback jika struktur flat
       const isDriveUrl=(s)=>typeof s==="string"&&s.includes("drive.google.com");
       const hasFile   =(s)=>typeof s==="string"&&s.length>50&&!isDriveUrl(s);
 
       const token=await getToken();
-      const patch={};
+      const dataPatch={}; // patch yang akan masuk ke dalam field 'data' JSONB
 
       // Eksekusi pemindahan file
       if (hasFile(ev.undanganFile)) {
         const driveUrl=await syncOneFile(token,ev,"undangan");
-        if (driveUrl) patch.undanganFile=driveUrl;
+        if (driveUrl) dataPatch.undanganFile=driveUrl;
       }
       if (hasFile(ev.sambutanFile)) {
         const driveUrl=await syncOneFile(token,ev,"sambutan");
-        if (driveUrl) patch.sambutanFile=driveUrl;
+        if (driveUrl) dataPatch.sambutanFile=driveUrl;
       }
 
-      // Timpa field lama di Supabase dengan URL Google Drive
-      if (Object.keys(patch).length>0) {
-        await sbPatch("jadwal","id=eq."+encodeURIComponent(agendaId), patch);
+      // Update field 'data' JSONB di Supabase dengan cara merge
+      if (Object.keys(dataPatch).length>0) {
+        const updatedData = { ...ev, ...dataPatch };
+        await sbPatch("jadwal","id=eq."+encodeURIComponent(agendaId), { data: updatedData });
       }
 
       return res.status(200).json({
         ok:      true,
-        patched: Object.keys(patch),
-        undangan: patch.undanganFile||null,
-        sambutan: patch.sambutanFile||null,
-        message:  Object.keys(patch).length>0
-          ? Object.keys(patch).length+" file berhasil dipindahkan ke Drive"
+        patched: Object.keys(dataPatch),
+        undangan: dataPatch.undanganFile||null,
+        sambutan: dataPatch.sambutanFile||null,
+        message:  Object.keys(dataPatch).length>0
+          ? Object.keys(dataPatch).length+" file berhasil dipindahkan ke Drive"
           : "Selesai. Tidak ada file Base64 yang perlu dipindah.",
       });
     }
