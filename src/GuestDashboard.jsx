@@ -18,12 +18,12 @@ var PRIORITY_CONFIG = {
 };
 
 var STATUS_LABEL = {
-  waiting:   { text:"Baru Masuk (Ke Kasubbag)", bg:"#EFF6FF", color:"#1D4ED8" },
-  screened:  { text:"Siap Ditelaah Kabag",      bg:"#FEF3C7", color:"#92400E" },
-  forwarded: { text:"Di Meja Pimpinan",         bg:"#EDE9FE", color:"#5B21B6" },
-  accepted:  { text:"Disetujui",                bg:"#D1FAE5", color:"#065F46" },
-  rejected:  { text:"Ditolak",                  bg:"#FEF2F2", color:"#991B1B" },
-  disposed:  { text:"Didisposisi",              bg:"#F1F5F9", color:"#475569" },
+  pending_kasubbag: { text:"Baru Masuk (Ke Kasubbag)", bg:"#EFF6FF", color:"#1D4ED8" },
+  pending_kabag:    { text:"Siap Ditelaah Kabag",      bg:"#FEF3C7", color:"#92400E" },
+  pending_pimpinan: { text:"Di Meja Pimpinan",         bg:"#EDE9FE", color:"#5B21B6" },
+  accepted:         { text:"Disetujui",                bg:"#D1FAE5", color:"#065F46" },
+  rejected:         { text:"Ditolak",                  bg:"#FEF2F2", color:"#991B1B" },
+  disposed:         { text:"Didisposisi",              bg:"#F1F5F9", color:"#475569" },
 };
 
 // ── Data SOP Lengkap ─────────────────────────────────────────
@@ -112,7 +112,7 @@ export default function GuestDashboard({ role, user, events, showT, isMobile }) 
 function KasubbagView({ role, user, showT, isMobile }) {
   var [guests, setGuests] = useState([]);
   var [loading, setLoading] = useState(true);
-  var [filterStatus, setFilterStatus] = useState("waiting");
+  var [filterStatus, setFilterStatus] = useState("pending_kasubbag");
   var [showBukuSOP, setShowBukuSOP] = useState(false);
   var [showManual, setShowManual] = useState(false);
   var [detailId, setDetailId] = useState(null);
@@ -149,7 +149,7 @@ function KasubbagView({ role, user, showT, isMobile }) {
               {role === "admin_rk" ? "Monitoring Tamu Masuk" : "Verifikasi Kasubbag"}
             </div>
             <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
-              <StatPill label="Baru (Menunggu Kasubbag)" value={guests.filter(function(g){return g.status==="waiting";}).length} color="#FCA5A5"/>
+              <StatPill label="Baru (Menunggu Kasubbag)" value={guests.filter(function(g){return g.status==="pending_kasubbag";}).length} color="#FCA5A5"/>
             </div>
           </div>
           <div style={{ display:"flex", gap:8, flexShrink:0, flexWrap:"wrap", justifyContent:"flex-end" }}>
@@ -166,9 +166,9 @@ function KasubbagView({ role, user, showT, isMobile }) {
       {/* Filter tabs */}
       <div style={{ padding:"12px 16px 0", display:"flex", gap:6, flexWrap:"wrap" }}>
         {[
-          { k:"waiting",   l:"Baru Masuk" },
-          { k:"screened",  l:"Siap ke Kabag" },
-          { k:"forwarded", l:"Di Pimpinan" },
+          { k:"pending_kasubbag",   l:"Baru Masuk" },
+          { k:"pending_kabag",  l:"Siap ke Kabag" },
+          { k:"pending_pimpinan", l:"Di Pimpinan" },
           { k:"accepted",  l:"Disetujui" },
           { k:"rejected",  l:"Ditolak" },
         ].map(function(f) {
@@ -222,7 +222,7 @@ function KasubbagDetailView({ guest, user, role, onBack, showT, isMobile }) {
   async function naikkanKabag() {
     setLoading(true);
     try {
-      // Endpoint screen kita gunakan untuk menaikkan ke status "screened" (siap ke Kabag)
+      // Endpoint screen kita gunakan untuk menaikkan ke status "pending_kabag" (siap ke Kabag)
       var r = await fetch(API + "?action=screen", {
         method:"POST", headers:{"Content-Type":"application/json"},
         body: JSON.stringify({
@@ -289,12 +289,12 @@ function KasubbagDetailView({ guest, user, role, onBack, showT, isMobile }) {
             <label style={sectionSubLabel}>Catatan Verifikasi Kasubbag</label>
             <textarea value={catatan} disabled={!isKasubbag} onChange={function(e) { setCatatan(e.target.value); }} rows={3} placeholder={isKasubbag?"Tuliskan hasil verifikasi untuk dibaca Kabag...":"Hanya Kasubbag yang dapat mengisi catatan"} style={textareaStyle} />
           </div>
-          {isKasubbag && guest.status === "waiting" && (
+          {isKasubbag && guest.status === "pending_kasubbag" && (
             <button onClick={naikkanKabag} disabled={loading} style={{ width:"100%", padding:"13px", borderRadius:12, border:"none", background: loading ? "#94A3B8" : ("linear-gradient(135deg," + NAVY + "," + NAVY_MID + ")"), color:"white", fontSize:14, fontWeight:800, cursor: loading ? "not-allowed" : "pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>
               {loading ? <Spinner/> : null} ⬆ Setujui & Naikkan ke Kabag
             </button>
           )}
-          {!isKasubbag && guest.status === "waiting" && (
+          {!isKasubbag && guest.status === "pending_kasubbag" && (
              <div style={{ background:"#F1F5F9", padding:"10px", borderRadius:10, fontSize:12, color:"#64748B", textAlign:"center", fontWeight:600 }}>Menunggu verifikasi Kasubbag Protokol</div>
           )}
         </SectionCard>
@@ -309,7 +309,7 @@ function KasubbagDetailView({ guest, user, role, onBack, showT, isMobile }) {
 function KabagView({ user, showT, isMobile }) {
   var [guests, setGuests] = useState([]);
   var [loading, setLoading] = useState(true);
-  var [filterSt, setFilterSt] = useState("screened");
+  var [filterSt, setFilterSt] = useState("pending_kabag");
   var [detailId, setDetailId] = useState(null);
 
   var load = useCallback(function() {
@@ -342,8 +342,8 @@ function KabagView({ user, showT, isMobile }) {
       {/* Filter */}
       <div style={{ padding:"12px 16px 0", display:"flex", gap:6, flexWrap:"wrap" }}>
         {[
-          { k:"screened",  l:"Menunggu Telaah Anda" },
-          { k:"forwarded", l:"Diteruskan ke Pimpinan" },
+          { k:"pending_kabag",  l:"Menunggu Telaah Anda" },
+          { k:"pending_pimpinan", l:"Diteruskan ke Pimpinan" },
           { k:"accepted",  l:"Disetujui Pimpinan" },
           { k:"rejected",  l:"Ditolak" },
         ].map(function(f) {
@@ -459,7 +459,7 @@ function KabagDetailView({ guest, user, onBack, showT, isMobile }) {
           </div>
           <label style={sectionSubLabel}>Catatan Eksekutif untuk Pimpinan</label>
           <textarea value={catatanKabag} onChange={function(e) { setCatatanKabag(e.target.value); }} rows={3} placeholder="Sampaikan poin penting untuk pimpinan..." style={textareaStyle} />
-          {guest.status === "screened" && (
+          {guest.status === "pending_kabag" && (
             <div style={{ display:"flex", gap:10, marginTop:10 }}>
               <button onClick={teruskan} disabled={loading} style={{ flex:3, padding:"12px", borderRadius:11, border:"none", background: loading ? "#94A3B8" : ("linear-gradient(135deg," + NAVY + "," + NAVY_MID + ")"), color:"white", fontSize:13, fontWeight:800, cursor: loading ? "not-allowed" : "pointer" }}>
                 {loading ? <Spinner/> : null} 📤 Teruskan ke Pimpinan
@@ -491,7 +491,7 @@ function PimpinanView({ role, user, events, showT, isMobile }) {
 
   useEffect(function() {
     setLoading(true);
-    fetch(API + "?action=queue&status=forwarded&pimpinan=" + role + "&limit=20")
+    fetch(API + "?action=queue&status=pending_pimpinan&pimpinan=" + role + "&limit=20")
       .then(function(r) { return r.json(); })
       .then(function(d) { setGuests(Array.isArray(d) ? d : []); })
       .catch(function() { setGuests([]); })
@@ -762,7 +762,7 @@ function ReadOnlyView({ role, isMobile }) {
         <div style={{ color:"white", fontSize:isMobile?18:21, fontWeight:900, marginBottom:4 }}>Daftar Tamu Audiensi</div>
       </div>
       <div style={{ padding:"12px 16px 0", display:"flex", gap:6, flexWrap:"wrap" }}>
-        {[{ k:"accepted", l:"Disetujui Pimpinan" },{ k:"forwarded", l:"Di Proses Pimpinan" },{ k:"all", l:"Semua" }].map(function(f) {
+        {[{ k:"accepted", l:"Disetujui Pimpinan" },{ k:"pending_pimpinan", l:"Di Proses Pimpinan" },{ k:"all", l:"Semua" }].map(function(f) {
           var active = filterSt === f.k;
           return <button key={f.k} onClick={function() { setFilterSt(f.k); }} style={{ padding:"5px 13px", borderRadius:20, fontSize:11, fontWeight:700, border:"1.5px solid " + (active ? NAVY : "#D1D9E6"), background: active ? NAVY : "white", color: active ? "white" : "#64748B", cursor:"pointer" }}>{f.l}</button>;
         })}
@@ -776,7 +776,7 @@ function ReadOnlyView({ role, isMobile }) {
 
 function ReadOnlyCard({ guest }) {
   var pc = PRIORITY_CONFIG[guest.prioritas] || PRIORITY_CONFIG.biasa;
-  var sc = STATUS_LABEL[guest.status]       || STATUS_LABEL.waiting;
+  var sc = STATUS_LABEL[guest.status]       || STATUS_LABEL.pending_kasubbag;
   return (
     <div style={{ background:"white", borderRadius:14, marginBottom:9, overflow:"hidden", border:"1.5px solid #E8EDF4", boxShadow:"0 1px 6px rgba(10,22,40,0.05)" }}>
       <div style={{ padding:"12px 14px" }}>
@@ -940,7 +940,7 @@ function InputManualModal({ user, onClose, onSuccess }) {
         tujuan_pejabat:   form.tujuan_pejabat === "wakilwalikota" ? "Wakil Wali Kota" : "Wali Kota",
         maksud_keperluan: form.purpose.trim(),
         pesan:            form.message.trim() || null,
-        status:           "waiting", // masuk antrian tab "Baru Masuk" Kasubbag
+        status:           "pending_kasubbag", // masuk antrian tab "Baru Masuk" Kasubbag
       };
 
       var r = await fetch(SUPA_URL + "/rest/v1/permohonan_tamu", {
@@ -1111,7 +1111,7 @@ function InputManualModal({ user, onClose, onSuccess }) {
 // ── GuestCardItem: Kartu tamu untuk list KasubbagView ──────
 function GuestCardItem({ guest, onClick, showPriority, showStaffNote }) {
   var pc = PRIORITY_CONFIG[guest.prioritas] || PRIORITY_CONFIG.biasa;
-  var sc = STATUS_LABEL[guest.status]     || STATUS_LABEL.waiting;
+  var sc = STATUS_LABEL[guest.status]     || STATUS_LABEL.pending_kasubbag;
   return (
     <div
       onClick={onClick}
