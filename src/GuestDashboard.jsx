@@ -940,8 +940,7 @@ function InputManualModal({ user, onClose, onSuccess }) {
         tujuan_pejabat:   form.tujuan_pejabat === "wakilwalikota" ? "Wakil Wali Kota" : "Wali Kota",
         maksud_keperluan: form.purpose.trim(),
         pesan:            form.message.trim() || null,
-        priority:         form.priority,
-        status:           "waiting",          // langsung masuk antrian Kasubbag
+        status:           "pending_kasubbag", // langsung masuk antrian Kasubbag
       };
 
       var r = await fetch(SUPA_URL + "/rest/v1/permohonan_tamu", {
