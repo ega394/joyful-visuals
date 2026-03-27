@@ -4781,7 +4781,7 @@ export default function App(){
     },400);
   };
 
-const submit=async()=>{
+const submit = async () => {
     if(!form.namaAcara||!form.tanggal||!form.jam){showT("Nama acara, tanggal & jam wajib diisi.","error");return;}
     if(!form.untukPimpinan||!form.untukPimpinan.length){showT("Pilih tujuan undangan (Wali Kota dan/atau Wakil Wali Kota) sebelum menyimpan.","error");return;}
     
@@ -4789,24 +4789,19 @@ const submit=async()=>{
     let finalUndanganFile = form.undanganFile;
 
     // ════════════════════════════════════════════════════════
-    // ARSITEKTUR CLOUD-TO-CLOUD — 3 langkah:
-    // 1. Jika file base64 → upload ke Supabase Storage dari browser
-    //    (browser → Supabase Storage langsung, tidak lewat Vercel)
-    // 2. Simpan data jadwal ke Supabase (dengan URL Storage, bukan base64)
-    // 3. Trigger Vercel: server fetch URL dari Supabase → upload ke Drive
+    // ARSITEKTUR CLOUD-TO-CLOUD
     // ════════════════════════════════════════════════════════
     let hasNewFile = false;
     if (finalUndanganFile && finalUndanganFile.startsWith("data:")) {
       hasNewFile = true;
       showT("Mengamankan file ke penyimpanan...", "warn");
       try {
-        // Upload base64 → Supabase Storage (tidak lewat Vercel, tidak ada limit)
         const blob = await (await fetch(finalUndanganFile)).blob();
         const storageUrl = await storageUpload("undangan", evId, blob);
         if (storageUrl) {
-          finalUndanganFile = storageUrl; // ganti base64 dengan URL Storage
+          finalUndanganFile = storageUrl; 
         } else {
-          finalUndanganFile = null; // storage gagal, jangan simpan base64 besar
+          finalUndanganFile = null; 
         }
       } catch(e) {
         console.warn("Storage upload gagal:", e.message);
@@ -4839,37 +4834,34 @@ const submit=async()=>{
     else{
       const n={...formDataToSave,id:evId,alur:"draft",submittedBy:user?.username,catatanTolak:"",statusWK:null,statusWWK:null,perwakilanWK:"",perwakilanWWK:"",delegasiKeWWK:false,besertaIstriWK:!!form.besertaIstriWK,besertaIstriWWK:!!form.besertaIstriWWK,sambutanFile:null,sambutanNama:"",catatanPimpinan:"",tersembunyi:false,alurHapus:null};
       setEvents(p=>[...p,n]);
-      // 1. Simpan ke Supabase (termasuk Base64 jika ada)
       await dbUpsert(n).catch(console.error);
       if(conflict)showT("Potensi tabrakan jadwal!","warn");else showT("Draft disimpan. Kirim ke Kasubbag.");
-      // 2. Jika ada file baru, trigger Cloud-to-Cloud upload (agendaId saja, tidak ada Base64 dikirim ke Vercel)
-      if(hasNewFile){
-        fetch("/api/drive?action=sync_one_from_db",{
-          method:"POST",headers:{"Content-Type":"application/json"},
-          body:JSON.stringify({agendaId:String(evId)}),
-        }).then(r=>r.json()).then(d=>{
-          if(d.ok&&d.patched){
-            const lp={};
-            if(d.patched.undanganFile)lp.undanganFile=d.patched.undanganFile;
-            if(d.patched.sambutanFile)lp.sambutanFile=d.patched.sambutanFile;
-            if(Object.keys(lp).length>0)setEvents(p=>p.map(e=>e.id===evId?{...e,...lp}:e));
+    }
+
+    // ════════════════════════════════════════════════════════
+    // TRIGGER VERCEL AUTO-UPLOAD KE GOOGLE DRIVE (CLOUD-TO-CLOUD)
+    // ════════════════════════════════════════════════════════
+    if (SUPA_OK) {
+      const isUrlSupabase = typeof finalUndanganFile === 'string' && finalUndanganFile.includes("supabase.co");
+      if (hasNewFile || isUrlSupabase) {
+        showT("Meneruskan arsip ke Google Drive...", "warn");
+        fetch("/api/drive?action=sync_one_from_db", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ agendaId: evId })
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.ok) {
+            let patch = {};
+            if (data.undangan) patch.undanganFile = data.undangan;
+            if (data.sambutan) patch.sambutanFile = data.sambutan;
+            setEvents(prev => prev.map(e => String(e.id) === String(evId) ? { ...e, ...patch } : e));
+            showT("Arsip berhasil menetap di Google Drive! ✅", "ok");
           }
-        }).catch(e=>console.warn("Auto-sync Drive:",e.message));
-      }
-      const jamWITA=new Date().getUTCHours()+8;const jamLokal=jamWITA>=24?jamWITA-24:jamWITA;
-      if(jamLokal>=16){
-        const tgtRoles=[];
-        if((form.untukPimpinan||[]).includes("walikota"))tgtRoles.push("ajudan_walikota");
-        if((form.untukPimpinan||[]).includes("wakilwalikota"))tgtRoles.push("ajudan_wakilwalikota");
-        const allU=loadUsers();
-        for(const tRole of tgtRoles){
-          const ajudan=allU.filter(u=>u.role===tRole&&u.noWA);
-          const labelPim=tRole==="ajudan_walikota"?"Wali Kota":"Wakil Wali Kota";
-          await sendPush({targetRole:tRole,title:"🔔 Undangan Baru Masuk",body:form.namaAcara+" · "+form.tanggal+" "+form.jam+" WITA",url:"/",tag:"undangan-sore-"+Date.now()});
-        }
+        })
+        .catch(err => console.error("Drive upload gagal:", err));
       }
     }
-    setForm(emptyForm);setTab(role==="admin_rk"?"draft":"jadwal");
   };
 
   // Palet konsisten: semua pakai navy, hanya aksen yang berbeda per peran
