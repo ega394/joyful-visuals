@@ -298,12 +298,38 @@ export default function TamuPage() {
 
       if (!insertRes.ok) {
         var insertErr = await insertRes.json().catch(function() { return {}; });
-        // Tangani error unique / constraint dari Postgres
-        var pgMsg = insertErr.message || insertErr.details || "";
-        if (pgMsg.includes("violates") || pgMsg.includes("duplicate")) {
-          throw new Error("Data tidak valid atau sudah pernah dikirim. Periksa kembali formulir Anda.");
+        var pgMsg = insertErr.message || insertErr.details || insertErr.hint || "";
+        var pgCode = insertErr.code || "";
+
+        // Constraint unik pada nomor WhatsApp
+        if (
+          (pgMsg.toLowerCase().includes("no_wa") && pgMsg.toLowerCase().includes("unique")) ||
+          (pgCode === "23505" && pgMsg.toLowerCase().includes("no_wa"))
+        ) {
+          throw new Error(
+            "Nomor WhatsApp Anda sudah terdaftar dalam sistem dan masih memiliki permohonan aktif. " +
+            "Harap tunggu konfirmasi dari Tim Protokol atau hubungi kami via WhatsApp."
+          );
         }
-        throw new Error(pgMsg || "Gagal mengirim permohonan. Silakan coba lagi.");
+
+        // Constraint unik pada kolom lain / duplikat umum
+        if (pgMsg.toLowerCase().includes("duplicate") || pgCode === "23505") {
+          throw new Error(
+            "Data ini sepertinya sudah pernah dikirim sebelumnya. " +
+            "Jika belum menerima konfirmasi, silakan hubungi Admin Prokopim."
+          );
+        }
+
+        // RLS / permission denied
+        if (pgCode === "42501" || pgMsg.toLowerCase().includes("permission") || pgMsg.toLowerCase().includes("rls")) {
+          throw new Error(
+            "Sistem tidak dapat menerima permohonan saat ini (akses ditolak). " +
+            "Silakan hubungi Admin Prokopim via WhatsApp."
+          );
+        }
+
+        // Error Supabase lainnya — tampilkan detail aslinya
+        throw new Error(pgMsg || "Gagal mengirim permohonan. Silakan coba lagi atau hubungi Admin Prokopim.");
       }
 
       var inserted = await insertRes.json().catch(function() { return [{}]; });
