@@ -4158,162 +4158,344 @@ function DocumentManager({ agendaId, agendaDate, role, username }) {
 }
 
 // ==================== REPORTING TAMU MODAL ====================
+// ==================== REPORTING TAMU MODAL ====================
 function ReportingTamuModal({ user, onClose, cetakOleh, showT }) {
-  const [guests, setGuests] = React.useState([]);
-  const [loading, setLoading] = React.useState(true);
-  const [mode, setMode] = React.useState("all");
+  const [guests,    setGuests]    = React.useState([]);
+  const [loading,   setLoading]   = React.useState(true);
+  const [mode,      setMode]      = React.useState("all");
   const [printMode, setPrintMode] = React.useState("a4");
 
+  // ── Status & Prioritas (skema DB aktual) ──────────────────
   const STATUS_LABEL = {
-    waiting:   { text:"Baru Masuk" },
-    screened:  { text:"Siap ke Kabag" },
-    forwarded: { text:"Di Meja Pimpinan" },
-    accepted:  { text:"Disetujui / Dijadwalkan" },
-    rejected:  { text:"Ditolak" },
-    disposed:  { text:"Didisposisi" },
+    pending_rk:       { text:"Baru Masuk (Admin RK)",   color:"#475569" },
+    pending_kasubbag: { text:"Di Kasubbag Protokol",    color:"#1D4ED8" },
+    pending_kabag:    { text:"Di Kabag Prokopim",        color:"#92400E" },
+    pending_pimpinan: { text:"Di Meja Pimpinan",         color:"#5B21B6" },
+    approved:         { text:"Disetujui / Dijadwalkan",  color:"#065F46" },
+    rejected:         { text:"Ditolak",                  color:"#991B1B" },
+    disposed:         { text:"Didisposisi",              color:"#475569" },
   };
+
   const PRIORITY_CONFIG = {
-    mendesak: { label:"Mendesak", color:"#991B1B" },
-    penting:  { label:"Penting",  color:"#92400E" },
-    biasa:    { label:"Biasa",    color:"#065F46" },
+    mendesak: { label:"Mendesak", color:"#991B1B", bg:"#FEE2E2" },
+    penting:  { label:"Penting",  color:"#92400E", bg:"#FEF3C7" },
+    biasa:    { label:"Biasa",    color:"#065F46", bg:"#D1FAE5" },
   };
 
-  const getPejabatLabel = (id) => id === "walikota" ? "Wali Kota" : id === "wakilwalikota" ? "Wakil Wali Kota" : (id||"-");
-  const fmtTs = (str) => {
-    if(!str) return "-";
-    return new Date(str).toLocaleString("id-ID", {timeZone:"Asia/Makassar", day:"numeric", month:"short", hour:"2-digit", minute:"2-digit"});
-  };
+  // ── Helper: baca kolom DB dengan fallback ─────────────────
+  const gNama     = g => g.nama      || g.name         || "-";
+  const gInstansi = g => g.instansi  || g.organization || "";
+  const gPhone    = g => g.no_wa     || g.phone        || "-";
+  const gTujuan   = g => g.tujuan_pejabat || "-";
+  const gMaksud   = g => g.maksud_keperluan || g.purpose || "-";
+  const gPrioritas= g => g.prioritas || g.priority     || "biasa";
+  const gJadwalTgl= g => g.jadwal_tanggal  || g.scheduled_date  || "";
+  const gJadwalJam= g => g.jadwal_jam      || g.scheduled_time  || "";
+  const gCatatanRK= g => g.catatan_rk     || "";
+  const gCatatanSt= g => g.catatan_staf   || g.staff_notes || "";
+  const gTelaah   = g => g.telaah_kabag   || g.kabag_notes  || "";
+  const gDisposisi= g => g.disposisi_ke   || g.disposed_to  || "";
+  const gAlasan   = g => g.alasan_tolak   || g.rejection_reason || "";
+
   const fmtDateLong = (str) => {
-    if (!str) return "";
+    if (!str) return "-";
+    const HARI  = ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
+    const BULAN = ["Januari","Februari","Maret","April","Mei","Juni",
+                   "Juli","Agustus","September","Oktober","November","Desember"];
     const d = new Date(str + "T00:00:00+08:00");
-    return d.toLocaleDateString("id-ID", { weekday:"long", day:"numeric", month:"long", year:"numeric" });
+    return HARI[d.getDay()] + ", " + d.getDate() + " " + BULAN[d.getMonth()] + " " + d.getFullYear();
   };
 
+  const fmtTs = (str) => {
+    if (!str) return "-";
+    return new Date(str).toLocaleString("id-ID", {
+      timeZone:"Asia/Makassar", day:"numeric", month:"short",
+      year:"numeric", hour:"2-digit", minute:"2-digit"
+    });
+  };
+
+  // ── Fetch data ────────────────────────────────────────────
   React.useEffect(() => {
     setLoading(true);
     fetch("/api/guest?action=queue&status=all&limit=500")
       .then(r => r.json())
       .then(d => setGuests(Array.isArray(d) ? d : []))
-      .catch(() => { if(showT) showT("Gagal memuat data tamu", "error"); })
+      .catch(() => { if (showT) showT("Gagal memuat data tamu", "error"); })
       .finally(() => setLoading(false));
   }, [showT]);
 
-  const filtered = guests.filter(g => mode === "all" || g.status === mode).sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+  const filtered = guests
+    .filter(g => mode === "all" || g.status === mode)
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
+  // ── Print ──────────────────────────────────────────────────
   const doPrint = () => {
-    var w = window.open("", "_blank");
-    var _now = new Date();
-    var printDate = _now.toLocaleDateString("id-ID", { day:"numeric", month:"long", year:"numeric" });
-    var printTime = _now.toLocaleTimeString("id-ID", { hour:"2-digit", minute:"2-digit" });
-    var pLabel = mode==="all" ? "Semua Status (Histori Lengkap)" : STATUS_LABEL[mode]?.text || mode;
+    const w = window.open("", "_blank");
+    const _now = new Date();
+    const printDate = _now.toLocaleDateString("id-ID", { day:"numeric", month:"long", year:"numeric" });
+    const printTime = _now.toLocaleTimeString("id-ID", { hour:"2-digit", minute:"2-digit" });
+    const pLabel = mode === "all"
+      ? "Semua Status (Histori Lengkap)"
+      : STATUS_LABEL[mode]?.text || mode;
 
-    var rows = filtered.map((g, i) => {
-      var pc = PRIORITY_CONFIG[g.priority] || PRIORITY_CONFIG.biasa;
-      var sc = STATUS_LABEL[g.status] || {text:g.status};
-      var jadwalStr = g.scheduled_date ? fmtDateLong(g.scheduled_date) + (g.scheduled_time ? " " + g.scheduled_time + " WITA" : "") : "-";
-      
+    // ── Hitung ringkasan statistik ──
+    const totalDisetujui = filtered.filter(g => g.status === "approved").length;
+    const totalDitolak   = filtered.filter(g => g.status === "rejected").length;
+    const totalProses    = filtered.filter(g => ["pending_rk","pending_kasubbag","pending_kabag","pending_pimpinan"].includes(g.status)).length;
+
+    // ── Baris tabel ──
+    const rows = filtered.map((g, i) => {
+      const pc  = PRIORITY_CONFIG[gPrioritas(g)] || PRIORITY_CONFIG.biasa;
+      const sc  = STATUS_LABEL[g.status]         || { text: g.status, color:"#475569" };
+      const tgl = gJadwalTgl(g) ? fmtDateLong(gJadwalTgl(g)) + (gJadwalJam(g) ? " pk. " + gJadwalJam(g) + " WITA" : "") : "-";
+
+      // Kumpulkan catatan berjenjang
+      const catatanList = [
+        gCatatanRK(g) ? "Admin RK: " + gCatatanRK(g) : "",
+        gCatatanSt(g) ? "Kasubbag: " + gCatatanSt(g) : "",
+        gTelaah(g)    ? "Kabag: "    + gTelaah(g)    : "",
+        gDisposisi(g) ? "Disposisi → " + gDisposisi(g) : "",
+        gAlasan(g)    ? "Alasan tolak: " + gAlasan(g) : "",
+      ].filter(Boolean);
+
+      const isApproved = g.status === "approved";
+      const isRejected = g.status === "rejected";
+      const rowBg = isApproved ? "#F0FFF4" : isRejected ? "#FFF5F5" : "";
+
       return (
-        "<tr>" +
-        "<td class='c'>" + (i + 1) + "</td>" +
-        "<td><b>" + g.name + "</b><br><span class='sub'>" + (g.organization||"") + "</span></td>" +
-        "<td>" + g.phone + "</td>" +
-        "<td>" + getPejabatLabel(g.tujuan_pejabat) + "</td>" +
-        "<td>" + g.purpose + "</td>" +
-        "<td class='c'><span style='color:" + pc.color + "'>" + pc.label + "</span></td>" +
-        "<td class='c'><b>" + sc.text + "</b></td>" +
-        "<td style='font-size:7.5pt'>" + jadwalStr + "</td>" +
+        "<tr style='background:" + rowBg + "'>" +
+        "<td class='c' style='font-weight:700'>" + (i + 1) + "</td>" +
+        "<td><div style='font-weight:700;color:#0B2545;margin-bottom:2px'>" + gNama(g) + "</div>" +
+          (gInstansi(g) ? "<div class='sub'>" + gInstansi(g) + "</div>" : "") + "</td>" +
+        "<td style='font-size:7.5pt'>" + gPhone(g) + "</td>" +
+        "<td class='c' style='font-size:8pt;font-weight:600'>" + gTujuan(g) + "</td>" +
+        "<td style='font-size:8pt'>" + gMaksud(g) + "</td>" +
+        "<td class='c'><span style='background:" + pc.bg + ";color:" + pc.color + ";border-radius:4px;padding:2px 6px;font-size:7.5pt;font-weight:700'>" + pc.label + "</span></td>" +
+        "<td class='c'><span style='color:" + sc.color + ";font-weight:700;font-size:8pt'>" + sc.text + "</span></td>" +
+        "<td style='font-size:7.5pt;color:#334155'>" + tgl + "</td>" +
+        "<td style='font-size:7pt;color:#475569;line-height:1.5'>" + (catatanList.join("<br>") || "—") + "</td>" +
         "</tr>"
       );
     }).join("");
 
-    var html = `<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Laporan Tamu Pimpinan</title>
+    const html = `<!DOCTYPE html><html lang="id"><head>
+    <meta charset="UTF-8">
+    <title>Laporan Tamu Pimpinan — Prokopim Tarakan</title>
     <style>
-      @page { size: ${printMode === "a4" ? "A4" : "330mm 210mm"} landscape; margin: 1.2cm 1.5cm; }
+      @page {
+        size: ${printMode === "a4" ? "A4" : "330mm 210mm"} landscape;
+        margin: 1.2cm 1.4cm;
+      }
       * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       body { font-family: Arial, sans-serif; font-size: 9pt; color: #1a1a1a; margin: 0; }
-      .kop { display: flex; align-items: center; gap: 14px; border-bottom: 3px solid #0B2545; padding-bottom: 8px; margin-bottom: 8px; }
-      .kop img { width: 50px; height: 50px; object-fit: contain; }
-      .kop h1 { font-size: 12pt; font-weight: 900; color: #0B2545; margin: 0 0 1px; }
-      .kop h2 { font-size: 9pt; font-weight: 700; color: #0B2545; margin: 0 0 2px; }
-      .kop p { font-size: 8pt; color: #475569; margin: 0; }
-      .jdl { text-align: center; margin: 8px 0 12px; }
-      .jdl h3 { font-size: 13pt; font-weight: 900; color: #0B2545; margin: 0; text-transform: uppercase; letter-spacing: 1px; }
-      .jdl p { font-size: 9pt; color: #475569; margin: 4px 0 0; }
-      table { width: 100%; border-collapse: collapse; }
-      thead th { background: #0B2545; color: white; padding: 8px; text-align: left; font-size: 8.5pt; }
+
+      /* KOP */
+      .kop { display: flex; align-items: center; gap: 16px; padding-bottom: 10px; margin-bottom: 6px; border-bottom: 3px double #0B2545; }
+      .kop img { width: 54px; height: 54px; object-fit: contain; }
+      .kop-teks h1 { font-size: 12pt; font-weight: 900; color: #0B2545; margin: 0 0 1px; letter-spacing: .3px; }
+      .kop-teks h2 { font-size: 9.5pt; font-weight: 700; color: #0B2545; margin: 0 0 2px; }
+      .kop-teks p  { font-size: 8pt; color: #475569; margin: 0; }
+
+      /* JUDUL */
+      .jdl { text-align: center; margin: 10px 0 6px; }
+      .jdl h3 { font-size: 12pt; font-weight: 900; color: #0B2545; margin: 0; text-transform: uppercase; letter-spacing: 1.5px; }
+      .jdl .sub { font-size: 8.5pt; color: #64748B; margin: 4px 0 0; }
+
+      /* RINGKASAN STATISTIK */
+      .stats { display: flex; gap: 0; margin: 8px 0 10px; border: 1px solid #CBD5E1; border-radius: 6px; overflow: hidden; }
+      .stat-box { flex: 1; text-align: center; padding: 7px 10px; border-right: 1px solid #CBD5E1; }
+      .stat-box:last-child { border-right: none; }
+      .stat-box .val { font-size: 14pt; font-weight: 900; color: #0B2545; line-height: 1; margin-bottom: 2px; }
+      .stat-box .lbl { font-size: 7pt; color: #64748B; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; }
+      .stat-box.ok .val  { color: #065F46; }
+      .stat-box.err .val { color: #991B1B; }
+      .stat-box.pro .val { color: #1D4ED8; }
+
+      /* TABEL */
+      table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+      thead th {
+        background: #0B2545; color: white; padding: 8px 7px;
+        text-align: left; font-size: 8pt; font-weight: 700; letter-spacing: .3px;
+        border: 1px solid #0B2545;
+      }
       thead th.c { text-align: center; }
-      tbody td { padding: 8px; border: 1px solid #d1d9ef; vertical-align: top; line-height: 1.4; }
-      tbody tr:nth-child(even) td { background: #f3f6fb; }
+      tbody td {
+        padding: 7px; border: 1px solid #CBD5E1;
+        vertical-align: top; line-height: 1.45; color: #1a1a1a;
+      }
+      tbody tr:nth-child(even) td { background: #F8FAFC; }
+      tbody tr:nth-child(even) td:first-child { background: #F1F5F9; }
       .c { text-align: center; }
-      .sub { font-size: 8pt; color: #64748b; }
-      .ttd { margin-top: 25px; display: flex; justify-content: space-between; align-items: flex-end; }
-      .ttd-info { font-size: 8pt; color: #64748b; line-height: 1.6; }
-      .ttd-box { text-align: center; min-width: 240px; }
-      .ttd-box p { margin: 0 0 4px; font-size: 9pt; }
-      .ttd-box .jab { font-weight: 700; color: #0B2545; margin-bottom: 50px; }
-      .ttd-box .nm { font-weight: 900; color: #0B2545; text-decoration: underline; }
-      .foot { margin-top: 10px; font-size: 7.5pt; color: #94a3b8; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 5px; }
-    </style></head><body>
-    <div class="kop"><img src="/logo_tarakan.png" onerror="this.style.display='none'"/><div>
-    <h1>PEMERINTAH KOTA TARAKAN</h1><h2>BAGIAN PROTOKOL DAN KOMUNIKASI PIMPINAN</h2><p>Sekretariat Daerah Kota Tarakan</p></div></div>
-    <div class="jdl"><h3>Laporan Permohonan Audiensi Tamu</h3><p>Filter: <b>${pLabel}</b> • Total: <b>${filtered.length} permohonan</b></p></div>
-    <table><thead><tr><th class="c" style="width:30px">No</th><th>Nama / Instansi</th><th style="width:100px">WhatsApp</th><th style="width:110px">Tujuan</th><th>Keperluan</th><th class="c" style="width:70px">Prioritas</th><th class="c" style="width:100px">Status Akhir</th><th style="width:130px">Jadwal Fix</th></tr></thead>
-    <tbody>${rows}</tbody></table>
-    <div class="ttd">
-      <div class="ttd-info">Dicetak oleh: ${cetakOleh}<br>Waktu cetak: ${printDate} pukul ${printTime} WITA</div>
-      <div class="ttd-box"><p>Tarakan, ${printDate}</p><p class="jab">Kepala Bagian Protokol dan Komunikasi Pimpinan</p><p class="nm">Anugrah Yega Pranatha, M.Si.</p><p>NIP. 198811032007011003</p></div>
+      .sub { font-size: 7.5pt; color: #64748B; }
+      tbody tr:hover td { background: #EFF6FF; }
+
+      /* TTD */
+      .ttd { margin-top: 22px; display: flex; justify-content: space-between; align-items: flex-end; }
+      .ttd-info { font-size: 7.5pt; color: #64748B; line-height: 1.7; }
+      .ttd-box { text-align: center; }
+      .ttd-box .kota-tgl { font-size: 9pt; color: #334155; margin: 0 0 3px; }
+      .ttd-box .jabatan  { font-size: 9pt; font-weight: 700; color: #0B2545; margin: 0 0 48px; }
+      .ttd-box .nama     { font-size: 10pt; font-weight: 900; color: #0B2545; text-decoration: underline; margin: 0 0 2px; }
+      .ttd-box .nip      { font-size: 8pt; color: #475569; margin: 0; }
+
+      /* FOOTER */
+      .foot {
+        margin-top: 10px; font-size: 7pt; color: #94A3B8;
+        text-align: center; border-top: 1px solid #E2E8F0; padding-top: 5px;
+      }
+    </style>
+    </head><body>
+
+    <!-- KOP SURAT -->
+    <div class="kop">
+      <img src="/logo_tarakan.png" alt="Logo" onerror="this.style.display='none'"/>
+      <div class="kop-teks">
+        <h1>PEMERINTAH KOTA TARAKAN</h1>
+        <h2>BAGIAN PROTOKOL DAN KOMUNIKASI PIMPINAN</h2>
+        <p>Sekretariat Daerah Kota Tarakan</p>
+      </div>
     </div>
-    <p class="foot">Sistem Terpadu Jadwal dan Agenda Kegiatan Pimpinan #TarakanHibot</p>
+
+    <!-- JUDUL -->
+    <div class="jdl">
+      <h3>Laporan Permohonan Audiensi Tamu</h3>
+      <p class="sub">Filter: <b>${pLabel}</b> &nbsp;•&nbsp; Total: <b>${filtered.length} permohonan</b></p>
+    </div>
+
+    <!-- RINGKASAN STATISTIK -->
+    <div class="stats">
+      <div class="stat-box"><div class="val">${filtered.length}</div><div class="lbl">Total Permohonan</div></div>
+      <div class="stat-box ok"><div class="val">${totalDisetujui}</div><div class="lbl">Disetujui</div></div>
+      <div class="stat-box err"><div class="val">${totalDitolak}</div><div class="lbl">Ditolak</div></div>
+      <div class="stat-box pro"><div class="val">${totalProses}</div><div class="lbl">Dalam Proses</div></div>
+    </div>
+
+    <!-- TABEL DATA -->
+    <table>
+      <thead>
+        <tr>
+          <th class="c" style="width:28px">No</th>
+          <th style="width:18%">Nama / Instansi</th>
+          <th style="width:90px">WhatsApp</th>
+          <th class="c" style="width:90px">Tujuan Pimpinan</th>
+          <th style="width:20%">Maksud &amp; Keperluan</th>
+          <th class="c" style="width:65px">Prioritas</th>
+          <th class="c" style="width:110px">Status</th>
+          <th style="width:110px">Jadwal Fix</th>
+          <th style="width:18%">Catatan Berjenjang</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+
+    <!-- TTD -->
+    <div class="ttd">
+      <div class="ttd-info">
+        Dicetak oleh: ${cetakOleh || "Sistem"}<br>
+        Waktu cetak: ${printDate} pukul ${printTime} WITA<br>
+        Dokumen ini dicetak melalui Sistem Prokopim Hibot
+      </div>
+      <div class="ttd-box">
+        <p class="kota-tgl">Tarakan, ${printDate}</p>
+        <p class="jabatan">Kepala Bagian Protokol dan Komunikasi Pimpinan</p>
+        <p class="nama">Anugrah Yega Pranatha, M.Si.</p>
+        <p class="nip">NIP. 198811032007011003</p>
+      </div>
+    </div>
+
+    <p class="foot">Sistem Terpadu Jadwal dan Agenda Kegiatan Pimpinan #TarakanHibot &nbsp;|&nbsp; Prokopim Setda Kota Tarakan</p>
     </body></html>`;
-    
+
     w.document.write(html);
     w.document.close();
     w.focus();
-    setTimeout(() => w.print(), 500);
+    setTimeout(() => w.print(), 600);
   };
 
+  // ── Render Modal ───────────────────────────────────────────
+  const NAVY = "#0A1628";
   return (
     <div style={{position:"fixed",inset:0,zIndex:9900,background:"rgba(10,22,40,0.65)",backdropFilter:"blur(4px)",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
       <div style={{background:"white",borderRadius:20,width:"100%",maxWidth:540,boxShadow:"0 24px 64px rgba(0,0,0,0.3)"}}>
+
+        {/* Header */}
         <div style={{padding:"20px 24px",borderBottom:"1px solid #F1F5F9",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <div>
-            <div style={{fontSize:18,fontWeight:900,color:"#0A1628"}}>📇 Cetak Laporan Tamu</div>
-            <div style={{fontSize:12,color:"#64748B",marginTop:4}}>Rekapitulasi permohonan audiensi tamu</div>
+            <div style={{fontSize:18,fontWeight:900,color:NAVY}}>📇 Cetak Laporan Tamu</div>
+            <div style={{fontSize:12,color:"#64748B",marginTop:4}}>Rekapitulasi permohonan audiensi tamu pimpinan</div>
           </div>
-          <button onClick={onClose} style={{width:32,height:32,borderRadius:8,border:"1.5px solid #E2E8F0",background:"white",color:"#64748B",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700}}>✕</button>
+          <button onClick={onClose} style={{width:32,height:32,borderRadius:8,border:"1.5px solid #E2E8F0",background:"white",color:"#64748B",cursor:"pointer",fontSize:16,fontWeight:700}}>✕</button>
         </div>
+
+        {/* Body */}
         <div style={{padding:"20px 24px"}}>
           {loading ? (
-            <div style={{textAlign:"center",padding:"30px",color:"#64748B"}}>⏳ Mengambil data tamu dari database...</div>
+            <div style={{textAlign:"center",padding:"30px",color:"#64748B"}}>⏳ Mengambil data dari database...</div>
           ) : (
             <>
-              <div style={{marginBottom:16}}>
-                <label style={{display:"block",fontSize:11,fontWeight:800,color:"#475569",textTransform:"uppercase",letterSpacing:1,marginBottom:6}}>Filter Status Tamu</label>
-                <select value={mode} onChange={e => setMode(e.target.value)} style={{width:"100%",padding:"12px 14px",borderRadius:10,border:"1.5px solid #CBD5E1",fontSize:13,color:"#0A1628",fontWeight:600}}>
+              {/* Filter status */}
+              <div style={{marginBottom:14}}>
+                <label style={{display:"block",fontSize:11,fontWeight:800,color:"#475569",textTransform:"uppercase",letterSpacing:1,marginBottom:6}}>Filter Status</label>
+                <select value={mode} onChange={e => setMode(e.target.value)} style={{width:"100%",padding:"11px 14px",borderRadius:10,border:"1.5px solid #CBD5E1",fontSize:13,color:NAVY,fontWeight:600}}>
                   <option value="all">Semua Status (Histori Lengkap)</option>
-                  <option value="waiting">Baru Masuk (Belum di-review)</option>
-                  <option value="screened">Siap Ditelaah Kabag</option>
-                  <option value="forwarded">Di Meja Pimpinan</option>
-                  <option value="accepted">Telah Disetujui (Diberi Jadwal)</option>
+                  <option value="pending_rk">Baru Masuk (Admin RK)</option>
+                  <option value="pending_kasubbag">Di Kasubbag Protokol</option>
+                  <option value="pending_kabag">Di Kabag Prokopim</option>
+                  <option value="pending_pimpinan">Di Meja Pimpinan</option>
+                  <option value="approved">Telah Disetujui / Dijadwalkan</option>
                   <option value="rejected">Ditolak</option>
+                  <option value="disposed">Didisposisi</option>
                 </select>
               </div>
-              <div style={{background:"#F8FAFC",borderRadius:10,padding:"12px 16px",marginBottom:16,border:"1px solid #E2E8F0",display:"flex",alignItems:"center",gap:12}}>
-                <div style={{fontSize:24}}>👥</div>
+
+              {/* Info jumlah */}
+              <div style={{background:"#F8FAFC",borderRadius:10,padding:"11px 16px",marginBottom:14,border:"1px solid #E2E8F0",display:"flex",alignItems:"center",gap:12}}>
+                <div style={{fontSize:22}}>👥</div>
                 <div>
-                  <div style={{fontSize:14,fontWeight:800,color:"#0A1628"}}>{filtered.length} permohonan ditemukan</div>
-                  <div style={{fontSize:11,color:"#64748B",marginTop:2}}>Siap dicetak dengan format kop dan tanda tangan Kabag.</div>
+                  <div style={{fontSize:14,fontWeight:800,color:NAVY}}>{filtered.length} permohonan ditemukan</div>
+                  <div style={{fontSize:11,color:"#64748B",marginTop:2}}>
+                    {filtered.filter(g=>g.status==="approved").length} disetujui &nbsp;·&nbsp;
+                    {filtered.filter(g=>g.status==="rejected").length} ditolak &nbsp;·&nbsp;
+                    {filtered.filter(g=>["pending_rk","pending_kasubbag","pending_kabag","pending_pimpinan"].includes(g.status)).length} dalam proses
+                  </div>
                 </div>
               </div>
-              <div style={{display:"flex",gap:6,marginBottom:20,background:"#F1F5F9",borderRadius:12,padding:6}}>
-                {[{k:"a4",l:"A4 Landscape"},{k:"f4",l:"F4 Landscape"}].map(o => {
-                  const act = printMode === o.k;
-                  return <button key={o.k} onClick={() => setPrintMode(o.k)} style={{flex:1,padding:"10px",borderRadius:8,border:"none",cursor:"pointer",fontWeight:700,fontSize:12,background:act?"#0A1628":"transparent",color:act?"white":"#64748B",transition:"all 0.15s"}}>📄 {o.l}</button>;
-                })}
+
+              {/* Pilihan ukuran kertas */}
+              <div style={{marginBottom:18}}>
+                <label style={{display:"block",fontSize:11,fontWeight:800,color:"#475569",textTransform:"uppercase",letterSpacing:1,marginBottom:6}}>Ukuran Kertas</label>
+                <div style={{display:"flex",gap:6,background:"#F1F5F9",borderRadius:12,padding:5}}>
+                  {[{k:"a4",l:"A4 Landscape"},{k:"f4",l:"F4 / Folio Landscape"}].map(o => {
+                    const act = printMode === o.k;
+                    return (
+                      <button key={o.k} onClick={() => setPrintMode(o.k)} style={{
+                        flex:1,padding:"10px",borderRadius:8,border:"none",cursor:"pointer",
+                        fontWeight:700,fontSize:12,
+                        background:act?NAVY:"transparent",
+                        color:act?"white":"#64748B",
+                        transition:"all 0.15s",
+                      }}>
+                        📄 {o.l}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
+
+              {/* Tombol */}
               <div style={{display:"flex",gap:10}}>
-                <button onClick={onClose} style={{flex:1,padding:"14px",borderRadius:12,border:"1.5px solid #E2E8F0",background:"white",color:"#64748B",cursor:"pointer",fontSize:13,fontWeight:700}}>Batal</button>
-                <button onClick={doPrint} disabled={filtered.length === 0} style={{flex:2,padding:"14px",borderRadius:12,border:"none",background:filtered.length?"linear-gradient(135deg,#0A1628,#1B4080)":"#E2E8F0",color:filtered.length?"white":"#94A3B8",cursor:filtered.length?"pointer":"default",fontSize:14,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",gap:8,boxShadow:filtered.length?"0 4px 14px rgba(10,22,40,0.3)":"none"}}>
+                <button onClick={onClose} style={{flex:1,padding:"13px",borderRadius:12,border:"1.5px solid #E2E8F0",background:"white",color:"#64748B",cursor:"pointer",fontSize:13,fontWeight:700}}>
+                  Batal
+                </button>
+                <button onClick={doPrint} disabled={filtered.length===0} style={{
+                  flex:2,padding:"13px",borderRadius:12,border:"none",
+                  background:filtered.length?"linear-gradient(135deg,#0A1628,#1B4080)":"#E2E8F0",
+                  color:filtered.length?"white":"#94A3B8",
+                  cursor:filtered.length?"pointer":"default",
+                  fontSize:14,fontWeight:800,
+                  display:"flex",alignItems:"center",justifyContent:"center",gap:8,
+                  boxShadow:filtered.length?"0 4px 14px rgba(10,22,40,0.3)":"none",
+                }}>
                   🖨️ Cetak PDF
                 </button>
               </div>
