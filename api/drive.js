@@ -6,7 +6,7 @@
  */
 
 export const config = {
-  api: { bodyParser: { sizeLimit: "1mb" } }, // 1MB sudah sangat cukup karena hanya terima ID
+  api: { bodyParser: { sizeLimit: "15mb" } }, // 15MB untuk terima Base64 file undangan/sambutan
 };
 
 const SUPA_URL    = process.env.SUPABASE_URL    || process.env.VITE_SUPABASE_URL;
@@ -175,6 +175,55 @@ export default async function handler(req, res) {
 
   const action=req.query.action;
   try {
+
+    // ──────────────────────────────────────────────────────
+    // 0a. LIST FILES per agendaId (dari tabel drive_files)
+    // ──────────────────────────────────────────────────────
+    if (req.method==="GET" && action==="files") {
+      const { agendaId } = req.query;
+      if (!agendaId) return res.status(400).json({ error:"agendaId wajib ada" });
+      const rows = await sbGet(
+        "drive_files?agenda_id=eq."+encodeURIComponent(agendaId)+"&order=created_at.asc"
+      ).catch(()=>[]);
+      return res.status(200).json({ ok:true, files: rows||[] });
+    }
+
+    // ──────────────────────────────────────────────────────
+    // 0b. DIRECT UPLOAD — Frontend kirim Base64, langsung ke Drive
+    //     Tidak menyentuh Supabase Storage sama sekali
+    // ──────────────────────────────────────────────────────
+    if (req.method==="POST" && action==="upload") {
+      const { base64, mimeType, fileName, agendaId, agendaDate, fileType, uploadedBy } = req.body;
+      if (!base64 || !agendaId) return res.status(400).json({ error:"base64 & agendaId wajib ada" });
+
+      const rawB64 = base64.includes(",") ? base64.split(",")[1] : base64;
+      const buffer = Buffer.from(rawB64, "base64");
+      const mime   = mimeType || "application/pdf";
+      const fType  = (fileType||"undangan").toLowerCase();
+      const fName  = fileName || (agendaDate+"-"+fType+".pdf");
+
+      const token      = await getToken();
+      const folderPath = datePath(agendaDate, fType);
+      const folderId   = await getOrCreateFolder(token, folderPath);
+      const fileId     = await uploadToDrive(token, folderId, fName, mime, buffer);
+      await setPublic(token, fileId);
+      const driveUrl   = "https://drive.google.com/file/d/"+fileId+"/view";
+
+      await sbPost("drive_files", {
+        agenda_id:         String(agendaId),
+        file_name:         fName,
+        file_type:         fType,
+        mime_type:         mime,
+        file_size_bytes:   buffer.length,
+        drive_file_id:     fileId,
+        drive_file_url:    driveUrl,
+        drive_folder_id:   folderId,
+        drive_folder_path: folderPath,
+        uploaded_by:       uploadedBy || "Sistem",
+      }).catch(()=>null);
+
+      return res.status(200).json({ ok:true, driveUrl, fileId, folderPath });
+    }
 
     // ──────────────────────────────────────────────────────
     // 1. INTI CLOUD-TO-CLOUD (Tarik dari DB -> Upload ke Drive)
