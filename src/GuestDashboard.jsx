@@ -213,15 +213,43 @@ function EmptyGuest({ label }) {
 
 function SkeletonList() { return <div style={{ padding:20, color:"#94A3B8" }}>Memuat...</div>; }
 
-function GuestCardItem({ guest, onClick }) {
-  var sc = STATUS_LABEL[guest.status] || STATUS_LABEL.pending_rk;
+function GuestCardItem({ guest, onClick, showPriority, showStaffNote }) {
+  var pc = PRIORITY_CONFIG[guest.prioritas] || PRIORITY_CONFIG.biasa;
+  var sc = STATUS_LABEL[guest.status]       || STATUS_LABEL.pending_rk;
+
   return (
-    <div onClick={onClick} style={{ background:"white", borderRadius:12, padding:14, marginBottom:10, border:"1px solid #E2E8F0", cursor:"pointer" }}>
-      <div style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
-        <div style={{ fontWeight:800, color:NAVY }}>{guest.nama || guest.name}</div>
-        <span style={{ background:sc.bg, color:sc.color, fontSize:10, padding:"2px 8px", borderRadius:10, fontWeight:700 }}>{sc.text}</span>
+    <div
+      onClick={onClick}
+      style={{ background:"white", borderRadius:16, marginBottom:10, overflow:"hidden", boxShadow:"0 2px 8px rgba(10,22,40,0.06)", border:"1.5px solid #E8EDF4", cursor:"pointer" }}
+    >
+      <div style={{ height:4, background: guest.prioritas === "Tinggi" ? "#EF4444" : "#10B981" }}/>
+
+      <div style={{ padding:"12px 14px" }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:8, marginBottom:6 }}>
+          <div style={{ flex:1, minWidth:0 }}>
+            {/* PERBAIKAN: Membaca 'nama' (DB) atau 'name' (JS) */}
+            <div style={{ fontSize:14, fontWeight:800, color:NAVY }}>
+              {guest.nama || guest.name || "Tanpa Nama"}
+            </div>
+            {/* PERBAIKAN: Membaca 'instansi' (DB) atau 'organization' (JS) */}
+            {(guest.instansi || guest.organization) && (
+              <div style={{ fontSize:11, color:"#64748B" }}>
+                🏢 {guest.instansi || guest.organization}
+              </div>
+            )}
+          </div>
+          <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:4 }}>
+            <span style={{ background:sc.bg, color:sc.color, borderRadius:20, padding:"2px 9px", fontSize:10, fontWeight:700 }}>
+              {sc.text}
+            </span>
+          </div>
+        </div>
+
+        {/* PERBAIKAN: Membaca 'maksud_keperluan' (DB) atau 'purpose' (JS) */}
+        <div style={{ fontSize:12, color:"#475569", lineHeight:1.5 }}>
+          📋 {guest.maksud_keperluan || guest.purpose || "Tidak ada keperluan"}
+        </div>
       </div>
-      <div style={{ fontSize:12, color:"#64748B" }}>{guest.maksud_keperluan || guest.purpose}</div>
     </div>
   );
 }
