@@ -916,23 +916,59 @@ function InputManualModal({ user, onClose, onSuccess }) {
     if (!validate()) return;
     setLoading(true);
     try {
-      var payload = {
-        name:           form.name.trim(),
-        organization:   form.organization.trim(),
-        phone:          form.phone.trim(),
-        tujuan_pejabat: form.tujuan_pejabat,
-        purpose:        form.purpose.trim(),
-        message:        form.message.trim(),
-        priority:       form.priority,
-        manual_by:      user ? user.username : "admin_rk",
+      var SUPA_URL = (typeof import.meta !== "undefined" && import.meta.env)
+        ? (import.meta.env.VITE_SUPABASE_URL || "") : "";
+      var SUPA_KEY = (typeof import.meta !== "undefined" && import.meta.env)
+        ? (import.meta.env.VITE_SUPABASE_ANON_KEY || "") : "";
+
+      if (!SUPA_URL || !SUPA_KEY) {
+        throw new Error("Konfigurasi sistem belum lengkap. Hubungi Admin.");
+      }
+
+      // Normalisasi nomor HP: pastikan diawali 62
+      var rawPhone = form.phone.trim().replace(/\D/g, "");
+      var noWa = rawPhone.startsWith("62") ? rawPhone
+               : rawPhone.startsWith("0")  ? "62" + rawPhone.slice(1)
+               : rawPhone.startsWith("8")  ? "62" + rawPhone
+               : rawPhone;
+
+      // Kolom Supabase mengikuti skema TamuPage (nama, instansi, no_wa, dst.)
+      var insertPayload = {
+        nama:             form.name.trim(),
+        instansi:         form.organization.trim() || "-",
+        no_wa:            noWa,
+        tujuan_pejabat:   form.tujuan_pejabat === "wakilwalikota" ? "Wakil Wali Kota" : "Wali Kota",
+        maksud_keperluan: form.purpose.trim(),
+        pesan:            form.message.trim() || null,
+        priority:         form.priority,
+        status:           "waiting",          // langsung masuk antrian Kasubbag
+        input_manual_by:  user ? (user.username || "admin_rk") : "admin_rk",
       };
-      var r = await fetch(API + "?action=register", {
+
+      var r = await fetch(SUPA_URL + "/rest/v1/permohonan_tamu", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        headers: {
+          "Content-Type":  "application/json",
+          "apikey":        SUPA_KEY,
+          "Authorization": "Bearer " + SUPA_KEY,
+          "Prefer":        "return=minimal",
+        },
+        body: JSON.stringify(insertPayload),
       });
-      var data = await r.json();
-      if (!r.ok) throw new Error(data.error || "Gagal menyimpan data");
+
+      if (!r.ok) {
+        var errData = await r.json().catch(function() { return {}; });
+        var pgMsg   = errData.message || errData.details || errData.hint || "";
+        // Pesan error spesifik
+        if (pgMsg.toLowerCase().includes("no_wa") && pgMsg.toLowerCase().includes("unique")) {
+          throw new Error("Nomor WhatsApp " + form.phone + " sudah memiliki permohonan aktif.");
+        }
+        if (pgMsg.toLowerCase().includes("violates") || pgMsg.toLowerCase().includes("duplicate")) {
+          throw new Error("Data duplikat: " + (pgMsg || "Periksa kembali isian formulir."));
+        }
+        throw new Error(pgMsg || "Gagal menyimpan. Coba lagi atau hubungi Admin.");
+      }
+
       onSuccess();
     } catch(e) {
       setErrors({ submit: e.message });
