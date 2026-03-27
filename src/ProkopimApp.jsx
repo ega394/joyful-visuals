@@ -4781,92 +4781,38 @@ export default function App(){
     },400);
   };
 
-const submit = async () => {
-    if (!form.namaAcara || !form.tanggal || !form.jam) { showT("Nama acara, tanggal & jam wajib diisi.", "error"); return; }
-    if (!form.untukPimpinan || !form.untukPimpinan.length) { showT("Pilih tujuan undangan (Wali Kota dan/atau Wakil Wali Kota) sebelum menyimpan.", "error"); return; }
+const submit=async()=>{
+    if(!form.namaAcara||!form.tanggal||!form.jam){showT("Nama acara, tanggal & jam wajib diisi.","error");return;}
+    if(!form.untukPimpinan||!form.untukPimpinan.length){showT("Pilih tujuan undangan (Wali Kota dan/atau Wakil Wali Kota) sebelum menyimpan.","error");return;}
     
-    // Pastikan ID berbentuk String agar seragam dengan Database
-    const evId = editId ? String(editId) : Date.now().toString();
+    const evId = editId || Date.now();
     let finalUndanganFile = form.undanganFile;
-    let hasNewFile = false;
 
     // ════════════════════════════════════════════════════════
-    // 1. UPLOAD BASE64 KE SUPABASE STORAGE (JALUR AMAN)
+    // ARSITEKTUR CLOUD-TO-CLOUD — 3 langkah:
+    // 1. Jika file base64 → upload ke Supabase Storage dari browser
+    //    (browser → Supabase Storage langsung, tidak lewat Vercel)
+    // 2. Simpan data jadwal ke Supabase (dengan URL Storage, bukan base64)
+    // 3. Trigger Vercel: server fetch URL dari Supabase → upload ke Drive
     // ════════════════════════════════════════════════════════
+    let hasNewFile = false;
     if (finalUndanganFile && finalUndanganFile.startsWith("data:")) {
       hasNewFile = true;
-      showT("Mengamankan file ke penyimpanan sementara...", "warn");
+      showT("Mengamankan file ke penyimpanan...", "warn");
       try {
+        // Upload base64 → Supabase Storage (tidak lewat Vercel, tidak ada limit)
         const blob = await (await fetch(finalUndanganFile)).blob();
         const storageUrl = await storageUpload("undangan", evId, blob);
         if (storageUrl) {
-          finalUndanganFile = storageUrl; // Ganti base64 dengan URL Storage Supabase
+          finalUndanganFile = storageUrl; // ganti base64 dengan URL Storage
         } else {
-          finalUndanganFile = null; // storage gagal, jangan simpan base64 besar ke tabel
+          finalUndanganFile = null; // storage gagal, jangan simpan base64 besar
         }
       } catch(e) {
         console.warn("Storage upload gagal:", e.message);
         finalUndanganFile = null;
       }
     }
-
-    // ════════════════════════════════════════════════════════
-    // 2. SIMPAN KE LAYAR & LOCAL STORAGE
-    // ════════════════════════════════════════════════════════
-    const finalEv = {
-      ...form,
-      id: evId,
-      undanganFile: finalUndanganFile
-    };
-
-    let updated = editId 
-      ? events.map(e => String(e.id) === evId ? finalEv : e) 
-      : [...events, finalEv];
-      
-    setEvents(updated);
-    saveEvents(updated);
-    setShowForm(false);
-    showT("Jadwal berhasil tersimpan!", "ok");
-
-    // ════════════════════════════════════════════════════════
-    // 3. SIMPAN KE DB & TRIGGER VERCEL AUTO-UPLOAD KE DRIVE
-    // ════════════════════════════════════════════════════════
-    if (SUPA_OK) {
-      // Simpan data (berisi URL Supabase) ke tabel jadwal
-      await dbUpsertEvent(finalEv).catch(err => console.error("Gagal simpan ke DB:", err));
-
-      // Jika ada file baru, suruh Vercel menyedot URL tersebut dan memindahkannya ke Drive
-      if (hasNewFile || (finalUndanganFile && finalUndanganFile.includes("supabase.co"))) {
-        showT("Meneruskan arsip ke Google Drive...", "warn");
-        
-        try {
-          // HANYA MENGIRIM ID JADWAL (Sangat ringan, anti-blokir Vercel)
-          const res = await fetch("/api/drive?action=sync_one_from_db", {
-            method: "POST", 
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ agendaId: evId })
-          });
-          
-          const data = await res.json();
-          
-          if (data.ok) {
-            let patch = {};
-            if (data.undangan) patch.undanganFile = data.undangan;
-            if (data.sambutan) patch.sambutanFile = data.sambutan;
-            
-            // Perbarui state di layar secara otomatis dengan Link Google Drive asli
-            setEvents(prev => prev.map(e => String(e.id) === evId ? { ...e, ...patch } : e));
-            saveEvents(updated.map(e => String(e.id) === evId ? { ...e, ...patch } : e));
-            showT("Arsip berhasil menetap di Google Drive! ✅", "ok");
-          } else {
-             console.warn("Respon Vercel:", data.error || data.message);
-          }
-        } catch (err) {
-          console.error("Auto-upload Drive gagal:", err);
-        }
-      }
-    }
-  };
 
     const formDataToSave = { ...form, undanganFile: finalUndanganFile };
     const conflict=hasConflict(events,{...formDataToSave,id:evId,alur:"disetujui"});
