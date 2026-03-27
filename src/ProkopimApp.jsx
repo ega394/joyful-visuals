@@ -199,98 +199,81 @@ function RegisterModal({onClose, onSuccess}){
   const [captchaOK,setCaptchaOK]=React.useState(false);
   // ROLE_OPTS dihapus — role ditetapkan Kabag saat approval
   const inp={width:"100%",padding:"10px 13px",borderRadius:10,border:"1.5px solid #e2e8f0",fontSize:14,outline:"none",background:"white",boxSizing:"border-box"};
-
-//SOLUSI CLOUD TO CLOUD SAVE//
-const submit = async () => {
-    if(!form.namaAcara||!form.tanggal||!form.jam){showT("Nama acara, tanggal & jam wajib diisi.","error");return;}
-    if(!form.untukPimpinan||!form.untukPimpinan.length){showT("Pilih tujuan undangan (Wali Kota dan/atau Wakil Wali Kota) sebelum menyimpan.","error");return;}
-    
-    const evId = editId || Date.now();
-    let finalUndanganFile = form.undanganFile;
-
-    // ════════════════════════════════════════════════════════
-    // ARSITEKTUR CLOUD-TO-CLOUD — 3 langkah:
-    // 1. Jika file base64 → upload ke Supabase Storage dari browser
-    //    (browser → Supabase Storage langsung, tidak lewat Vercel)
-    // 2. Simpan data jadwal ke Supabase (dengan URL Storage, bukan base64)
-    // 3. Trigger Vercel: server fetch URL dari Supabase → upload ke Drive
-    // ════════════════════════════════════════════════════════
-    let hasNewFile = false;
-    if (finalUndanganFile && finalUndanganFile.startsWith("data:")) {
-      hasNewFile = true;
-      showT("Mengamankan file ke penyimpanan...", "warn");
-      try {
-        // Upload base64 → Supabase Storage (tidak lewat Vercel, tidak ada limit)
-        const blob = await (await fetch(finalUndanganFile)).blob();
-        const storageUrl = await storageUpload("undangan", evId, blob);
-        if (storageUrl) {
-          finalUndanganFile = storageUrl; // ganti base64 dengan URL Storage
-        } else {
-          finalUndanganFile = null; // storage gagal, jangan simpan base64 besar
-        }
-      } catch(e) {
-        console.warn("Storage upload gagal:", e.message);
-        finalUndanganFile = null;
-      }
-    }
-
-    const formDataToSave = { ...form, undanganFile: finalUndanganFile };
-    const conflict=hasConflict(events,{...formDataToSave,id:evId,alur:"disetujui"});
-    
-    if(editId!==null){
-      const evSebelum=events.find(e=>e.id===editId);
-      setEvents(p=>{const next=p.map(e=>e.id===editId?{...e,...formDataToSave}:e);const u=next.find(e=>e.id===editId);if(u)dbUpsert(u).catch(console.error);return next;});
-      if(evSebelum?.alur==="ditolak"){
-        upd(editId,{alur:"menunggu_kasubbag",catatanTolak:"",_requiresEdit:false});
-        showT("Jadwal diperbaiki & dikirim ulang ke Kasubbag","ok");
-        loadUsers().filter(u=>(u.role==="kasubbag_protokol")&&u.noWA).forEach(u=>sendWA({to:u.noWA,namaAcara:form.namaAcara,tanggal:form.tanggal,jam:form.jam,penyelenggara:form.penyelenggara,lokasi:form.lokasi,event:"submit",submittedBy:user?.nama}));
-        sendPush({targetRole:"kasubbag_protokol",title:"📋 Jadwal Dikirim Ulang",body:form.namaAcara,url:"/",tag:"resubmit-"+editId});
-        sendPush({targetRole:"kasubbag_komdokpim",title:"📋 Jadwal Dikirim Ulang",body:form.namaAcara,url:"/",tag:"resubmit-"+editId});
-      } else {
-        showT("Jadwal diperbarui");
-      }
-      setEditId(null);
-      if(evSebelum?.alur==="disetujui"){
-        const _allU=loadUsers();const _editor=user?.nama||user?.username||"Admin";
-        _allU.filter(u=>(u.role==="ajudan_walikota"||u.role==="ajudan_wakilwalikota")&&u.noWA).forEach(u=>{const _isWK=u.role==="ajudan_walikota"&&(evSebelum.untukPimpinan||[]).includes("walikota");const _isWWK=u.role==="ajudan_wakilwalikota"&&((evSebelum.untukPimpinan||[]).includes("wakilwalikota")||evSebelum.delegasiKeWWK);if(_isWK||_isWWK)sendWA({to:u.noWA,namaAcara:form.namaAcara,tanggal:form.tanggal,jam:form.jam,penyelenggara:form.penyelenggara,lokasi:form.lokasi,event:"jadwal_diubah",namaEditor:_editor});});
-        (evSebelum.personil||[]).forEach(un=>{const _u=_allU.find(x=>x.username===un);if(_u?.noWA)sendWA({to:_u.noWA,namaAcara:form.namaAcara,tanggal:form.tanggal,jam:form.jam,penyelenggara:form.penyelenggara,lokasi:form.lokasi,event:"jadwal_diubah",namaEditor:_editor});});
-      }
-    }
-    else{
-      const n={...formDataToSave,id:evId,alur:"draft",submittedBy:user?.username,catatanTolak:"",statusWK:null,statusWWK:null,perwakilanWK:"",perwakilanWWK:"",delegasiKeWWK:false,besertaIstriWK:!!form.besertaIstriWK,besertaIstriWWK:!!form.besertaIstriWWK,sambutanFile:null,sambutanNama:"",catatanPimpinan:"",tersembunyi:false,alurHapus:null};
-      setEvents(p=>[...p,n]);
-      await dbUpsert(n).catch(console.error);
-      if(conflict)showT("Potensi tabrakan jadwal!","warn");else showT("Draft disimpan. Kirim ke Kasubbag.");
-    }
-
-    // ════════════════════════════════════════════════════════
-    // TRIGGER VERCEL AUTO-UPLOAD KE GOOGLE DRIVE (CLOUD-TO-CLOUD)
-    // ════════════════════════════════════════════════════════
-    if (SUPA_OK) {
-      const isUrlSupabase = finalUndanganFile && finalUndanganFile.includes("supabase.co");
-      if (hasNewFile || isUrlSupabase) {
-        showT("Meneruskan arsip ke Google Drive...", "warn");
-        try {
-          const res = await fetch("/api/drive?action=sync_one_from_db", {
-            method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ agendaId: evId })
-          });
-          const data = await res.json();
-          if (data.ok) {
-            let patch = {};
-            if (data.undangan) patch.undanganFile = data.undangan;
-            if (data.sambutan) patch.sambutanFile = data.sambutan;
-            setEvents(prev => prev.map(e => String(e.id) === String(evId) ? { ...e, ...patch } : e));
-            showT("Arsip berhasil menetap di Google Drive! ✅", "ok");
-          }
-        } catch (err) {
-           console.error("Drive upload gagal:", err);
-        }
-      }
-    }
-
+  const submit=async()=>{
+    setErr("");
+    if(!captchaOK)return setErr("Selesaikan verifikasi anti-bot terlebih dahulu.");
+    if(!form.nama||!form.username||!form.password||!form.jabatan)return setErr("Nama, jabatan, username & password wajib diisi.");
+    if(form.password!==form.konfirmasi)return setErr("Konfirmasi password tidak cocok.");
+    if(form.password.length<6)return setErr("Password minimal 6 karakter.");
+    const existing=loadUsers().find(u=>u.username===form.username.toLowerCase().trim());
+    if(existing)return setErr("Username sudah digunakan.");
+    const pending=loadPendingRegs();
+    if(pending.find(r=>r.username===form.username.toLowerCase().trim()))return setErr("Username sudah pernah didaftarkan, menunggu persetujuan.");
+    const hash=await sha256(form.password);
+    const reg={...form,username:form.username.toLowerCase().trim(),password:hash,id:Date.now(),tanggal:new Date().toISOString()};
+    savePendingRegs([...pending,reg]);
+    // Simpan juga ke Supabase agar Kabag bisa lihat dari device lain
+    dbSavePendingReg(reg).catch(e=>console.warn("Sync:",e?.message||e));
+    window.dispatchEvent(new StorageEvent("storage",{key:"pending_registrations"}));
+    setSent(true);
   };
-  
+  if(sent)return(
+    <div style={{position:"fixed",inset:0,zIndex:9000,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+      <div style={{background:"white",borderRadius:20,padding:"36px 28px",maxWidth:380,textAlign:"center",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
+        <div style={{fontSize:52,marginBottom:12}}>✅</div>
+        <div style={{fontSize:18,fontWeight:800,color:NAVY,marginBottom:8}}>Pendaftaran Terkirim</div>
+        <div style={{fontSize:13,color:"#64748B",lineHeight:1.6,marginBottom:20}}>Permohonan akun Anda sedang menunggu persetujuan Kabag Protokol dan Komunikasi Pimpinan. Anda akan dihubungi setelah akun diaktifkan.</div>
+        <button onClick={onClose} style={{padding:"12px 32px",borderRadius:10,border:"none",background:"linear-gradient(135deg,"+NAVY+",#1B4080)",color:"white",cursor:"pointer",fontWeight:700,fontSize:14}}>Tutup</button>
+      </div>
+    </div>
+  );
+  return(
+    <div style={{position:"fixed",inset:0,zIndex:9000,background:"rgba(0,0,0,0.55)",backdropFilter:"blur(4px)",overflowY:"auto",display:"flex",alignItems:"flex-start",justifyContent:"center",padding:"20px 0 40px"}}>
+      <div style={{background:"white",borderRadius:20,width:"100%",maxWidth:440,margin:"0 16px",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
+        <div style={{background:"linear-gradient(135deg,"+NAVY+",#1B4080)",padding:"20px",borderRadius:"20px 20px 0 0"}}>
+          <div style={{color:GOLD,fontSize:11,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase"}}>Prokopim Tarakan</div>
+          <div style={{color:"white",fontSize:18,fontWeight:800,marginTop:3}}>Daftar Akun Baru</div>
+          <div style={{color:"rgba(255,255,255,0.6)",fontSize:12,marginTop:3}}>Perlu persetujuan Kabag sebelum aktif</div>
+        </div>
+        <div style={{padding:"20px"}}>
+          {err&&<div style={{background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:9,padding:"10px 13px",marginBottom:14,color:"#991B1B",fontSize:13}}>{err}</div>}
+          {[
+            {l:"Nama Lengkap",k:"nama",ph:"Nama sesuai NIP/SK"},
+            {l:"Jabatan",k:"jabatan",ph:"Contoh: Staf Protokol"},
+            {l:"No. WhatsApp",k:"noWA",ph:"08xxxx (opsional)"},
+            {l:"Username",k:"username",ph:"Huruf kecil, tanpa spasi"},
+          ].map(f=>(
+            <div key={f.k} style={{marginBottom:12}}>
+              <label style={{display:"block",fontSize:12,fontWeight:700,color:"#475569",marginBottom:4}}>{f.l}</label>
+              <input value={form[f.k]} onChange={e=>setForm(p=>({...p,[f.k]:e.target.value}))} placeholder={f.ph} style={inp}/>
+            </div>
+          ))}
+          <div style={{marginBottom:12,background:"#F0F9FF",borderRadius:10,padding:"10px 13px",border:"1px solid #BAE6FD"}}>
+            <div style={{fontSize:12,fontWeight:700,color:"#0369A1",marginBottom:2}}>ℹ️ Hak Akses / Role</div>
+            <div style={{fontSize:12,color:"#0369A1",lineHeight:1.6}}>Role/hak akses akan ditetapkan oleh <strong>Kabag Prokopim</strong> saat permohonan Anda disetujui.</div>
+          </div>
+          {[{l:"Password",k:"password"},{l:"Konfirmasi Password",k:"konfirmasi"}].map(f=>(
+            <div key={f.k} style={{marginBottom:12}}>
+              <label style={{display:"block",fontSize:12,fontWeight:700,color:"#475569",marginBottom:4}}>{f.l}</label>
+              <input type="password" value={form[f.k]} onChange={e=>setForm(p=>({...p,[f.k]:e.target.value}))} style={inp}/>
+              {f.k==="password"&&<PasswordStrengthBar password={form.password}/>}
+            </div>
+          ))}
+          <div style={{marginBottom:18}}>
+            <label style={{display:"block",fontSize:12,fontWeight:700,color:"#475569",marginBottom:4}}>Alasan Mendaftar (opsional)</label>
+            <textarea value={form.alasan} onChange={e=>setForm(p=>({...p,alasan:e.target.value}))} rows={2} placeholder="Contoh: Staf baru Kasubbag Protokol..." style={{...inp,resize:"none"}}/>
+          </div>
+          <CaptchaBox onValid={ok=>setCaptchaOK(ok)}/>
+          <div style={{display:"flex",gap:8}}>
+            <button onClick={onClose} style={{flex:1,padding:"12px",borderRadius:10,border:"1.5px solid #e2e8f0",background:"white",color:"#64748B",cursor:"pointer",fontWeight:600,fontSize:13}}>Batal</button>
+            <button onClick={submit} style={{flex:2,padding:"12px",borderRadius:10,border:"none",background:"linear-gradient(135deg,"+NAVY+",#1B4080)",color:"white",cursor:"pointer",fontWeight:800,fontSize:14}}>Kirim Permohonan</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ==================== CONSTANTS ====================
 const NAVY="#0A1628", GOLD="#D4AF5A", GREEN="#0D6B4F";
 const C={
