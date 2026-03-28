@@ -71,10 +71,10 @@ async function getOrCreateFolder(token, folderPath) {
   let parentId=ROOT_FOLDER;
   for (const part of folderPath.split("/")) {
     const q=encodeURIComponent("name='"+part.replace(/'/g,"\\'")+"' and mimeType='application/vnd.google-apps.folder' and '"+parentId+"' in parents and trashed=false");
-    const sr=await (await fetch("https://www.googleapis.com/drive/v3/files?q="+q+"&fields=files(id)",{headers:{"Authorization":"Bearer "+token}})).json();
+    const sr=await (await fetch("https://www.googleapis.com/drive/v3/files?q="+q+"&fields=files(id)&supportsAllDrives=true&includeItemsFromAllDrives=true",{headers:{"Authorization":"Bearer "+token}})).json();
     if (sr.files&&sr.files.length>0) { parentId=sr.files[0].id; }
     else {
-      const cr=await (await fetch("https://www.googleapis.com/drive/v3/files",{method:"POST",headers:{"Authorization":"Bearer "+token,"Content-Type":"application/json"},body:JSON.stringify({name:part,mimeType:"application/vnd.google-apps.folder",parents:[parentId]})})).json();
+      const cr=await (await fetch("https://www.googleapis.com/drive/v3/files?supportsAllDrives=true",{method:"POST",headers:{"Authorization":"Bearer "+token,"Content-Type":"application/json"},body:JSON.stringify({name:part,mimeType:"application/vnd.google-apps.folder",parents:[parentId]})})).json();
       parentId=cr.id;
     }
   }
@@ -91,7 +91,7 @@ async function uploadToDrive(token, folderId, fileName, mimeType, buffer) {
     buffer,
     Buffer.from("\r\n--"+boundary+"--"),
   ]);
-  const r=await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id",{
+  const r=await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id&supportsAllDrives=true",{
     method:"POST",
     headers:{"Authorization":"Bearer "+token,"Content-Type":"multipart/related; boundary="+boundary,"Content-Length":body.length.toString()},
     body,
@@ -101,7 +101,7 @@ async function uploadToDrive(token, folderId, fileName, mimeType, buffer) {
 }
 
 async function setPublic(token, fileId) {
-  await fetch("https://www.googleapis.com/drive/v3/files/"+fileId+"/permissions",{
+  await fetch("https://www.googleapis.com/drive/v3/files/"+fileId+"/permissions?supportsAllDrives=true",{
     method:"POST",headers:{"Authorization":"Bearer "+token,"Content-Type":"application/json"},
     body:JSON.stringify({role:"reader",type:"anyone"}),
   });
