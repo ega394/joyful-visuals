@@ -4511,6 +4511,248 @@ function ReportingTamuModal({ user, onClose, cetakOleh, showT }) {
   );
 }
 
+
+// ══════════════════════════════════════════════════════════════
+// MODAL UNDUH ARSIP BERKAS (Undangan & Sambutan per Bulan)
+// ══════════════════════════════════════════════════════════════
+function ArsipModal({events, onClose, user}){
+  const NAVY="#0A1628", GOLD="#C9A84C", GREEN="#0D6B4F";
+  const BULAN_LABEL=["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+  const now=new Date();
+  const[selYear,setSelYear]=React.useState(now.getFullYear());
+  const[selMonth,setSelMonth]=React.useState(now.getMonth());
+  const[filter,setFilter]=React.useState("semua"); // semua|undangan|sambutan
+  const[downloading,setDownloading]=React.useState(null);
+
+  // Tahun tersedia dari events
+  const years=React.useMemo(()=>{
+    const ys=new Set(events.map(e=>e.tanggal?parseInt(e.tanggal.slice(0,4)):null).filter(Boolean));
+    ys.add(now.getFullYear());
+    return [...ys].sort((a,b)=>b-a);
+  },[events]);
+
+  // Filter events di bulan/tahun yang dipilih + punya file
+  const bulanStr=String(selYear)+"-"+String(selMonth+1).padStart(2,"0");
+  const arsipList=React.useMemo(()=>{
+    const result=[];
+    events.filter(e=>e.tanggal&&e.tanggal.startsWith(bulanStr)).forEach(ev=>{
+      if((filter==="semua"||filter==="undangan")&&ev.undanganFile&&ev.undanganNama){
+        const isUrl=ev.undanganFile.startsWith("http");
+        result.push({evId:ev.id,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,
+          tipe:"undangan",label:"Undangan",icon:"📄",
+          url:ev.undanganFile,nama:ev.undanganNama,isUrl});
+      }
+      if((filter==="semua"||filter==="sambutan")&&ev.sambutanFile&&ev.sambutanNama){
+        const isUrl=ev.sambutanFile.startsWith("http");
+        result.push({evId:ev.id,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,
+          tipe:"sambutan",label:"Sambutan",icon:"🎤",
+          url:ev.sambutanFile,nama:ev.sambutanNama,isUrl});
+      }
+    });
+    return result.sort((a,b)=>a.tanggal.localeCompare(b.tanggal));
+  },[events,bulanStr,filter]);
+
+  const fmtTgl=t=>{
+    if(!t)return"";
+    const d=new Date(t+"T00:00:00");
+    const hr=["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"][d.getDay()];
+    return hr+", "+d.getDate()+" "+BULAN_LABEL[d.getMonth()]+" "+d.getFullYear();
+  };
+
+  // Download satu file
+  const downloadSatu=async(item)=>{
+    setDownloading(item.evId+item.tipe);
+    try{
+      if(item.isUrl){
+        // URL Supabase — buka di tab baru (CORS safe)
+        window.open(item.url,"_blank");
+      } else {
+        // Base64 — download langsung
+        const a=document.createElement("a");
+        a.href=item.url;
+        a.download=item.nama;
+        document.body.appendChild(a);a.click();document.body.removeChild(a);
+      }
+    }catch(e){console.error(e);}
+    setDownloading(null);
+  };
+
+  // Download semua sebagai ZIP (via JSZip CDN)
+  const downloadSemua=async()=>{
+    if(arsipList.length===0)return;
+    setDownloading("batch");
+    try{
+      // Load JSZip dari CDN
+      if(!window.JSZip){
+        await new Promise((res,rej)=>{
+          const s=document.createElement("script");
+          s.src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js";
+          s.onload=res;s.onerror=rej;
+          document.head.appendChild(s);
+        });
+      }
+      const zip=new window.JSZip();
+      const folder=zip.folder(BULAN_LABEL[selMonth]+"_"+selYear);
+
+      for(const item of arsipList){
+        try{
+          let blob;
+          if(item.isUrl){
+            const r=await fetch(item.url);
+            blob=await r.blob();
+          } else {
+            // Base64 → Blob
+            const arr=item.url.split(",");
+            const mime=arr[0].match(/:(.*?);/)?.[1]||"application/pdf";
+            const bstr=atob(arr[1]);
+            const u8=new Uint8Array(bstr.length);
+            for(let i=0;i<bstr.length;i++)u8[i]=bstr.charCodeAt(i);
+            blob=new Blob([u8],{type:mime});
+          }
+          const prefix=item.tanggal+"_"+item.tipe.toUpperCase()+"_";
+          const safeName=prefix+item.namaAcara.replace(/[^a-zA-Z0-9 ]/g,"").substring(0,30).trim()+"_"+item.nama;
+          folder.file(safeName,blob);
+        }catch(e){console.warn("Skip",item.nama,":",e.message);}
+      }
+
+      const blob=await zip.generateAsync({type:"blob"});
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement("a");
+      a.href=url;
+      a.download="Arsip_Prokopim_"+BULAN_LABEL[selMonth]+"_"+selYear+".zip";
+      document.body.appendChild(a);a.click();document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }catch(e){
+      alert("Gagal membuat ZIP: "+e.message);
+    }
+    setDownloading(null);
+  };
+
+  return(
+    <div style={{position:"fixed",inset:0,zIndex:8100,background:"rgba(0,0,0,0.55)",backdropFilter:"blur(4px)",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+      <div style={{background:"white",borderRadius:20,width:"100%",maxWidth:560,maxHeight:"90vh",display:"flex",flexDirection:"column",boxShadow:"0 24px 64px rgba(0,0,0,0.3)"}}>
+
+        {/* Header */}
+        <div style={{background:"linear-gradient(135deg,"+NAVY+",#1B4080)",padding:"20px 24px",borderRadius:"20px 20px 0 0"}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+            <div>
+              <div style={{color:GOLD,fontSize:11,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",marginBottom:4}}>Admin Rencana Kegiatan</div>
+              <div style={{color:"white",fontSize:18,fontWeight:800}}>📦 Unduh Arsip Berkas</div>
+              <div style={{color:"rgba(255,255,255,0.6)",fontSize:12,marginTop:3}}>Unduhan & Sambutan per bulan</div>
+            </div>
+            <button onClick={onClose} style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:9,padding:"7px 12px",cursor:"pointer",color:"white",fontSize:14,fontWeight:700}}>✕</button>
+          </div>
+        </div>
+
+        <div style={{flex:1,overflowY:"auto",padding:"20px 24px 24px"}}>
+
+          {/* Pilih Bulan & Tahun */}
+          <div style={{display:"flex",gap:10,marginBottom:14}}>
+            <div style={{flex:2}}>
+              <label style={{display:"block",fontSize:11,fontWeight:700,color:"#475569",marginBottom:5,textTransform:"uppercase",letterSpacing:1}}>Bulan</label>
+              <select value={selMonth} onChange={e=>setSelMonth(parseInt(e.target.value))}
+                style={{width:"100%",padding:"10px 12px",borderRadius:10,border:"1.5px solid #E2E8F0",fontSize:13,color:NAVY,fontWeight:600,background:"white"}}>
+                {BULAN_LABEL.map((b,i)=><option key={i} value={i}>{b}</option>)}
+              </select>
+            </div>
+            <div style={{flex:1}}>
+              <label style={{display:"block",fontSize:11,fontWeight:700,color:"#475569",marginBottom:5,textTransform:"uppercase",letterSpacing:1}}>Tahun</label>
+              <select value={selYear} onChange={e=>setSelYear(parseInt(e.target.value))}
+                style={{width:"100%",padding:"10px 12px",borderRadius:10,border:"1.5px solid #E2E8F0",fontSize:13,color:NAVY,fontWeight:600,background:"white"}}>
+                {years.map(y=><option key={y}>{y}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {/* Filter tipe */}
+          <div style={{display:"flex",gap:6,marginBottom:16,background:"#F1F5F9",borderRadius:10,padding:4}}>
+            {[["semua","Semua"],["undangan","Undangan"],["sambutan","Sambutan"]].map(([v,l])=>(
+              <button key={v} onClick={()=>setFilter(v)}
+                style={{flex:1,padding:"8px",borderRadius:8,border:"none",cursor:"pointer",
+                  fontWeight:700,fontSize:12,
+                  background:filter===v?NAVY:"transparent",
+                  color:filter===v?"white":"#64748B",transition:"all 0.15s"}}>
+                {l}
+              </button>
+            ))}
+          </div>
+
+          {/* Info & tombol unduh semua */}
+          <div style={{background:"#F8FAFC",borderRadius:12,padding:"12px 14px",marginBottom:14,border:"1px solid #E2E8F0",display:"flex",alignItems:"center",gap:12}}>
+            <div style={{flex:1}}>
+              <div style={{fontSize:14,fontWeight:800,color:NAVY}}>{arsipList.length} berkas ditemukan</div>
+              <div style={{fontSize:11,color:"#64748B",marginTop:2}}>{BULAN_LABEL[selMonth]} {selYear} · {filter==="semua"?"Undangan & Sambutan":filter==="undangan"?"Undangan saja":"Sambutan saja"}</div>
+            </div>
+            {arsipList.length>1&&(
+              <button onClick={downloadSemua} disabled={downloading==="batch"}
+                style={{padding:"10px 16px",borderRadius:10,border:"none",
+                  background:downloading==="batch"?"#E2E8F0":GREEN,
+                  color:downloading==="batch"?"#94A3B8":"white",
+                  cursor:downloading==="batch"?"default":"pointer",
+                  fontSize:12,fontWeight:700,whiteSpace:"nowrap",
+                  display:"flex",alignItems:"center",gap:6}}>
+                {downloading==="batch"
+                  ?<><span style={{width:14,height:14,border:"2px solid #CBD5E1",borderTopColor:"#64748B",borderRadius:"50%",display:"inline-block",animation:"spin 0.8s linear infinite"}}/>Menyiapkan...</>
+                  :<>⬇️ Unduh Semua (.zip)</>}
+              </button>
+            )}
+          </div>
+          <style>{"@keyframes spin{to{transform:rotate(360deg)}}"}</style>
+
+          {/* Daftar berkas */}
+          {arsipList.length===0
+            ?<div style={{textAlign:"center",padding:"40px 20px",color:"#94A3B8"}}>
+              <div style={{fontSize:36,marginBottom:8}}>📭</div>
+              <div style={{fontSize:14,fontWeight:700,color:"#475569"}}>Tidak ada berkas di bulan ini</div>
+              <div style={{fontSize:12,marginTop:4}}>Coba pilih bulan lain atau filter berbeda</div>
+            </div>
+            :<div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {arsipList.map((item,i)=>(
+                <div key={i} style={{background:"white",borderRadius:12,padding:"12px 14px",
+                  border:"1.5px solid "+(item.tipe==="undangan"?"#BFDBFE":"#C4B5FD"),
+                  display:"flex",gap:12,alignItems:"center"}}>
+                  {/* Ikon tipe */}
+                  <div style={{width:40,height:40,borderRadius:10,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,
+                    background:item.tipe==="undangan"?"#EFF6FF":"#F5F3FF"}}>
+                    {item.icon}
+                  </div>
+                  {/* Info */}
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:12,fontWeight:800,color:NAVY,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.namaAcara}</div>
+                    <div style={{fontSize:10,color:"#64748B",marginTop:2}}>{fmtTgl(item.tanggal)} · {item.jam} WITA</div>
+                    <div style={{display:"flex",alignItems:"center",gap:5,marginTop:3}}>
+                      <span style={{fontSize:9,padding:"1px 7px",borderRadius:10,fontWeight:700,
+                        background:item.tipe==="undangan"?"#DBEAFE":"#EDE9FE",
+                        color:item.tipe==="undangan"?"#1D4ED8":"#6D28D9"}}>
+                        {item.label}
+                      </span>
+                      <span style={{fontSize:9,color:"#94A3B8",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:180}}>{item.nama}</span>
+                      {!item.isUrl&&<span style={{fontSize:9,color:"#F59E0B",fontWeight:700,flexShrink:0}}>📱 Lokal</span>}
+                    </div>
+                  </div>
+                  {/* Tombol unduh */}
+                  <button onClick={()=>downloadSatu(item)} disabled={downloading===item.evId+item.tipe}
+                    style={{flexShrink:0,padding:"8px 12px",borderRadius:9,border:"none",
+                      background:item.tipe==="undangan"?"#2563EB":"#7C3AED",
+                      color:"white",cursor:"pointer",fontSize:11,fontWeight:700,
+                      opacity:downloading===item.evId+item.tipe?0.6:1}}>
+                    {downloading===item.evId+item.tipe?"...":"⬇️"}
+                  </button>
+                </div>
+              ))}
+            </div>
+          }
+        </div>
+
+        {/* Footer */}
+        <div style={{padding:"12px 24px",borderTop:"1px solid #F1F5F9"}}>
+          <button onClick={onClose} style={{width:"100%",padding:"12px",borderRadius:11,border:"1.5px solid #E2E8F0",background:"white",color:"#64748B",cursor:"pointer",fontSize:13,fontWeight:700}}>Tutup</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function App(){
   if (window.location.pathname === "/tamu" || window.location.search.includes("tamu")) return <TamuPage />;
   const width=useWindowWidth();const isMobile=width<768;
@@ -4520,7 +4762,7 @@ export default function App(){
   const[events,setEvents]=useState([]);const[dbReady,setDbReady]=useState(false);const[dbError,setDbError]=useState("");
   const[tab,setTab]=useState("jadwal");const[form,setForm]=useState(emptyForm);const[editId,setEditId]=useState(null);
   const[toast,setToast]=useState(null);const[confirmDlg,setConfirmDlg]=useState(null);const[showOnboarding,setShowOnboarding]=useState(false);const[filterDate,setFDate]=useState("");const[filterFrom,setFilterFrom]=useState("");const[filterTo,setFilterTo]=useState("");const[showRangeFilter,setShowRangeFilter]=useState(false);const[searchQ,setSearchQ]=useState("");const[showSearch,setShowSearch]=useState(false);
-  const[showAI,setShowAI]=useState(false);const[showReport,setShowReport]=useState(false);const[showReportTamu,setShowReportTamu]=useState(false);const[showSummary,setShowSummary]=useState(false);const[showAdmin,setShowAdmin]=useState(false);const[showProfile,setShowProfile]=useState(false);const[showLaporan,setShowLaporan]=useState(false);const[showBroadcast,setShowBroadcast]=useState(false);
+  const[showAI,setShowAI]=useState(false);const[showReport,setShowReport]=useState(false);const[showReportTamu,setShowReportTamu]=useState(false);const[showSummary,setShowSummary]=useState(false);const[showAdmin,setShowAdmin]=useState(false);const[showProfile,setShowProfile]=useState(false);const[showLaporan,setShowLaporan]=useState(false);const[showBroadcast,setShowBroadcast]=useState(false);const[showArsip,setShowArsip]=useState(false);
   const[showForgot,setShowForgot]=useState(false);const[showRegister,setShowRegister]=useState(false);const[pendingRegs,setPendingRegs]=useState(()=>loadPendingRegs());
   const[loginLoading,setLoginLoading]=useState(false);const[loginPhase,setLoginPhase]=useState("");
   const[delegTarget,setDelegTarget]= useState(null);const[expandedId,setExp]=useState(null);const[rejectTexts,setRT]=useState({});const[catatanInput,setCatatanInput]=useState({});const[penugasanEv,setPenugasanEv]=useState(null);const[notifPenugasan,setNotifPenugasan]=useState([]);const[evaluasiEv,setEvaluasiEv]=useState(null);const[showMobMenu,setMobMenu]=useState(false);const[showNotifCenter,setShowNotifCenter]=useState(false);
@@ -4751,35 +4993,20 @@ export default function App(){
     });
     if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error||"Gagal konversi");}
     const {pdfBase64,fileName}=await resp.json();
-    // 3. Upload PDF langsung ke Google Drive (tidak melalui Supabase Storage)
+    // 3. Upload ke Supabase storage
     const pdfName=fileName+".pdf";
     const docxName=fileName+".docx";
-    let pdfUrl=null, docxUrl=null;
-    try{
-      // Upload PDF ke Drive
-      const pdfResp=await fetch("/api/drive?action=upload",{
-        method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({base64:pdfBase64,mimeType:"application/pdf",fileName:pdfName,
-          agendaId:String(evId),agendaDate:ev?.tanggal||"",fileType:"sambutan",
-          uploadedBy:user?.nama||user?.username})
-      });
-      const pdfData=await pdfResp.json();
-      if(pdfData.ok&&pdfData.driveUrl) pdfUrl=pdfData.driveUrl;
-
-      // Upload DOCX asli ke Drive juga
-      const docxB64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result.split(",")[1]);r.onerror=rej;r.readAsDataURL(file);});
-      const docxResp=await fetch("/api/drive?action=upload",{
-        method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({base64:docxB64,mimeType:"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-          fileName:docxName,agendaId:String(evId),agendaDate:ev?.tanggal||"",fileType:"sambutan",
-          uploadedBy:user?.nama||user?.username})
-      });
-      const docxData=await docxResp.json();
-      if(docxData.ok&&docxData.driveUrl) docxUrl=docxData.driveUrl;
-    }catch(driveErr){
-      console.warn("Drive upload gagal, fallback lokal:",driveErr.message);
+    let pdfUrl=null,docxUrl=null;
+    if(SUPA_OK){
+      // Upload PDF
+      const pdfBlob=new Blob([Uint8Array.from(atob(pdfBase64),ch=>ch.charCodeAt(0))],{type:"application/pdf"});
+      const pdfFile=new File([pdfBlob],pdfName,{type:"application/pdf"});
+      pdfUrl=await storageUpload("sambutan",evId+"/pdf",pdfFile).catch(()=>null);
+      // Upload DOCX asli
+      const docxFile=new File([file],docxName,{type:"application/vnd.openxmlformats-officedocument.wordprocessingml.document"});
+      docxUrl=await storageUpload("sambutan",evId+"/docx",docxFile).catch(()=>null);
     }
-    // Fallback ke data-URI jika Drive gagal
+    // Fallback ke data-URI jika storage belum aktif
     if(!pdfUrl) pdfUrl="data:application/pdf;base64,"+pdfBase64;
     if(!docxUrl) docxUrl=URL.createObjectURL(file);
     updAndSync(evId,{sambutanFile:pdfUrl,sambutanNama:pdfName,sambutanDocx:docxUrl,sambutanDocxNama:docxName});
@@ -4787,40 +5014,15 @@ export default function App(){
   },[updAndSync]);
 
   const handleSambutanUpload = useCallback(async (evId, file, name) => {
-    showT("Mengunggah naskah ke Google Drive...", "warn");
-    try {
-      const ev = events.find(e => e.id === evId);
-      const b64 = await new Promise((res, rej) => {
-        const r = new FileReader();
-        r.onload  = e => res(e.target.result.split(",")[1]);
-        r.onerror = rej;
-        r.readAsDataURL(file);
-      });
-      const resp = await fetch("/api/drive?action=upload", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ base64:b64, mimeType:file.type, fileName:name,
-          agendaId:String(evId), agendaDate:ev?.tanggal||"",
-          fileType:"sambutan", uploadedBy:user?.nama||user?.username })
-      });
-      const data = await resp.json();
-      if (data.ok && data.driveUrl) {
-        updAndSync(evId, { sambutanFile: data.driveUrl, sambutanNama: name });
-        showT("Naskah sambutan berhasil diarsipkan ke Google Drive ✓");
-      } else {
-        throw new Error(data.error || "Gagal upload ke Drive");
-      }
-    } catch (err) {
-      console.error("handleSambutanUpload error:", err);
-      const b64full = await new Promise((res, rej) => {
-        const r = new FileReader();
-        r.onload  = e => res(e.target.result);
-        r.onerror = rej;
-        r.readAsDataURL(file);
-      });
-      updAndSync(evId, { sambutanFile: b64full, sambutanNama: name });
-      showT("Gagal ke Drive, tersimpan sementara di lokal", "warn");
+    // Upload naskah sambutan ke Supabase Storage
+    if(SUPA_OK){
+      const url=await storageUpload("sambutan",evId,file);
+      if(url){updAndSync(evId,{sambutanFile:url,sambutanNama:name});return;}
     }
-  }, [updAndSync, events, user]);
+    // Fallback: simpan sebagai Base64
+    const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=rej;r.readAsDataURL(file);});
+    updAndSync(evId,{sambutanFile:b64,sambutanNama:name});
+  }, [updAndSync]);
 
   // ── Simpan penugasan personil ──
   // ── Simpan evaluasi pasca kegiatan ──
@@ -4898,29 +5100,9 @@ export default function App(){
   },[events,role]);
 
   const handleUndanganUpload=useCallback(async(evId,file,name)=>{
-    showT("Mengunggah undangan ke Google Drive...","warn");
-    try{
-      const ev=events.find(e=>e.id===evId);
-      const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result.split(",")[1]);r.onerror=rej;r.readAsDataURL(file);});
-      const resp=await fetch("/api/drive?action=upload",{
-        method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({base64:b64,mimeType:file.type,fileName:name,agendaId:String(evId),agendaDate:ev?.tanggal||"",fileType:"undangan",uploadedBy:user?.nama||user?.username})
-      });
-      const data=await resp.json();
-      if(data.ok&&data.driveUrl){
-        updAndSync(evId,{undanganFile:data.driveUrl,undanganNama:name});
-        showT("Undangan berhasil diarsipkan ke Google Drive ✓");
-      } else {
-        throw new Error(data.error||"Gagal upload ke Drive");
-      }
-    }catch(err){
-      console.error("handleUndanganUpload error:",err);
-      // Fallback: simpan sebagai data-URI jika Drive gagal
-      const b64full=await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=rej;r.readAsDataURL(file);});
-      updAndSync(evId,{undanganFile:b64full,undanganNama:name});
-      showT("Gagal ke Drive, tersimpan sementara di lokal","warn");
-    }
-  },[updAndSync,events,user]);
+    if(SUPA_OK){const url=await storageUpload("undangan",evId,file);if(url){updAndSync(evId,{undanganFile:url,undanganNama:name});return;}}
+    const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=rej;r.readAsDataURL(file);});updAndSync(evId,{undanganFile:b64,undanganNama:name});
+  },[updAndSync]);
 
   const getVisible=()=>{
     if(tab==="tayang"){
@@ -5006,26 +5188,17 @@ const submit = async () => {
     let hasNewFile = false;
     if (finalUndanganFile && finalUndanganFile.startsWith("data:")) {
       hasNewFile = true;
-      showT("Mengunggah berkas undangan ke Google Drive...", "warn");
+      showT("Mengamankan file ke penyimpanan...", "warn");
       try {
-        const rawB64 = finalUndanganFile.includes(",") ? finalUndanganFile.split(",")[1] : finalUndanganFile;
-        const mimeMatch = finalUndanganFile.match(/:(.*?);/);
-        const mime = mimeMatch ? mimeMatch[1] : "application/pdf";
-        const driveResp = await fetch("/api/drive?action=upload", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ base64: rawB64, mimeType: mime,
-            fileName: form.undanganNama || (evId+"-undangan.pdf"),
-            agendaId: String(evId), agendaDate: form.tanggal||"",
-            fileType: "undangan", uploadedBy: user?.nama||user?.username })
-        });
-        const driveData = await driveResp.json();
-        if (driveData.ok && driveData.driveUrl) {
-          finalUndanganFile = driveData.driveUrl;
+        const blob = await (await fetch(finalUndanganFile)).blob();
+        const storageUrl = await storageUpload("undangan", evId, blob);
+        if (storageUrl) {
+          finalUndanganFile = storageUrl; 
         } else {
-          finalUndanganFile = null;
+          finalUndanganFile = null; 
         }
       } catch(e) {
-        console.warn("Drive upload gagal:", e.message);
+        console.warn("Storage upload gagal:", e.message);
         finalUndanganFile = null;
       }
     }
@@ -5526,6 +5699,7 @@ const TH={
     {key:"action:report_tamu", icon:"📇",label:"Cetak Rekap Tamu"},
     ...(canReport?[{key:"action:laporan",icon:"📊",label:"Laporan Mingguan/Bulanan"}]:[]),
     ...((KASUBBAG_ROLES.includes(role)||role==="kabag")?[{key:"penugasan",icon:"📈",label:"Rekap Evaluasi Kinerja"}]:[]),
+    ...(role==="admin_rk"||role==="kabag"?[{key:"action:arsip",icon:"📦",label:"Unduh Arsip Berkas"}]:[]),
   ]},
   {label:"AKUN",items:[
     {key:"action:profile",   icon:"👤", label:"Pengaturan Akun"},
@@ -5535,7 +5709,7 @@ const TH={
 ];
 
   const handleNavClick=key=>{
-    if(key==="action:summary"){setShowSummary(true);return;}if(key==="action:report"){setShowReport(true);return;}if(key==="action:report_tamu"){setShowReportTamu(true);return;}if(key==="action:laporan"){setShowLaporan(true);return;}if(key==="action:admin"){setShowAdmin(true);return;}if(key==="action:broadcast"){setShowBroadcast(true);return;}if(key==="action:profile"){setShowProfile(true);return;}
+    if(key==="action:summary"){setShowSummary(true);return;}if(key==="action:report"){setShowReport(true);return;}if(key==="action:report_tamu"){setShowReportTamu(true);return;}if(key==="action:laporan"){setShowLaporan(true);return;}if(key==="action:admin"){setShowAdmin(true);return;}if(key==="action:broadcast"){setShowBroadcast(true);return;}if(key==="action:profile"){setShowProfile(true);return;}if(key==="action:arsip"){setShowArsip(true);return;}
     setTab(key);if(key==="form"){setForm(emptyForm);setEditId(null);}
   };
 
@@ -5696,6 +5870,7 @@ const TH={
               {icon:"👤",label:"Profil",action:()=>{setShowProfile(true);setMobMenu(false);}},
               ...(role==="kabag"?[{icon:"⚙️",label:"Kelola User"+(loadPendingRegs().length>0?" ("+loadPendingRegs().length+")":""),action:()=>{setShowAdmin(true);setMobMenu(false);}}]:[]),
               ...(role==="kabag"?[{icon:"📢",label:"Kirim Pengumuman",action:()=>{setShowBroadcast(true);setMobMenu(false);}}]:[]),
+              ...((role==="admin_rk"||role==="kabag")?[{icon:"📦",label:"Arsip Berkas",action:()=>{setShowArsip(true);setMobMenu(false);}}]:[]),
             ].map((btn,i)=>(
               <button key={i} onClick={btn.action} className="btn-ios" style={{padding:"14px 12px",borderRadius:14,border:"1.5px solid #E4EAF2",background:"#F8FAFF",color:NAVY,cursor:"pointer",fontSize:13,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
                 <span style={{fontSize:20}}>{btn.icon}</span>{btn.label}
@@ -5790,18 +5965,13 @@ function AIModalRK({onFill,onClose}){
       const m=txt.match(/{[\s\S]*}/);
       if(!m)throw new Error("AI tidak mengembalikan JSON");
       setEdited(JSON.parse(m[0]));
-      // Simpan file otomatis ke Google Drive
+      // Simpan file otomatis ke storage
       try{
-        const b64rk=await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result.split(",")[1]);r.onerror=rej;r.readAsDataURL(f);});
-        const rkResp=await fetch("/api/drive?action=upload",{
-          method:"POST",headers:{"Content-Type":"application/json"},
-          body:JSON.stringify({base64:b64rk,mimeType:f.type||"application/pdf",fileName:f.name,
-            agendaId:"rk-"+Date.now(),agendaDate:new Date().toISOString().slice(0,10),
-            fileType:"undangan",uploadedBy:"Admin RK"})
-        });
-        const rkData=await rkResp.json();
-        setSavedFile({url:rkData.driveUrl||f.name,nama:f.name});
-      }catch(e2){console.warn("Gagal simpan file ke Drive:",e2);}
+        let url;
+        if(SUPA_OK){url=await storageUpload("undangan",f,f.name);}
+        else{url=await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=rej;r.readAsDataURL(f);});}
+        setSavedFile({url,nama:f.name});
+      }catch(e2){console.warn("Gagal simpan file:",e2);}
     }catch(e){setErr(e.message);}
     setLoading(false);
   };
@@ -8088,6 +8258,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
     {showProfile&&<ProfileModal user={user} onClose={updated=>{setShowProfile(false);if(updated)setUser(updated);}} showT={showT}/>}
     {showReportTamu&&<ReportingTamuModal user={user} cetakOleh={user?.nama||user?.username||"Sistem"} showT={showT} onClose={()=>setShowReportTamu(false)}/>}
     {showLaporan&&<LaporanModal events={events} kabagNama={kabagNama} cetakOleh={user?.nama||user?.username||""} onClose={()=>setShowLaporan(false)}/>}
+    {showArsip&&<ArsipModal events={events} user={user} onClose={()=>setShowArsip(false)}/>}
     {delegTarget&&<DelegateModal label={delegTarget.side==="wk"||delegTarget.side==="wk_adminrk"?"Wali Kota":"Wakil Wali Kota"} onConfirm={name=>{const byWK=role==="walikota"?"walikota":role==="admin_rk"?"admin_rk":"ajudan";const byWWK=role==="wakilwalikota"?"wakilwalikota":role==="admin_rk"?"admin_rk":"ajudan";if(delegTarget.side==="wk")upd(delegTarget.id,{statusWK:"diwakilkan",perwakilanWK:name,delegasiKeWWK:false,statusWK_by:byWK});else if(delegTarget.side==="wk_adminrk")upd(delegTarget.id,{statusWK:"diwakilkan",perwakilanWK:name,delegasiKeWWK:false,statusWK_by:"admin_rk"});else upd(delegTarget.id,{statusWWK:"diwakilkan",perwakilanWWK:name,statusWWK_by:byWWK});setDelegTarget(null);showT("Diwakilkan ke "+name);}} onCancel={()=>setDelegTarget(null)}/>}
     {isMobile
       ?<div style={{width:"100%",minHeight:"100vh",display:"flex",flexDirection:"column",background:"#F0F4FA",paddingTop:"env(safe-area-inset-top,0px)"}}>
