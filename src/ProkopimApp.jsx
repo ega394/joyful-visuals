@@ -6891,7 +6891,9 @@ function KabagDashboard({events, user, upd, showT, askConfirm, deleteAndSync, is
   const [activeTab, setActiveTab] = useState("antrian");
   const [expandedId, setExpanded] = useState(null);
   const [rejectTexts, setRT] = useState({});
+  const [searchQ, setSearchQ] = useState("");
   const now=new Date();
+  const nowStr=now.toISOString().slice(0,16).replace("T"," ");
   const fmt=t=>new Date(t).toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long"});
   const fmtShort=t=>new Date(t).toLocaleDateString("id-ID",{day:"numeric",month:"short"});
   const getNamaByUsername=un=>loadUsers().find(u=>u.username===un)?.nama||un;
@@ -6899,6 +6901,14 @@ function KabagDashboard({events, user, upd, showT, askConfirm, deleteAndSync, is
   const antrian=events.filter(e=>e.alur==="menunggu_kabag"&&!e.alurHapus).sort((a,b)=>(a.tanggal+a.jam).localeCompare(b.tanggal+b.jam));
   const permintaanBatal=events.filter(e=>e.alurHapus==="menunggu_kabag");
   const approved=events.filter(e=>e.alur==="disetujui").sort((a,b)=>(a.tanggal+a.jam).localeCompare(b.tanggal+b.jam));
+
+  // Pisah: mendatang (belum berlangsung) vs riwayat (sudah berlangsung)
+  const upcoming=approved.filter(e=>(e.tanggal+" "+e.jam)>=nowStr);
+  const riwayat=approved.filter(e=>(e.tanggal+" "+e.jam)<nowStr).reverse();
+  // Filter riwayat berdasarkan pencarian
+  const riwayatFiltered=searchQ.trim()
+    ?riwayat.filter(e=>(e.namaAcara||"").toLowerCase().includes(searchQ.toLowerCase())||(e.penyelenggara||"").toLowerCase().includes(searchQ.toLowerCase())||(e.tanggal||"").includes(searchQ))
+    :riwayat;
 
   const tabs=[
     {key:"antrian",label:"Antrian",icon:"📋",badge:antrian.length},
@@ -7077,14 +7087,15 @@ function KabagDashboard({events, user, upd, showT, askConfirm, deleteAndSync, is
 
         {/* TAB JADWAL TAYANG */}
         {activeTab==="jadwal"&&<>
-          {(()=>{const _n=new Date();const _fp=approved.filter(e=>new Date(e.tanggal+"T"+(e.jam||"00:00"))>=_n);const _pr=getOverlappingPairs(_fp);if(!_pr.length)return null;return(
+          {/* Alert agenda berdekatan */}
+          {(()=>{const _pr=getOverlappingPairs(upcoming);if(!_pr.length)return null;return(
             <div style={{background:"#FEF2F2",border:"1.5px solid #FECACA",borderRadius:12,padding:"12px 14px",marginBottom:12}}>
               <div style={{display:"flex",gap:8,alignItems:"flex-start"}}>
                 <span style={{fontSize:18,flexShrink:0}}>⚡</span>
                 <div style={{flex:1}}>
                   <div style={{fontSize:12,fontWeight:700,color:"#991B1B",marginBottom:5}}>{_pr.length} pasang agenda berdekatan</div>
                   {_pr.map((p,i)=>(
-                    <div key={i} style={{background:"white",borderRadius:7,padding:"6px 9px",marginBottom:i<getOverlappingPairs(approved).length-1?4:0,border:"1px solid #FECACA",fontSize:11,color:"#374151"}}>
+                    <div key={i} style={{background:"white",borderRadius:7,padding:"6px 9px",marginBottom:4,border:"1px solid #FECACA",fontSize:11,color:"#374151"}}>
                       <span style={{fontWeight:800,color:"#991B1B"}}>{p.a.jam}</span> {p.a.namaAcara}
                       <span style={{color:"#9CA3AF",margin:"0 5px"}}>↔</span>
                       <span style={{fontWeight:800,color:"#991B1B"}}>{p.b.jam}</span> {p.b.namaAcara}
@@ -7094,12 +7105,110 @@ function KabagDashboard({events, user, upd, showT, askConfirm, deleteAndSync, is
                 </div>
               </div>
             </div>);})()}
-          <div style={{fontSize:11,fontWeight:800,color:"#64748B",letterSpacing:1.2,textTransform:"uppercase",marginBottom:12}}>
-            {approved.length} Jadwal Disetujui
+
+          {/* ── BAGIAN 1: MENDATANG — semua ditampilkan, tombol batalkan langsung kelihatan ── */}
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
+            <div style={{fontSize:11,fontWeight:800,color:NAVY,letterSpacing:1.2,textTransform:"uppercase"}}>
+              📅 Mendatang ({upcoming.length})
+            </div>
+            <div style={{flex:1,height:1,background:"#E2E8F0"}}/>
+            <span style={{fontSize:10,color:"#94A3B8",fontWeight:600}}>Semua bisa dibatalkan</span>
           </div>
-          {approved.length===0
-            ?<div style={{textAlign:"center",padding:"40px 20px",color:"#94A3B8"}}><div style={{fontSize:36,marginBottom:8}}>📭</div><div style={{fontSize:13,fontWeight:600}}>Belum ada jadwal tayang</div></div>
-            :approved.map(ev=><JadwalCard key={ev.id} ev={ev}/>)}
+          {upcoming.length===0
+            ?<div style={{background:"#F0FDF4",borderRadius:10,padding:"12px 14px",marginBottom:16,fontSize:12,color:"#065F46",fontWeight:600,textAlign:"center"}}>✅ Tidak ada agenda mendatang</div>
+            :<div style={{marginBottom:20}}>
+              {upcoming.map(ev=>{
+                const exp=expandedId===ev.id;
+                const personilList=(ev.personil||[]).map(un=>({un,nama:getNamaByUsername(un)}));
+                return(
+                  <div key={ev.id} style={{background:"white",borderRadius:14,marginBottom:10,overflow:"hidden",border:"1.5px solid #D1FAE5",boxShadow:"0 2px 8px rgba(0,0,0,0.05)"}}>
+                    {/* Header kartu — clickable */}
+                    <div style={{padding:"13px 16px",cursor:"pointer",display:"flex",gap:12,alignItems:"flex-start"}} onClick={()=>setExpanded(exp?null:ev.id)}>
+                      <div style={{width:46,textAlign:"center",background:"#ECFDF5",borderRadius:10,padding:"6px 4px",flexShrink:0}}>
+                        <div style={{fontSize:17,fontWeight:900,color:GREEN}}>{ev.tanggal.slice(8)}</div>
+                        <div style={{fontSize:9,color:"#64748B"}}>{fmtShort(ev.tanggal).split(" ")[1]}</div>
+                      </div>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontSize:13,fontWeight:800,color:"#0F172A",marginBottom:3}}>{ev.namaAcara}</div>
+                        <div style={{fontSize:11,color:"#64748B"}}>🕐 {ev.jam} · {ev.penyelenggara||"—"}</div>
+                        <div style={{marginTop:3}}><TujuanBadge ev={ev}/></div>
+                        <div style={{fontSize:11,color:personilList.length>0?"#065F46":"#D97706",marginTop:2,fontWeight:600}}>
+                          {personilList.length>0?"👥 "+personilList.map(p=>p.nama).join(", "):"⚠️ Belum ada personil"}
+                        </div>
+                      </div>
+                      <span style={{fontSize:14,color:"#94A3B8",flexShrink:0}}>{exp?"▲":"▼"}</span>
+                    </div>
+                    {/* Tombol batalkan — SELALU TERLIHAT tanpa perlu expand */}
+                    {!ev.alurHapus&&<div style={{padding:"0 16px 12px",display:"flex",gap:8,alignItems:"flex-start",flexWrap:"wrap"}}>
+                      <RejectTextarea evId={ev.id+"_recall"} placeholder="Alasan batalkan tayang (wajib)..." rows={1}
+                        style={{flex:1,minWidth:160,padding:"7px 10px",borderRadius:8,border:"1.5px solid #FCD34D",resize:"none",fontSize:11,boxSizing:"border-box",color:"#334155",background:"#FFFBEB"}}
+                        onCommit={(id,v)=>setRT(p=>({...p,[id]:v}))}/>
+                      <button onClick={()=>{
+                        if(!(rejectTexts[ev.id+"_recall"]||"").trim()){showT("Tulis alasan pembatalan dulu","warn");return;}
+                        askConfirm("Batalkan Tayang?","Jadwal '"+ev.namaAcara+"' akan ditarik & dikembalikan ke Kasubbag.",()=>{
+                          upd(ev.id,{alur:"menunggu_kasubbag",catatanKabag:rejectTexts[ev.id+"_recall"]||"Perlu perbaikan",_kabagRecall:true});
+                          showT("Jadwal ditarik & dikembalikan ke Kasubbag","warn");
+                          loadUsers().filter(u=>(u.role==="kasubbag_protokol")&&u.noWA).forEach(u=>sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"recalled"}));
+                          sendPush({targetRole:"kasubbag_protokol",title:"↩ Jadwal Ditarik Kabag",body:ev.namaAcara,url:"/",tag:"recall-"+ev.id});
+                          sendPush({targetRole:"kasubbag_komdokpim",title:"↩ Jadwal Ditarik Kabag",body:ev.namaAcara,url:"/",tag:"recall-"+ev.id});
+                          const _subU=loadUsers().find(u=>u.username===ev.submittedBy);
+                          if(_subU?.noWA)sendWA({to:_subU.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"recalled",submittedBy:getNamaByUsername(ev.submittedBy)});
+                          setExpanded(null);
+                        },"Batalkan Tayang","#D97706");
+                      }} style={{flexShrink:0,padding:"7px 12px",borderRadius:8,border:"none",background:"#F59E0B",color:"white",cursor:"pointer",fontSize:11,fontWeight:700,whiteSpace:"nowrap"}}>
+                        ↩ Batalkan Tayang
+                      </button>
+                    </div>}
+                    {ev.alurHapus&&<div style={{padding:"0 16px 12px",fontSize:11,color:"#B91C1C",fontWeight:600}}>🚫 Ada permintaan batal dari staf</div>}
+                    {/* Detail expand */}
+                    {exp&&<div style={{borderTop:"1px solid #ECFDF5",padding:"12px 16px",background:"#FAFFFC"}}>
+                      {[{l:"Tanggal",v:fmt(ev.tanggal)},{l:"Penyelenggara",v:ev.penyelenggara},{l:"Lokasi",v:ev.lokasi},{l:"Pakaian",v:ev.pakaian},{l:"Catatan",v:ev.catatan}].filter(f=>f.v).map(f=>(
+                        <div key={f.l} style={{display:"flex",gap:8,marginBottom:5}}>
+                          <span style={{minWidth:90,fontSize:11,color:"#94A3B8",fontWeight:600}}>{f.l}</span>
+                          <span style={{fontSize:12,color:"#1E293B",flex:1}}>{f.v}</span>
+                        </div>
+                      ))}
+                      {personilList.length>0&&<div style={{marginTop:8}}>
+                        <div style={{fontSize:11,fontWeight:700,color:"#475569",marginBottom:6}}>Personil:</div>
+                        {personilList.map(p=><div key={p.un} style={{fontSize:12,color:"#334155",padding:"4px 0"}}>• {p.nama}</div>)}
+                      </div>}
+                    </div>}
+                  </div>
+                );
+              })}
+            </div>
+          }
+
+          {/* ── BAGIAN 2: RIWAYAT — bisa dicari ── */}
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
+            <div style={{fontSize:11,fontWeight:800,color:"#64748B",letterSpacing:1.2,textTransform:"uppercase"}}>
+              📁 Riwayat ({riwayat.length})
+            </div>
+            <div style={{flex:1,height:1,background:"#E2E8F0"}}/>
+          </div>
+          {/* Search riwayat */}
+          <div style={{position:"relative",marginBottom:12}}>
+            <span style={{position:"absolute",left:11,top:"50%",transform:"translateY(-50%)",fontSize:14,color:"#94A3B8"}}>🔍</span>
+            <input
+              value={searchQ}
+              onChange={e=>setSearchQ(e.target.value)}
+              placeholder="Cari nama acara, penyelenggara, tanggal..."
+              style={{width:"100%",padding:"9px 11px 9px 34px",borderRadius:10,border:"1.5px solid #E2E8F0",fontSize:12,color:"#334155",background:"white",boxSizing:"border-box",outline:"none"}}
+            />
+            {searchQ&&<button onClick={()=>setSearchQ("")}
+              style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:"#94A3B8",fontSize:14}}>✕</button>}
+          </div>
+          {searchQ&&<div style={{fontSize:11,color:"#1D4ED8",fontWeight:600,marginBottom:8}}>
+            Menampilkan {riwayatFiltered.length} dari {riwayat.length} riwayat
+          </div>}
+          {riwayatFiltered.length===0
+            ?<div style={{textAlign:"center",padding:"24px",color:"#94A3B8",fontSize:12}}>
+              {searchQ?"Tidak ada hasil untuk '"+searchQ+"'":"Belum ada riwayat agenda"}
+            </div>
+            :<div>
+              {riwayatFiltered.map(ev=><JadwalCard key={ev.id} ev={ev}/>)}
+            </div>
+          }
         </>}
 
         {/* TAB BATAL TAYANG */}
