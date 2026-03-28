@@ -182,6 +182,73 @@ export default async function handler(req, res) {
   try {
 
     // ──────────────────────────────────────────────────────
+    // 0. DIAGNOSIS TEST — buka /api/drive?action=test
+    // ──────────────────────────────────────────────────────
+    if (req.method==="GET" && action==="test") {
+      const result = { steps:[] };
+      const ok   = (s,d) => result.steps.push({step:s, status:"✅ OK",    detail:d});
+      const fail = (s,d) => result.steps.push({step:s, status:"❌ GAGAL", detail:d});
+
+      ok("1. GOOGLE_SA_EMAIL",          SA_EMAIL    ? SA_EMAIL.substring(0,30)+"..." : "KOSONG!");
+      ok("1. GOOGLE_DRIVE_ROOT_FOLDER", ROOT_FOLDER || "KOSONG!");
+      ok("1. SUPABASE_URL",             SUPA_URL    ? SUPA_URL.substring(0,40)+"..." : "KOSONG!");
+      ok("1. GOOGLE_SA_PRIVATE_KEY",    SA_KEY_RAW  ? "Ada ("+SA_KEY_RAW.length+" chars)" : "KOSONG!");
+
+      const pem = (SA_KEY_RAW||"").replace(/\\n/g,"\n");
+      if (!pem.includes("BEGIN PRIVATE KEY")) {
+        fail("2. Format Private Key", "Tidak ada BEGIN PRIVATE KEY — cek format di Vercel env");
+      } else {
+        ok("2. Format Private Key", "PEM terdeteksi");
+      }
+
+      let token = null;
+      try {
+        token = await getToken();
+        ok("3. Google OAuth Token", "Berhasil: "+token.substring(0,20)+"...");
+      } catch(e) {
+        fail("3. Google OAuth Token", e.message);
+      }
+
+      if (token && ROOT_FOLDER) {
+        try {
+          const r = await fetch("https://www.googleapis.com/drive/v3/files/"+ROOT_FOLDER+"?fields=id,name", {headers:{"Authorization":"Bearer "+token}});
+          const d = await r.json();
+          d.id ? ok("4. Akses Root Folder", "Folder: '"+d.name+"'") : fail("4. Akses Root Folder", JSON.stringify(d));
+        } catch(e) { fail("4. Akses Root Folder", e.message); }
+      }
+
+      if (SUPA_URL && SUPA_KEY) {
+        try {
+          const r = await fetch(SUPA_URL+"/rest/v1/jadwal?select=id,data&limit=1", {headers:{"Content-Type":"application/json","apikey":SUPA_KEY,"Authorization":"Bearer "+SUPA_KEY}});
+          const d = await r.json();
+          if (Array.isArray(d) && d.length>0) {
+            const ev = d[0].data || d[0];
+            ok("5. Supabase jadwal", "id="+d[0].id+" namaAcara="+ev.namaAcara);
+            ok("5a. undanganFile", ev.undanganFile ? String(ev.undanganFile).substring(0,60) : "null/kosong");
+          } else {
+            fail("5. Supabase jadwal", JSON.stringify(d).substring(0,100));
+          }
+        } catch(e) { fail("5. Supabase jadwal", e.message); }
+      }
+
+      if (token && ROOT_FOLDER) {
+        try {
+          const buf = Buffer.from("TEST Prokopim "+new Date().toISOString());
+          const boundary = "pkm_test";
+          const meta = JSON.stringify({name:"TEST-prokopim-"+Date.now()+".txt",parents:[ROOT_FOLDER]});
+          const body = Buffer.concat([Buffer.from("--"+boundary+"\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n"+meta+"\r\n--"+boundary+"\r\nContent-Type: text/plain\r\n\r\n"),buf,Buffer.from("\r\n--"+boundary+"--")]);
+          const r = await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name",{method:"POST",headers:{"Authorization":"Bearer "+token,"Content-Type":"multipart/related; boundary="+boundary},body});
+          const d = await r.json();
+          d.id ? ok("6. Test Upload ke Drive", "File ID: "+d.id+" — cek di Google Drive ada TEST-prokopim-*.txt") : fail("6. Test Upload ke Drive", JSON.stringify(d));
+        } catch(e) { fail("6. Test Upload ke Drive", e.message); }
+      }
+
+      const gagal = result.steps.filter(s=>s.status.includes("GAGAL"));
+      result.verdict = gagal.length===0 ? "✅ SEMUA OK" : "❌ ADA "+gagal.length+" MASALAH";
+      return res.status(200).json(result);
+    }
+
+    // ──────────────────────────────────────────────────────
     // 0a. LIST FILES per agendaId (dari tabel drive_files)
     // ──────────────────────────────────────────────────────
     if (req.method==="GET" && action==="files") {
