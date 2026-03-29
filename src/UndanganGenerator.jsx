@@ -248,8 +248,8 @@ export default function UndanganGenerator({ isMobile, showT }) {
     let ttdContent = "<br><br><br>";
     if (form.jenisTtd === "scan") {
       ttdContent = `
-        <img src="/stempel.png" style="position: absolute; right: 140px; top: -20px; width: 145px; z-index: 1; mix-blend-mode: multiply;" onerror="this.style.display='none'">
-        <img src="/image.jpeg" style="position: absolute; right: 30px; top: -20px; height: 140px; z-index: 2; mix-blend-mode: multiply;" alt="TTD">
+        <img src="/stempel.png" style="position: absolute; left: 0px; top: -30px; width: 145px; z-index: 1; mix-blend-mode: multiply;" onerror="this.style.display='none'">
+        <img src="/image.jpeg" style="position: absolute; right: 0px; top: -30px; height: 140px; z-index: 2; mix-blend-mode: multiply;" alt="TTD">
       `;
     } else if (form.jenisTtd === "tte") {
       ttdContent = '<br><br><span class="tte-marker">${ttd_pengirim}</span><br><br>';
@@ -312,26 +312,101 @@ export default function UndanganGenerator({ isMobile, showT }) {
 </html>`;
   };
 
-  // ── generatePDF() — persis sama seperti di HTML asli ──
+  // ── generatePDF() — buat hidden container di main DOM ──
+  // (tidak bisa pakai getElementById karena dokumen ada di iframe)
   const generatePDF = async () => {
     setLoading(true);
     try {
       const html2pdf = await loadHtml2Pdf();
 
-      // Hilangkan warna biru TTE marker saat cetak
-      const tteMarkers = document.querySelectorAll(".tte-marker");
-      tteMarkers.forEach(m => {
-        m.style.color      = "black";
-        m.style.background = "transparent";
-      });
-
-      const elemenDokumen = document.getElementById("dokumen-cetak");
-      const nomorSurat    = form.nomor.replace(/\//g, "-");
-      const suffixTtd     = form.jenisTtd === "tte" ? "_TTE" : form.jenisTtd === "scan" ? "_Scan" : "";
-      let   namaFile      = "Undangan" + suffixTtd + "_" + nomorSurat + ".pdf";
-      if (form.pilihanCetak === "utama") {
-        namaFile = "Undangan_Utama" + suffixTtd + "_" + nomorSurat + ".pdf";
+      // Tentukan konten TTD untuk PDF
+      let ttdPdf = "<br><br><br>";
+      if (form.jenisTtd === "scan") {
+        ttdPdf = `
+          <img src="/stempel.png" style="position: absolute; left: 0px; top: -30px; width: 145px; z-index: 1; mix-blend-mode: multiply;" onerror="this.style.display='none'">
+          <img src="/image.jpeg" style="position: absolute; right: 0px; top: -30px; height: 140px; z-index: 2; mix-blend-mode: multiply;" alt="TTD">
+        `;
+      } else if (form.jenisTtd === "tte") {
+        ttdPdf = "<br><br>" + form.nomor + "<br><br>"; // variabel TTE diganti nomor surat
       }
+
+      // Bangun HTML dokumen untuk pdf (sama dengan HTML_DOKUMEN_CETAK tapi data sudah terisi)
+      const halamanLampiran = form.pilihanCetak !== "utama" ? `
+        <div class="halaman-a4 html2pdf__page-break">
+          <div style="margin-bottom: 15px;">LAMPIRAN SURAT</div>
+          <table style="border-collapse: collapse; margin-bottom: 25px;">
+            <tr><td style="width: 70pt;">Nomor</td><td style="width: 15pt;">:</td><td>${form.nomor}</td></tr>
+          </table>
+          <div style="text-align: center; margin-bottom: 20px;"><b><u>${form.judulLampiran}</u></b></div>
+          <div class="teks-multibaris" style="line-height: ${form.spasiLampiran}; margin-bottom: 20px;">${form.lampiran}</div>
+          <div class="area-ttd" style="margin-top: 30px;">
+            WALI KOTA TARAKAN<br>
+            <div style="min-height: 80px; position: relative; display: flex; flex-direction: column; justify-content: center; align-items: center;">${ttdPdf}</div>
+            <b>dr. H. KHAIRUL, M.Kes.</b>
+          </div>
+        </div>` : "";
+
+      const catatanHtml = form.catatan.trim()
+        ? `<div><b><u>catatan:</u></b><br><span class="teks-multibaris">${form.catatan}</span></div>` : "";
+
+      const htmlPdf = `
+        <div class="halaman-a4">
+          <div class="kop">
+            <img src="/image001.jpg" alt="Garuda"
+              onerror="this.src='https://upload.wikimedia.org/wikipedia/commons/thumb/8/84/National_emblem_of_Indonesia_Garuda_Pancasila.svg/300px-National_emblem_of_Indonesia_Garuda_Pancasila.svg.png'">
+            <div class="kop-teks">WALI KOTA TARAKAN</div>
+          </div>
+          <div class="tanggal-kanan">${form.tanggalSurat}</div>
+          <table class="tabel-info">
+            <tr><td class="col-label">Nomor</td><td class="col-titikdua">:</td><td>${form.nomor}</td></tr>
+            <tr><td>Sifat</td><td>:</td><td>${form.sifat}</td></tr>
+            <tr><td>Lampiran</td><td>:</td><td>${form.lampiranCount}</td></tr>
+            <tr><td>Hal</td><td>:</td><td><b><u>Undangan</u></b></td></tr>
+          </table>
+          <div class="tujuan-surat">
+            Yth:<br><b><span class="teks-multibaris">${form.yth}</span></b><br>di-<br><b>TARAKAN</b>
+          </div>
+          <div class="paragraf-indent">Mengharapkan dengan hormat kehadiran Bapak/Ibu/Saudara (i) pada:</div>
+          <table class="tabel-acara">
+            <tr><td class="col-label-acara">hari/tanggal</td><td class="col-titikdua">:</td><td>${form.waktuAcara}</td></tr>
+            <tr><td>pukul</td><td>:</td><td>${form.pukul}</td></tr>
+            <tr><td>tempat</td><td>:</td><td>${form.tempat}</td></tr>
+            <tr><td>acara</td><td>:</td><td><b><div class="teks-multibaris">${form.acara}</div></b></td></tr>
+          </table>
+          <div class="paragraf-indent">Demikian, atas perhatian serta kehadirannya diucapkan terima kasih.</div>
+          <div class="area-ttd">
+            WALI KOTA TARAKAN<br>
+            <div style="min-height: 80px; position: relative; display: flex; flex-direction: column; justify-content: center; align-items: center;">${ttdPdf}</div>
+            <b>dr. H. KHAIRUL, M.Kes.</b>
+          </div>
+          <div class="area-kiri-bawah">
+            <b><u>Narahubung:</u></b><br>${form.narahubung}<br>
+            <b><u>Pakaian:</u></b><br>${form.pakaian}<br>
+            ${catatanHtml}
+          </div>
+          <div class="footer-alamat">
+            Jalan Kalimantan No. 1, Kota Tarakan<br>
+            Telp. (0551) 21620, 34320 Fax. (0551) 23782
+          </div>
+        </div>
+        ${halamanLampiran}
+      `;
+
+      // Buat hidden container di main DOM (html2pdf perlu elemen di DOM)
+      const style = document.createElement("style");
+      style.textContent = CSS_ASLI;
+      document.head.appendChild(style);
+
+      const container = document.createElement("div");
+      container.id = "pdf-hidden-container";
+      container.style.cssText = "position:fixed;left:-9999px;top:0;width:210mm;background:transparent;z-index:-9999;";
+      container.innerHTML = htmlPdf;
+      document.body.appendChild(container);
+
+      const nomorSurat = form.nomor.replace(/\//g, "-");
+      const suffixTtd  = form.jenisTtd === "tte" ? "_TTE" : form.jenisTtd === "scan" ? "_Scan" : "";
+      const prefix     = form.pilihanCetak === "utama" ? "Undangan_Utama" : "Undangan";
+      const namaFile   = prefix + suffixTtd + "_" + nomorSurat + ".pdf";
 
       const opsi = {
         margin:      0,
@@ -341,13 +416,11 @@ export default function UndanganGenerator({ isMobile, showT }) {
         jsPDF:       { unit: "mm", format: "a4", orientation: "portrait" },
       };
 
-      await html2pdf().set(opsi).from(elemenDokumen).save();
+      await html2pdf().set(opsi).from(container).save();
 
-      // Kembalikan warna TTE marker
-      tteMarkers.forEach(m => {
-        m.style.color      = "#0056b3";
-        m.style.background = "#e9ecef";
-      });
+      // Bersihkan
+      document.body.removeChild(container);
+      document.head.removeChild(style);
 
       if (showT) showT("PDF berhasil diunduh ✓", "ok");
     } catch (err) {

@@ -5161,7 +5161,7 @@ export default function App(){
   const goToPending=()=>{
     if(!pendingList.length)return;
     const targetId=pendingList[0].id;
-    if(role==="walikota"||role==="wakilwalikota")setTab("jadwal");
+    if(role==="walikota"||role==="wakilwalikota")setTab("tayang");
     else if(role==="ajudan_walikota"||role==="ajudan_wakilwalikota")setTab("ajudan");
     else if(role==="kasubbag_komdokpim")setTab("newsroom");
     else if(role==="kasubbag_protokol"||role==="kabag")setTab("jadwal");
