@@ -110,6 +110,43 @@ export default function TamuPage() {
   var [touched, setTouched] = useState({});
   var [result,  setResult]  = useState(null);
 
+  // ── Aksesibilitas: ukuran teks & kontras tinggi ──────────
+  var [textSize,     setTextSize]     = useState("normal"); // normal | large | xlarge
+  var [highContrast, setHighContrast] = useState(false);
+
+  useEffect(function() {
+    var savedSize     = localStorage.getItem("tp_textSize");
+    var savedContrast = localStorage.getItem("tp_highContrast");
+    if (savedSize)     setTextSize(savedSize);
+    if (savedContrast) setHighContrast(savedContrast === "true");
+  }, []);
+
+  var cycleTextSize = function() {
+    var next = textSize === "normal" ? "large" : textSize === "large" ? "xlarge" : "normal";
+    setTextSize(next);
+    localStorage.setItem("tp_textSize", next);
+  };
+  var toggleContrast = function() {
+    var next = !highContrast;
+    setHighContrast(next);
+    localStorage.setItem("tp_highContrast", String(next));
+  };
+
+  // Faktor skala teks
+  var FS = textSize === "xlarge" ? 1.25 : textSize === "large" ? 1.1 : 1;
+
+  // Palet kontras
+  var HC = highContrast ? {
+    bg:      "#000000",
+    surface: "#1a1a1a",
+    border:  "#FFD700",
+    text:    "#FFFFFF",
+    sub:     "#E0E0E0",
+    accent:  "#FFD700",
+    btn:     "#FFD700",
+    btnText: "#000000",
+  } : null;
+
   var [form, setForm] = useState({
     name:                "",
     organization:        "",
@@ -355,6 +392,52 @@ export default function TamuPage() {
       background: NAVY,
       fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
     }}>
+
+      {/* ── Widget Aksesibilitas ─────────────────────────────── */}
+      <div
+        role="region"
+        aria-label="Pengaturan aksesibilitas"
+        style={{
+          position: "fixed", bottom: 16, right: 16, zIndex: 9000,
+          display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8,
+        }}
+      >
+        {/* Tombol perbesar teks */}
+        <button
+          onClick={cycleTextSize}
+          aria-label={"Ukuran teks: " + (textSize === "normal" ? "Normal" : textSize === "large" ? "Besar" : "Sangat Besar") + ". Klik untuk ganti."}
+          title="Ubah ukuran teks"
+          style={{
+            width: 44, height: 44, borderRadius: 12,
+            border: "2px solid " + (HC ? HC.border : "#0A1628"),
+            background: HC ? HC.surface : "white",
+            color: HC ? HC.text : "#0A1628",
+            cursor: "pointer", fontWeight: 800, fontSize: 15,
+            boxShadow: "0 2px 12px rgba(0,0,0,0.15)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}
+        >
+          {textSize === "normal" ? "A" : textSize === "large" ? "A+" : "A++"}
+        </button>
+        {/* Tombol kontras tinggi */}
+        <button
+          onClick={toggleContrast}
+          aria-pressed={highContrast}
+          aria-label={(highContrast ? "Nonaktifkan" : "Aktifkan") + " mode kontras tinggi"}
+          title="Mode kontras tinggi"
+          style={{
+            width: 44, height: 44, borderRadius: 12,
+            border: "2px solid " + (HC ? "#FFD700" : "#0A1628"),
+            background: highContrast ? "#FFD700" : "white",
+            color: highContrast ? "#000000" : "#0A1628",
+            cursor: "pointer", fontWeight: 800, fontSize: 18,
+            boxShadow: "0 2px 12px rgba(0,0,0,0.15)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}
+        >
+          ◑
+        </button>
+      </div>
 
       {/* Skip link — keyboard dan screen reader */}
       <a

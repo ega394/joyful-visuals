@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { ZenModeView, AjudanView, StafView, MitraView, SkeletonLoader, EmptyState, useDynamicTheme } from "./JoyfulInterface.jsx";
 import { ZenDashboard } from "./ZenModeUI.jsx";
+import UndanganGenerator from "./UndanganGenerator.jsx";
 import TamuPage from "./TamuPage.jsx";
 import GuestDashboard from "./GuestDashboard.jsx"
 import NewsroomDashboard from "./NewsroomDashboard.jsx";
@@ -295,6 +296,7 @@ const ALL_ROLE_DEFS=[
   {key:"timkom",             label:"Tim Komunikasi & Dokumentasi",  icon:"attach"},
   {key:"staf",               label:"Staf Protokol",                 icon:"pencil"},
   {key:"admin_rk",           label:"Admin Rencana Kegiatan",        icon:"pencil"},
+  {key:"admin_undangan",    label:"Admin Generator Undangan",       icon:"document"},
   {key:"kasubbag_protokol",  label:"Kasubbag Protokol",             icon:"search"},
   {key:"kasubbag_komdokpim", label:"Kasubbag Komdokpim",            icon:"search"},
   {key:"kabag",              label:"Kabag Prokopim",                icon:"check"},
@@ -344,7 +346,7 @@ if(typeof document!=="undefined"&&!document.getElementById("prokopim-anim")){
 const PAKAIAN=["PDH","PDH Batik Tarakan","Batik Lengan Panjang","Batik Korpri","Pakaian Muslim","PSL","PSR","PSH","PDUB","Pakaian Lapangan","Olahraga","Bebas Rapi","Lainnya"];
 const JENIS=["Menghadiri","Sambutan","Sambutan membuka acara","Pengarahan"];
 const PEJABAT=["Sekda","Asisten Pemerintahan dan Kesra","Asisten Perekonomian dan Pembangunan","Asisten Administrasi Umum"];
-const ROLES_WITH_REPORT=["staf","admin_rk","kasubbag_protokol","kasubbag_komdokpim","kabag","timkom"];
+const ROLES_WITH_REPORT=["staf","admin_rk","admin_undangan","kasubbag_protokol","kasubbag_komdokpim","kabag","timkom"];
 const STAF_ROLES=["staf","admin_rk","timkom"];
 const KASUBBAG_ROLES=["kasubbag_protokol","kasubbag_komdokpim"];
 
@@ -384,6 +386,7 @@ const DEFAULT_USERS=[
   {username:"kasubbag_komdokpim",password:"Kdp@2025",    role:"kasubbag_komdokpim",nama:"Kasubbag Komdokpim",           jabatan:"Kasubbag Komunikasi dan Pendokumentasian Tugas Pimpinan"},
   {username:"kabag",         password:"Kabag@2025",   role:"kabag",         nama:"Kabag Protokol & Komunikasi",      jabatan:"Kepala Bagian Protokol & Komunikasi Pimpinan"},
   {username:"admin_rk",      password:"AdminRK@2025", role:"admin_rk",      nama:"Admin Rencana Kegiatan",           jabatan:"Admin Rencana Kegiatan Pimpinan"},
+  {username:"admin_undangan",password:"AdminUnd@2025",role:"admin_undangan",nama:"Admin Generator Undangan",          jabatan:"Admin Surat dan Undangan Pimpinan"},
 ];
 function loadUsers(){
   // Pakai cache jika sudah diisi oleh initUsers()
@@ -4785,7 +4788,7 @@ export default function App(){
     setLoginPhase("Menyiapkan dashboard...");
     await new Promise(r=>setTimeout(r,500));
     setLoginLoading(false);
-    setUser(candidate);setTab(["ajudan_walikota","ajudan_wakilwalikota"].includes(candidate.role)?"ajudan":["kabag","kasubbag_protokol"].includes(candidate.role)?"dashboard":candidate.role==="admin_rk"?"pantau":candidate.role==="mitra_kerja"?"mitra":"tayang");
+    setUser(candidate);setTab(["ajudan_walikota","ajudan_wakilwalikota"].includes(candidate.role)?"ajudan":["kabag","kasubbag_protokol"].includes(candidate.role)?"dashboard":(candidate.role==="admin_rk"||candidate.role==="admin_undangan")?"pantau":candidate.role==="mitra_kerja"?"mitra":"tayang");
     try{const seen=JSON.parse(localStorage.getItem("jp_seen_onboarding")||"{}");if(!seen[candidate.username]){setShowOnboarding(true);}}catch{}
     try{localStorage.setItem("jp_session",JSON.stringify({username:candidate.username}));}catch{}
     registerPush(candidate.username,candidate.role);
@@ -5162,7 +5165,7 @@ export default function App(){
     else if(role==="ajudan_walikota"||role==="ajudan_wakilwalikota")setTab("ajudan");
     else if(role==="kasubbag_komdokpim")setTab("newsroom");
     else if(role==="kasubbag_protokol"||role==="kabag")setTab("jadwal");
-    else if(role==="admin_rk")setTab("pantau");
+    else if(role==="admin_rk"||role==="admin_undangan")setTab("pantau");
     else setTab("jadwal");
     setFDate("");
     setExp(targetId);
@@ -5265,6 +5268,7 @@ const TH={
   timkom:          {g:"linear-gradient(160deg,#0A1628 0%,#1A2F50 100%)",a:"#A5B4FC"},
   staf:            {g:"linear-gradient(160deg,#0A1628 0%,#1A2F50 100%)",a:GOLD},
   admin_rk:        {g:"linear-gradient(160deg,#0A1628 0%,#1A2F50 100%)",a:"#FCD34D"},
+  admin_undangan:  {g:"linear-gradient(160deg,#0A1628 0%,#1A2F50 100%)",a:"#86EFAC"},
   kasubbag_protokol:   {g:"linear-gradient(160deg,#0A1628 0%,#1A2F50 100%)",a:"#FDE68A"},
   kasubbag_komdokpim:  {g:"linear-gradient(160deg,#0A1628 0%,#1A2F50 100%)",a:"#7DD3FC"},
   kabag:           {g:"linear-gradient(160deg,#0A1628 0%,#1A2F50 100%)",a:"#6EE7B7"},
@@ -5288,7 +5292,7 @@ const TH={
       (e.tanggal||"").includes(q)
     );
   })();
-  const showForm=tab==="form"&&role==="admin_rk";  const isPantau=tab==="pantau"&&role==="admin_rk";
+  const showForm=tab==="form"&&(role==="admin_rk"||role==="admin_undangan");  const isPantau=tab==="pantau"&&role==="admin_rk";
   const showPenugasan=tab==="penugasan";
 
   const CSS=`
@@ -5639,6 +5643,13 @@ const TH={
       {key:"tayang",  icon:"📅", label:"Agenda"},
       {key:"tamu",    icon:"👥", label:"Manajemen Tamu"},
     ]:[]),
+    // ── Admin Generator Undangan (semua menu admin_rk + Generator Undangan) ──
+    ...(role==="admin_undangan"?[
+      {key:"pantau",    icon:"✏️", label:"Input & Pantau"},
+      {key:"tayang",    icon:"📅", label:"Agenda"},
+      {key:"tamu",      icon:"👥", label:"Manajemen Tamu"},
+      {key:"undangan",  icon:"📄", label:"Generator Undangan"},
+    ]:[]),
     // ── Kasubbag Protokol ──
     ...(role==="kasubbag_protokol"?[
       {key:"jadwal", icon:"📋", label:"Antrian"},
@@ -5748,6 +5759,13 @@ const TH={
     {key:"pantau", label:"Input & Pantau", icon:"✏️"},
     {key:"tayang", label:"Agenda",          icon:"📅"},
     {key:"tamu",   label:"Tamu",            icon:"👥"},
+  ]:[]),
+  // ── Admin Generator Undangan ──
+  ...(role==="admin_undangan"?[
+    {key:"pantau",   label:"Input & Pantau", icon:"✏️"},
+    {key:"tayang",   label:"Agenda",          icon:"📅"},
+    {key:"tamu",     label:"Tamu",            icon:"👥"},
+    {key:"undangan", label:"Undangan",         icon:"📄"},
   ]:[]),
   // ── Kasubbag Protokol ──
   ...(role==="kasubbag_protokol"?[
@@ -8041,7 +8059,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
 
 
   // ==================== MAIN CONTENT ====================
-  const pageTitle=tab==="tayang"?"Agenda Kegiatan Pimpinan":tab==="pantau"?"Input & Pantau Jadwal":tab==="form"?"Input Jadwal Baru":tab==="semua"?"Semua Jadwal":tab==="penugasan"?"Penugasan Saya":tab==="jadwal"?KASUBBAG_ROLES.includes(role)||role==="kabag"?"Antrian Approval":"Jadwal":"Jadwal";
+  const pageTitle=tab==="tayang"?"Agenda Kegiatan Pimpinan":tab==="pantau"?"Input & Pantau Jadwal":tab==="undangan"?"Generator Undangan Resmi":tab==="form"?"Input Jadwal Baru":tab==="semua"?"Semua Jadwal":tab==="penugasan"?"Penugasan Saya":tab==="jadwal"?KASUBBAG_ROLES.includes(role)||role==="kabag"?"Antrian Approval":"Jadwal":"Jadwal";
 
   // ═══════════════════════════════════════════════════════════════
   // FITUR 1: SAPAAN CERDAS + RINGKASAN PAGI
@@ -8337,11 +8355,15 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
         ?<KabagDashboard events={events} user={user} upd={upd} showT={showT} askConfirm={askConfirm} deleteAndSync={deleteAndSync} isMobile={isMobile}/>
 
       /* 4. Kasubbag dashboard */
+      /* ── Admin Undangan: Generator Undangan PDF ── */
+      :["admin_rk","admin_undangan"].includes(role)&&tab==="undangan"
+        ?<UndanganGenerator isMobile={isMobile} showT={showT}/>
+
       :role==="kasubbag_protokol"&&tab==="dashboard"
         ?<KasubbagDashboard events={events} user={user} upd={upd} showT={showT} askConfirm={askConfirm} isMobile={isMobile} onPenugasan={ev=>setPenugasanEv(ev)}/>
 
       /* 5. Admin RK: Input & Pantau terpadu */
-      :(role==="admin_rk"&&tab==="pantau")
+      :((role==="admin_rk"||role==="admin_undangan")&&tab==="pantau")
         ?<DraftProgressView events={events} user={user} upd={upd} showT={showT} askConfirm={askConfirm} setTab={setTab} isMobile={isMobile} setForm={setForm} setEditId={setEditId} deleteAndSync={deleteAndSync} onAddNew={()=>{setForm(emptyForm);setEditId(null);setTab("form");}}/>
 
       /* 6. Admin RK: Form input jadwal */
