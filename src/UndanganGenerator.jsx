@@ -1,22 +1,208 @@
 /**
  * UndanganGenerator.jsx — Prokopim Hibot v2.0
- * Generator PDF Undangan Resmi Wali Kota Tarakan
  *
- * GAMBAR STATIS — letakkan di folder public/:
- *   public/image001.jpg   → Logo Garuda Pancasila (kop surat)
- *   public/stempel.png    → Stempel Wali Kota Tarakan
- *   public/image.jpeg     → Tanda tangan Wali Kota
+ * Strategi integrasi:
+ * - CSS asli (#dokumen-cetak, .halaman-a4, dll) disuntikkan UTUH via <style> tag
+ * - HTML #dokumen-cetak dirender via dangerouslySetInnerHTML — TIDAK diubah sama sekali
+ * - updatePreview() berjalan via useEffect + DOM manipulation langsung (getElementById)
+ *   — persis sama seperti di file HTML asli
+ * - generatePDF() identik dengan versi asli
  *
- * Library html2pdf.js dimuat dari CDN (cdnjs.cloudflare.com)
- * saat tombol generate diklik — tidak perlu install npm.
+ * GAMBAR STATIS — letakkan di:
+ *   public/image001.jpg   ← Logo Garuda Pancasila (kop surat)
+ *   public/stempel.png    ← Stempel Wali Kota Tarakan
+ *   public/image.jpeg     ← Tanda tangan Wali Kota
  */
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
-const NAVY = "#0A1628";
-const GOLD = "#C9A84C";
+// ── CSS asli dari undangan.html — tidak diubah sama sekali ──
+const CSS_ASLI = `
+  /* KERTAS A4 & PENGUNCIAN FONT ARIAL */
+  #dokumen-cetak, #dokumen-cetak * {
+    font-family: Arial, Helvetica, sans-serif !important;
+  }
+  #dokumen-cetak { width: 210mm; background: transparent; margin-top: 20px; }
 
-// ── Muat html2pdf.js dari CDN ──────────────────────────────
+  .halaman-a4 {
+    width: 210mm;
+    min-height: 297mm;
+    background: white;
+    padding: 20mm 20mm 20mm 25mm;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    margin-bottom: 20px;
+    box-sizing: border-box;
+    font-size: 11pt;
+    color: black;
+    line-height: 1.5;
+    position: relative;
+  }
+
+  /* TATA NASKAH KOP SURAT */
+  .kop { text-align: center; margin-bottom: 25px; }
+  .kop img { width: 88px; margin-bottom: 5px; }
+  .kop-teks { font-size: 20pt; font-weight: bold; margin-top: 5px; letter-spacing: 0.5px; }
+
+  /* TANGGAL & TABEL INFO */
+  .tanggal-kanan { text-align: right; margin-bottom: 15px; font-style: normal; }
+  .tabel-info { border-collapse: collapse; width: 100%; margin-bottom: 15px; }
+  .tabel-info td { vertical-align: top; padding: 2px 0; }
+  .col-label { width: 70pt; }
+  .col-titikdua { width: 15pt; text-align: center; }
+
+  /* YTH & TUJUAN */
+  .tujuan-surat { margin-bottom: 15px; line-height: 1.5; }
+
+  /* PARAGRAF DENGAN INDENTASI */
+  .paragraf-indent {
+    text-align: justify;
+    text-indent: 36.75pt;
+    margin-bottom: 5px;
+    margin-top: 10px;
+  }
+
+  /* TABEL ACARA */
+  .tabel-acara { border-collapse: collapse; width: 100%; margin-bottom: 10px; }
+  .tabel-acara td { vertical-align: top; padding: 2px 0; }
+  .col-label-acara { width: 113pt; }
+
+  /* AREA TANDA TANGAN */
+  .area-ttd {
+    float: right;
+    width: 250px;
+    text-align: center;
+    margin-top: 15px;
+    position: relative;
+  }
+
+  /* Penanda Visual Variabel TTE di Web */
+  .tte-marker {
+    color: #0056b3;
+    font-family: monospace !important;
+    background: #e9ecef;
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-weight: bold;
+  }
+
+  /* AREA NARAHUBUNG */
+  .area-kiri-bawah {
+    clear: both;
+    margin-top: 20px;
+    line-height: 1.5;
+  }
+
+  /* ALAMAT FOOTER ABSOLUT */
+  .footer-alamat {
+    position: absolute;
+    bottom: 20mm;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 10pt;
+    line-height: 1.3;
+  }
+
+  .teks-multibaris { white-space: pre-wrap; }
+  .page-break { page-break-before: always; }
+`;
+
+// ── HTML #dokumen-cetak asli — tidak diubah sama sekali ──
+// (hanya path gambar disesuaikan ke /public/)
+const HTML_DOKUMEN_CETAK = `
+  <div class="halaman-a4">
+    <div class="kop">
+      <img src="/image001.jpg" alt="Garuda"
+        onerror="this.src='https://upload.wikimedia.org/wikipedia/commons/thumb/8/84/National_emblem_of_Indonesia_Garuda_Pancasila.svg/300px-National_emblem_of_Indonesia_Garuda_Pancasila.svg.png'">
+      <div class="kop-teks">WALI KOTA TARAKAN</div>
+    </div>
+
+    <div class="tanggal-kanan" id="out_tanggalSurat">Tarakan, 27 Maret 2026</div>
+
+    <table class="tabel-info">
+      <tr><td class="col-label">Nomor</td><td class="col-titikdua">:</td><td><span id="out_nomor">8400/XXX/SETDA/2026</span></td></tr>
+      <tr><td>Sifat</td><td>:</td><td><span id="out_sifat">Biasa</span></td></tr>
+      <tr><td>Lampiran</td><td>:</td><td><span id="out_lampiranCount">1 (satu) halaman</span></td></tr>
+      <tr><td>Hal</td><td>:</td><td><b><u>Undangan</u></b></td></tr>
+    </table>
+
+    <div class="tujuan-surat">
+      Yth:<br>
+      <b><span id="out_yth" class="teks-multibaris">(daftar terlampir)</span></b><br>
+      di-<br>
+      <b>TARAKAN</b>
+    </div>
+
+    <div class="paragraf-indent">
+      Mengharapkan dengan hormat kehadiran Bapak/Ibu/Saudara (i) pada:
+    </div>
+
+    <table class="tabel-acara">
+      <tr><td class="col-label-acara">hari/tanggal</td><td class="col-titikdua">:</td><td><span id="out_waktuAcara">Jumat, 27 Maret 2026</span></td></tr>
+      <tr><td>pukul</td><td>:</td><td><span id="out_pukul">14.00 WITA s/d selesai</span></td></tr>
+      <tr><td>tempat</td><td>:</td><td><span id="out_tempat">Ruang Rapat Wali Kota</span></td></tr>
+      <tr><td>acara</td><td>:</td><td><b><div id="out_acara" class="teks-multibaris">1. Pemilihan Ketua BAZNAS Tarakan;
+2. Pengarahan Wali Kota Tarakan; dan
+3. Hal-hal lain yang dianggap perlu.</div></b></td></tr>
+    </table>
+
+    <div class="paragraf-indent">
+      Demikian, atas perhatian serta kehadirannya diucapkan terima kasih.
+    </div>
+
+    <div class="area-ttd">
+      WALI KOTA TARAKAN<br>
+      <div id="ttd_utama_space" style="min-height: 80px; position: relative; display: flex; flex-direction: column; justify-content: center; align-items: center;"></div>
+      <b>dr. H. KHAIRUL, M.Kes.</b>
+    </div>
+
+    <div class="area-kiri-bawah">
+      <b><u>Narahubung:</u></b><br>
+      <span id="out_narahubung">Kasubbag Protokol (0811-5961-116)</span><br>
+      <b><u>Pakaian:</u></b><br>
+      <span id="out_pakaian">PDH Batik Daerah/menyesuaikan</span><br>
+      <div id="wadah_catatan">
+        <b><u>catatan:</u></b><br>
+        <span id="out_catatan" class="teks-multibaris">Hadir 15 menit sebelum acara dimulai.</span>
+      </div>
+    </div>
+
+    <div class="footer-alamat">
+      Jalan Kalimantan No. 1, Kota Tarakan<br>
+      Telp. (0551) 21620, 34320 Fax. (0551) 23782
+    </div>
+  </div>
+
+  <div class="halaman-a4 html2pdf__page-break" id="halaman-lampiran">
+    <div style="margin-bottom: 15px;">LAMPIRAN SURAT</div>
+
+    <table style="border-collapse: collapse; margin-bottom: 25px;">
+      <tr>
+        <td style="width: 70pt;">Nomor</td>
+        <td style="width: 15pt;">:</td>
+        <td><span id="out_nomor_lampiran">8400/XXX/SETDA/2026</span></td>
+      </tr>
+    </table>
+
+    <div style="text-align: center; margin-bottom: 20px;">
+      <b><u><span id="out_judulLampiran">DAFTAR UNDANGAN</span></u></b>
+    </div>
+
+    <div id="out_lampiran" class="teks-multibaris" style="line-height: 1.5; margin-bottom: 20px;">1. Asisten Pemerintahan dan Kesejahteraan Rakyat;
+2. Kepala Kantor Kementerian Agama Kota Tarakan;
+3. Kepala Bagian Kesejahteraan Rakyat;
+4. Kepala Bagian Hukum;
+5. Ketua BAZNAS Tarakan (K.H. Zainuddin Dalila);</div>
+
+    <div class="area-ttd" style="margin-top: 30px;">
+      WALI KOTA TARAKAN<br>
+      <div id="ttd_lampiran_space" style="min-height: 80px; position: relative; display: flex; flex-direction: column; justify-content: center; align-items: center;"></div>
+      <b>dr. H. KHAIRUL, M.Kes.</b>
+    </div>
+  </div>
+`;
+
+// ── Muat html2pdf.js dari CDN ─────────────────────────────
 function loadHtml2Pdf() {
   return new Promise((resolve, reject) => {
     if (window.html2pdf) { resolve(window.html2pdf); return; }
@@ -29,478 +215,308 @@ function loadHtml2Pdf() {
 }
 
 export default function UndanganGenerator({ isMobile, showT }) {
-  // ── State form ──────────────────────────────────────────
+  // ── State form (identik dengan nilai default di HTML asli) ──
   const [form, setForm] = useState({
-    tanggalSurat:   "Tarakan, " + new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }),
-    nomor:          "8400/XXX/SETDA/" + new Date().getFullYear(),
+    pilihanCetak:   "semua",
+    tanggalSurat:   "Tarakan, 27 Maret 2026",
+    nomor:          "8400/XXX/SETDA/2026",
     sifat:          "Biasa",
     lampiranCount:  "1 (satu) halaman",
     yth:            "(daftar terlampir)",
-    waktuAcara:     "",
+    waktuAcara:     "Jumat, 27 Maret 2026",
     pukul:          "14.00 WITA s/d selesai",
     tempat:         "Ruang Rapat Wali Kota",
-    acara:          "1. ...;\n2. ...; dan\n3. Hal-hal lain yang dianggap perlu.",
+    acara:          "1. Pemilihan Ketua BAZNAS Tarakan;\n2. Pengarahan Wali Kota Tarakan; dan\n3. Hal-hal lain yang dianggap perlu.",
     narahubung:     "Kasubbag Protokol (0811-5961-116)",
     pakaian:        "PDH Batik Daerah/menyesuaikan",
     catatan:        "Hadir 15 menit sebelum acara dimulai.",
     jenisTtd:       "tte",
-    pilihanCetak:   "semua",
     judulLampiran:  "DAFTAR UNDANGAN",
     spasiLampiran:  "1.5",
-    lampiran:       "1. Asisten Pemerintahan dan Kesejahteraan Rakyat;\n2. Kepala Bagian Protokol dan Komunikasi Pimpinan;",
+    lampiran:       "1. Asisten Pemerintahan dan Kesejahteraan Rakyat;\n2. Kepala Kantor Kementerian Agama Kota Tarakan;\n3. Kepala Bagian Kesejahteraan Rakyat;\n4. Kepala Bagian Hukum;\n5. Ketua BAZNAS Tarakan (K.H. Zainuddin Dalila);",
   });
 
   const [loading, setLoading] = useState(false);
-  const cetakRef = useRef(null);
+  const dokumenRef = useRef(null);
 
   const set = (key) => (e) => setForm(p => ({ ...p, [key]: e.target.value }));
 
-  // ── TTD content berdasarkan pilihan ─────────────────────
-  const ttdContent = () => {
+  // ── updatePreview() — persis sama seperti di HTML asli ──
+  // Dijalankan setiap kali form berubah via useEffect
+  const updatePreview = () => {
+    const el = (id) => document.getElementById(id);
+    if (!el("out_tanggalSurat")) return; // dokumen belum render
+
+    // Visibilitas halaman lampiran
+    const halamanLampiran = el("halaman-lampiran");
+    if (halamanLampiran) {
+      halamanLampiran.style.display = form.pilihanCetak === "utama" ? "none" : "block";
+    }
+
+    // Logika tanda tangan
+    let ttdContent = "<br><br><br>";
     if (form.jenisTtd === "scan") {
-      return `
-        <img src="/stempel.png"  style="position:absolute;right:140px;top:-20px;width:145px;z-index:1;mix-blend-mode:multiply;" onerror="this.style.display='none'">
-        <img src="/image.jpeg"   style="position:absolute;right:30px;top:-20px;height:140px;z-index:2;mix-blend-mode:multiply;" onerror="this.style.display='none'" alt="TTD">
+      ttdContent = `
+        <img src="/stempel.png" style="position: absolute; right: 140px; top: -20px; width: 145px; z-index: 1; mix-blend-mode: multiply;" onerror="this.style.display='none'">
+        <img src="/image.jpeg" style="position: absolute; right: 30px; top: -20px; height: 140px; z-index: 2; mix-blend-mode: multiply;" alt="TTD">
       `;
+    } else if (form.jenisTtd === "tte") {
+      ttdContent = '<br><br><span class="tte-marker">${ttd_pengirim}</span><br><br>';
     }
-    if (form.jenisTtd === "tte") {
-      return '<br><br><span class="tte-marker">${ttd_pengirim}</span><br><br>';
+
+    const ttdUtama = el("ttd_utama_space");
+    const ttdLampiran = el("ttd_lampiran_space");
+    if (ttdUtama)    ttdUtama.innerHTML    = ttdContent;
+    if (ttdLampiran) ttdLampiran.innerHTML = ttdContent;
+
+    // Update teks — persis urutan yang sama seperti updatePreview() asli
+    if (el("out_tanggalSurat"))    el("out_tanggalSurat").innerText    = form.tanggalSurat;
+    if (el("out_nomor"))           el("out_nomor").innerText           = form.nomor;
+    if (el("out_nomor_lampiran"))  el("out_nomor_lampiran").innerText  = form.nomor;
+    if (el("out_sifat"))           el("out_sifat").innerText           = form.sifat;
+    if (el("out_lampiranCount"))   el("out_lampiranCount").innerText   = form.lampiranCount;
+    if (el("out_yth"))             el("out_yth").innerText             = form.yth;
+    if (el("out_waktuAcara"))      el("out_waktuAcara").innerText      = form.waktuAcara;
+    if (el("out_pukul"))           el("out_pukul").innerText           = form.pukul;
+    if (el("out_tempat"))          el("out_tempat").innerText          = form.tempat;
+    if (el("out_acara"))           el("out_acara").innerText           = form.acara;
+    if (el("out_narahubung"))      el("out_narahubung").innerText      = form.narahubung;
+    if (el("out_pakaian"))         el("out_pakaian").innerText         = form.pakaian;
+
+    const teksCatatan = form.catatan;
+    if (el("out_catatan"))   el("out_catatan").innerText = teksCatatan;
+    if (el("wadah_catatan")) el("wadah_catatan").style.display = teksCatatan.trim() === "" ? "none" : "block";
+
+    if (el("out_judulLampiran")) el("out_judulLampiran").innerText = form.judulLampiran;
+
+    const areaLampiran = el("out_lampiran");
+    if (areaLampiran) {
+      areaLampiran.innerText     = form.lampiran;
+      areaLampiran.style.lineHeight = form.spasiLampiran;
     }
-    return "<br><br><br>";
   };
 
-  // ── Bangun HTML dokumen cetak ────────────────────────────
-  const buildDocHtml = () => {
-    const showLampiran = form.pilihanCetak !== "utama";
-    const catatanHtml  = form.catatan.trim()
-      ? `<div id="wadah_catatan"><b><u>catatan:</u></b><br><span style="white-space:pre-wrap">${form.catatan}</span></div>`
-      : "";
+  // Jalankan updatePreview setiap kali form berubah
+  useEffect(() => {
+    updatePreview();
+  }, [form]);
 
-    return `
-      <div class="halaman-a4">
-        <div class="kop">
-          <img src="/image001.jpg" alt="Garuda Pancasila"
-            onerror="this.src='https://upload.wikimedia.org/wikipedia/commons/thumb/8/84/National_emblem_of_Indonesia_Garuda_Pancasila.svg/300px-National_emblem_of_Indonesia_Garuda_Pancasila.svg.png'">
-          <div class="kop-teks">WALI KOTA TARAKAN</div>
-        </div>
-
-        <div class="tanggal-kanan">${form.tanggalSurat}</div>
-
-        <table class="tabel-info">
-          <tr><td class="col-label">Nomor</td><td class="col-titikdua">:</td><td>${form.nomor}</td></tr>
-          <tr><td>Sifat</td><td>:</td><td>${form.sifat}</td></tr>
-          <tr><td>Lampiran</td><td>:</td><td>${form.lampiranCount}</td></tr>
-          <tr><td>Hal</td><td>:</td><td><b><u>Undangan</u></b></td></tr>
-        </table>
-
-        <div class="tujuan-surat">
-          Yth:<br>
-          <b><span style="white-space:pre-wrap">${form.yth}</span></b><br>
-          di-<br><b>TARAKAN</b>
-        </div>
-
-        <div class="paragraf-indent">
-          Mengharapkan dengan hormat kehadiran Bapak/Ibu/Saudara (i) pada:
-        </div>
-
-        <table class="tabel-acara">
-          <tr><td class="col-label-acara">hari/tanggal</td><td class="col-titikdua">:</td><td>${form.waktuAcara}</td></tr>
-          <tr><td>pukul</td><td>:</td><td>${form.pukul}</td></tr>
-          <tr><td>tempat</td><td>:</td><td>${form.tempat}</td></tr>
-          <tr><td>acara</td><td>:</td><td><b><div style="white-space:pre-wrap">${form.acara}</div></b></td></tr>
-        </table>
-
-        <div class="paragraf-indent">
-          Demikian, atas perhatian serta kehadirannya diucapkan terima kasih.
-        </div>
-
-        <div class="area-ttd">
-          WALI KOTA TARAKAN<br>
-          <div style="min-height:80px;position:relative;display:flex;flex-direction:column;justify-content:center;align-items:center;">
-            ${ttdContent()}
-          </div>
-          <b>dr. H. KHAIRUL, M.Kes.</b>
-        </div>
-
-        <div class="area-kiri-bawah">
-          <b><u>Narahubung:</u></b><br>
-          <span>${form.narahubung}</span><br>
-          <b><u>Pakaian:</u></b><br>
-          <span>${form.pakaian}</span><br>
-          ${catatanHtml}
-        </div>
-
-        <div class="footer-alamat">
-          Jalan Kalimantan No. 1, Kota Tarakan<br>
-          Telp. (0551) 21620, 34320 Fax. (0551) 23782
-        </div>
-      </div>
-
-      ${showLampiran ? `
-      <div class="halaman-a4 html2pdf__page-break">
-        <div style="margin-bottom:15px;">LAMPIRAN SURAT</div>
-        <table style="border-collapse:collapse;margin-bottom:25px;">
-          <tr><td style="width:70pt;">Nomor</td><td style="width:15pt;">:</td><td>${form.nomor}</td></tr>
-        </table>
-        <div style="text-align:center;margin-bottom:20px;">
-          <b><u>${form.judulLampiran}</u></b>
-        </div>
-        <div style="white-space:pre-wrap;line-height:${form.spasiLampiran};margin-bottom:20px;">${form.lampiran}</div>
-        <div class="area-ttd" style="margin-top:30px;">
-          WALI KOTA TARAKAN<br>
-          <div style="min-height:80px;position:relative;display:flex;flex-direction:column;justify-content:center;align-items:center;">
-            ${ttdContent()}
-          </div>
-          <b>dr. H. KHAIRUL, M.Kes.</b>
-        </div>
-      </div>` : ""}
-    `;
-  };
-
-  // ── Generate PDF ─────────────────────────────────────────
+  // ── generatePDF() — persis sama seperti di HTML asli ──
   const generatePDF = async () => {
     setLoading(true);
-    if (showT) showT("Sedang menyiapkan PDF...", "ok");
     try {
       const html2pdf = await loadHtml2Pdf();
 
-      // Buat container tersembunyi
-      const container = document.createElement("div");
-      container.id = "dokumen-cetak";
-      container.style.cssText = "position:fixed;left:-9999px;top:0;z-index:-1;";
+      // Hilangkan warna biru TTE marker saat cetak
+      const tteMarkers = document.querySelectorAll(".tte-marker");
+      tteMarkers.forEach(m => {
+        m.style.color      = "black";
+        m.style.background = "transparent";
+      });
 
-      // ── CSS persis dari undangan.html asli ──
-      const style = document.createElement("style");
-      style.textContent = `
-        #dokumen-cetak, #dokumen-cetak * { font-family: Arial, Helvetica, sans-serif !important; }
-        #dokumen-cetak { width: 210mm; background: transparent; }
-        .halaman-a4 { width:210mm; min-height:297mm; background:white; padding:20mm 20mm 20mm 25mm; box-sizing:border-box; font-size:11pt; color:black; line-height:1.5; position:relative; }
-        .kop { text-align:center; margin-bottom:25px; }
-        .kop img { width:88px; margin-bottom:5px; }
-        .kop-teks { font-size:20pt; font-weight:bold; margin-top:5px; letter-spacing:0.5px; }
-        .tanggal-kanan { text-align:right; margin-bottom:15px; }
-        .tabel-info { border-collapse:collapse; width:100%; margin-bottom:15px; }
-        .tabel-info td { vertical-align:top; padding:2px 0; }
-        .col-label { width:70pt; }
-        .col-titikdua { width:15pt; text-align:center; }
-        .tujuan-surat { margin-bottom:15px; line-height:1.5; }
-        .paragraf-indent { text-align:justify; text-indent:36.75pt; margin-bottom:5px; margin-top:10px; }
-        .tabel-acara { border-collapse:collapse; width:100%; margin-bottom:10px; }
-        .tabel-acara td { vertical-align:top; padding:2px 0; }
-        .col-label-acara { width:113pt; }
-        .area-ttd { float:right; width:250px; text-align:center; margin-top:15px; position:relative; }
-        .area-kiri-bawah { clear:both; margin-top:20px; line-height:1.5; }
-        .footer-alamat { position:absolute; bottom:20mm; left:0; right:0; text-align:center; font-size:10pt; line-height:1.3; }
-        .tte-marker { color:black; font-family:monospace !important; padding:2px 5px; border-radius:3px; font-weight:bold; }
-        .html2pdf__page-break { page-break-before:always; }
-      `;
-      container.appendChild(style);
-      container.innerHTML += buildDocHtml();
-      document.body.appendChild(container);
+      const elemenDokumen = document.getElementById("dokumen-cetak");
+      const nomorSurat    = form.nomor.replace(/\//g, "-");
+      const suffixTtd     = form.jenisTtd === "tte" ? "_TTE" : form.jenisTtd === "scan" ? "_Scan" : "";
+      let   namaFile      = "Undangan" + suffixTtd + "_" + nomorSurat + ".pdf";
+      if (form.pilihanCetak === "utama") {
+        namaFile = "Undangan_Utama" + suffixTtd + "_" + nomorSurat + ".pdf";
+      }
 
-      const nomor = form.nomor.replace(/\//g, "-");
-      const suffix = form.jenisTtd === "tte" ? "_TTE" : form.jenisTtd === "scan" ? "_Scan" : "";
-      const prefix = form.pilihanCetak === "utama" ? "Undangan_Utama" : "Undangan";
-      const namaFile = `${prefix}${suffix}_${nomor}.pdf`;
-
-      await html2pdf().set({
+      const opsi = {
         margin:      0,
         filename:    namaFile,
         image:       { type: "jpeg", quality: 1 },
         html2canvas: { scale: 2, useCORS: true, allowTaint: true },
         jsPDF:       { unit: "mm", format: "a4", orientation: "portrait" },
-      }).from(container).save();
+      };
 
-      document.body.removeChild(container);
+      await html2pdf().set(opsi).from(elemenDokumen).save();
+
+      // Kembalikan warna TTE marker
+      tteMarkers.forEach(m => {
+        m.style.color      = "#0056b3";
+        m.style.background = "#e9ecef";
+      });
+
       if (showT) showT("PDF berhasil diunduh ✓", "ok");
     } catch (err) {
-      if (showT) showT("Gagal: " + err.message, "error");
-      else alert("Gagal membuat PDF: " + err.message);
+      if (showT) showT("Gagal membuat PDF: " + err.message, "error");
+      else alert("Gagal membuat PDF! Error: " + err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  // ── Field helper ─────────────────────────────────────────
-  const Field = ({ label, id, children, hint }) => (
-    <div style={{ marginBottom: 12 }}>
-      <label htmlFor={id} style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 4 }}>
-        {label}
-      </label>
-      {children}
-      {hint && <span style={{ fontSize: 10, color: "#94A3B8", display: "block", marginTop: 3 }}>{hint}</span>}
-    </div>
-  );
+  // ── CSS form UI (terpisah dari CSS dokumen cetak) ──
+  const cssForm = `
+    .ug-body { font-family: 'Segoe UI', Tahoma, sans-serif; display: flex; gap: 0; height: 100%; overflow: hidden; }
+    .ug-panel-form { flex: 0 0 420px; background: white; padding: 20px; overflow-y: auto; height: 100%; border-right: 1px solid #ddd; box-sizing: border-box; }
+    .ug-panel-preview { flex: 2; display: flex; flex-direction: column; align-items: center; overflow-y: auto; height: 100%; padding-bottom: 20px; background-color: #525659; }
+    .ug-panel-form h3 { margin-top: 0; color: #333; position: sticky; top: 0; background: white; padding-bottom: 10px; border-bottom: 1px solid #ddd; z-index: 10; }
+    .ug-form-group { margin-bottom: 12px; }
+    .ug-form-group label { display: block; font-weight: 600; margin-bottom: 4px; font-size: 13px; color: #555; }
+    .ug-form-group input,
+    .ug-form-group textarea,
+    .ug-form-group select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-family: inherit; font-size: 13px; }
+    .ug-hint { font-size: 11px; color: #666; display: block; margin-top: 3px; }
+    .ug-btn { background-color: #0d6efd; color: white; border: none; padding: 12px; border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%; font-size: 15px; margin-top: 10px; position: sticky; bottom: 0; }
+    .ug-btn:hover { background-color: #0b5ed7; }
+    .ug-btn:disabled { background-color: #6c757d; cursor: not-allowed; }
+    .ug-hr { margin: 20px 0; border: 0; border-top: 1px dashed #ccc; }
+  `;
 
-  const inputStyle = {
-    width: "100%", padding: "8px 10px", borderRadius: 8,
-    border: "1.5px solid #E2E8F0", fontSize: 13, fontFamily: "inherit",
-    boxSizing: "border-box", background: "white", color: "#1E293B",
-  };
-  const taStyle = { ...inputStyle, resize: "vertical" };
-
-  // ── Render ────────────────────────────────────────────────
   return (
-    <div style={{ display: "flex", gap: 0, height: "calc(100vh - 60px)", overflow: "hidden",
-      flexDirection: isMobile ? "column" : "row" }}>
+    <>
+      {/* Suntikkan CSS asli dokumen cetak + CSS form UI */}
+      <style>{CSS_ASLI}</style>
+      <style>{cssForm}</style>
 
-      {/* ── Panel Form (kiri) ── */}
-      <div style={{ width: isMobile ? "100%" : 380, flexShrink: 0, overflowY: "auto",
-        background: "white", borderRight: "1px solid #E2E8F0", padding: "16px 18px" }}>
+      <div className="ug-body" style={{ height: isMobile ? "auto" : "calc(100vh - 60px)" }}>
 
-        {/* Header */}
-        <div style={{ background: `linear-gradient(135deg, ${NAVY}, #1E3A5F)`, borderRadius: 12,
-          padding: "14px 16px", marginBottom: 16, color: "white" }}>
-          <div style={{ fontSize: 11, color: GOLD, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", marginBottom: 3 }}>
-            Prokopim Hibot
-          </div>
-          <div style={{ fontSize: 16, fontWeight: 900 }}>📄 Generator Undangan Resmi</div>
-          <div style={{ fontSize: 11, opacity: 0.7, marginTop: 2 }}>
-            Isi form → Preview langsung → Unduh PDF
-          </div>
-        </div>
+        {/* ── Panel Form — identik dengan panel-form asli ── */}
+        <div className="ug-panel-form">
+          <h3>Formulir Undangan 2026</h3>
 
-        {/* Pilihan cetak */}
-        <div style={{ background: "#EFF6FF", borderRadius: 10, padding: "10px 12px", border: "1px solid #BFDBFE", marginBottom: 14 }}>
-          <Field label="Pilihan Cetak PDF" id="in_pilihanCetak">
-            <select id="in_pilihanCetak" value={form.pilihanCetak} onChange={set("pilihanCetak")} style={inputStyle}>
+          {/* Pilihan cetak */}
+          <div className="ug-form-group" style={{ background:"#eef2f7", padding:10, borderRadius:6, border:"1px solid #cce5ff" }}>
+            <label style={{ color:"#004085" }}>Pilihan Cetak PDF:</label>
+            <select value={form.pilihanCetak} onChange={set("pilihanCetak")}>
               <option value="semua">Semua Halaman (Utama + Lampiran)</option>
               <option value="utama">Hanya Halaman Utama</option>
             </select>
-          </Field>
-        </div>
+          </div>
 
-        {/* Data surat */}
-        <div style={{ fontSize: 10, fontWeight: 800, color: "#94A3B8", letterSpacing: 1.2, textTransform: "uppercase", marginBottom: 8 }}>Data Surat</div>
-        <Field label="Tempat, Tanggal Surat" id="in_tanggalSurat">
-          <input id="in_tanggalSurat" value={form.tanggalSurat} onChange={set("tanggalSurat")} style={inputStyle}/>
-        </Field>
-        <Field label="Nomor Surat" id="in_nomor">
-          <input id="in_nomor" value={form.nomor} onChange={set("nomor")} style={inputStyle}/>
-        </Field>
-        <Field label="Sifat" id="in_sifat">
-          <input id="in_sifat" value={form.sifat} onChange={set("sifat")} style={inputStyle}/>
-        </Field>
-        <Field label="Lampiran" id="in_lampiranCount">
-          <input id="in_lampiranCount" value={form.lampiranCount} onChange={set("lampiranCount")} style={inputStyle}/>
-        </Field>
+          {/* Data surat */}
+          <div className="ug-form-group">
+            <label>Tempat, Tanggal Surat:</label>
+            <input type="text" value={form.tanggalSurat} onChange={set("tanggalSurat")}/>
+          </div>
+          <div className="ug-form-group">
+            <label>Nomor Surat:</label>
+            <input type="text" value={form.nomor} onChange={set("nomor")}/>
+          </div>
+          <div className="ug-form-group">
+            <label>Sifat:</label>
+            <input type="text" value={form.sifat} onChange={set("sifat")}/>
+          </div>
+          <div className="ug-form-group">
+            <label>Lampiran:</label>
+            <input type="text" value={form.lampiranCount} onChange={set("lampiranCount")}/>
+          </div>
 
-        <hr style={{ border: 0, borderTop: "1px dashed #E2E8F0", margin: "14px 0" }}/>
+          <hr className="ug-hr"/>
 
-        {/* Tujuan & isi */}
-        <div style={{ fontSize: 10, fontWeight: 800, color: "#94A3B8", letterSpacing: 1.2, textTransform: "uppercase", marginBottom: 8 }}>Tujuan & Isi Acara</div>
-        <Field label="Yth (Tujuan Surat)" id="in_yth">
-          <textarea id="in_yth" rows={2} value={form.yth} onChange={set("yth")} style={taStyle}/>
-        </Field>
-        <Field label="Hari / Tanggal Acara" id="in_waktuAcara">
-          <input id="in_waktuAcara" value={form.waktuAcara} onChange={set("waktuAcara")} style={inputStyle} placeholder="Contoh: Kamis, 3 April 2026"/>
-        </Field>
-        <Field label="Pukul" id="in_pukul">
-          <input id="in_pukul" value={form.pukul} onChange={set("pukul")} style={inputStyle}/>
-        </Field>
-        <Field label="Tempat Acara" id="in_tempat">
-          <input id="in_tempat" value={form.tempat} onChange={set("tempat")} style={inputStyle}/>
-        </Field>
-        <Field label="Nama / Susunan Acara" id="in_acara" hint="Tekan Enter untuk baris baru">
-          <textarea id="in_acara" rows={4} value={form.acara} onChange={set("acara")} style={taStyle}/>
-        </Field>
+          {/* Tujuan & acara */}
+          <div className="ug-form-group">
+            <label>Yth (Tujuan Surat):</label>
+            <textarea rows={2} value={form.yth} onChange={set("yth")}/>
+          </div>
+          <div className="ug-form-group">
+            <label>Hari/Tanggal Acara:</label>
+            <input type="text" value={form.waktuAcara} onChange={set("waktuAcara")}/>
+          </div>
+          <div className="ug-form-group">
+            <label>Pukul:</label>
+            <input type="text" value={form.pukul} onChange={set("pukul")}/>
+          </div>
+          <div className="ug-form-group">
+            <label>Tempat Acara:</label>
+            <input type="text" value={form.tempat} onChange={set("tempat")}/>
+          </div>
+          <div className="ug-form-group">
+            <label>Nama Acara (Bisa Enter):</label>
+            <textarea rows={3} value={form.acara} onChange={set("acara")}/>
+          </div>
 
-        <hr style={{ border: 0, borderTop: "1px dashed #E2E8F0", margin: "14px 0" }}/>
+          <hr className="ug-hr"/>
 
-        {/* Keterangan tambahan */}
-        <div style={{ fontSize: 10, fontWeight: 800, color: "#94A3B8", letterSpacing: 1.2, textTransform: "uppercase", marginBottom: 8 }}>Keterangan Tambahan</div>
-        <Field label="Narahubung & No. HP" id="in_narahubung">
-          <input id="in_narahubung" value={form.narahubung} onChange={set("narahubung")} style={inputStyle}/>
-        </Field>
-        <Field label="Pakaian" id="in_pakaian">
-          <input id="in_pakaian" value={form.pakaian} onChange={set("pakaian")} style={inputStyle}/>
-        </Field>
-        <Field label="Catatan (kosongkan jika tidak ada)" id="in_catatan">
-          <textarea id="in_catatan" rows={2} value={form.catatan} onChange={set("catatan")} style={taStyle}/>
-        </Field>
+          {/* Keterangan */}
+          <div className="ug-form-group">
+            <label>Narahubung & Nomor HP:</label>
+            <input type="text" value={form.narahubung} onChange={set("narahubung")}/>
+          </div>
+          <div className="ug-form-group">
+            <label>Pakaian:</label>
+            <input type="text" value={form.pakaian} onChange={set("pakaian")}/>
+          </div>
+          <div className="ug-form-group">
+            <label>Catatan (Kosongkan jika tak ada):</label>
+            <textarea rows={2} value={form.catatan} onChange={set("catatan")}/>
+          </div>
 
-        <hr style={{ border: 0, borderTop: "1px dashed #E2E8F0", margin: "14px 0" }}/>
+          <hr className="ug-hr"/>
 
-        {/* Tanda tangan */}
-        <div style={{ background: "#FFFBEB", borderRadius: 10, padding: "10px 12px", border: "1px solid #FDE68A", marginBottom: 14 }}>
-          <Field label="Jenis Tanda Tangan" id="in_jenisTtd">
-            <select id="in_jenisTtd" value={form.jenisTtd} onChange={set("jenisTtd")} style={inputStyle}>
+          {/* Tanda tangan */}
+          <div className="ug-form-group" style={{ background:"#fff8e1", padding:10, borderRadius:6, border:"1px solid #ffe082" }}>
+            <label style={{ color:"#b97700" }}>Jenis Tanda Tangan:</label>
+            <select value={form.jenisTtd} onChange={set("jenisTtd")}>
               <option value="kosong">Kosong (Ruang TTD Basah)</option>
-              <option value="scan">Scan (TTD + Stempel otomatis)</option>
+              <option value="scan">Scan (Otomatis TTD + Stempel)</option>
               <option value="tte">TTE (Variabel BSrE)</option>
             </select>
-          </Field>
-          {form.jenisTtd === "scan" && (
-            <div style={{ fontSize: 11, color: "#92400E", marginTop: 4 }}>
-              ⚠️ Pastikan <code>stempel.png</code> dan <code>image.jpeg</code> ada di folder <code>public/</code>
-            </div>
-          )}
-        </div>
+            {form.jenisTtd === "scan" && (
+              <span className="ug-hint">⚠️ Pastikan <code>stempel.png</code> dan <code>image.jpeg</code> ada di folder <code>public/</code></span>
+            )}
+          </div>
 
-        {/* Lampiran */}
-        {form.pilihanCetak === "semua" && <>
-          <hr style={{ border: 0, borderTop: "1px dashed #E2E8F0", margin: "14px 0" }}/>
-          <div style={{ fontSize: 10, fontWeight: 800, color: "#94A3B8", letterSpacing: 1.2, textTransform: "uppercase", marginBottom: 8 }}>Halaman Lampiran</div>
-          <Field label="Judul Lampiran" id="in_judulLampiran">
-            <input id="in_judulLampiran" value={form.judulLampiran} onChange={set("judulLampiran")} style={inputStyle}/>
-          </Field>
-          <Field label="Spasi Daftar Lampiran" id="in_spasiLampiran">
-            <select id="in_spasiLampiran" value={form.spasiLampiran} onChange={set("spasiLampiran")} style={inputStyle}>
+          {/* Lampiran */}
+          <div className="ug-form-group">
+            <label>Judul Lampiran:</label>
+            <input type="text" value={form.judulLampiran} onChange={set("judulLampiran")}/>
+          </div>
+          <div className="ug-form-group">
+            <label>Spasi Daftar Lampiran:</label>
+            <select value={form.spasiLampiran} onChange={set("spasiLampiran")}>
               <option value="1.0">1.0 (Rapat)</option>
               <option value="1.15">1.15</option>
               <option value="1.5">1.5 (Standar)</option>
               <option value="2.0">2.0 (Renggang)</option>
             </select>
-          </Field>
-          <Field label="Isi Lampiran" id="in_lampiran" hint="Tekan Enter untuk baris baru">
-            <textarea id="in_lampiran" rows={6} value={form.lampiran} onChange={set("lampiran")} style={taStyle}/>
-          </Field>
-        </>}
-
-        {/* Tombol generate */}
-        <button
-          onClick={generatePDF}
-          disabled={loading}
-          style={{
-            width: "100%", padding: "13px", borderRadius: 11, border: "none",
-            background: loading ? "#94A3B8" : `linear-gradient(135deg, ${NAVY}, #1E3A5F)`,
-            color: "white", fontWeight: 800, fontSize: 14, cursor: loading ? "not-allowed" : "pointer",
-            marginTop: 8, position: "sticky", bottom: 0,
-            boxShadow: loading ? "none" : "0 4px 16px rgba(10,22,40,0.3)",
-          }}
-        >
-          {loading ? "⏳ Memproses PDF..." : "⬇ Unduh PDF Undangan"}
-        </button>
-      </div>
-
-      {/* ── Panel Preview (kanan) ── */}
-      {!isMobile && (
-        <div style={{ flex: 1, overflowY: "auto", background: "#525659", display: "flex",
-          flexDirection: "column", alignItems: "center", padding: "20px 20px 40px" }}>
-
-          {/* Label preview */}
-          <div style={{ background: "rgba(255,255,255,0.1)", borderRadius: 8, padding: "6px 14px",
-            color: "rgba(255,255,255,0.7)", fontSize: 11, fontWeight: 700, marginBottom: 16, letterSpacing: 1 }}>
-            PRATINJAU — Tampilan aktual PDF mungkin sedikit berbeda
+          </div>
+          <div className="ug-form-group">
+            <label>Isi Lampiran (Bisa Enter):</label>
+            <textarea rows={8} value={form.lampiran} onChange={set("lampiran")}/>
           </div>
 
-          {/* Kertas A4 preview */}
-          <div style={{
-            width: 595, background: "white", padding: "75px 75px 75px 95px",
-            boxShadow: "0 8px 32px rgba(0,0,0,0.4)", fontFamily: "Arial, sans-serif",
-            fontSize: 11.5, color: "black", lineHeight: 1.5, position: "relative",
-            minHeight: 842,
-          }}>
-            {/* Kop */}
-            <div style={{ textAlign: "center", marginBottom: 20 }}>
-              <img src="/image001.jpg" alt="Garuda" style={{ width: 66, marginBottom: 4 }}
-                onError={e => { e.target.src = "https://upload.wikimedia.org/wikipedia/commons/thumb/8/84/National_emblem_of_Indonesia_Garuda_Pancasila.svg/300px-National_emblem_of_Indonesia_Garuda_Pancasila.svg.png"; }}/>
-              <div style={{ fontSize: 15, fontWeight: "bold", marginTop: 4, letterSpacing: 0.5 }}>WALI KOTA TARAKAN</div>
-              <hr style={{ border: 0, borderTop: "2px solid black", marginTop: 6 }}/>
-            </div>
-
-            <div style={{ textAlign: "right", marginBottom: 12 }}>{form.tanggalSurat}</div>
-
-            <table style={{ borderCollapse: "collapse", width: "100%", marginBottom: 12, fontSize: 11.5 }}>
-              <tbody>
-                {[["Nomor", form.nomor],["Sifat", form.sifat],["Lampiran", form.lampiranCount],["Hal", <b><u>Undangan</u></b>]].map(([k,v])=>(
-                  <tr key={k}><td style={{ width: 70, verticalAlign: "top" }}>{k}</td><td style={{ width: 15, textAlign: "center" }}>:</td><td style={{ verticalAlign: "top" }}>{v}</td></tr>
-                ))}
-              </tbody>
-            </table>
-
-            <div style={{ marginBottom: 12, lineHeight: 1.5 }}>
-              Yth:<br/>
-              <b><span style={{ whiteSpace: "pre-wrap" }}>{form.yth}</span></b><br/>
-              di-<br/><b>TARAKAN</b>
-            </div>
-
-            <div style={{ textIndent: 35, textAlign: "justify", marginBottom: 8, marginTop: 8 }}>
-              Mengharapkan dengan hormat kehadiran Bapak/Ibu/Saudara (i) pada:
-            </div>
-
-            <table style={{ borderCollapse: "collapse", width: "100%", marginBottom: 8, fontSize: 11.5 }}>
-              <tbody>
-                {[["hari/tanggal", form.waktuAcara],["pukul", form.pukul],["tempat", form.tempat]].map(([k,v])=>(
-                  <tr key={k}><td style={{ width: 90, verticalAlign: "top" }}>{k}</td><td style={{ width: 12, textAlign: "center" }}>:</td><td>{v}</td></tr>
-                ))}
-                <tr>
-                  <td style={{ verticalAlign: "top", width: 90 }}>acara</td>
-                  <td style={{ textAlign: "center", width: 12 }}>:</td>
-                  <td><b><span style={{ whiteSpace: "pre-wrap" }}>{form.acara}</span></b></td>
-                </tr>
-              </tbody>
-            </table>
-
-            <div style={{ textIndent: 35, textAlign: "justify", marginBottom: 16 }}>
-              Demikian, atas perhatian serta kehadirannya diucapkan terima kasih.
-            </div>
-
-            {/* TTD preview */}
-            <div style={{ float: "right", width: 220, textAlign: "center", marginTop: 10, position: "relative" }}>
-              WALI KOTA TARAKAN<br/>
-              <div style={{ minHeight: 70, position: "relative", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
-                {form.jenisTtd === "scan" && (
-                  <>
-                    <img src="/stempel.png" alt="Stempel" style={{ position: "absolute", right: 110, top: -15, width: 110, opacity: 0.9, mixBlendMode: "multiply" }} onError={e=>e.target.style.display="none"}/>
-                    <img src="/image.jpeg" alt="TTD" style={{ position: "absolute", right: 20, top: -15, height: 105, mixBlendMode: "multiply" }} onError={e=>e.target.style.display="none"}/>
-                  </>
-                )}
-                {form.jenisTtd === "tte" && (
-                  <span style={{ fontFamily: "monospace", fontSize: 10, background: "#e9ecef", color: "#0056b3", padding: "2px 5px", borderRadius: 3, fontWeight: "bold" }}>
-                    {"${ttd_pengirim}"}
-                  </span>
-                )}
-              </div>
-              <b>dr. H. KHAIRUL, M.Kes.</b>
-            </div>
-
-            <div style={{ clear: "both", marginTop: 16, lineHeight: 1.5, fontSize: 11.5 }}>
-              <b><u>Narahubung:</u></b><br/>
-              {form.narahubung}<br/>
-              <b><u>Pakaian:</u></b><br/>
-              {form.pakaian}<br/>
-              {form.catatan.trim() && <>
-                <b><u>catatan:</u></b><br/>
-                <span style={{ whiteSpace: "pre-wrap" }}>{form.catatan}</span>
-              </>}
-            </div>
-
-            <div style={{ position: "absolute", bottom: 20, left: 0, right: 0, textAlign: "center", fontSize: 9.5, color: "#333" }}>
-              Jalan Kalimantan No. 1, Kota Tarakan<br/>
-              Telp. (0551) 21620, 34320 Fax. (0551) 23782
-            </div>
-          </div>
-
-          {/* Halaman lampiran preview */}
-          {form.pilihanCetak === "semua" && (
-            <div style={{
-              width: 595, background: "white", padding: "75px 75px 75px 95px",
-              boxShadow: "0 8px 32px rgba(0,0,0,0.4)", fontFamily: "Arial, sans-serif",
-              fontSize: 11.5, color: "black", lineHeight: 1.5,
-              marginTop: 20, minHeight: 400,
-            }}>
-              <div style={{ marginBottom: 12 }}>LAMPIRAN SURAT</div>
-              <table style={{ borderCollapse: "collapse", marginBottom: 20 }}>
-                <tbody>
-                  <tr><td style={{ width: 70 }}>Nomor</td><td style={{ width: 15, textAlign: "center" }}>:</td><td>{form.nomor}</td></tr>
-                </tbody>
-              </table>
-              <div style={{ textAlign: "center", marginBottom: 16 }}>
-                <b><u>{form.judulLampiran}</u></b>
-              </div>
-              <div style={{ whiteSpace: "pre-wrap", lineHeight: form.spasiLampiran, marginBottom: 20 }}>
-                {form.lampiran}
-              </div>
-              <div style={{ float: "right", width: 220, textAlign: "center", marginTop: 10 }}>
-                WALI KOTA TARAKAN<br/>
-                <div style={{ minHeight: 60 }}></div>
-                <b>dr. H. KHAIRUL, M.Kes.</b>
-              </div>
-            </div>
-          )}
+          {/* Tombol generate */}
+          <button
+            className="ug-btn"
+            onClick={generatePDF}
+            disabled={loading}
+          >
+            {loading ? "⏳ Sedang memproses PDF..." : "⬇ Unduh PDF Undangan"}
+          </button>
         </div>
-      )}
-    </div>
+
+        {/* ── Panel Preview — identik dengan panel-preview asli ── */}
+        {!isMobile && (
+          <div className="ug-panel-preview">
+            {/* #dokumen-cetak — HTML persis dari aslinya, dirender via dangerouslySetInnerHTML */}
+            <div
+              id="dokumen-cetak"
+              ref={dokumenRef}
+              dangerouslySetInnerHTML={{ __html: HTML_DOKUMEN_CETAK }}
+            />
+          </div>
+        )}
+
+        {/* Mobile: hanya tombol, tanpa preview */}
+        {isMobile && (
+          <div style={{ padding:20 }}>
+            <div style={{ background:"#fff3cd", borderRadius:8, padding:"10px 14px", fontSize:12, color:"#856404", marginBottom:12 }}>
+              ℹ️ Preview tidak tersedia di mobile. Isi form lalu tekan tombol Unduh untuk menghasilkan PDF.
+            </div>
+            <button
+              className="ug-btn"
+              onClick={generatePDF}
+              disabled={loading}
+              style={{ position:"static" }}
+            >
+              {loading ? "⏳ Sedang memproses PDF..." : "⬇ Unduh PDF Undangan"}
+            </button>
+          </div>
+        )}
+      </div>
+    </>
   );
 }
