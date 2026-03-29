@@ -6,7 +6,7 @@
  */
 
 export const config = {
-  api: { bodyParser: { sizeLimit: "1mb" } }, // 1MB sudah sangat cukup karena hanya terima ID
+  api: { bodyParser: { sizeLimit: "15mb" } }, // 15MB untuk terima Base64 file undangan/sambutan
 };
 
 const SUPA_URL    = process.env.SUPABASE_URL    || process.env.VITE_SUPABASE_URL;
@@ -65,19 +65,20 @@ async function getToken() {
 
 // ── Folder helper ─────────────────────────────────────────────
 async function getOrCreateFolder(token, folderPath) {
+  if (!ROOT_FOLDER) throw new Error("GOOGLE_DRIVE_ROOT_FOLDER_ID belum diset di environment variables Vercel");
   const cached=await sbGet("drive_folder_cache?folder_path=eq."+encodeURIComponent(folderPath)+"&limit=1").catch(()=>[]);
   if (cached&&cached.length>0) return cached[0].folder_id;
   let parentId=ROOT_FOLDER;
   for (const part of folderPath.split("/")) {
     const q=encodeURIComponent("name='"+part.replace(/'/g,"\\'")+"' and mimeType='application/vnd.google-apps.folder' and '"+parentId+"' in parents and trashed=false");
-    const sr=await (await fetch("https://www.googleapis.com/drive/v3/files?q="+q+"&fields=files(id)",{headers:{"Authorization":"Bearer "+token}})).json();
+    const sr=await (await fetch("https://www.googleapis.com/drive/v3/files?q="+q+"&fields=files(id)&supportsAllDrives=true&includeItemsFromAllDrives=true",{headers:{"Authorization":"Bearer "+token}})).json();
     if (sr.files&&sr.files.length>0) { parentId=sr.files[0].id; }
     else {
-      const cr=await (await fetch("https://www.googleapis.com/drive/v3/files",{method:"POST",headers:{"Authorization":"Bearer "+token,"Content-Type":"application/json"},body:JSON.stringify({name:part,mimeType:"application/vnd.google-apps.folder",parents:[parentId]})})).json();
+      const cr=await (await fetch("https://www.googleapis.com/drive/v3/files?supportsAllDrives=true",{method:"POST",headers:{"Authorization":"Bearer "+token,"Content-Type":"application/json"},body:JSON.stringify({name:part,mimeType:"application/vnd.google-apps.folder",parents:[parentId]})})).json();
       parentId=cr.id;
     }
   }
-  await sbPost("drive_folder_cache",{folder_path:folderPath,folder_id:parentId}).catch(()=>null);
+  await sbPost("drive_folder_cache",{folder_path:folderPath,folder_id:parentId}).catch(e=>console.warn("[drive] folder cache skip:",e.message));
   return parentId;
 }
 
@@ -90,7 +91,7 @@ async function uploadToDrive(token, folderId, fileName, mimeType, buffer) {
     buffer,
     Buffer.from("\r\n--"+boundary+"--"),
   ]);
-  const r=await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id",{
+  const r=await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id&supportsAllDrives=true",{
     method:"POST",
     headers:{"Authorization":"Bearer "+token,"Content-Type":"multipart/related; boundary="+boundary,"Content-Length":body.length.toString()},
     body,
@@ -100,7 +101,7 @@ async function uploadToDrive(token, folderId, fileName, mimeType, buffer) {
 }
 
 async function setPublic(token, fileId) {
-  await fetch("https://www.googleapis.com/drive/v3/files/"+fileId+"/permissions",{
+  await fetch("https://www.googleapis.com/drive/v3/files/"+fileId+"/permissions?supportsAllDrives=true",{
     method:"POST",headers:{"Authorization":"Bearer "+token,"Content-Type":"application/json"},
     body:JSON.stringify({role:"reader",type:"anyone"}),
   });
@@ -131,17 +132,21 @@ function buildFileName(ev, fileType) {
 // ── Proses satu file: Base64/URL dari DB → Upload ke Drive ────
 async function syncOneFile(token, ev, fileType) {
   const fileUrl = fileType==="sambutan" ? ev.sambutanFile : ev.undanganFile;
+  console.log("[drive] syncOneFile", fileType, "ev.id=", ev.id||ev.namaAcara, "fileUrl type=", typeof fileUrl, "starts=", typeof fileUrl==="string" ? fileUrl.substring(0,30) : "N/A");
   const isUrl   = typeof fileUrl==="string" && (fileUrl.startsWith("http://") || fileUrl.startsWith("https://"));
   const isB64   = typeof fileUrl==="string" && fileUrl.startsWith("data:");
 
   let buffer, mimeType;
   if (isUrl) {
+    console.log("[drive] fetching URL...");
     ({ buffer, mimeType } = await fetchBuf(fileUrl));
   } else if (isB64) {
+    console.log("[drive] decoding Base64, length=", fileUrl.length);
     const arr=fileUrl.split(",");
     mimeType=arr[0].match(/:(.*?);/)?.[1]||"application/pdf";
     buffer=Buffer.from(arr[1],"base64");
   } else {
+    console.log("[drive] skip — bukan URL/Base64, value=", String(fileUrl).substring(0,50));
     return null; 
   }
 
@@ -169,12 +174,128 @@ async function syncOneFile(token, ev, fileType) {
 export default async function handler(req, res) {
   // CORS Headers
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   if (req.method === "OPTIONS") return res.status(200).end();
 
   const action=req.query.action;
   try {
+
+    // ──────────────────────────────────────────────────────
+    // 0. DIAGNOSIS TEST — buka /api/drive?action=test
+    // ──────────────────────────────────────────────────────
+    if (req.method==="GET" && action==="test") {
+      const result = { steps:[] };
+      const ok   = (s,d) => result.steps.push({step:s, status:"✅ OK",    detail:d});
+      const fail = (s,d) => result.steps.push({step:s, status:"❌ GAGAL", detail:d});
+
+      ok("1. GOOGLE_SA_EMAIL",          SA_EMAIL    ? SA_EMAIL.substring(0,30)+"..." : "KOSONG!");
+      ok("1. GOOGLE_DRIVE_ROOT_FOLDER", ROOT_FOLDER || "KOSONG!");
+      ok("1. SUPABASE_URL",             SUPA_URL    ? SUPA_URL.substring(0,40)+"..." : "KOSONG!");
+      ok("1. GOOGLE_SA_PRIVATE_KEY",    SA_KEY_RAW  ? "Ada ("+SA_KEY_RAW.length+" chars)" : "KOSONG!");
+
+      const pem = (SA_KEY_RAW||"").replace(/\\n/g,"\n");
+      if (!pem.includes("BEGIN PRIVATE KEY")) {
+        fail("2. Format Private Key", "Tidak ada BEGIN PRIVATE KEY — cek format di Vercel env");
+      } else {
+        ok("2. Format Private Key", "PEM terdeteksi");
+      }
+
+      let token = null;
+      try {
+        token = await getToken();
+        ok("3. Google OAuth Token", "Berhasil: "+token.substring(0,20)+"...");
+      } catch(e) {
+        fail("3. Google OAuth Token", e.message);
+      }
+
+      if (token && ROOT_FOLDER) {
+        try {
+          const r = await fetch("https://www.googleapis.com/drive/v3/files/"+ROOT_FOLDER+"?fields=id,name", {headers:{"Authorization":"Bearer "+token}});
+          const d = await r.json();
+          d.id ? ok("4. Akses Root Folder", "Folder: '"+d.name+"'") : fail("4. Akses Root Folder", JSON.stringify(d));
+        } catch(e) { fail("4. Akses Root Folder", e.message); }
+      }
+
+      if (SUPA_URL && SUPA_KEY) {
+        try {
+          const r = await fetch(SUPA_URL+"/rest/v1/jadwal?select=id,data&limit=1", {headers:{"Content-Type":"application/json","apikey":SUPA_KEY,"Authorization":"Bearer "+SUPA_KEY}});
+          const d = await r.json();
+          if (Array.isArray(d) && d.length>0) {
+            const ev = d[0].data || d[0];
+            ok("5. Supabase jadwal", "id="+d[0].id+" namaAcara="+ev.namaAcara);
+            ok("5a. undanganFile", ev.undanganFile ? String(ev.undanganFile).substring(0,60) : "null/kosong");
+          } else {
+            fail("5. Supabase jadwal", JSON.stringify(d).substring(0,100));
+          }
+        } catch(e) { fail("5. Supabase jadwal", e.message); }
+      }
+
+      if (token && ROOT_FOLDER) {
+        try {
+          const buf = Buffer.from("TEST Prokopim "+new Date().toISOString());
+          const boundary = "pkm_test";
+          const meta = JSON.stringify({name:"TEST-prokopim-"+Date.now()+".txt",parents:[ROOT_FOLDER]});
+          const body = Buffer.concat([Buffer.from("--"+boundary+"\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n"+meta+"\r\n--"+boundary+"\r\nContent-Type: text/plain\r\n\r\n"),buf,Buffer.from("\r\n--"+boundary+"--")]);
+          const r = await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name",{method:"POST",headers:{"Authorization":"Bearer "+token,"Content-Type":"multipart/related; boundary="+boundary},body});
+          const d = await r.json();
+          d.id ? ok("6. Test Upload ke Drive", "File ID: "+d.id+" — cek di Google Drive ada TEST-prokopim-*.txt") : fail("6. Test Upload ke Drive", JSON.stringify(d));
+        } catch(e) { fail("6. Test Upload ke Drive", e.message); }
+      }
+
+      const gagal = result.steps.filter(s=>s.status.includes("GAGAL"));
+      result.verdict = gagal.length===0 ? "✅ SEMUA OK" : "❌ ADA "+gagal.length+" MASALAH";
+      return res.status(200).json(result);
+    }
+
+    // ──────────────────────────────────────────────────────
+    // 0a. LIST FILES per agendaId (dari tabel drive_files)
+    // ──────────────────────────────────────────────────────
+    if (req.method==="GET" && action==="files") {
+      const { agendaId } = req.query;
+      if (!agendaId) return res.status(400).json({ error:"agendaId wajib ada" });
+      const rows = await sbGet(
+        "drive_files?agenda_id=eq."+encodeURIComponent(agendaId)+"&order=created_at.asc"
+      ).catch(()=>[]);
+      return res.status(200).json({ ok:true, files: rows||[] });
+    }
+
+    // ──────────────────────────────────────────────────────
+    // 0b. DIRECT UPLOAD — Frontend kirim Base64, langsung ke Drive
+    //     Tidak menyentuh Supabase Storage sama sekali
+    // ──────────────────────────────────────────────────────
+    if (req.method==="POST" && action==="upload") {
+      const { base64, mimeType, fileName, agendaId, agendaDate, fileType, uploadedBy } = req.body;
+      if (!base64 || !agendaId) return res.status(400).json({ error:"base64 & agendaId wajib ada" });
+
+      const rawB64 = base64.includes(",") ? base64.split(",")[1] : base64;
+      const buffer = Buffer.from(rawB64, "base64");
+      const mime   = mimeType || "application/pdf";
+      const fType  = (fileType||"undangan").toLowerCase();
+      const fName  = fileName || (agendaDate+"-"+fType+".pdf");
+
+      const token      = await getToken();
+      const folderPath = datePath(agendaDate, fType);
+      const folderId   = await getOrCreateFolder(token, folderPath);
+      const fileId     = await uploadToDrive(token, folderId, fName, mime, buffer);
+      await setPublic(token, fileId);
+      const driveUrl   = "https://drive.google.com/file/d/"+fileId+"/view";
+
+      await sbPost("drive_files", {
+        agenda_id:         String(agendaId),
+        file_name:         fName,
+        file_type:         fType,
+        mime_type:         mime,
+        file_size_bytes:   buffer.length,
+        drive_file_id:     fileId,
+        drive_file_url:    driveUrl,
+        drive_folder_id:   folderId,
+        drive_folder_path: folderPath,
+        uploaded_by:       uploadedBy || "Sistem",
+      }).catch(()=>null);
+
+      return res.status(200).json({ ok:true, driveUrl, fileId, folderPath });
+    }
 
     // ──────────────────────────────────────────────────────
     // 1. INTI CLOUD-TO-CLOUD (Tarik dari DB -> Upload ke Drive)
@@ -187,35 +308,41 @@ export default async function handler(req, res) {
       const rows=await sbGet("jadwal?id=eq."+encodeURIComponent(agendaId)+"&limit=1");
       if (!rows||rows.length===0) return res.status(404).json({ error:"Jadwal tidak ditemukan: "+agendaId });
       
-      const ev=rows[0]; 
+      // Tabel jadwal menyimpan: { id, data: { ...eventObj } }
+      // Jadi ev ada di rows[0].data, bukan rows[0]
+      const rowRaw = rows[0];
+      const ev = rowRaw.data || rowRaw; // fallback jika struktur flat
+      console.log("[drive] ev parsed, id=", ev.id, "namaAcara=", ev.namaAcara, "hasUndangan=", !!ev.undanganFile, "hasSambutan=", !!ev.sambutanFile);
+      console.log("[drive] undanganFile start=", ev.undanganFile ? String(ev.undanganFile).substring(0,40) : "null");
       const isDriveUrl=(s)=>typeof s==="string"&&s.includes("drive.google.com");
       const hasFile   =(s)=>typeof s==="string"&&s.length>50&&!isDriveUrl(s);
 
       const token=await getToken();
-      const patch={};
+      const dataPatch={}; // patch yang akan masuk ke dalam field 'data' JSONB
 
       // Eksekusi pemindahan file
       if (hasFile(ev.undanganFile)) {
         const driveUrl=await syncOneFile(token,ev,"undangan");
-        if (driveUrl) patch.undanganFile=driveUrl;
+        if (driveUrl) dataPatch.undanganFile=driveUrl;
       }
       if (hasFile(ev.sambutanFile)) {
         const driveUrl=await syncOneFile(token,ev,"sambutan");
-        if (driveUrl) patch.sambutanFile=driveUrl;
+        if (driveUrl) dataPatch.sambutanFile=driveUrl;
       }
 
-      // Timpa field lama di Supabase dengan URL Google Drive
-      if (Object.keys(patch).length>0) {
-        await sbPatch("jadwal","id=eq."+encodeURIComponent(agendaId), patch);
+      // Update field 'data' JSONB di Supabase dengan cara merge
+      if (Object.keys(dataPatch).length>0) {
+        const updatedData = { ...ev, ...dataPatch };
+        await sbPatch("jadwal","id=eq."+encodeURIComponent(agendaId), { data: updatedData });
       }
 
       return res.status(200).json({
         ok:      true,
-        patched: Object.keys(patch),
-        undangan: patch.undanganFile||null,
-        sambutan: patch.sambutanFile||null,
-        message:  Object.keys(patch).length>0
-          ? Object.keys(patch).length+" file berhasil dipindahkan ke Drive"
+        patched: Object.keys(dataPatch),
+        undangan: dataPatch.undanganFile||null,
+        sambutan: dataPatch.sambutanFile||null,
+        message:  Object.keys(dataPatch).length>0
+          ? Object.keys(dataPatch).length+" file berhasil dipindahkan ke Drive"
           : "Selesai. Tidak ada file Base64 yang perlu dipindah.",
       });
     }
