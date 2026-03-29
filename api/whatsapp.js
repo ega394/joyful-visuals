@@ -160,20 +160,37 @@ export default async function handler(req, res) {
       `\n\nSilakan buka sistem untuk melihat detail penugasan dan mempersiapkan diri.` +
       FOOTER;
 
-  // ── konfirmasi_kehadiran: Ajudan/Admin RK input kehadiran ──
+  // ── konfirmasi_kehadiran: WK/WWK sendiri, atau Ajudan/Admin RK ──
   } else if (event === "konfirmasi_kehadiran") {
     const pim   = labelPimpinan || "Pimpinan";
-    const aktor = jabatanPengirim || "Ajudan";
     const statusLabel = {
       hadir:       "✅ *Hadir*",
       tidak_hadir: "❌ *Tidak Hadir*",
       diwakilkan:  "↩️ *Diwakilkan/Delegasi*",
       delegasi:    "↩️ *Didelegasikan ke Wakil*",
     }[statusKehadiran] || statusKehadiran || "-";
+
+    // Deteksi siapa yang melakukan konfirmasi berdasarkan role
+    const ROLE_LABEL = {
+      "walikota":             null,                    // pimpinan sendiri — tidak perlu keterangan
+      "wakilwalikota":        null,                    // pimpinan sendiri — tidak perlu keterangan
+      "ajudan_walikota":      "Ajudan Wali Kota",
+      "ajudan_wakilwalikota": "Ajudan Wakil Wali Kota",
+      "admin_rk":             "Admin Rencana Kegiatan",
+      "kabag":                "Kabag Prokopim",
+    };
+    const labelAktor = jabatanPengirim in ROLE_LABEL
+      ? ROLE_LABEL[jabatanPengirim]       // null jika pimpinan sendiri
+      : jabatanPengirim || null;          // fallback ke nilai mentah
+    const keteranganAktor = labelAktor
+      ? `(diinput oleh ${labelAktor})\n`
+      : "";
+
     pesan = HEADER +
       sapa +
       `📣 *Update konfirmasi kehadiran ${pim}*\n` +
-      `(diinput oleh ${aktor})\n\n` +
+      keteranganAktor +
+      `\n` +
       infoJadwal +
       `\n\n👤 *${pim}:* ${statusLabel}\n\n` +
       `Silakan buka sistem untuk melihat detail persiapan dan penugasan personil.` +

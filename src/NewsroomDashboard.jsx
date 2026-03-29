@@ -60,6 +60,8 @@ export default function NewsroomDashboard({ events, user, showT, isMobile, upd }
   const isTimkom   = role === "timkom";
   const isKasubbag = role === "kasubbag_komdokpim";
   const isKabag    = role === "kabag";
+  // Kasubbag Komdokpim juga bisa draft caption (bukan hanya Timkom)
+  const canDraft   = isTimkom || isKasubbag;
 
   const [selectedEv,    setSelectedEv]    = useState(null);
   const [activeTab,     setActiveTab]     = useState("caption");
@@ -229,7 +231,7 @@ export default function NewsroomDashboard({ events, user, showT, isMobile, upd }
           </div>
 
           {/* Poin penting & generate (Timkom, draft/revisi) */}
-          {isTimkom&&(stC==="draft"||stC==="revisi")&&(
+          {canDraft&&(stC==="draft"||stC==="revisi")&&(
             <div style={{background:"#F8FAFC",borderRadius:14,padding:"16px",border:"1px solid #E2E8F0",marginBottom:14}}>
               <label style={{display:"block",fontSize:13,fontWeight:700,color:NAVY,marginBottom:8}}>Poin Penting dari Lapangan 📝</label>
               <textarea value={poinPenting} onChange={e=>setPoinPenting(e.target.value)}
@@ -250,7 +252,7 @@ export default function NewsroomDashboard({ events, user, showT, isMobile, upd }
                 style={{padding:"5px 10px",borderRadius:7,border:"none",background:"#F1F5F9",color:NAVY,fontWeight:700,cursor:"pointer",fontSize:11}}>📋 Salin</button>}
             </div>
             <textarea value={captionBerita} onChange={e=>setCaptionBerita(e.target.value)}
-              disabled={isKabag||stC==="disetujui"||(isKasubbag&&stC!=="menunggu")}
+              disabled={isKabag||stC==="disetujui"}
               placeholder={isTimkom?"Tulis atau generate caption berita di sini...":"Caption belum diajukan Timkom"}
               style={{width:"100%",padding:"10px 12px",borderRadius:10,border:"1.5px solid #E2E8F0",minHeight:180,fontSize:13,lineHeight:1.7,fontFamily:"inherit",boxSizing:"border-box",
                 background:isKabag||stC==="disetujui"?"#F8FAFC":"white"}}/>
@@ -305,7 +307,7 @@ export default function NewsroomDashboard({ events, user, showT, isMobile, upd }
 
           {/* Tombol aksi */}
           <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
-            {isTimkom&&(stC==="draft"||stC==="revisi")&&<>
+            {canDraft&&(stC==="draft"||stC==="revisi")&&<>
               <button onClick={()=>saveCaption("draft")}
                 style={{padding:"12px 16px",borderRadius:11,border:"1.5px solid #E2E8F0",background:"white",color:"#64748B",fontWeight:700,fontSize:13,cursor:"pointer"}}>
                 💾 Simpan Draft
@@ -332,7 +334,7 @@ export default function NewsroomDashboard({ events, user, showT, isMobile, upd }
               </button>
             )}
             {stC==="disetujui"&&!isKabag&&<div style={{flex:1,padding:"12px",textAlign:"center",borderRadius:11,background:"#F0FDF4",color:"#065F46",fontWeight:700,fontSize:13}}>✅ Caption sudah disetujui</div>}
-            {stC==="menunggu"&&isTimkom&&<div style={{flex:1,padding:"12px",textAlign:"center",borderRadius:11,background:"#FFFBEB",color:"#92400E",fontWeight:700,fontSize:13}}>⏳ Menunggu Kasubbag Komdokpim</div>}
+            {stC==="menunggu"&&canDraft&&!isKasubbag&&<div style={{flex:1,padding:"12px",textAlign:"center",borderRadius:11,background:"#FFFBEB",color:"#92400E",fontWeight:700,fontSize:13}}>⏳ Caption sedang direview Kasubbag Komdokpim</div>}
           </div>
         </>}
 
@@ -360,7 +362,7 @@ export default function NewsroomDashboard({ events, user, showT, isMobile, upd }
             </div>
           )}
           <div style={{display:"flex",gap:10}}>
-            {isTimkom&&(stB==="draft"||stB==="revisi"||!stB)&&(
+            {canDraft&&(stB==="draft"||stB==="revisi"||!stB)&&(
               <button onClick={()=>saveBerita("review")} style={{flex:1,padding:"13px",borderRadius:11,border:"none",background:NAVY,color:"white",fontWeight:800,fontSize:13,cursor:"pointer"}}>📤 Ajukan ke Kasubbag</button>
             )}
             {isKasubbag&&stB==="review"&&<>
@@ -383,9 +385,7 @@ export default function NewsroomDashboard({ events, user, showT, isMobile, upd }
     return <span style={{fontSize:10,color:"#94A3B8"}}>Belum ada caption</span>;
   };
 
-  const list = isKasubbag
-    ? jadwal.filter(e=>(e.captionStatus||"draft")!=="draft"||isPast(e))
-    : jadwal;
+  const list = jadwal; // Semua role lihat semua jadwal disetujui
 
   return (
     <div style={{padding:isMobile?"14px":"24px",maxWidth:800,margin:"0 auto",paddingBottom:60}}>

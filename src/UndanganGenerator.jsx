@@ -241,19 +241,10 @@ export default function UndanganGenerator({ isMobile, showT }) {
 
   const set = (key) => (e) => setForm(p => ({ ...p, [key]: e.target.value }));
 
-  // ── updatePreview() — persis sama seperti di HTML asli ──
-  // Dijalankan setiap kali form berubah via useEffect
-  const updatePreview = () => {
-    const el = (id) => document.getElementById(id);
-    if (!el("out_tanggalSurat")) return; // dokumen belum render
-
-    // Visibilitas halaman lampiran
-    const halamanLampiran = el("halaman-lampiran");
-    if (halamanLampiran) {
-      halamanLampiran.style.display = form.pilihanCetak === "utama" ? "none" : "block";
-    }
-
-    // Logika tanda tangan
+  // ── buildIframeSrcDoc() — bangun HTML lengkap untuk iframe preview ──
+  // Identik dengan undangan.html asli: CSS + #dokumen-cetak + updatePreview() + script
+  const buildIframeSrcDoc = () => {
+    // Tentukan ttdContent sesuai pilihan
     let ttdContent = "<br><br><br>";
     if (form.jenisTtd === "scan") {
       ttdContent = `
@@ -264,42 +255,62 @@ export default function UndanganGenerator({ isMobile, showT }) {
       ttdContent = '<br><br><span class="tte-marker">${ttd_pengirim}</span><br><br>';
     }
 
-    const ttdUtama = el("ttd_utama_space");
-    const ttdLampiran = el("ttd_lampiran_space");
+    // Escape untuk sisipan ke dalam string JS di dalam srcdoc
+    const esc = (s) => (s || "").replace(/\\/g,"\\\\").replace(/`/g,"\\`").replace(/\$/g,"\\$");
+
+    return `<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<style>
+  body { margin: 0; padding: 20px; background-color: #525659; display: flex; justify-content: center; }
+  ${CSS_ASLI}
+</style>
+</head>
+<body>
+<div id="dokumen-cetak">
+  ${HTML_DOKUMEN_CETAK}
+</div>
+<script>
+  // updatePreview() identik dengan undangan.html asli
+  function updatePreview() {
+    var pilihanCetak = "${esc(form.pilihanCetak)}";
+    var halamanLampiran = document.getElementById("halaman-lampiran");
+    if (halamanLampiran) halamanLampiran.style.display = pilihanCetak === "utama" ? "none" : "block";
+
+    var ttdContent = \`${ttdContent}\`;
+    var ttdUtama    = document.getElementById("ttd_utama_space");
+    var ttdLampiran = document.getElementById("ttd_lampiran_space");
     if (ttdUtama)    ttdUtama.innerHTML    = ttdContent;
     if (ttdLampiran) ttdLampiran.innerHTML = ttdContent;
 
-    // Update teks — persis urutan yang sama seperti updatePreview() asli
-    if (el("out_tanggalSurat"))    el("out_tanggalSurat").innerText    = form.tanggalSurat;
-    if (el("out_nomor"))           el("out_nomor").innerText           = form.nomor;
-    if (el("out_nomor_lampiran"))  el("out_nomor_lampiran").innerText  = form.nomor;
-    if (el("out_sifat"))           el("out_sifat").innerText           = form.sifat;
-    if (el("out_lampiranCount"))   el("out_lampiranCount").innerText   = form.lampiranCount;
-    if (el("out_yth"))             el("out_yth").innerText             = form.yth;
-    if (el("out_waktuAcara"))      el("out_waktuAcara").innerText      = form.waktuAcara;
-    if (el("out_pukul"))           el("out_pukul").innerText           = form.pukul;
-    if (el("out_tempat"))          el("out_tempat").innerText          = form.tempat;
-    if (el("out_acara"))           el("out_acara").innerText           = form.acara;
-    if (el("out_narahubung"))      el("out_narahubung").innerText      = form.narahubung;
-    if (el("out_pakaian"))         el("out_pakaian").innerText         = form.pakaian;
+    document.getElementById("out_tanggalSurat").innerText   = \`${esc(form.tanggalSurat)}\`;
+    document.getElementById("out_nomor").innerText          = \`${esc(form.nomor)}\`;
+    document.getElementById("out_nomor_lampiran").innerText = \`${esc(form.nomor)}\`;
+    document.getElementById("out_sifat").innerText          = \`${esc(form.sifat)}\`;
+    document.getElementById("out_lampiranCount").innerText  = \`${esc(form.lampiranCount)}\`;
+    document.getElementById("out_yth").innerText            = \`${esc(form.yth)}\`;
+    document.getElementById("out_waktuAcara").innerText     = \`${esc(form.waktuAcara)}\`;
+    document.getElementById("out_pukul").innerText          = \`${esc(form.pukul)}\`;
+    document.getElementById("out_tempat").innerText         = \`${esc(form.tempat)}\`;
+    document.getElementById("out_acara").innerText          = \`${esc(form.acara)}\`;
+    document.getElementById("out_narahubung").innerText     = \`${esc(form.narahubung)}\`;
+    document.getElementById("out_pakaian").innerText        = \`${esc(form.pakaian)}\`;
 
-    const teksCatatan = form.catatan;
-    if (el("out_catatan"))   el("out_catatan").innerText = teksCatatan;
-    if (el("wadah_catatan")) el("wadah_catatan").style.display = teksCatatan.trim() === "" ? "none" : "block";
+    var teksCatatan = \`${esc(form.catatan)}\`;
+    document.getElementById("out_catatan").innerText = teksCatatan;
+    document.getElementById("wadah_catatan").style.display = teksCatatan.trim() === "" ? "none" : "block";
 
-    if (el("out_judulLampiran")) el("out_judulLampiran").innerText = form.judulLampiran;
-
-    const areaLampiran = el("out_lampiran");
-    if (areaLampiran) {
-      areaLampiran.innerText     = form.lampiran;
-      areaLampiran.style.lineHeight = form.spasiLampiran;
-    }
+    document.getElementById("out_judulLampiran").innerText  = \`${esc(form.judulLampiran)}\`;
+    var areaLampiran = document.getElementById("out_lampiran");
+    areaLampiran.innerText     = \`${esc(form.lampiran)}\`;
+    areaLampiran.style.lineHeight = "${esc(form.spasiLampiran)}";
+  }
+  window.onload = updatePreview;
+<\/script>
+</body>
+</html>`;
   };
-
-  // Jalankan updatePreview setiap kali form berubah
-  useEffect(() => {
-    updatePreview();
-  }, [form]);
 
   // ── generatePDF() — persis sama seperti di HTML asli ──
   const generatePDF = async () => {
@@ -488,14 +499,14 @@ export default function UndanganGenerator({ isMobile, showT }) {
           </button>
         </div>
 
-        {/* ── Panel Preview — identik dengan panel-preview asli ── */}
+        {/* ── Panel Preview — iframe agar CSS PWA tidak mencemari ── */}
         {!isMobile && (
           <div className="ug-panel-preview">
-            {/* #dokumen-cetak — HTML persis dari aslinya, dirender via dangerouslySetInnerHTML */}
-            <div
-              id="dokumen-cetak"
+            <iframe
               ref={dokumenRef}
-              dangerouslySetInnerHTML={{ __html: HTML_DOKUMEN_CETAK }}
+              title="Preview Undangan"
+              style={{ border:"none", width:"100%", height:"100%", background:"#525659" }}
+              srcDoc={buildIframeSrcDoc()}
             />
           </div>
         )}
