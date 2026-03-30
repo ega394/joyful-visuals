@@ -439,14 +439,8 @@ export default function UndanganGenerator({ isMobile, showT }) {
         "</div>" +
         halamanLampiran;
 
-      var styleEl = document.createElement("style");
-      styleEl.textContent = CSS_ASLI;
-      document.head.appendChild(styleEl);
-
-      var container = document.createElement("div");
-      container.style.cssText = "position:fixed;left:-9999px;top:0;width:210mm;background:transparent;z-index:-9999;";
-      container.innerHTML = htmlPdf;
-      document.body.appendChild(container);
+      // HTML dan CSS disatukan ke dalam satu string lalu diserahkan ke html2pdf
+      var finalContent = "<div id='dokumen-cetak'><style>" + CSS_ASLI + "</style>" + htmlPdf + "</div>";
 
       var nomorSurat = f.nomor.replace(/[\/\\]/g, "-").replace(/[^a-zA-Z0-9-]/g, "");
       var suffixTtd  = f.jenisTtd === "tte" ? "_TTE" : f.jenisTtd === "scan" ? "_Scan" : "";
@@ -454,14 +448,12 @@ export default function UndanganGenerator({ isMobile, showT }) {
       var namaFile   = prefix + suffixTtd + "_" + (nomorSurat || "Draft") + ".pdf";
 
       await html2pdf().set({
-        margin: 0, filename: namaFile,
+        margin: 0, 
+        filename: namaFile,
         image: { type: "jpeg", quality: 1 },
         html2canvas: { scale: 2, useCORS: true, allowTaint: true },
         jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-      }).from(container).save();
-
-      document.body.removeChild(container);
-      document.head.removeChild(styleEl);
+      }).from(finalContent).save();
 
       if (showT) showT("PDF berhasil diunduh: " + namaFile, "ok");
     } catch (err) {
