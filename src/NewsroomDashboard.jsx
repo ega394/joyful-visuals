@@ -327,6 +327,20 @@ export default function NewsroomDashboard({ events, user, showT, isMobile, upd }
                 ↩ Kembalikan
               </button>
             </>}
+            {/* Mode darurat: Kasubbag generate langsung jika Timkom belum sempat */}
+            {isKasubbag&&(stC==="draft"||!stC)&&<>
+              <div style={{width:"100%",background:"#FFFBEB",borderRadius:10,padding:"10px 12px",border:"1px solid #FDE68A",marginBottom:4}}>
+                <div style={{fontSize:11,fontWeight:700,color:"#92400E",marginBottom:3}}>⚡ Mode Darurat</div>
+                <div style={{fontSize:11,color:"#B45309"}}>Timkom belum mengajukan. Anda bisa langsung buat caption tanpa menunggu.</div>
+              </div>
+              <button onClick={()=>saveCaption("setujui")} disabled={loadingAI||!captionBerita.trim()}
+                style={{flex:1,padding:"13px",borderRadius:11,border:"none",
+                  background:captionBerita.trim()?"#D97706":"#94A3B8",
+                  color:"white",fontWeight:800,fontSize:13,cursor:captionBerita.trim()?"pointer":"not-allowed",
+                  opacity:loadingAI?0.7:1}}>
+                {loadingAI?"⏳ Generating...":captionBerita.trim()?"⚡ Generate & Simpan Langsung":"Tulis caption dulu di atas"}
+              </button>
+            </>}
             {isKabag&&stC==="disetujui"&&(
               <button onClick={()=>saveCaption("kembalikan")}
                 style={{flex:1,padding:"13px",borderRadius:11,border:"1.5px solid #F59E0B",background:"white",color:"#B45309",fontWeight:800,fontSize:13,cursor:"pointer"}}>
@@ -415,6 +429,17 @@ export default function NewsroomDashboard({ events, user, showT, isMobile, upd }
         </div>;
       })()}
 
+      {/* Mode Darurat Kasubbag — generate langsung tanpa alur Timkom */}
+      {isKasubbag&&(
+        <div style={{background:"#FFFBEB",borderRadius:12,padding:"11px 14px",marginBottom:14,border:"1.5px solid #FDE68A",display:"flex",alignItems:"center",gap:10}}>
+          <span style={{fontSize:16}}>⚡</span>
+          <div style={{flex:1}}>
+            <div style={{fontSize:12,fontWeight:700,color:"#92400E"}}>Mode Darurat</div>
+            <div style={{fontSize:11,color:"#B45309"}}>Timkom belum sempat buat caption? Buka agenda dan gunakan tombol "Generate Langsung"</div>
+          </div>
+        </div>
+      )}
+
       <div style={{fontSize:13,fontWeight:800,color:NAVY,marginBottom:10}}>
         {isTimkom?"Semua Agenda Tayang:":isKasubbag?"Agenda Perlu Review & Riwayat:":"Status Caption Per Agenda:"}
       </div>
@@ -436,7 +461,9 @@ export default function NewsroomDashboard({ events, user, showT, isMobile, upd }
               </div>
               <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:5}}>
                 {getCapBadge(ev)}
-                <div style={{fontSize:10,fontWeight:700,color:"#94A3B8"}}>{isKabag?"Lihat →":isKasubbag?"Review →":"Buka Studio →"}</div>
+                <div style={{fontSize:10,fontWeight:700,color:"#94A3B8"}}>
+                  {isKabag?"Lihat →":isKasubbag&&(!ev.captionStatus||ev.captionStatus==="draft")?"⚡ Darurat / Review →":isKasubbag?"Review →":"Buka Studio →"}
+                </div>
               </div>
             </div>
           ))}

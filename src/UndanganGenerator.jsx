@@ -215,389 +215,469 @@ function loadHtml2Pdf() {
 }
 
 export default function UndanganGenerator({ isMobile, showT }) {
-  // ── State form (identik dengan nilai default di HTML asli) ──
-  const [form, setForm] = useState({
-    pilihanCetak:   "semua",
-    tanggalSurat:   "Tarakan, 27 Maret 2026",
-    nomor:          "8400/XXX/SETDA/2026",
-    sifat:          "Biasa",
-    lampiranCount:  "1 (satu) halaman",
-    yth:            "(daftar terlampir)",
-    waktuAcara:     "Jumat, 27 Maret 2026",
-    pukul:          "14.00 WITA s/d selesai",
-    tempat:         "Ruang Rapat Wali Kota",
-    acara:          "1. Pemilihan Ketua BAZNAS Tarakan;\n2. Pengarahan Wali Kota Tarakan; dan\n3. Hal-hal lain yang dianggap perlu.",
-    narahubung:     "Kasubbag Protokol (0811-5961-116)",
-    pakaian:        "PDH Batik Daerah/menyesuaikan",
-    catatan:        "Hadir 15 menit sebelum acara dimulai.",
-    jenisTtd:       "tte",
-    judulLampiran:  "DAFTAR UNDANGAN",
-    spasiLampiran:  "1.5",
-    lampiran:       "1. Asisten Pemerintahan dan Kesejahteraan Rakyat;\n2. Kepala Kantor Kementerian Agama Kota Tarakan;\n3. Kepala Bagian Kesejahteraan Rakyat;\n4. Kepala Bagian Hukum;\n5. Ketua BAZNAS Tarakan (K.H. Zainuddin Dalila);",
-  });
+  const NAVY = "#0A1628";
+  const GOLD = "#C9A84C";
 
-  const [loading, setLoading] = useState(false);
-  const dokumenRef = useRef(null);
-
-  const set = (key) => (e) => setForm(p => ({ ...p, [key]: e.target.value }));
-
-  // ── buildIframeSrcDoc() — bangun HTML lengkap untuk iframe preview ──
-  // Identik dengan undangan.html asli: CSS + #dokumen-cetak + updatePreview() + script
-  const buildIframeSrcDoc = () => {
-    // Tentukan ttdContent sesuai pilihan
-    let ttdContent = "<br><br><br>";
-    if (form.jenisTtd === "scan") {
-      ttdContent = `
-        <img src="/stempel.png" style="position: absolute; left: 0px; top: -30px; width: 145px; z-index: 1; mix-blend-mode: multiply;" onerror="this.style.display='none'">
-        <img src="/image.jpeg" style="position: absolute; right: 0px; top: -30px; height: 140px; z-index: 2; mix-blend-mode: multiply;" alt="TTD">
-      `;
-    } else if (form.jenisTtd === "tte") {
-      ttdContent = '<br><br><span class="tte-marker">${ttd_pengirim}</span><br><br>';
-    }
-
-    // Escape untuk sisipan ke dalam string JS di dalam srcdoc
-    const esc = (s) => (s || "").replace(/\\/g,"\\\\").replace(/`/g,"\\`").replace(/\$/g,"\\$");
-
-    return `<!DOCTYPE html>
-<html lang="id">
-<head>
-<meta charset="UTF-8">
-<style>
-  body { margin: 0; padding: 20px; background-color: #525659; display: flex; justify-content: center; }
-  ${CSS_ASLI}
-</style>
-</head>
-<body>
-<div id="dokumen-cetak">
-  ${HTML_DOKUMEN_CETAK}
-</div>
-<script>
-  // updatePreview() identik dengan undangan.html asli
-  function updatePreview() {
-    var pilihanCetak = "${esc(form.pilihanCetak)}";
-    var halamanLampiran = document.getElementById("halaman-lampiran");
-    if (halamanLampiran) halamanLampiran.style.display = pilihanCetak === "utama" ? "none" : "block";
-
-    var ttdContent = \`${ttdContent}\`;
-    var ttdUtama    = document.getElementById("ttd_utama_space");
-    var ttdLampiran = document.getElementById("ttd_lampiran_space");
-    if (ttdUtama)    ttdUtama.innerHTML    = ttdContent;
-    if (ttdLampiran) ttdLampiran.innerHTML = ttdContent;
-
-    document.getElementById("out_tanggalSurat").innerText   = \`${esc(form.tanggalSurat)}\`;
-    document.getElementById("out_nomor").innerText          = \`${esc(form.nomor)}\`;
-    document.getElementById("out_nomor_lampiran").innerText = \`${esc(form.nomor)}\`;
-    document.getElementById("out_sifat").innerText          = \`${esc(form.sifat)}\`;
-    document.getElementById("out_lampiranCount").innerText  = \`${esc(form.lampiranCount)}\`;
-    document.getElementById("out_yth").innerText            = \`${esc(form.yth)}\`;
-    document.getElementById("out_waktuAcara").innerText     = \`${esc(form.waktuAcara)}\`;
-    document.getElementById("out_pukul").innerText          = \`${esc(form.pukul)}\`;
-    document.getElementById("out_tempat").innerText         = \`${esc(form.tempat)}\`;
-    document.getElementById("out_acara").innerText          = \`${esc(form.acara)}\`;
-    document.getElementById("out_narahubung").innerText     = \`${esc(form.narahubung)}\`;
-    document.getElementById("out_pakaian").innerText        = \`${esc(form.pakaian)}\`;
-
-    var teksCatatan = \`${esc(form.catatan)}\`;
-    document.getElementById("out_catatan").innerText = teksCatatan;
-    document.getElementById("wadah_catatan").style.display = teksCatatan.trim() === "" ? "none" : "block";
-
-    document.getElementById("out_judulLampiran").innerText  = \`${esc(form.judulLampiran)}\`;
-    var areaLampiran = document.getElementById("out_lampiran");
-    areaLampiran.innerText     = \`${esc(form.lampiran)}\`;
-    areaLampiran.style.lineHeight = "${esc(form.spasiLampiran)}";
-  }
-  window.onload = updatePreview;
-<\/script>
-</body>
-</html>`;
+  const EMPTY = {
+    pilihanCetak:  "semua",
+    tanggalSurat:  "",
+    nomor:         "",
+    sifat:         "Biasa",
+    lampiranCount: "",
+    yth:           "",
+    waktuAcara:    "",
+    pukul:         "",
+    tempat:        "",
+    acara:         "",
+    narahubung:    "",
+    pakaian:       "",
+    catatan:       "",
+    jenisTtd:      "kosong",
+    judulLampiran: "DAFTAR UNDANGAN",
+    spasiLampiran: "1.5",
+    lampiran:      "",
   };
 
-  // ── generatePDF() — buat hidden container di main DOM ──
-  // (tidak bisa pakai getElementById karena dokumen ada di iframe)
+  const [form, setForm]       = React.useState(EMPTY);
+  const [loading, setLoading] = React.useState(false);
+  const [section, setSection] = React.useState("surat");
+  const dokumenRef             = React.useRef(null);
+
+  const set = (key) => (e) => setForm(function(p){ return Object.assign({}, p, {[key]: e.target.value}); });
+
+  const resetForm = () => {
+    if (window.confirm("Reset semua kolom? Data yang belum disimpan akan hilang.")) {
+      setForm(EMPTY);
+    }
+  };
+
+  // ── buildIframeSrcDoc: ZERO nested template literal ──────────────────────
+  const buildIframeSrcDoc = () => {
+    var f = form;
+
+    // TTD content sebagai string biasa
+    var ttdContent = "<br><br><br>";
+    if (f.jenisTtd === "scan") {
+      ttdContent =
+        "<img src='/stempel.png' style='position:absolute;left:0;top:-30px;width:145px;z-index:1;mix-blend-mode:multiply' onerror=\"this.style.display='none'\">" +
+        "<img src='/image.jpeg' style='position:absolute;right:0;top:-30px;height:140px;z-index:2;mix-blend-mode:multiply' alt='TTD'>";
+    } else if (f.jenisTtd === "tte") {
+      ttdContent = "<br><br>${ttd_pengirim}<br><br>";
+    }
+
+    // Escape untuk disisipkan ke dalam string JS di dalam HTML
+    var esc = function(s) {
+      return (s || "")
+        .replace(/\\/g, "\\\\")
+        .replace(/'/g, "\\'")
+        .replace(/\r?\n/g, "\\n");
+    };
+
+    // Bangun script sebagai string concatenation
+    var script =
+      "function updatePreview(){" +
+      "var p='" + esc(f.pilihanCetak) + "';" +
+      "var hl=document.getElementById('halaman-lampiran');" +
+      "if(hl)hl.style.display=p==='utama'?'none':'block';" +
+      "var tc='" + esc(ttdContent) + "';" +
+      "var tu=document.getElementById('ttd_utama_space');" +
+      "var tl=document.getElementById('ttd_lampiran_space');" +
+      "if(tu)tu.innerHTML=tc;" +
+      "if(tl)tl.innerHTML=tc;" +
+      "document.getElementById('out_tanggalSurat').innerText='" + esc(f.tanggalSurat) + "';" +
+      "document.getElementById('out_nomor').innerText='" + esc(f.nomor) + "';" +
+      "document.getElementById('out_nomor_lampiran').innerText='" + esc(f.nomor) + "';" +
+      "document.getElementById('out_sifat').innerText='" + esc(f.sifat) + "';" +
+      "document.getElementById('out_lampiranCount').innerText='" + esc(f.lampiranCount) + "';" +
+      "document.getElementById('out_yth').innerText='" + esc(f.yth) + "';" +
+      "document.getElementById('out_waktuAcara').innerText='" + esc(f.waktuAcara) + "';" +
+      "document.getElementById('out_pukul').innerText='" + esc(f.pukul) + "';" +
+      "document.getElementById('out_tempat').innerText='" + esc(f.tempat) + "';" +
+      "document.getElementById('out_acara').innerText='" + esc(f.acara) + "';" +
+      "document.getElementById('out_narahubung').innerText='" + esc(f.narahubung) + "';" +
+      "document.getElementById('out_pakaian').innerText='" + esc(f.pakaian) + "';" +
+      "var cat='" + esc(f.catatan) + "';" +
+      "document.getElementById('out_catatan').innerText=cat;" +
+      "document.getElementById('wadah_catatan').style.display=cat.trim()===''?'none':'block';" +
+      "document.getElementById('out_judulLampiran').innerText='" + esc(f.judulLampiran) + "';" +
+      "var al=document.getElementById('out_lampiran');" +
+      "al.innerText='" + esc(f.lampiran) + "';" +
+      "al.style.lineHeight='" + esc(f.spasiLampiran) + "';" +
+      "}" +
+      "window.onload=updatePreview;";
+
+    return (
+      "<!DOCTYPE html><html lang='id'><head><meta charset='UTF-8'><style>" +
+      "body{margin:0;padding:20px;background-color:#525659;display:flex;justify-content:center;}" +
+      CSS_ASLI +
+      "</style></head><body>" +
+      "<div id='dokumen-cetak'>" + HTML_DOKUMEN_CETAK + "</div>" +
+      "<script>" + script + "<\/script>" +
+      "</body></html>"
+    );
+  };
+
+  // ── generatePDF: string concatenation, zero template literal ─────────────
   const generatePDF = async () => {
+    if (!form.nomor.trim() || !form.waktuAcara.trim() || !form.tempat.trim()) {
+      if (showT) showT("Isi minimal: Nomor Surat, Hari/Tanggal Acara, dan Tempat", "warn");
+      return;
+    }
     setLoading(true);
     try {
-      const html2pdf = await loadHtml2Pdf();
+      var html2pdf = await loadHtml2Pdf();
+      var f = form;
 
-      // Tentukan konten TTD untuk PDF
-      let ttdPdf = "<br><br><br>";
-      if (form.jenisTtd === "scan") {
-        ttdPdf = `
-          <img src="/stempel.png" style="position: absolute; left: 0px; top: -30px; width: 145px; z-index: 1; mix-blend-mode: multiply;" onerror="this.style.display='none'">
-          <img src="/image.jpeg" style="position: absolute; right: 0px; top: -30px; height: 140px; z-index: 2; mix-blend-mode: multiply;" alt="TTD">
-        `;
-      } else if (form.jenisTtd === "tte") {
-        ttdPdf = "<br><br>" + form.nomor + "<br><br>"; // variabel TTE diganti nomor surat
+      var ttdPdf = "<br><br><br>";
+      if (f.jenisTtd === "scan") {
+        ttdPdf =
+          "<img src='/stempel.png' style='position:absolute;left:0;top:-30px;width:145px;z-index:1;mix-blend-mode:multiply' onerror=\"this.style.display='none'\">" +
+          "<img src='/image.jpeg' style='position:absolute;right:0;top:-30px;height:140px;z-index:2;mix-blend-mode:multiply' alt='TTD'>";
+      } else if (f.jenisTtd === "tte") {
+        ttdPdf = "<br><br>" + f.nomor + "<br><br>";
       }
 
-      // Bangun HTML dokumen untuk pdf (sama dengan HTML_DOKUMEN_CETAK tapi data sudah terisi)
-      const halamanLampiran = form.pilihanCetak !== "utama" ? `
-        <div class="halaman-a4 html2pdf__page-break">
-          <div style="margin-bottom: 15px;">LAMPIRAN SURAT</div>
-          <table style="border-collapse: collapse; margin-bottom: 25px;">
-            <tr><td style="width: 70pt;">Nomor</td><td style="width: 15pt;">:</td><td>${form.nomor}</td></tr>
-          </table>
-          <div style="text-align: center; margin-bottom: 20px;"><b><u>${form.judulLampiran}</u></b></div>
-          <div class="teks-multibaris" style="line-height: ${form.spasiLampiran}; margin-bottom: 20px;">${form.lampiran}</div>
-          <div class="area-ttd" style="margin-top: 30px;">
-            WALI KOTA TARAKAN<br>
-            <div style="min-height: 80px; position: relative; display: flex; flex-direction: column; justify-content: center; align-items: center;">${ttdPdf}</div>
-            <b>dr. H. KHAIRUL, M.Kes.</b>
-          </div>
-        </div>` : "";
+      var catatanHtml = f.catatan.trim()
+        ? "<div><b><u>catatan:</u></b><br><span class='teks-multibaris'>" + f.catatan + "</span></div>"
+        : "";
 
-      const catatanHtml = form.catatan.trim()
-        ? `<div><b><u>catatan:</u></b><br><span class="teks-multibaris">${form.catatan}</span></div>` : "";
+      var halamanLampiran = "";
+      if (f.pilihanCetak !== "utama") {
+        halamanLampiran =
+          "<div class='halaman-a4 html2pdf__page-break'>" +
+          "<div style='margin-bottom:15px;'>LAMPIRAN SURAT</div>" +
+          "<table style='border-collapse:collapse;margin-bottom:25px;'>" +
+          "<tr><td style='width:70pt;'>Nomor</td><td style='width:15pt;'>:</td><td>" + f.nomor + "</td></tr>" +
+          "</table>" +
+          "<div style='text-align:center;margin-bottom:20px;'><b><u>" + f.judulLampiran + "</u></b></div>" +
+          "<div class='teks-multibaris' style='line-height:" + f.spasiLampiran + ";margin-bottom:20px;'>" + f.lampiran + "</div>" +
+          "<div class='area-ttd' style='margin-top:30px;'>WALI KOTA TARAKAN<br>" +
+          "<div style='min-height:80px;position:relative;display:flex;flex-direction:column;justify-content:center;align-items:center;'>" + ttdPdf + "</div>" +
+          "<b>dr. H. KHAIRUL, M.Kes.</b></div>" +
+          "</div>";
+      }
 
-      const htmlPdf = `
-        <div class="halaman-a4">
-          <div class="kop">
-            <img src="/image001.jpg" alt="Garuda"
-              onerror="this.src='https://upload.wikimedia.org/wikipedia/commons/thumb/8/84/National_emblem_of_Indonesia_Garuda_Pancasila.svg/300px-National_emblem_of_Indonesia_Garuda_Pancasila.svg.png'">
-            <div class="kop-teks">WALI KOTA TARAKAN</div>
-          </div>
-          <div class="tanggal-kanan">${form.tanggalSurat}</div>
-          <table class="tabel-info">
-            <tr><td class="col-label">Nomor</td><td class="col-titikdua">:</td><td>${form.nomor}</td></tr>
-            <tr><td>Sifat</td><td>:</td><td>${form.sifat}</td></tr>
-            <tr><td>Lampiran</td><td>:</td><td>${form.lampiranCount}</td></tr>
-            <tr><td>Hal</td><td>:</td><td><b><u>Undangan</u></b></td></tr>
-          </table>
-          <div class="tujuan-surat">
-            Yth:<br><b><span class="teks-multibaris">${form.yth}</span></b><br>di-<br><b>TARAKAN</b>
-          </div>
-          <div class="paragraf-indent">Mengharapkan dengan hormat kehadiran Bapak/Ibu/Saudara (i) pada:</div>
-          <table class="tabel-acara">
-            <tr><td class="col-label-acara">hari/tanggal</td><td class="col-titikdua">:</td><td>${form.waktuAcara}</td></tr>
-            <tr><td>pukul</td><td>:</td><td>${form.pukul}</td></tr>
-            <tr><td>tempat</td><td>:</td><td>${form.tempat}</td></tr>
-            <tr><td>acara</td><td>:</td><td><b><div class="teks-multibaris">${form.acara}</div></b></td></tr>
-          </table>
-          <div class="paragraf-indent">Demikian, atas perhatian serta kehadirannya diucapkan terima kasih.</div>
-          <div class="area-ttd">
-            WALI KOTA TARAKAN<br>
-            <div style="min-height: 80px; position: relative; display: flex; flex-direction: column; justify-content: center; align-items: center;">${ttdPdf}</div>
-            <b>dr. H. KHAIRUL, M.Kes.</b>
-          </div>
-          <div class="area-kiri-bawah">
-            <b><u>Narahubung:</u></b><br>${form.narahubung}<br>
-            <b><u>Pakaian:</u></b><br>${form.pakaian}<br>
-            ${catatanHtml}
-          </div>
-          <div class="footer-alamat">
-            Jalan Kalimantan No. 1, Kota Tarakan<br>
-            Telp. (0551) 21620, 34320 Fax. (0551) 23782
-          </div>
-        </div>
-        ${halamanLampiran}
-      `;
+      var htmlPdf =
+        "<div class='halaman-a4'>" +
+        "<div class='kop'>" +
+        "<img src='/image001.jpg' alt='Garuda' onerror=\"this.src='https://upload.wikimedia.org/wikipedia/commons/thumb/8/84/National_emblem_of_Indonesia_Garuda_Pancasila.svg/300px-National_emblem_of_Indonesia_Garuda_Pancasila.svg.png'\">" +
+        "<div class='kop-teks'>WALI KOTA TARAKAN</div>" +
+        "</div>" +
+        "<div class='tanggal-kanan'>" + f.tanggalSurat + "</div>" +
+        "<table class='tabel-info'>" +
+        "<tr><td class='col-label'>Nomor</td><td class='col-titikdua'>:</td><td>" + f.nomor + "</td></tr>" +
+        "<tr><td>Sifat</td><td>:</td><td>" + f.sifat + "</td></tr>" +
+        "<tr><td>Lampiran</td><td>:</td><td>" + f.lampiranCount + "</td></tr>" +
+        "<tr><td>Hal</td><td>:</td><td><b><u>Undangan</u></b></td></tr>" +
+        "</table>" +
+        "<div class='tujuan-surat'>Yth:<br><b><span class='teks-multibaris'>" + f.yth + "</span></b><br>di-<br><b>TARAKAN</b></div>" +
+        "<div class='paragraf-indent'>Mengharapkan dengan hormat kehadiran Bapak/Ibu/Saudara (i) pada:</div>" +
+        "<table class='tabel-acara'>" +
+        "<tr><td class='col-label-acara'>hari/tanggal</td><td class='col-titikdua'>:</td><td>" + f.waktuAcara + "</td></tr>" +
+        "<tr><td>pukul</td><td>:</td><td>" + f.pukul + "</td></tr>" +
+        "<tr><td>tempat</td><td>:</td><td>" + f.tempat + "</td></tr>" +
+        "<tr><td>acara</td><td>:</td><td><b><div class='teks-multibaris'>" + f.acara + "</div></b></td></tr>" +
+        "</table>" +
+        "<div class='paragraf-indent'>Demikian, atas perhatian serta kehadirannya diucapkan terima kasih.</div>" +
+        "<div class='area-ttd'>WALI KOTA TARAKAN<br>" +
+        "<div style='min-height:80px;position:relative;display:flex;flex-direction:column;justify-content:center;align-items:center;'>" + ttdPdf + "</div>" +
+        "<b>dr. H. KHAIRUL, M.Kes.</b></div>" +
+        "<div class='area-kiri-bawah'>" +
+        "<b><u>Narahubung:</u></b><br>" + f.narahubung + "<br>" +
+        "<b><u>Pakaian:</u></b><br>" + f.pakaian + "<br>" +
+        catatanHtml +
+        "</div>" +
+        "<div class='footer-alamat'>Jalan Kalimantan No. 1, Kota Tarakan<br>Telp. (0551) 21620, 34320 Fax. (0551) 23782</div>" +
+        "</div>" +
+        halamanLampiran;
 
-      // Buat hidden container di main DOM (html2pdf perlu elemen di DOM)
-      const style = document.createElement("style");
-      style.textContent = CSS_ASLI;
-      document.head.appendChild(style);
+      var styleEl = document.createElement("style");
+      styleEl.textContent = CSS_ASLI;
+      document.head.appendChild(styleEl);
 
-      const container = document.createElement("div");
-      container.id = "pdf-hidden-container";
+      var container = document.createElement("div");
       container.style.cssText = "position:fixed;left:-9999px;top:0;width:210mm;background:transparent;z-index:-9999;";
       container.innerHTML = htmlPdf;
       document.body.appendChild(container);
 
-      const nomorSurat = form.nomor.replace(/\//g, "-");
-      const suffixTtd  = form.jenisTtd === "tte" ? "_TTE" : form.jenisTtd === "scan" ? "_Scan" : "";
-      const prefix     = form.pilihanCetak === "utama" ? "Undangan_Utama" : "Undangan";
-      const namaFile   = prefix + suffixTtd + "_" + nomorSurat + ".pdf";
+      var nomorSurat = f.nomor.replace(/\//g, "-");
+      var suffixTtd  = f.jenisTtd === "tte" ? "_TTE" : f.jenisTtd === "scan" ? "_Scan" : "";
+      var prefix     = f.pilihanCetak === "utama" ? "Undangan_Utama" : "Undangan";
+      var namaFile   = prefix + suffixTtd + "_" + nomorSurat + ".pdf";
 
-      const opsi = {
-        margin:      0,
-        filename:    namaFile,
-        image:       { type: "jpeg", quality: 1 },
+      await html2pdf().set({
+        margin: 0, filename: namaFile,
+        image: { type: "jpeg", quality: 1 },
         html2canvas: { scale: 2, useCORS: true, allowTaint: true },
-        jsPDF:       { unit: "mm", format: "a4", orientation: "portrait" },
-      };
+        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+      }).from(container).save();
 
-      await html2pdf().set(opsi).from(container).save();
-
-      // Bersihkan
       document.body.removeChild(container);
-      document.head.removeChild(style);
+      document.head.removeChild(styleEl);
 
-      if (showT) showT("PDF berhasil diunduh ✓", "ok");
+      if (showT) showT("PDF berhasil diunduh: " + namaFile, "ok");
     } catch (err) {
       if (showT) showT("Gagal membuat PDF: " + err.message, "error");
-      else alert("Gagal membuat PDF! Error: " + err.message);
+      else alert("Gagal: " + err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  // ── CSS form UI (terpisah dari CSS dokumen cetak) ──
-  const cssForm = `
-    .ug-body { font-family: 'Segoe UI', Tahoma, sans-serif; display: flex; gap: 0; height: 100%; overflow: hidden; }
-    .ug-panel-form { flex: 0 0 420px; background: white; padding: 20px; overflow-y: auto; height: 100%; border-right: 1px solid #ddd; box-sizing: border-box; }
-    .ug-panel-preview { flex: 2; display: flex; flex-direction: column; align-items: center; overflow-y: auto; height: 100%; padding-bottom: 20px; background-color: #525659; }
-    .ug-panel-form h3 { margin-top: 0; color: #333; position: sticky; top: 0; background: white; padding-bottom: 10px; border-bottom: 1px solid #ddd; z-index: 10; }
-    .ug-form-group { margin-bottom: 12px; }
-    .ug-form-group label { display: block; font-weight: 600; margin-bottom: 4px; font-size: 13px; color: #555; }
-    .ug-form-group input,
-    .ug-form-group textarea,
-    .ug-form-group select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-family: inherit; font-size: 13px; }
-    .ug-hint { font-size: 11px; color: #666; display: block; margin-top: 3px; }
-    .ug-btn { background-color: #0d6efd; color: white; border: none; padding: 12px; border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%; font-size: 15px; margin-top: 10px; position: sticky; bottom: 0; }
-    .ug-btn:hover { background-color: #0b5ed7; }
-    .ug-btn:disabled { background-color: #6c757d; cursor: not-allowed; }
-    .ug-hr { margin: 20px 0; border: 0; border-top: 1px dashed #ccc; }
-  `;
+  // ── Helper UI komponen ─────────────────────────────────────
+  const Label = ({ text, required, hint }) => (
+    React.createElement("div", { style: { marginBottom: 5 } },
+      React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: 0.5, display: "flex", alignItems: "center", gap: 4 } },
+        text,
+        required && React.createElement("span", { style: { color: "#DC2626", fontSize: 10 } }, "*")
+      ),
+      hint && React.createElement("div", { style: { fontSize: 10.5, color: "#94A3B8", marginTop: 1 } }, hint)
+    )
+  );
+
+  const inputSt = {
+    width: "100%", padding: "9px 11px", borderRadius: 8,
+    border: "1.5px solid #E2E8F0", fontSize: 13, color: NAVY,
+    background: "white", outline: "none", fontFamily: "inherit",
+    boxSizing: "border-box",
+  };
+  const textareaSt = Object.assign({}, inputSt, { resize: "vertical", lineHeight: 1.55, minHeight: 72 });
+
+  const SectionBtn = ({ id, icon, title, subtitle }) => (
+    <button onClick={() => setSection(function(s){ return s === id ? "" : id; })}
+      style={{ width: "100%", background: section === id ? NAVY : "#F8FAFC",
+        border: "1.5px solid " + (section === id ? NAVY : "#E2E8F0"),
+        borderRadius: 10, padding: "11px 14px", cursor: "pointer",
+        display: "flex", alignItems: "center", gap: 10, marginBottom: 2, textAlign: "left" }}>
+      <span style={{ fontSize: 18 }}>{icon}</span>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: section === id ? "white" : NAVY }}>{title}</div>
+        <div style={{ fontSize: 11, color: section === id ? "rgba(255,255,255,0.65)" : "#94A3B8", marginTop: 1 }}>{subtitle}</div>
+      </div>
+      <span style={{ fontSize: 12, color: section === id ? "white" : "#94A3B8" }}>{section === id ? "▲" : "▼"}</span>
+    </button>
+  );
+
+  const SectionBody = ({ id, children }) => section === id
+    ? <div style={{ background: "white", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "16px", marginBottom: 10 }}>{children}</div>
+    : null;
 
   return (
     <>
-      {/* Suntikkan CSS asli dokumen cetak + CSS form UI */}
-      <style>{CSS_ASLI}</style>
-      <style>{cssForm}</style>
+      <style dangerouslySetInnerHTML={{ __html: CSS_ASLI }} />
+      <style dangerouslySetInnerHTML={{ __html:
+        ".ug-input:focus{border-color:" + NAVY + "!important;box-shadow:0 0 0 3px rgba(10,22,40,0.08)}" +
+        ".ug-input::placeholder{color:#CBD5E1}" +
+        "@keyframes fadeDown{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}" +
+        "@keyframes spin{to{transform:rotate(360deg)}}"
+      }} />
 
-      <div className="ug-body" style={{ height: isMobile ? "auto" : "calc(100vh - 60px)" }}>
+      <div style={{ display: "flex", height: isMobile ? "auto" : "calc(100vh - 60px)", overflow: "hidden", fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
 
-        {/* ── Panel Form — identik dengan panel-form asli ── */}
-        <div className="ug-panel-form">
-          <h3>Formulir Undangan 2026</h3>
+        {/* ══ PANEL FORM ══════════════════════════════════════════ */}
+        <div style={{ flex: "0 0 400px", background: "#F8FAFC", overflowY: "auto", display: "flex", flexDirection: "column", borderRight: "1px solid #E2E8F0" }}>
 
-          {/* Pilihan cetak */}
-          <div className="ug-form-group" style={{ background:"#eef2f7", padding:10, borderRadius:6, border:"1px solid #cce5ff" }}>
-            <label style={{ color:"#004085" }}>Pilihan Cetak PDF:</label>
-            <select value={form.pilihanCetak} onChange={set("pilihanCetak")}>
-              <option value="semua">Semua Halaman (Utama + Lampiran)</option>
-              <option value="utama">Hanya Halaman Utama</option>
-            </select>
-          </div>
-
-          {/* Data surat */}
-          <div className="ug-form-group">
-            <label>Tempat, Tanggal Surat:</label>
-            <input type="text" value={form.tanggalSurat} onChange={set("tanggalSurat")}/>
-          </div>
-          <div className="ug-form-group">
-            <label>Nomor Surat:</label>
-            <input type="text" value={form.nomor} onChange={set("nomor")}/>
-          </div>
-          <div className="ug-form-group">
-            <label>Sifat:</label>
-            <input type="text" value={form.sifat} onChange={set("sifat")}/>
-          </div>
-          <div className="ug-form-group">
-            <label>Lampiran:</label>
-            <input type="text" value={form.lampiranCount} onChange={set("lampiranCount")}/>
-          </div>
-
-          <hr className="ug-hr"/>
-
-          {/* Tujuan & acara */}
-          <div className="ug-form-group">
-            <label>Yth (Tujuan Surat):</label>
-            <textarea rows={2} value={form.yth} onChange={set("yth")}/>
-          </div>
-          <div className="ug-form-group">
-            <label>Hari/Tanggal Acara:</label>
-            <input type="text" value={form.waktuAcara} onChange={set("waktuAcara")}/>
-          </div>
-          <div className="ug-form-group">
-            <label>Pukul:</label>
-            <input type="text" value={form.pukul} onChange={set("pukul")}/>
-          </div>
-          <div className="ug-form-group">
-            <label>Tempat Acara:</label>
-            <input type="text" value={form.tempat} onChange={set("tempat")}/>
-          </div>
-          <div className="ug-form-group">
-            <label>Nama Acara (Bisa Enter):</label>
-            <textarea rows={3} value={form.acara} onChange={set("acara")}/>
+          {/* Header */}
+          <div style={{ background: "linear-gradient(135deg," + NAVY + ",#1A2F50)", padding: "20px 20px 16px", flexShrink: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+              <span style={{ fontSize: 22 }}>📄</span>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: "white" }}>Generator Undangan</div>
+                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.55)" }}>Wali Kota Tarakan · Format Resmi</div>
+              </div>
+            </div>
+            {/* Pilihan Cetak */}
+            <div style={{ background: "rgba(255,255,255,0.1)", borderRadius: 8, padding: "8px 10px" }}>
+              <div style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", fontWeight: 700, textTransform: "uppercase", marginBottom: 6 }}>Pilihan Cetak PDF</div>
+              <div style={{ display: "flex", gap: 6 }}>
+                {[["semua","Utama + Lampiran"],["utama","Hanya Utama"]].map(function(item){
+                  var v = item[0], l = item[1];
+                  return (
+                    <button key={v} onClick={() => setForm(function(p){ return Object.assign({},p,{pilihanCetak:v}); })}
+                      style={{ flex: 1, padding: "6px 8px", borderRadius: 6, border: "none", cursor: "pointer",
+                        background: form.pilihanCetak === v ? GOLD : "rgba(255,255,255,0.15)",
+                        color: form.pilihanCetak === v ? NAVY : "white",
+                        fontSize: 11, fontWeight: 700 }}>
+                      {l}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
 
-          <hr className="ug-hr"/>
+          {/* Body */}
+          <div style={{ flex: 1, padding: "14px 14px 0", overflowY: "auto" }}>
 
-          {/* Keterangan */}
-          <div className="ug-form-group">
-            <label>Narahubung & Nomor HP:</label>
-            <input type="text" value={form.narahubung} onChange={set("narahubung")}/>
-          </div>
-          <div className="ug-form-group">
-            <label>Pakaian:</label>
-            <input type="text" value={form.pakaian} onChange={set("pakaian")}/>
-          </div>
-          <div className="ug-form-group">
-            <label>Catatan (Kosongkan jika tak ada):</label>
-            <textarea rows={2} value={form.catatan} onChange={set("catatan")}/>
+            {/* Info */}
+            <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 9, padding: "10px 12px", marginBottom: 12, display: "flex", gap: 8 }}>
+              <span style={{ fontSize: 14, flexShrink: 0 }}>ℹ️</span>
+              <div style={{ fontSize: 11, color: "#1D4ED8", lineHeight: 1.6 }}>
+                Isi kolom sesuai kebutuhan. Kolom bertanda <span style={{ color: "#DC2626", fontWeight: 700 }}>*</span> wajib diisi sebelum mengunduh. Preview memperbarui otomatis.
+              </div>
+            </div>
+
+            {/* ── SEKSI 1: Data Surat ── */}
+            <SectionBtn id="surat" icon="🗂" title="Data Surat" subtitle="Nomor, tanggal, sifat, lampiran"/>
+            <SectionBody id="surat">
+              <div style={{ marginBottom: 12 }}>
+                <Label text="Tempat, Tanggal Surat" hint="Contoh: Tarakan, 1 April 2026"/>
+                <input className="ug-input" style={inputSt} placeholder="Tarakan, ..." value={form.tanggalSurat} onChange={set("tanggalSurat")}/>
+              </div>
+              <div style={{ marginBottom: 12 }}>
+                <Label text="Nomor Surat" required hint="Contoh: 8400/XXX/SETDA/2026"/>
+                <input className="ug-input" style={inputSt} placeholder="8400/…/SETDA/2026" value={form.nomor} onChange={set("nomor")}/>
+              </div>
+              <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+                <div style={{ flex: 1 }}>
+                  <Label text="Sifat"/>
+                  <select className="ug-input" style={inputSt} value={form.sifat} onChange={set("sifat")}>
+                    <option>Biasa</option><option>Penting</option><option>Segera</option><option>Rahasia</option>
+                  </select>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <Label text="Lampiran" hint="Contoh: 1 (satu) halaman"/>
+                  <input className="ug-input" style={inputSt} placeholder="1 (satu) halaman" value={form.lampiranCount} onChange={set("lampiranCount")}/>
+                </div>
+              </div>
+              <div style={{ marginBottom: 4 }}>
+                <Label text="Yth (Tujuan Surat)" hint="Tulis per baris. Contoh: (daftar terlampir)"/>
+                <textarea className="ug-input" style={Object.assign({},textareaSt,{minHeight:56})} placeholder="(daftar terlampir)" value={form.yth} onChange={set("yth")}/>
+              </div>
+            </SectionBody>
+
+            {/* ── SEKSI 2: Data Acara ── */}
+            <SectionBtn id="acara" icon="📋" title="Data Acara" subtitle="Waktu, tempat, dan susunan kegiatan"/>
+            <SectionBody id="acara">
+              <div style={{ marginBottom: 12 }}>
+                <Label text="Hari/Tanggal Acara" required hint="Contoh: Senin, 1 April 2026"/>
+                <input className="ug-input" style={inputSt} placeholder="Senin, 1 April 2026" value={form.waktuAcara} onChange={set("waktuAcara")}/>
+              </div>
+              <div style={{ marginBottom: 12 }}>
+                <Label text="Pukul" hint="Contoh: 09.00 WITA s/d selesai"/>
+                <input className="ug-input" style={inputSt} placeholder="09.00 WITA s/d selesai" value={form.pukul} onChange={set("pukul")}/>
+              </div>
+              <div style={{ marginBottom: 12 }}>
+                <Label text="Tempat Acara" required/>
+                <input className="ug-input" style={inputSt} placeholder="Ruang Rapat Wali Kota" value={form.tempat} onChange={set("tempat")}/>
+              </div>
+              <div style={{ marginBottom: 4 }}>
+                <Label text="Nama / Susunan Acara" hint="Gunakan Enter untuk baris baru"/>
+                <textarea className="ug-input" style={Object.assign({},textareaSt,{minHeight:90})} placeholder={"1. …;\n2. …; dan\n3. Hal-hal lain yang dianggap perlu."} value={form.acara} onChange={set("acara")}/>
+              </div>
+            </SectionBody>
+
+            {/* ── SEKSI 3: Keterangan ── */}
+            <SectionBtn id="keterangan" icon="📌" title="Keterangan Tambahan" subtitle="Narahubung, pakaian, catatan"/>
+            <SectionBody id="keterangan">
+              <div style={{ marginBottom: 12 }}>
+                <Label text="Narahubung & Nomor HP" hint="Contoh: Kasubbag Protokol (0811-5961-116)"/>
+                <input className="ug-input" style={inputSt} placeholder="Kasubbag Protokol (…)" value={form.narahubung} onChange={set("narahubung")}/>
+              </div>
+              <div style={{ marginBottom: 12 }}>
+                <Label text="Pakaian" hint="Contoh: PDH Batik Daerah / PSH / Menyesuaikan"/>
+                <input className="ug-input" style={inputSt} placeholder="PDH Batik Daerah / Menyesuaikan" value={form.pakaian} onChange={set("pakaian")}/>
+              </div>
+              <div style={{ marginBottom: 4 }}>
+                <Label text="Catatan" hint="Kosongkan jika tidak ada — tidak muncul di surat"/>
+                <textarea className="ug-input" style={Object.assign({},textareaSt,{minHeight:56})} placeholder="Hadir 15 menit sebelum acara dimulai." value={form.catatan} onChange={set("catatan")}/>
+              </div>
+            </SectionBody>
+
+            {/* ── SEKSI 4: TTD ── */}
+            <SectionBtn id="ttd" icon="✍️" title="Tanda Tangan" subtitle="Pilih jenis TTD yang akan dicetak"/>
+            <SectionBody id="ttd">
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {[
+                  ["kosong","Kosong","Ruang TTD basah — tanda tangan tulis tangan setelah cetak","⬜"],
+                  ["scan","Scan","Otomatis sisipkan TTD + Stempel dari file public/","🖊"],
+                  ["tte","TTE","Variabel BSrE untuk Tanda Tangan Elektronik","🔐"],
+                ].map(function(item){
+                  var v=item[0],l=item[1],hint=item[2],icon=item[3];
+                  return (
+                    <button key={v} onClick={() => setForm(function(p){ return Object.assign({},p,{jenisTtd:v}); })}
+                      style={{ padding:"10px 12px",borderRadius:9,cursor:"pointer",textAlign:"left",
+                        border:"1.5px solid "+(form.jenisTtd===v?NAVY:"#E2E8F0"),
+                        background:form.jenisTtd===v?"#EEF2FF":"white",
+                        display:"flex",alignItems:"center",gap:10 }}>
+                      <span style={{ fontSize:20 }}>{icon}</span>
+                      <div>
+                        <div style={{ fontSize:12,fontWeight:700,color:NAVY }}>{l}</div>
+                        <div style={{ fontSize:10.5,color:"#64748B" }}>{hint}</div>
+                      </div>
+                      {form.jenisTtd===v&&<span style={{ marginLeft:"auto",color:NAVY,fontSize:14 }}>✓</span>}
+                    </button>
+                  );
+                })}
+                {form.jenisTtd==="scan"&&(
+                  <div style={{ background:"#FFF8E1",borderRadius:8,padding:"8px 11px",fontSize:11,color:"#856404",border:"1px solid #FDE68A" }}>
+                    ⚠️ Pastikan <code>stempel.png</code> dan <code>image.jpeg</code> ada di folder <code>public/</code>
+                  </div>
+                )}
+              </div>
+            </SectionBody>
+
+            {/* ── SEKSI 5: Lampiran ── */}
+            <SectionBtn id="lampiran" icon="📎" title="Lampiran Daftar Undangan" subtitle="Isi jika pilihan cetak Semua Halaman"/>
+            <SectionBody id="lampiran">
+              <div style={{ marginBottom: 12 }}>
+                <Label text="Judul Lampiran"/>
+                <input className="ug-input" style={inputSt} placeholder="DAFTAR UNDANGAN" value={form.judulLampiran} onChange={set("judulLampiran")}/>
+              </div>
+              <div style={{ marginBottom: 12 }}>
+                <Label text="Spasi Baris"/>
+                <select className="ug-input" style={inputSt} value={form.spasiLampiran} onChange={set("spasiLampiran")}>
+                  <option value="1.0">1.0 (Rapat)</option>
+                  <option value="1.15">1.15</option>
+                  <option value="1.5">1.5 (Standar)</option>
+                  <option value="2.0">2.0 (Renggang)</option>
+                </select>
+              </div>
+              <div style={{ marginBottom: 4 }}>
+                <Label text="Isi Daftar Undangan" hint="Satu per baris, gunakan Enter"/>
+                <textarea className="ug-input" style={Object.assign({},textareaSt,{minHeight:130})} placeholder={"1. …;\n2. …;\n3. …."} value={form.lampiran} onChange={set("lampiran")}/>
+              </div>
+            </SectionBody>
+
+            <div style={{ height: 16 }}/>
           </div>
 
-          <hr className="ug-hr"/>
-
-          {/* Tanda tangan */}
-          <div className="ug-form-group" style={{ background:"#fff8e1", padding:10, borderRadius:6, border:"1px solid #ffe082" }}>
-            <label style={{ color:"#b97700" }}>Jenis Tanda Tangan:</label>
-            <select value={form.jenisTtd} onChange={set("jenisTtd")}>
-              <option value="kosong">Kosong (Ruang TTD Basah)</option>
-              <option value="scan">Scan (Otomatis TTD + Stempel)</option>
-              <option value="tte">TTE (Variabel BSrE)</option>
-            </select>
-            {form.jenisTtd === "scan" && (
-              <span className="ug-hint">⚠️ Pastikan <code>stempel.png</code> dan <code>image.jpeg</code> ada di folder <code>public/</code></span>
-            )}
+          {/* Tombol aksi sticky */}
+          <div style={{ padding: "12px 14px 16px", borderTop: "1px solid #E2E8F0", background: "#F8FAFC", flexShrink: 0 }}>
+            <button onClick={generatePDF} disabled={loading}
+              style={{ width: "100%", padding: "13px 0", borderRadius: 10, border: "none",
+                background: loading ? "#94A3B8" : "linear-gradient(135deg," + NAVY + ",#1A2F50)",
+                color: "white", fontWeight: 800, fontSize: 14, cursor: loading ? "not-allowed" : "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                boxShadow: loading ? "none" : "0 4px 14px rgba(10,22,40,0.25)", marginBottom: 8 }}>
+              {loading
+                ? <><span style={{ width:16,height:16,borderRadius:"50%",border:"2.5px solid rgba(255,255,255,0.3)",borderTopColor:"white",display:"inline-block",animation:"spin 0.7s linear infinite" }}/>&nbsp;Memproses PDF...</>
+                : <><span style={{ fontSize:18 }}>⬇</span>&nbsp;Unduh PDF Undangan</>}
+            </button>
+            <button onClick={resetForm}
+              style={{ width:"100%",padding:"9px 0",borderRadius:10,border:"1.5px solid #E2E8F0",background:"white",color:"#64748B",fontWeight:600,fontSize:12,cursor:"pointer" }}>
+              🔄 Reset Semua Kolom
+            </button>
           </div>
-
-          {/* Lampiran */}
-          <div className="ug-form-group">
-            <label>Judul Lampiran:</label>
-            <input type="text" value={form.judulLampiran} onChange={set("judulLampiran")}/>
-          </div>
-          <div className="ug-form-group">
-            <label>Spasi Daftar Lampiran:</label>
-            <select value={form.spasiLampiran} onChange={set("spasiLampiran")}>
-              <option value="1.0">1.0 (Rapat)</option>
-              <option value="1.15">1.15</option>
-              <option value="1.5">1.5 (Standar)</option>
-              <option value="2.0">2.0 (Renggang)</option>
-            </select>
-          </div>
-          <div className="ug-form-group">
-            <label>Isi Lampiran (Bisa Enter):</label>
-            <textarea rows={8} value={form.lampiran} onChange={set("lampiran")}/>
-          </div>
-
-          {/* Tombol generate */}
-          <button
-            className="ug-btn"
-            onClick={generatePDF}
-            disabled={loading}
-          >
-            {loading ? "⏳ Sedang memproses PDF..." : "⬇ Unduh PDF Undangan"}
-          </button>
         </div>
 
-        {/* ── Panel Preview — iframe agar CSS PWA tidak mencemari ── */}
+        {/* ══ PANEL PREVIEW ═══════════════════════════════════════ */}
         {!isMobile && (
-          <div className="ug-panel-preview">
-            <iframe
-              ref={dokumenRef}
-              title="Preview Undangan"
-              style={{ border:"none", width:"100%", height:"100%", background:"#525659" }}
-              srcDoc={buildIframeSrcDoc()}
-            />
+          <div style={{ flex: 1, background: "#525659", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            <div style={{ background: "rgba(0,0,0,0.35)", padding: "9px 16px", display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+              <span style={{ fontSize: 13, color: "rgba(255,255,255,0.7)" }}>👁 Pratinjau Dokumen</span>
+              <span style={{ marginLeft: "auto", fontSize: 11, color: "rgba(255,255,255,0.4)" }}>Memperbarui otomatis saat Anda mengetik</span>
+            </div>
+            <iframe ref={dokumenRef} title="Preview Undangan" srcDoc={buildIframeSrcDoc()}
+              style={{ flex: 1, border: "none", width: "100%", background: "#525659" }}/>
           </div>
         )}
 
-        {/* Mobile: hanya tombol, tanpa preview */}
         {isMobile && (
-          <div style={{ padding:20 }}>
-            <div style={{ background:"#fff3cd", borderRadius:8, padding:"10px 14px", fontSize:12, color:"#856404", marginBottom:12 }}>
-              ℹ️ Preview tidak tersedia di mobile. Isi form lalu tekan tombol Unduh untuk menghasilkan PDF.
+          <div style={{ padding: 16 }}>
+            <div style={{ background:"#FFF3CD",borderRadius:9,padding:"11px 14px",fontSize:12,color:"#856404",border:"1px solid #FFD97D" }}>
+              ℹ️ Preview tidak tersedia di mobile. Isi semua kolom lalu tekan <strong>Unduh PDF</strong>.
             </div>
-            <button
-              className="ug-btn"
-              onClick={generatePDF}
-              disabled={loading}
-              style={{ position:"static" }}
-            >
-              {loading ? "⏳ Sedang memproses PDF..." : "⬇ Unduh PDF Undangan"}
-            </button>
           </div>
         )}
       </div>
