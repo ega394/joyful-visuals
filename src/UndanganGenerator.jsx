@@ -5,13 +5,13 @@
  * - CSS asli (#dokumen-cetak, .halaman-a4, dll) disuntikkan UTUH via <style> tag
  * - HTML #dokumen-cetak dirender via dangerouslySetInnerHTML — TIDAK diubah sama sekali
  * - updatePreview() berjalan via useEffect + DOM manipulation langsung (getElementById)
- *   — persis sama seperti di file HTML asli
+ * — persis sama seperti di file HTML asli
  * - generatePDF() identik dengan versi asli
  *
  * GAMBAR STATIS — letakkan di:
- *   public/image001.jpg   ← Logo Garuda Pancasila (kop surat)
- *   public/stempel.png    ← Stempel Wali Kota Tarakan
- *   public/image.jpeg     ← Tanda tangan Wali Kota
+ * public/image001.jpg   ← Logo Garuda Pancasila (kop surat)
+ * public/stempel.png    ← Stempel Wali Kota Tarakan
+ * public/image.jpeg     ← Tanda tangan Wali Kota
  */
 
 import React, { useState, useEffect, useRef } from "react";
@@ -108,7 +108,6 @@ const CSS_ASLI = `
 `;
 
 // ── HTML #dokumen-cetak asli — tidak diubah sama sekali ──
-// (hanya path gambar disesuaikan ke /public/)
 const HTML_DOKUMEN_CETAK = `
   <div class="halaman-a4">
     <div class="kop">
@@ -214,10 +213,55 @@ function loadHtml2Pdf() {
   });
 }
 
-export default function UndanganGenerator({ isMobile, showT }) {
-  const NAVY = "#0A1628";
-  const GOLD = "#C9A84C";
+// =====================================================================
+// HELPER UI: Didefinisikan DI LUAR komponen utama agar tidak re-render
+// =====================================================================
+const NAVY = "#0A1628";
+const GOLD = "#C9A84C";
 
+const inputSt = {
+  width: "100%", padding: "9px 11px", borderRadius: 8,
+  border: "1.5px solid #E2E8F0", fontSize: 13, color: NAVY,
+  background: "white", outline: "none", fontFamily: "inherit",
+  boxSizing: "border-box",
+};
+
+const textareaSt = Object.assign({}, inputSt, { resize: "vertical", lineHeight: 1.55, minHeight: 72 });
+
+const Label = ({ text, required, hint }) => (
+  <div style={{ marginBottom: 5 }}>
+    <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: 0.5, display: "flex", alignItems: "center", gap: 4 }}>
+      {text}
+      {required && <span style={{ color: "#DC2626", fontSize: 10 }}>*</span>}
+    </div>
+    {hint && <div style={{ fontSize: 10.5, color: "#94A3B8", marginTop: 1 }}>{hint}</div>}
+  </div>
+);
+
+const SectionBtn = ({ isActive, onClick, icon, title, subtitle }) => (
+  <button onClick={onClick}
+    style={{ width: "100%", background: isActive ? NAVY : "#F8FAFC",
+      border: "1.5px solid " + (isActive ? NAVY : "#E2E8F0"),
+      borderRadius: 10, padding: "11px 14px", cursor: "pointer",
+      display: "flex", alignItems: "center", gap: 10, marginBottom: 2, textAlign: "left" }}>
+    <span style={{ fontSize: 18 }}>{icon}</span>
+    <div style={{ flex: 1 }}>
+      <div style={{ fontSize: 13, fontWeight: 700, color: isActive ? "white" : NAVY }}>{title}</div>
+      <div style={{ fontSize: 11, color: isActive ? "rgba(255,255,255,0.65)" : "#94A3B8", marginTop: 1 }}>{subtitle}</div>
+    </div>
+    <span style={{ fontSize: 12, color: isActive ? "white" : "#94A3B8" }}>{isActive ? "▲" : "▼"}</span>
+  </button>
+);
+
+const SectionBody = ({ isActive, children }) => isActive
+  ? <div style={{ background: "white", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "16px", marginBottom: 10 }}>{children}</div>
+  : null;
+
+
+// =====================================================================
+// KOMPONEN UTAMA
+// =====================================================================
+export default function UndanganGenerator({ isMobile, showT }) {
   const EMPTY = {
     pilihanCetak:  "semua",
     tanggalSurat:  "",
@@ -255,7 +299,6 @@ export default function UndanganGenerator({ isMobile, showT }) {
   const buildIframeSrcDoc = () => {
     var f = form;
 
-    // TTD content sebagai string biasa
     var ttdContent = "<br><br><br>";
     if (f.jenisTtd === "scan") {
       ttdContent =
@@ -265,7 +308,6 @@ export default function UndanganGenerator({ isMobile, showT }) {
       ttdContent = "<br><br>${ttd_pengirim}<br><br>";
     }
 
-    // Escape untuk disisipkan ke dalam string JS di dalam HTML
     var esc = function(s) {
       return (s || "")
         .replace(/\\/g, "\\\\")
@@ -273,7 +315,6 @@ export default function UndanganGenerator({ isMobile, showT }) {
         .replace(/\r?\n/g, "\\n");
     };
 
-    // Bangun script sebagai string concatenation
     var script =
       "function updatePreview(){" +
       "var p='" + esc(f.pilihanCetak) + "';" +
@@ -424,44 +465,6 @@ export default function UndanganGenerator({ isMobile, showT }) {
     }
   };
 
-  // ── Helper UI komponen ─────────────────────────────────────
-  const Label = ({ text, required, hint }) => (
-    React.createElement("div", { style: { marginBottom: 5 } },
-      React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: 0.5, display: "flex", alignItems: "center", gap: 4 } },
-        text,
-        required && React.createElement("span", { style: { color: "#DC2626", fontSize: 10 } }, "*")
-      ),
-      hint && React.createElement("div", { style: { fontSize: 10.5, color: "#94A3B8", marginTop: 1 } }, hint)
-    )
-  );
-
-  const inputSt = {
-    width: "100%", padding: "9px 11px", borderRadius: 8,
-    border: "1.5px solid #E2E8F0", fontSize: 13, color: NAVY,
-    background: "white", outline: "none", fontFamily: "inherit",
-    boxSizing: "border-box",
-  };
-  const textareaSt = Object.assign({}, inputSt, { resize: "vertical", lineHeight: 1.55, minHeight: 72 });
-
-  const SectionBtn = ({ id, icon, title, subtitle }) => (
-    <button onClick={() => setSection(function(s){ return s === id ? "" : id; })}
-      style={{ width: "100%", background: section === id ? NAVY : "#F8FAFC",
-        border: "1.5px solid " + (section === id ? NAVY : "#E2E8F0"),
-        borderRadius: 10, padding: "11px 14px", cursor: "pointer",
-        display: "flex", alignItems: "center", gap: 10, marginBottom: 2, textAlign: "left" }}>
-      <span style={{ fontSize: 18 }}>{icon}</span>
-      <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: section === id ? "white" : NAVY }}>{title}</div>
-        <div style={{ fontSize: 11, color: section === id ? "rgba(255,255,255,0.65)" : "#94A3B8", marginTop: 1 }}>{subtitle}</div>
-      </div>
-      <span style={{ fontSize: 12, color: section === id ? "white" : "#94A3B8" }}>{section === id ? "▲" : "▼"}</span>
-    </button>
-  );
-
-  const SectionBody = ({ id, children }) => section === id
-    ? <div style={{ background: "white", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "16px", marginBottom: 10 }}>{children}</div>
-    : null;
-
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: CSS_ASLI }} />
@@ -518,8 +521,8 @@ export default function UndanganGenerator({ isMobile, showT }) {
             </div>
 
             {/* ── SEKSI 1: Data Surat ── */}
-            <SectionBtn id="surat" icon="🗂" title="Data Surat" subtitle="Nomor, tanggal, sifat, lampiran"/>
-            <SectionBody id="surat">
+            <SectionBtn isActive={section === "surat"} onClick={() => setSection(s => s === "surat" ? "" : "surat")} icon="🗂" title="Data Surat" subtitle="Nomor, tanggal, sifat, lampiran"/>
+            <SectionBody isActive={section === "surat"}>
               <div style={{ marginBottom: 12 }}>
                 <Label text="Tempat, Tanggal Surat" hint="Contoh: Tarakan, 1 April 2026"/>
                 <input className="ug-input" style={inputSt} placeholder="Tarakan, ..." value={form.tanggalSurat} onChange={set("tanggalSurat")}/>
@@ -547,8 +550,8 @@ export default function UndanganGenerator({ isMobile, showT }) {
             </SectionBody>
 
             {/* ── SEKSI 2: Data Acara ── */}
-            <SectionBtn id="acara" icon="📋" title="Data Acara" subtitle="Waktu, tempat, dan susunan kegiatan"/>
-            <SectionBody id="acara">
+            <SectionBtn isActive={section === "acara"} onClick={() => setSection(s => s === "acara" ? "" : "acara")} icon="📋" title="Data Acara" subtitle="Waktu, tempat, dan susunan kegiatan"/>
+            <SectionBody isActive={section === "acara"}>
               <div style={{ marginBottom: 12 }}>
                 <Label text="Hari/Tanggal Acara" required hint="Contoh: Senin, 1 April 2026"/>
                 <input className="ug-input" style={inputSt} placeholder="Senin, 1 April 2026" value={form.waktuAcara} onChange={set("waktuAcara")}/>
@@ -568,8 +571,8 @@ export default function UndanganGenerator({ isMobile, showT }) {
             </SectionBody>
 
             {/* ── SEKSI 3: Keterangan ── */}
-            <SectionBtn id="keterangan" icon="📌" title="Keterangan Tambahan" subtitle="Narahubung, pakaian, catatan"/>
-            <SectionBody id="keterangan">
+            <SectionBtn isActive={section === "keterangan"} onClick={() => setSection(s => s === "keterangan" ? "" : "keterangan")} icon="📌" title="Keterangan Tambahan" subtitle="Narahubung, pakaian, catatan"/>
+            <SectionBody isActive={section === "keterangan"}>
               <div style={{ marginBottom: 12 }}>
                 <Label text="Narahubung & Nomor HP" hint="Contoh: Kasubbag Protokol (0811-5961-116)"/>
                 <input className="ug-input" style={inputSt} placeholder="Kasubbag Protokol (…)" value={form.narahubung} onChange={set("narahubung")}/>
@@ -585,8 +588,8 @@ export default function UndanganGenerator({ isMobile, showT }) {
             </SectionBody>
 
             {/* ── SEKSI 4: TTD ── */}
-            <SectionBtn id="ttd" icon="✍️" title="Tanda Tangan" subtitle="Pilih jenis TTD yang akan dicetak"/>
-            <SectionBody id="ttd">
+            <SectionBtn isActive={section === "ttd"} onClick={() => setSection(s => s === "ttd" ? "" : "ttd")} icon="✍️" title="Tanda Tangan" subtitle="Pilih jenis TTD yang akan dicetak"/>
+            <SectionBody isActive={section === "ttd"}>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {[
                   ["kosong","Kosong","Ruang TTD basah — tanda tangan tulis tangan setelah cetak","⬜"],
@@ -618,8 +621,8 @@ export default function UndanganGenerator({ isMobile, showT }) {
             </SectionBody>
 
             {/* ── SEKSI 5: Lampiran ── */}
-            <SectionBtn id="lampiran" icon="📎" title="Lampiran Daftar Undangan" subtitle="Isi jika pilihan cetak Semua Halaman"/>
-            <SectionBody id="lampiran">
+            <SectionBtn isActive={section === "lampiran"} onClick={() => setSection(s => s === "lampiran" ? "" : "lampiran")} icon="📎" title="Lampiran Daftar Undangan" subtitle="Isi jika pilihan cetak Semua Halaman"/>
+            <SectionBody isActive={section === "lampiran"}>
               <div style={{ marginBottom: 12 }}>
                 <Label text="Judul Lampiran"/>
                 <input className="ug-input" style={inputSt} placeholder="DAFTAR UNDANGAN" value={form.judulLampiran} onChange={set("judulLampiran")}/>
