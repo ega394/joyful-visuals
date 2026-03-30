@@ -223,7 +223,7 @@ export default function UndanganGenerator({ isMobile, showT }) {
     `;
   };
 
-  // ── Fungsi Generate PDF (FIXED: Blank Render & Preload Images) ──
+  // ── Fungsi Generate PDF (FIXED: Blank Render) ──
   const generatePDF = async () => {
     if (!form.nomor.trim() || !form.tanggalAcaraInput || !form.tempat.trim()) {
       if (showT) showT("Isi minimal: Nomor Surat, Hari/Tanggal Acara, dan Tempat", "warn");
@@ -239,14 +239,16 @@ export default function UndanganGenerator({ isMobile, showT }) {
       styleEl.textContent = CSS_ASLI;
       document.head.appendChild(styleEl);
 
-      // 2. PERBAIKAN: Taruh kontainer di pojok kiri atas (bukan -9999px) 
-      // tapi pakai z-index negatif agar bersembunyi di belakang UI aplikasi.
+      // 2. FIX UTAMA: Gunakan position:fixed + top:-9999px
+      // Elemen berada di luar viewport (tidak terlihat user) TAPI masih
+      // di-render penuh oleh browser sehingga html2canvas bisa menangkapnya.
+      // Ini menghindari masalah blank yang terjadi saat z-index negatif dipakai.
       const container = document.createElement("div");
-      container.style.cssText = "position:absolute; left:0; top:0; width:210mm; background:white; z-index:-9999;";
+      container.style.cssText = "position:fixed; top:-9999px; left:0; width:210mm; background:white;";
       container.innerHTML = buildHTMLString();
       document.body.appendChild(container);
 
-      // 3. PERBAIKAN: Preload SEMUA gambar yang dipakai, termasuk stempel & TTD
+      // 3. Preload SEMUA gambar yang dipakai, termasuk stempel & TTD
       const imagesToPreload = [`${window.location.origin}/image001.jpg`];
       if (form.jenisTtd === "scan") {
         imagesToPreload.push(`${window.location.origin}/stempel.png`);
@@ -270,17 +272,15 @@ export default function UndanganGenerator({ isMobile, showT }) {
       const prefix     = form.pilihanCetak === "utama" ? "Undangan_Utama" : "Undangan";
       const namaFile   = `${prefix}${suffixTtd}_${nomorSurat || "Draft"}.pdf`;
 
-      // 4. PERBAIKAN: Hapus allowTaint: true, tambah scrollX/Y: 0
+      // 4. html2canvas tanpa scrollX/Y (tidak relevan dengan position:fixed)
       await html2pdf().set({
         margin: 0,
         filename: namaFile,
         image: { type: "jpeg", quality: 1 },
         html2canvas: { 
           scale: 2, 
-          useCORS: true, 
-          // allowTaint DIHAPUS agar tidak bentrok dengan toDataURL jsPDF
-          scrollY: 0, // Kunci scroll di 0 agar tangkapan tidak meleset
-          scrollX: 0
+          useCORS: true,
+          logging: false
         },
         jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
       }).from(container).save();
