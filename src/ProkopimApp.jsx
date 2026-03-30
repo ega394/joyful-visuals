@@ -4055,7 +4055,7 @@ function WeatherJarak({tanggal, jam, lokasi}) {
                         fontSize: 11, fontWeight: 700,
                         color: weather.hujan > 60 ? "#FCD34D" : "rgba(255,255,255,0.7)"
                       }}>
-                        💧 {weather.hujan}%{weather.hujan > 60 ? " ⚠️ persiapkan jas hujan" : ""}
+                        💧 {weather.hujan}%{weather.hujan > 60 ? " ⚠️ persiapkan payung" : ""}
                       </span>
                     )}
                     {weather.jauh && (
