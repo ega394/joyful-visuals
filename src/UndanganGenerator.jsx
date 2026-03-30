@@ -1,6 +1,6 @@
 /**
  * UndanganGenerator.jsx — Prokopim Hibot v2.0
- * FIXED: Pengembalian Metode DOM Global Asli + Image Preloader
+ * FIXED: CORS Issue, Image Preloader, & Canvas Rendering Position
  */
 
 import React, { useState, useRef } from "react";
@@ -223,7 +223,7 @@ export default function UndanganGenerator({ isMobile, showT }) {
     `;
   };
 
-  // ── Fungsi Generate PDF (Anti-Kosong, Global Inject, Image Preload) ──
+  // ── Fungsi Generate PDF (FIXED: Blank Render & Preload Images) ──
   const generatePDF = async () => {
     if (!form.nomor.trim() || !form.tanggalAcaraInput || !form.tempat.trim()) {
       if (showT) showT("Isi minimal: Nomor Surat, Hari/Tanggal Acara, dan Tempat", "warn");
@@ -234,41 +234,58 @@ export default function UndanganGenerator({ isMobile, showT }) {
     try {
       const html2pdf = await loadHtml2Pdf();
 
-      // 1. Suntikkan CSS secara Global ke Head (Cara Orisinal yg bekerja)
+      // 1. Suntikkan CSS
       const styleEl = document.createElement("style");
       styleEl.textContent = CSS_ASLI;
       document.head.appendChild(styleEl);
 
-      // 2. Buat Kontainer DOM Nyata dengan ukuran tepat
+      // 2. PERBAIKAN: Taruh kontainer di pojok kiri atas (bukan -9999px) 
+      // tapi pakai z-index negatif agar bersembunyi di belakang UI aplikasi.
       const container = document.createElement("div");
-      container.style.cssText = "position:fixed; left:-9999px; top:0; width:210mm; background:white; z-index:-9999;";
+      container.style.cssText = "position:absolute; left:0; top:0; width:210mm; background:white; z-index:-9999;";
       container.innerHTML = buildHTMLString();
       document.body.appendChild(container);
 
-      // 3. PRELOAD GAMBAR: Pastikan logo Garuda terunduh sebelum kamera memotret
-      await new Promise((resolve) => {
-        const img = new Image();
-        img.onload = resolve;
-        img.onerror = resolve; // Tetap lanjut walau gagal agar tidak hang
-        img.src = `${window.location.origin}/image001.jpg`;
-        setTimeout(resolve, 1500); // Waktu maksimal tunggu 1.5 detik
-      });
+      // 3. PERBAIKAN: Preload SEMUA gambar yang dipakai, termasuk stempel & TTD
+      const imagesToPreload = [`${window.location.origin}/image001.jpg`];
+      if (form.jenisTtd === "scan") {
+        imagesToPreload.push(`${window.location.origin}/stempel.png`);
+        imagesToPreload.push(`${window.location.origin}/image.jpeg`);
+      }
 
-      // 4. Proses html2pdf
+      await Promise.all(imagesToPreload.map(src => {
+        return new Promise((resolve) => {
+          const img = new Image();
+          img.onload = resolve;
+          img.onerror = resolve; // Tetap lanjut walau gagal agar tidak hang
+          img.src = src;
+        });
+      }));
+
+      // Beri jeda 300ms agar browser selesai me-render DOM & CSS sebelum difoto
+      await new Promise(r => setTimeout(r, 300));
+
       const nomorSurat = form.nomor.replace(/[\/\\]/g, "-").replace(/[^a-zA-Z0-9-]/g, "");
       const suffixTtd  = form.jenisTtd === "tte" ? "_TTE" : (form.jenisTtd === "scan" ? "_Scan" : "");
       const prefix     = form.pilihanCetak === "utama" ? "Undangan_Utama" : "Undangan";
       const namaFile   = `${prefix}${suffixTtd}_${nomorSurat || "Draft"}.pdf`;
 
+      // 4. PERBAIKAN: Hapus allowTaint: true, tambah scrollX/Y: 0
       await html2pdf().set({
         margin: 0,
         filename: namaFile,
         image: { type: "jpeg", quality: 1 },
-        html2canvas: { scale: 2, useCORS: true, allowTaint: true },
+        html2canvas: { 
+          scale: 2, 
+          useCORS: true, 
+          // allowTaint DIHAPUS agar tidak bentrok dengan toDataURL jsPDF
+          scrollY: 0, // Kunci scroll di 0 agar tangkapan tidak meleset
+          scrollX: 0
+        },
         jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
       }).from(container).save();
 
-      // 5. Bersihkan sampah DOM
+      // 5. Bersihkan DOM
       document.body.removeChild(container);
       document.head.removeChild(styleEl);
 
