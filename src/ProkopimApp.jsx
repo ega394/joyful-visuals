@@ -4082,7 +4082,7 @@ function WeatherJarak({tanggal, jam, lokasi}) {
           <span style={{fontSize: 22, lineHeight: 1}}>🚗</span>
           <div style={{minWidth: 0}}>
             <div style={{fontSize: 10, color: "rgba(255,255,255,0.65)", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 1}}>
-              Dari Balaikota
+              dari Kantor Wali Kota
             </div>
             {loadJ
               ? <div style={{fontSize:11,color:"rgba(255,255,255,0.6)"}}>Menghitung rute...</div>
@@ -4258,7 +4258,7 @@ function KartuSorotanHariIni({ events, filterForRole, filterPimpinan }) {
                     )}
                     {j && (
                       <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>
-                        {j.jarak} dari Balaikota
+                        {j.jarak} dari Kantor Wali Kota
                       </div>
                     )}
                   </div>
