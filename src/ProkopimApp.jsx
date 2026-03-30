@@ -4215,7 +4215,7 @@ function KartuSorotanHariIni({ events, filterForRole, filterPimpinan }) {
         {isHujan && (
           <div style={{ background: "rgba(239,68,68,0.25)", border: "1px solid rgba(239,68,68,0.4)",
             borderRadius: 20, padding: "4px 10px", fontSize: 11, color: "#FCA5A5", fontWeight: 700 }}>
-            ⚠️ Siapkan Jas Hujan
+            ⚠️ Siapkan Payung
           </div>
         )}
         <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)" }}>
