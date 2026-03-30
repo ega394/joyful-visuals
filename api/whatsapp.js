@@ -23,6 +23,7 @@ export default async function handler(req, res) {
     penyelenggara,
     lokasi,
     event,
+    alasanHapus,        // alasan pembatalan berjenjang
     submittedBy,        // nama yang mengajukan
     jabatanPengirim,    // jabatan yang melakukan aksi (misal "Kasubbag Protokol")
     namaPenerima,       // nama penerima untuk sapaan
@@ -234,7 +235,58 @@ export default async function handler(req, res) {
       FOOTER;
 
   // ── fallback generik ───────────────────────────────────────
-  } else {
+  
+  } else if (event === "ajukan_batal") {
+    // Admin RK → Kasubbag: permintaan pembatalan jadwal final
+    const pengaju = submittedBy || "Admin RK";
+    const alasan  = alasanHapus ? `\n\n📝 *Alasan:*\n${alasanHapus}` : "";
+    pesan = HEADER +
+      sapa +
+      `⚠️ *Permintaan Pembatalan Jadwal*\n\n` +
+      `*${pengaju}* mengajukan pembatalan jadwal berikut:${alasan}\n\n` +
+      infoJadwal +
+      `\n\nMohon ditinjau dan diputuskan:\n` +
+      `✅ Teruskan ke Kabag, atau\n` +
+      `❌ Tolak — jadwal tetap aktif.` +
+      FOOTER;
+
+  } else if (event === "batal_ke_kabag") {
+    // Kasubbag → Kabag: meneruskan permintaan pembatalan
+    const pengaju = submittedBy || "Kasubbag";
+    const alasan  = alasanHapus ? `\n\n📝 *Alasan:*\n${alasanHapus}` : "";
+    pesan = HEADER +
+      sapa +
+      `⚠️ *Permintaan Pembatalan — Keputusan Akhir Kabag*\n\n` +
+      `Kasubbag Protokol meneruskan permintaan pembatalan berikut:${alasan}\n\n` +
+      infoJadwal +
+      `\n\nSebagai Kabag, Anda dapat:\n` +
+      `🗑️ Setujui & hapus permanen, atau\n` +
+      `❌ Tolak — jadwal tetap aktif.` +
+      FOOTER;
+
+  } else if (event === "batal_disetujui_kabag") {
+    // Kabag → Admin RK: pembatalan disetujui, jadwal dihapus
+    const kabag = submittedBy || "Kabag";
+    pesan = HEADER +
+      sapa +
+      `✅ *Pembatalan Jadwal Disetujui*\n\n` +
+      `*${kabag}* telah menyetujui permintaan pembatalan.\n\n` +
+      infoJadwal +
+      `\n\nJadwal tersebut telah *dihapus permanen* dari sistem.` +
+      FOOTER;
+
+  } else if (event === "batal_ditolak") {
+    // Kasubbag/Kabag → Admin RK: permintaan ditolak
+    const penolak = submittedBy || jabatanPengirim || "Pejabat terkait";
+    pesan = HEADER +
+      sapa +
+      `❌ *Permintaan Pembatalan Ditolak*\n\n` +
+      `*${penolak}* tidak menyetujui pembatalan jadwal berikut:\n\n` +
+      infoJadwal +
+      `\n\nJadwal tetap aktif. Hubungi ${penolak} untuk informasi lebih lanjut.` +
+      FOOTER;
+
+} else {
     pesan = HEADER + sapa + `🔔 *Notifikasi Jadwal*\n\n` + infoJadwal + FOOTER;
   }
 
