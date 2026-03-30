@@ -1,13 +1,14 @@
 /**
  * UndanganGenerator.jsx — Prokopim Hibot v2.0
- * Engine: React Native JSX Rendering (Anti-Blank PDF)
+ * FIXED: Pengembalian Metode DOM Global Asli + Image Preloader
  */
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useRef } from "react";
 
 // ── CSS Kertas & Dokumen ──
 const CSS_ASLI = `
   #dokumen-cetak, #dokumen-cetak * { font-family: Arial, Helvetica, sans-serif !important; }
+  #dokumen-cetak { background: white; width: 210mm; }
   .halaman-a4 { width: 210mm; min-height: 297mm; background: white; padding: 20mm 20mm 20mm 25mm; box-shadow: 0 4px 15px rgba(0,0,0,0.2); margin-bottom: 20px; box-sizing: border-box; font-size: 11pt; color: black; line-height: 1.5; position: relative; }
   .kop { text-align: center; margin-bottom: 25px; }
   .kop img { width: 88px; margin-bottom: 5px; }
@@ -23,11 +24,15 @@ const CSS_ASLI = `
   .tabel-acara td { vertical-align: top; padding: 2px 0; }
   .col-label-acara { width: 113pt; }
   .area-ttd { float: right; width: 250px; text-align: center; margin-top: 15px; position: relative; }
+  
+  /* AREA KETERANGAN (TEMBUSAN, NARAHUBUNG, PAKAIAN) - FONT 10PT */
   .area-keterangan { clear: both; margin-top: 25px; line-height: 1.5; font-size: 10pt !important; }
   .area-keterangan * { font-size: 10pt !important; }
   .ket-item { margin-bottom: 6px; }
+  
   .footer-alamat { position: absolute; bottom: 20mm; left: 0; right: 0; text-align: center; font-size: 10pt; line-height: 1.3; }
   .teks-multibaris { white-space: pre-wrap; }
+  .page-break { page-break-before: always; }
   .tte-marker { color: #0056b3; font-family: monospace !important; background: #e9ecef; padding: 2px 5px; border-radius: 3px; font-weight: bold; }
 `;
 
@@ -36,7 +41,7 @@ function loadHtml2Pdf() {
     if (window.html2pdf) { resolve(window.html2pdf); return; }
     const s = document.createElement("script");
     s.src = "https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js";
-    s.onload  = () => resolve(window.html2pdf);
+    s.onload = () => resolve(window.html2pdf);
     s.onerror = () => reject(new Error("Gagal memuat html2pdf.js"));
     document.head.appendChild(s);
   });
@@ -52,10 +57,11 @@ const formatTanggalIndo = (dateStr) => {
 };
 
 // =====================================================================
-// HELPER UI: Desain Input dan Tombol Form
+// HELPER UI: Didefinisikan DI LUAR komponen utama
 // =====================================================================
 const NAVY = "#0A1628";
 const GOLD = "#C9A84C";
+
 const inputSt = { width: "100%", padding: "9px 11px", borderRadius: 8, border: "1.5px solid #E2E8F0", fontSize: 13, color: NAVY, background: "white", outline: "none", fontFamily: "inherit", boxSizing: "border-box" };
 const textareaSt = Object.assign({}, inputSt, { resize: "vertical", lineHeight: 1.55, minHeight: 72 });
 
@@ -104,6 +110,7 @@ export default function UndanganGenerator({ isMobile, showT }) {
     waktuSelesai:  "",
     tempat:        "",
     acara:         "1. ...;\n2. ...; dan\n3. Hal-hal lain yang dianggap perlu.",
+    
     showTembusan:  false,
     tembusan:      "1. Yth. Bapak Wali Kota Tarakan (sebagai laporan);\n2. Arsip.",
     showNarahubung: true,
@@ -111,6 +118,7 @@ export default function UndanganGenerator({ isMobile, showT }) {
     showPakaian:   true,
     pakaian:       "PDH Batik Daerah/Menyesuaikan",
     catatan:       "",
+    
     jenisTtd:      "kosong",
     judulLampiran: "DAFTAR UNDANGAN",
     spasiLampiran: "1.5",
@@ -120,32 +128,102 @@ export default function UndanganGenerator({ isMobile, showT }) {
   const [form, setForm] = useState(EMPTY);
   const [loading, setLoading] = useState(false);
   const [section, setSection] = useState("surat");
-  const [iframeSrcDoc, setIframeSrcDoc] = useState("");
 
-  const set = (key) => (e) => setForm((p) => ({...p, [key]: e.target.value}));
+  const set = (key) => (e) => setForm((p) => ({ ...p, [key]: e.target.value }));
 
-  // 1. UPDATE PREVIEW OTOMATIS: Mengambil wujud fisik dokumen cetak
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      const source = document.getElementById("dokumen-cetak");
-      if (source) {
-        const content = `
-          <!DOCTYPE html>
-          <html><head><meta charset="utf-8">
-          <style>
-            body { margin: 0; padding: 20px; background: #525659; display: flex; justify-content: center; }
-            ${CSS_ASLI}
-          </style></head><body>
-          ${source.outerHTML}
-          </body></html>
-        `;
-        setIframeSrcDoc(content);
-      }
-    }, 150);
-    return () => clearTimeout(timer);
-  }, [form]);
+  const resetForm = () => {
+    if (window.confirm("Reset semua kolom? Data yang belum disimpan akan hilang.")) setForm(EMPTY);
+  };
 
-  // 2. FUNGSI UNDUH: Memotret wujud fisik dokumen tanpa perlu manipulasi string
+  // Logika Waktu (mengubah : menjadi . agar formatnya 08.00 s.d. selesai)
+  let tglText = formatTanggalIndo(form.tanggalAcaraInput);
+  let pklText = "";
+  if (form.waktuMulai) {
+    let jamMulai = form.waktuMulai.replace(/:/g, ".");
+    if (form.waktuSelesai) {
+      let jamSelesai = form.waktuSelesai.replace(/:/g, ".");
+      pklText = `${jamMulai} s.d. ${jamSelesai} WITA`;
+    } else {
+      pklText = `${jamMulai} s.d. selesai`;
+    }
+  }
+
+  // Merakit HTML Murni (Anti-Kosong)
+  const buildHTMLString = () => {
+    let ttdPdf = "<br><br><br>";
+    if (form.jenisTtd === "scan") {
+      ttdPdf =
+        `<img src="${window.location.origin}/stempel.png" style="position:absolute;left:0;top:-30px;width:145px;z-index:1;mix-blend-mode:multiply" onerror="this.style.display='none'">` +
+        `<img src="${window.location.origin}/image.jpeg" style="position:absolute;right:0;top:-30px;height:140px;z-index:2;mix-blend-mode:multiply" alt="TTD">`;
+    } else if (form.jenisTtd === "tte") {
+      ttdPdf = `<br><br><span class="tte-marker">\${ttd_pengirim}</span><br><br>`;
+    }
+
+    let halamanLampiran = "";
+    if (form.pilihanCetak !== "utama") {
+      halamanLampiran = `
+        <div class="halaman-a4 html2pdf__page-break">
+          <div style="margin-bottom:15px;">LAMPIRAN SURAT</div>
+          <table style="border-collapse:collapse;margin-bottom:25px;">
+            <tr><td style="width:70pt;">Nomor</td><td style="width:15pt;">:</td><td>${form.nomor}</td></tr>
+          </table>
+          <div style="text-align:center;margin-bottom:20px;"><b><u>${form.judulLampiran}</u></b></div>
+          <div class="teks-multibaris" style="line-height:${form.spasiLampiran};margin-bottom:20px;">${form.lampiran}</div>
+          <div class="area-ttd" style="margin-top:30px;">
+            WALI KOTA TARAKAN<br>
+            <div style="min-height:80px;position:relative;display:flex;flex-direction:column;justify-content:center;align-items:center;">${ttdPdf}</div>
+            <b>dr. H. KHAIRUL, M.Kes.</b>
+          </div>
+        </div>
+      `;
+    }
+
+    let areaKeterangan = `
+      <div class="area-keterangan">
+        ${form.showTembusan ? `<div class="ket-item"><b><u>Tembusan:</u></b><br><span class="teks-multibaris">${form.tembusan}</span></div>` : ""}
+        ${form.showNarahubung ? `<div class="ket-item"><b><u>Narahubung:</u></b><br><span class="teks-multibaris">${form.narahubung}</span></div>` : ""}
+        ${form.showPakaian ? `<div class="ket-item"><b><u>Pakaian:</u></b><br><span class="teks-multibaris">${form.pakaian}</span></div>` : ""}
+        ${form.catatan.trim() ? `<div class="ket-item"><b><u>catatan:</u></b><br><span class="teks-multibaris">${form.catatan}</span></div>` : ""}
+      </div>
+    `;
+
+    return `
+      <div id="dokumen-cetak">
+        <div class="halaman-a4">
+          <div class="kop">
+            <img src="${window.location.origin}/image001.jpg" alt="Garuda" onerror="this.style.display='none'">
+            <div class="kop-teks">WALI KOTA TARAKAN</div>
+          </div>
+          <div class="tanggal-kanan">${form.tanggalSurat}</div>
+          <table class="tabel-info">
+            <tr><td class="col-label">Nomor</td><td class="col-titikdua">:</td><td>${form.nomor}</td></tr>
+            <tr><td>Sifat</td><td>:</td><td>${form.sifat}</td></tr>
+            <tr><td>Lampiran</td><td>:</td><td>${form.lampiranCount}</td></tr>
+            <tr><td>Hal</td><td>:</td><td><b><u>Undangan</u></b></td></tr>
+          </table>
+          <div class="tujuan-surat">Yth:<br><b><span class="teks-multibaris">${form.yth}</span></b><br>di-<br><b>TARAKAN</b></div>
+          <div class="paragraf-indent">Mengharapkan dengan hormat kehadiran Bapak/Ibu/Saudara (i) pada:</div>
+          <table class="tabel-acara">
+            <tr><td class="col-label-acara">hari/tanggal</td><td class="col-titikdua">:</td><td>${tglText}</td></tr>
+            <tr><td>pukul</td><td>:</td><td>${pklText}</td></tr>
+            <tr><td>tempat</td><td>:</td><td>${form.tempat}</td></tr>
+            <tr><td>acara</td><td>:</td><td><b><div class="teks-multibaris">${form.acara}</div></b></td></tr>
+          </table>
+          <div class="paragraf-indent">Demikian, atas perhatian serta kehadirannya diucapkan terima kasih.</div>
+          <div class="area-ttd">
+            WALI KOTA TARAKAN<br>
+            <div style="min-height:80px;position:relative;display:flex;flex-direction:column;justify-content:center;align-items:center;">${ttdPdf}</div>
+            <b>dr. H. KHAIRUL, M.Kes.</b>
+          </div>
+          ${areaKeterangan}
+          <div class="footer-alamat">Jalan Kalimantan No. 1, Kota Tarakan<br>Telp. (0551) 21620, 34320 Fax. (0551) 23782</div>
+        </div>
+        ${halamanLampiran}
+      </div>
+    `;
+  };
+
+  // ── Fungsi Generate PDF (Anti-Kosong, Global Inject, Image Preload) ──
   const generatePDF = async () => {
     if (!form.nomor.trim() || !form.tanggalAcaraInput || !form.tempat.trim()) {
       if (showT) showT("Isi minimal: Nomor Surat, Hari/Tanggal Acara, dan Tempat", "warn");
@@ -155,39 +233,44 @@ export default function UndanganGenerator({ isMobile, showT }) {
 
     try {
       const html2pdf = await loadHtml2Pdf();
-      
-      // Ambil dokumen cetak asli dari layar
-      const element = document.getElementById("dokumen-cetak");
-      
-      // Buat kontainer khusus di layar untuk dipotret (z-index ditaruh di belakang)
-      const printContainer = document.createElement("div");
-      printContainer.style.position = "absolute";
-      printContainer.style.left = "0px";
-      printContainer.style.top = "0px";
-      printContainer.style.zIndex = "-9999";
-      printContainer.style.width = "210mm";
-      printContainer.style.background = "white"; // Anti putih/transparan
-      
-      // Kloning isi wujud aslinya ke kontainer
-      printContainer.appendChild(element.cloneNode(true));
-      document.body.appendChild(printContainer);
 
+      // 1. Suntikkan CSS secara Global ke Head (Cara Orisinal yg bekerja)
+      const styleEl = document.createElement("style");
+      styleEl.textContent = CSS_ASLI;
+      document.head.appendChild(styleEl);
+
+      // 2. Buat Kontainer DOM Nyata dengan ukuran tepat
+      const container = document.createElement("div");
+      container.style.cssText = "position:fixed; left:-9999px; top:0; width:210mm; background:white; z-index:-9999;";
+      container.innerHTML = buildHTMLString();
+      document.body.appendChild(container);
+
+      // 3. PRELOAD GAMBAR: Pastikan logo Garuda terunduh sebelum kamera memotret
+      await new Promise((resolve) => {
+        const img = new Image();
+        img.onload = resolve;
+        img.onerror = resolve; // Tetap lanjut walau gagal agar tidak hang
+        img.src = `${window.location.origin}/image001.jpg`;
+        setTimeout(resolve, 1500); // Waktu maksimal tunggu 1.5 detik
+      });
+
+      // 4. Proses html2pdf
       const nomorSurat = form.nomor.replace(/[\/\\]/g, "-").replace(/[^a-zA-Z0-9-]/g, "");
       const suffixTtd  = form.jenisTtd === "tte" ? "_TTE" : (form.jenisTtd === "scan" ? "_Scan" : "");
       const prefix     = form.pilihanCetak === "utama" ? "Undangan_Utama" : "Undangan";
       const namaFile   = `${prefix}${suffixTtd}_${nomorSurat || "Draft"}.pdf`;
 
-      // Foto menjadi PDF
       await html2pdf().set({
-        margin: 0, 
+        margin: 0,
         filename: namaFile,
         image: { type: "jpeg", quality: 1 },
-        html2canvas: { scale: 2, useCORS: true, allowTaint: true, scrollY: 0 },
-        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-      }).from(printContainer).save();
+        html2canvas: { scale: 2, useCORS: true, allowTaint: true },
+        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
+      }).from(container).save();
 
-      // Hapus kontainer setelah selesai dicetak
-      document.body.removeChild(printContainer);
+      // 5. Bersihkan sampah DOM
+      document.body.removeChild(container);
+      document.head.removeChild(styleEl);
 
       if (showT) showT("PDF berhasil diunduh: " + namaFile, "ok");
     } catch (err) {
@@ -198,16 +281,8 @@ export default function UndanganGenerator({ isMobile, showT }) {
     }
   };
 
-  const resetForm = () => {
-    if (window.confirm("Reset semua kolom? Data yang belum disimpan akan hilang.")) setForm(EMPTY);
-  };
-
-  const tglText = formatTanggalIndo(form.tanggalAcaraInput);
-  const pklText = form.waktuMulai ? (form.waktuSelesai ? `${form.waktuMulai} s.d. ${form.waktuSelesai} WITA` : `${form.waktuMulai} WITA s.d. selesai`) : "";
-
   return (
     <>
-      <style dangerouslySetInnerHTML={{ __html: CSS_ASLI }} />
       <style dangerouslySetInnerHTML={{ __html: ".ug-input:focus{border-color:"+NAVY+"!important;box-shadow:0 0 0 3px rgba(10,22,40,0.08)} .ug-input::placeholder{color:#CBD5E1} @keyframes spin{to{transform:rotate(360deg)}}" }} />
 
       <div style={{ display: "flex", height: isMobile ? "auto" : "calc(100vh - 60px)", overflow: "hidden", fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
@@ -215,6 +290,7 @@ export default function UndanganGenerator({ isMobile, showT }) {
         {/* ══ PANEL KIRI: FORM ══════════════════════════════════════════ */}
         <div style={{ flex: "0 0 400px", background: "#F8FAFC", overflowY: "auto", display: "flex", flexDirection: "column", borderRight: "1px solid #E2E8F0" }}>
           
+          {/* Header */}
           <div style={{ background: "linear-gradient(135deg," + NAVY + ",#1A2F50)", padding: "20px 20px 16px", flexShrink: 0 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
               <span style={{ fontSize: 22 }}>📄</span>
@@ -324,102 +400,15 @@ export default function UndanganGenerator({ isMobile, showT }) {
           <div style={{ flex: 1, background: "#525659", display: "flex", flexDirection: "column", overflow: "hidden" }}>
             <div style={{ background: "rgba(0,0,0,0.35)", padding: "9px 16px", display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
               <span style={{ fontSize: 13, color: "rgba(255,255,255,0.7)" }}>👁 Pratinjau Dokumen</span>
-              <span style={{ marginLeft: "auto", fontSize: 11, color: "rgba(255,255,255,0.4)" }}>Live Render via React Engine</span>
+              <span style={{ marginLeft: "auto", fontSize: 11, color: "rgba(255,255,255,0.4)" }}>Live Render Engine</span>
             </div>
-            <iframe title="Preview Undangan" srcDoc={iframeSrcDoc} style={{ flex: 1, border: "none", width: "100%", background: "#525659" }}/>
+            <iframe 
+              title="Preview Undangan" 
+              srcDoc={`<!DOCTYPE html><html><head><style>body{margin:0;padding:20px;background:#525659;display:flex;justify-content:center;}${CSS_ASLI}</style></head><body>${buildHTMLString()}</body></html>`} 
+              style={{ flex: 1, border: "none", width: "100%", background: "#525659" }}
+            />
           </div>
         )}
-      </div>
-
-      {/* ══ HIDDEN RENDER: WUJUD FISIK DOKUMEN CETAK ═══════════════════════ */}
-      <div style={{ position: "absolute", left: "-9999px", top: 0, width: "210mm", pointerEvents: "none" }}>
-        <div id="dokumen-cetak" style={{ backgroundColor: "transparent" }}>
-          <div className="halaman-a4">
-            <div className="kop">
-              <img src="/image001.jpg" alt="Garuda" />
-              <div className="kop-teks">WALI KOTA TARAKAN</div>
-            </div>
-            <div className="tanggal-kanan">{form.tanggalSurat}</div>
-            
-            <table className="tabel-info">
-              <tbody>
-                <tr><td className="col-label">Nomor</td><td className="col-titikdua">:</td><td>{form.nomor}</td></tr>
-                <tr><td>Sifat</td><td>:</td><td>{form.sifat}</td></tr>
-                <tr><td>Lampiran</td><td>:</td><td>{form.lampiranCount}</td></tr>
-                <tr><td>Hal</td><td>:</td><td><b><u>Undangan</u></b></td></tr>
-              </tbody>
-            </table>
-
-            <div className="tujuan-surat">
-              Yth:<br/>
-              <b><span className="teks-multibaris">{form.yth}</span></b><br/>
-              di-<br/>
-              <b>TARAKAN</b>
-            </div>
-
-            <div className="paragraf-indent">Mengharapkan dengan hormat kehadiran Bapak/Ibu/Saudara (i) pada:</div>
-
-            <table className="tabel-acara">
-              <tbody>
-                <tr><td className="col-label-acara">hari/tanggal</td><td className="col-titikdua">:</td><td>{tglText}</td></tr>
-                <tr><td>pukul</td><td>:</td><td>{pklText}</td></tr>
-                <tr><td>tempat</td><td>:</td><td>{form.tempat}</td></tr>
-                <tr><td>acara</td><td>:</td><td><b><div className="teks-multibaris">{form.acara}</div></b></td></tr>
-              </tbody>
-            </table>
-
-            <div className="paragraf-indent">Demikian, atas perhatian serta kehadirannya diucapkan terima kasih.</div>
-
-            <div className="area-ttd">
-              WALI KOTA TARAKAN<br/>
-              <div style={{ minHeight: 80, position: "relative", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
-                {form.jenisTtd === "scan" && (
-                  <>
-                    <img src="/stempel.png" style={{ position: "absolute", left: 0, top: -30, width: 145, zIndex: 1, mixBlendMode: "multiply" }} alt="" />
-                    <img src="/image.jpeg" style={{ position: "absolute", right: 0, top: -30, height: 140, zIndex: 2, mixBlendMode: "multiply" }} alt="" />
-                  </>
-                )}
-                {form.jenisTtd === "tte" && <><br/><br/><span className="tte-marker">${`{ttd_pengirim}`}</span><br/><br/></>}
-                {form.jenisTtd === "kosong" && <><br/><br/><br/></>}
-              </div>
-              <b>dr. H. KHAIRUL, M.Kes.</b>
-            </div>
-
-            <div className="area-keterangan">
-              {form.showTembusan && <div className="ket-item"><b><u>Tembusan:</u></b><br/><span className="teks-multibaris">{form.tembusan}</span></div>}
-              {form.showNarahubung && <div className="ket-item"><b><u>Narahubung:</u></b><br/>{form.narahubung}</div>}
-              {form.showPakaian && <div className="ket-item"><b><u>Pakaian:</u></b><br/>{form.pakaian}</div>}
-              {form.catatan.trim() !== "" && <div className="ket-item"><b><u>catatan:</u></b><br/><span className="teks-multibaris">{form.catatan}</span></div>}
-            </div>
-
-            <div className="footer-alamat">Jalan Kalimantan No. 1, Kota Tarakan<br/>Telp. (0551) 21620, 34320 Fax. (0551) 23782</div>
-          </div>
-
-          {form.pilihanCetak !== "utama" && (
-            <div className="halaman-a4 html2pdf__page-break">
-              <div style={{ marginBottom: 15 }}>LAMPIRAN SURAT</div>
-              <table style={{ borderCollapse: "collapse", marginBottom: 25 }}>
-                <tbody><tr><td style={{ width: "70pt" }}>Nomor</td><td style={{ width: "15pt" }}>:</td><td>{form.nomor}</td></tr></tbody>
-              </table>
-              <div style={{ textAlign: "center", marginBottom: 20 }}><b><u>{form.judulLampiran}</u></b></div>
-              <div className="teks-multibaris" style={{ lineHeight: form.spasiLampiran, marginBottom: 20 }}>{form.lampiran}</div>
-              <div className="area-ttd" style={{ marginTop: 30 }}>
-                WALI KOTA TARAKAN<br/>
-                <div style={{ minHeight: 80, position: "relative", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
-                  {form.jenisTtd === "scan" && (
-                    <>
-                      <img src="/stempel.png" style={{ position: "absolute", left: 0, top: -30, width: 145, zIndex: 1, mixBlendMode: "multiply" }} alt="" />
-                      <img src="/image.jpeg" style={{ position: "absolute", right: 0, top: -30, height: 140, zIndex: 2, mixBlendMode: "multiply" }} alt="" />
-                    </>
-                  )}
-                  {form.jenisTtd === "tte" && <><br/><br/><span className="tte-marker">${`{ttd_pengirim}`}</span><br/><br/></>}
-                  {form.jenisTtd === "kosong" && <><br/><br/><br/></>}
-                </div>
-                <b>dr. H. KHAIRUL, M.Kes.</b>
-              </div>
-            </div>
-          )}
-        </div>
       </div>
     </>
   );
