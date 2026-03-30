@@ -6,7 +6,7 @@
 
 const MAPS_KEY = process.env.GOOGLE_MAPS_API_KEY || "";
 
-// Titik keberangkatan default: Balaikota Tarakan
+// Titik keberangkatan default: Kantor Wali Kota Tarakan
 const ORIGIN_DEFAULT = "Jalan Kalimantan No.1, Kota Tarakan, Kalimantan Utara";
 
 export default async function handler(req, res) {
