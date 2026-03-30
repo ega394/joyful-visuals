@@ -1,22 +1,10 @@
 /**
  * UndanganGenerator.jsx — Prokopim Hibot v2.0
- *
- * Strategi integrasi:
- * - CSS asli (#dokumen-cetak, .halaman-a4, dll) disuntikkan UTUH via <style> tag
- * - HTML #dokumen-cetak dirender via dangerouslySetInnerHTML — TIDAK diubah sama sekali
- * - updatePreview() berjalan via useEffect + DOM manipulation langsung (getElementById)
- * — persis sama seperti di file HTML asli
- * - generatePDF() identik dengan versi asli
- *
- * GAMBAR STATIS — letakkan di:
- * public/image001.jpg   ← Logo Garuda Pancasila (kop surat)
- * public/stempel.png    ← Stempel Wali Kota Tarakan
- * public/image.jpeg     ← Tanda tangan Wali Kota
  */
 
 import React, { useState, useEffect, useRef } from "react";
 
-// ── CSS asli dari undangan.html — tidak diubah sama sekali ──
+// ── CSS asli dari undangan.html ──
 const CSS_ASLI = `
   /* KERTAS A4 & PENGUNCIAN FONT ARIAL */
   #dokumen-cetak, #dokumen-cetak * {
@@ -75,22 +63,15 @@ const CSS_ASLI = `
     position: relative;
   }
 
-  /* Penanda Visual Variabel TTE di Web */
-  .tte-marker {
-    color: #0056b3;
-    font-family: monospace !important;
-    background: #e9ecef;
-    padding: 2px 5px;
-    border-radius: 3px;
-    font-weight: bold;
-  }
-
-  /* AREA NARAHUBUNG */
-  .area-kiri-bawah {
+  /* AREA KETERANGAN (TEMBUSAN, NARAHUBUNG, PAKAIAN) - FONT 10PT */
+  .area-keterangan {
     clear: both;
-    margin-top: 20px;
+    margin-top: 25px;
     line-height: 1.5;
+    font-size: 10pt !important;
   }
+  .area-keterangan * { font-size: 10pt !important; }
+  .ket-item { margin-bottom: 6px; }
 
   /* ALAMAT FOOTER ABSOLUT */
   .footer-alamat {
@@ -107,27 +88,26 @@ const CSS_ASLI = `
   .page-break { page-break-before: always; }
 `;
 
-// ── HTML #dokumen-cetak asli — tidak diubah sama sekali ──
+// ── HTML #dokumen-cetak asli ──
 const HTML_DOKUMEN_CETAK = `
   <div class="halaman-a4">
     <div class="kop">
-      <img src="/image001.jpg" alt="Garuda"
-        onerror="this.src='https://upload.wikimedia.org/wikipedia/commons/thumb/8/84/National_emblem_of_Indonesia_Garuda_Pancasila.svg/300px-National_emblem_of_Indonesia_Garuda_Pancasila.svg.png'">
+      <img src="/image001.jpg" alt="Garuda" onerror="this.style.display='none'">
       <div class="kop-teks">WALI KOTA TARAKAN</div>
     </div>
 
-    <div class="tanggal-kanan" id="out_tanggalSurat">Tarakan, 27 Maret 2026</div>
+    <div class="tanggal-kanan" id="out_tanggalSurat"></div>
 
     <table class="tabel-info">
-      <tr><td class="col-label">Nomor</td><td class="col-titikdua">:</td><td><span id="out_nomor">8400/XXX/SETDA/2026</span></td></tr>
-      <tr><td>Sifat</td><td>:</td><td><span id="out_sifat">Biasa</span></td></tr>
-      <tr><td>Lampiran</td><td>:</td><td><span id="out_lampiranCount">1 (satu) halaman</span></td></tr>
+      <tr><td class="col-label">Nomor</td><td class="col-titikdua">:</td><td><span id="out_nomor"></span></td></tr>
+      <tr><td>Sifat</td><td>:</td><td><span id="out_sifat"></span></td></tr>
+      <tr><td>Lampiran</td><td>:</td><td><span id="out_lampiranCount"></span></td></tr>
       <tr><td>Hal</td><td>:</td><td><b><u>Undangan</u></b></td></tr>
     </table>
 
     <div class="tujuan-surat">
       Yth:<br>
-      <b><span id="out_yth" class="teks-multibaris">(daftar terlampir)</span></b><br>
+      <b><span id="out_yth" class="teks-multibaris"></span></b><br>
       di-<br>
       <b>TARAKAN</b>
     </div>
@@ -137,12 +117,10 @@ const HTML_DOKUMEN_CETAK = `
     </div>
 
     <table class="tabel-acara">
-      <tr><td class="col-label-acara">hari/tanggal</td><td class="col-titikdua">:</td><td><span id="out_waktuAcara">Jumat, 27 Maret 2026</span></td></tr>
-      <tr><td>pukul</td><td>:</td><td><span id="out_pukul">14.00 WITA s/d selesai</span></td></tr>
-      <tr><td>tempat</td><td>:</td><td><span id="out_tempat">Ruang Rapat Wali Kota</span></td></tr>
-      <tr><td>acara</td><td>:</td><td><b><div id="out_acara" class="teks-multibaris">1. Pemilihan Ketua BAZNAS Tarakan;
-2. Pengarahan Wali Kota Tarakan; dan
-3. Hal-hal lain yang dianggap perlu.</div></b></td></tr>
+      <tr><td class="col-label-acara">hari/tanggal</td><td class="col-titikdua">:</td><td><span id="out_waktuAcara"></span></td></tr>
+      <tr><td>pukul</td><td>:</td><td><span id="out_pukul"></span></td></tr>
+      <tr><td>tempat</td><td>:</td><td><span id="out_tempat"></span></td></tr>
+      <tr><td>acara</td><td>:</td><td><b><div id="out_acara" class="teks-multibaris"></div></b></td></tr>
     </table>
 
     <div class="paragraf-indent">
@@ -155,14 +133,22 @@ const HTML_DOKUMEN_CETAK = `
       <b>dr. H. KHAIRUL, M.Kes.</b>
     </div>
 
-    <div class="area-kiri-bawah">
-      <b><u>Narahubung:</u></b><br>
-      <span id="out_narahubung">Kasubbag Protokol (0811-5961-116)</span><br>
-      <b><u>Pakaian:</u></b><br>
-      <span id="out_pakaian">PDH Batik Daerah/menyesuaikan</span><br>
-      <div id="wadah_catatan">
+    <div class="area-keterangan">
+      <div id="wadah_tembusan" class="ket-item">
+        <b><u>Tembusan:</u></b><br>
+        <span id="out_tembusan" class="teks-multibaris"></span>
+      </div>
+      <div id="wadah_narahubung" class="ket-item">
+        <b><u>Narahubung:</u></b><br>
+        <span id="out_narahubung"></span>
+      </div>
+      <div id="wadah_pakaian" class="ket-item">
+        <b><u>Pakaian:</u></b><br>
+        <span id="out_pakaian"></span>
+      </div>
+      <div id="wadah_catatan" class="ket-item">
         <b><u>catatan:</u></b><br>
-        <span id="out_catatan" class="teks-multibaris">Hadir 15 menit sebelum acara dimulai.</span>
+        <span id="out_catatan" class="teks-multibaris"></span>
       </div>
     </div>
 
@@ -174,25 +160,13 @@ const HTML_DOKUMEN_CETAK = `
 
   <div class="halaman-a4 html2pdf__page-break" id="halaman-lampiran">
     <div style="margin-bottom: 15px;">LAMPIRAN SURAT</div>
-
     <table style="border-collapse: collapse; margin-bottom: 25px;">
-      <tr>
-        <td style="width: 70pt;">Nomor</td>
-        <td style="width: 15pt;">:</td>
-        <td><span id="out_nomor_lampiran">8400/XXX/SETDA/2026</span></td>
-      </tr>
+      <tr><td style="width: 70pt;">Nomor</td><td style="width: 15pt;">:</td><td><span id="out_nomor_lampiran"></span></td></tr>
     </table>
-
     <div style="text-align: center; margin-bottom: 20px;">
-      <b><u><span id="out_judulLampiran">DAFTAR UNDANGAN</span></u></b>
+      <b><u><span id="out_judulLampiran"></span></u></b>
     </div>
-
-    <div id="out_lampiran" class="teks-multibaris" style="line-height: 1.5; margin-bottom: 20px;">1. Asisten Pemerintahan dan Kesejahteraan Rakyat;
-2. Kepala Kantor Kementerian Agama Kota Tarakan;
-3. Kepala Bagian Kesejahteraan Rakyat;
-4. Kepala Bagian Hukum;
-5. Ketua BAZNAS Tarakan (K.H. Zainuddin Dalila);</div>
-
+    <div id="out_lampiran" class="teks-multibaris" style="line-height: 1.5; margin-bottom: 20px;"></div>
     <div class="area-ttd" style="margin-top: 30px;">
       WALI KOTA TARAKAN<br>
       <div id="ttd_lampiran_space" style="min-height: 80px; position: relative; display: flex; flex-direction: column; justify-content: center; align-items: center;"></div>
@@ -201,7 +175,7 @@ const HTML_DOKUMEN_CETAK = `
   </div>
 `;
 
-// ── Muat html2pdf.js dari CDN ─────────────────────────────
+// ── Muat html2pdf.js dari CDN ──
 function loadHtml2Pdf() {
   return new Promise((resolve, reject) => {
     if (window.html2pdf) { resolve(window.html2pdf); return; }
@@ -212,6 +186,16 @@ function loadHtml2Pdf() {
     document.head.appendChild(s);
   });
 }
+
+// ── Fungsi Format Tanggal Indo ──
+const formatTanggalIndo = (dateStr) => {
+  if (!dateStr) return "";
+  const days = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+  const months = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  return `${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+};
 
 // =====================================================================
 // HELPER UI: Didefinisikan DI LUAR komponen utama agar tidak re-render
@@ -257,6 +241,12 @@ const SectionBody = ({ isActive, children }) => isActive
   ? <div style={{ background: "white", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "16px", marginBottom: 10 }}>{children}</div>
   : null;
 
+const CheckboxToggle = ({ checked, onChange, label }) => (
+  <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', marginBottom: 8 }}>
+    <input type="checkbox" checked={checked} onChange={onChange} style={{ width: 16, height: 16, cursor: 'pointer' }} />
+    <span style={{ fontSize: 13, fontWeight: 700, color: NAVY }}>Sertakan {label}</span>
+  </label>
+);
 
 // =====================================================================
 // KOMPONEN UTAMA
@@ -264,22 +254,30 @@ const SectionBody = ({ isActive, children }) => isActive
 export default function UndanganGenerator({ isMobile, showT }) {
   const EMPTY = {
     pilihanCetak:  "semua",
-    tanggalSurat:  "",
-    nomor:         "",
-    sifat:         "Biasa",
-    lampiranCount: "",
-    yth:           "",
-    waktuAcara:    "",
-    pukul:         "",
+    tanggalSurat:  "Tarakan, ${tanggal_naskah}",
+    nomor:         "${nomor_naskah}",
+    sifat:         "${sifat}",
+    lampiranCount: "1 (satu) halaman",
+    yth:           "(daftar terlampir)",
+    tanggalAcaraInput: "",
+    waktuMulai:    "08:00",
+    waktuSelesai:  "",
     tempat:        "",
-    acara:         "",
-    narahubung:    "",
-    pakaian:       "",
+    acara:         "1. ...;\n2. ...; dan\n3. Hal-hal lain yang dianggap perlu.",
+    
+    // Konfigurasi Seksi Keterangan (Font 10pt)
+    showTembusan:  false,
+    tembusan:      "1. Yth. Bapak Wali Kota Tarakan (sebagai laporan);\n2. Arsip.",
+    showNarahubung: true,
+    narahubung:    "Kasubbag Protokol (0811-5961-116)",
+    showPakaian:   true,
+    pakaian:       "PDH Batik Daerah/Menyesuaikan",
     catatan:       "",
+    
     jenisTtd:      "kosong",
     judulLampiran: "DAFTAR UNDANGAN",
     spasiLampiran: "1.5",
-    lampiran:      "",
+    lampiran:      "1. ...;\n2. ...;\n3. ...",
   };
 
   const [form, setForm]       = React.useState(EMPTY);
@@ -295,9 +293,11 @@ export default function UndanganGenerator({ isMobile, showT }) {
     }
   };
 
-  // ── buildIframeSrcDoc: ZERO nested template literal ──────────────────────
+  // ── buildIframeSrcDoc ─────────────────────────────────────
   const buildIframeSrcDoc = () => {
     var f = form;
+    var tglText = formatTanggalIndo(f.tanggalAcaraInput);
+    var pklText = f.waktuMulai ? (f.waktuSelesai ? f.waktuMulai + " s.d. " + f.waktuSelesai + " WITA" : f.waktuMulai + " WITA s.d. selesai") : "";
 
     var ttdContent = "<br><br><br>";
     if (f.jenisTtd === "scan") {
@@ -305,14 +305,11 @@ export default function UndanganGenerator({ isMobile, showT }) {
         "<img src='/stempel.png' style='position:absolute;left:0;top:-30px;width:145px;z-index:1;mix-blend-mode:multiply' onerror=\"this.style.display='none'\">" +
         "<img src='/image.jpeg' style='position:absolute;right:0;top:-30px;height:140px;z-index:2;mix-blend-mode:multiply' alt='TTD'>";
     } else if (f.jenisTtd === "tte") {
-      ttdContent = "<br><br>${ttd_pengirim}<br><br>";
+      ttdContent = "<br><br><span class='tte-marker'>${ttd_pengirim}</span><br><br>";
     }
 
     var esc = function(s) {
-      return (s || "")
-        .replace(/\\/g, "\\\\")
-        .replace(/'/g, "\\'")
-        .replace(/\r?\n/g, "\\n");
+      return (s || "").replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/\r?\n/g, "\\n");
     };
 
     var script =
@@ -331,15 +328,23 @@ export default function UndanganGenerator({ isMobile, showT }) {
       "document.getElementById('out_sifat').innerText='" + esc(f.sifat) + "';" +
       "document.getElementById('out_lampiranCount').innerText='" + esc(f.lampiranCount) + "';" +
       "document.getElementById('out_yth').innerText='" + esc(f.yth) + "';" +
-      "document.getElementById('out_waktuAcara').innerText='" + esc(f.waktuAcara) + "';" +
-      "document.getElementById('out_pukul').innerText='" + esc(f.pukul) + "';" +
+      "document.getElementById('out_waktuAcara').innerText='" + esc(tglText) + "';" +
+      "document.getElementById('out_pukul').innerText='" + esc(pklText) + "';" +
       "document.getElementById('out_tempat').innerText='" + esc(f.tempat) + "';" +
       "document.getElementById('out_acara').innerText='" + esc(f.acara) + "';" +
+      
+      // Update Keterangan
+      "document.getElementById('out_tembusan').innerText='" + esc(f.tembusan) + "';" +
       "document.getElementById('out_narahubung').innerText='" + esc(f.narahubung) + "';" +
       "document.getElementById('out_pakaian').innerText='" + esc(f.pakaian) + "';" +
       "var cat='" + esc(f.catatan) + "';" +
       "document.getElementById('out_catatan').innerText=cat;" +
+      
+      "document.getElementById('wadah_tembusan').style.display=" + (f.showTembusan ? "'block'" : "'none'") + ";" +
+      "document.getElementById('wadah_narahubung').style.display=" + (f.showNarahubung ? "'block'" : "'none'") + ";" +
+      "document.getElementById('wadah_pakaian').style.display=" + (f.showPakaian ? "'block'" : "'none'") + ";" +
       "document.getElementById('wadah_catatan').style.display=cat.trim()===''?'none':'block';" +
+      
       "document.getElementById('out_judulLampiran').innerText='" + esc(f.judulLampiran) + "';" +
       "var al=document.getElementById('out_lampiran');" +
       "al.innerText='" + esc(f.lampiran) + "';" +
@@ -358,9 +363,9 @@ export default function UndanganGenerator({ isMobile, showT }) {
     );
   };
 
-  // ── generatePDF: string concatenation, zero template literal ─────────────
+  // ── generatePDF ──────────────────────────────────────────
   const generatePDF = async () => {
-    if (!form.nomor.trim() || !form.waktuAcara.trim() || !form.tempat.trim()) {
+    if (!form.nomor.trim() || !form.tanggalAcaraInput || !form.tempat.trim()) {
       if (showT) showT("Isi minimal: Nomor Surat, Hari/Tanggal Acara, dan Tempat", "warn");
       return;
     }
@@ -368,6 +373,8 @@ export default function UndanganGenerator({ isMobile, showT }) {
     try {
       var html2pdf = await loadHtml2Pdf();
       var f = form;
+      var tglText = formatTanggalIndo(f.tanggalAcaraInput);
+      var pklText = f.waktuMulai ? (f.waktuSelesai ? f.waktuMulai + " s.d. " + f.waktuSelesai + " WITA" : f.waktuMulai + " WITA s.d. selesai") : "";
 
       var ttdPdf = "<br><br><br>";
       if (f.jenisTtd === "scan") {
@@ -377,10 +384,6 @@ export default function UndanganGenerator({ isMobile, showT }) {
       } else if (f.jenisTtd === "tte") {
         ttdPdf = "<br><br>" + f.nomor + "<br><br>";
       }
-
-      var catatanHtml = f.catatan.trim()
-        ? "<div><b><u>catatan:</u></b><br><span class='teks-multibaris'>" + f.catatan + "</span></div>"
-        : "";
 
       var halamanLampiran = "";
       if (f.pilihanCetak !== "utama") {
@@ -401,7 +404,7 @@ export default function UndanganGenerator({ isMobile, showT }) {
       var htmlPdf =
         "<div class='halaman-a4'>" +
         "<div class='kop'>" +
-        "<img src='/image001.jpg' alt='Garuda' onerror=\"this.src='https://upload.wikimedia.org/wikipedia/commons/thumb/8/84/National_emblem_of_Indonesia_Garuda_Pancasila.svg/300px-National_emblem_of_Indonesia_Garuda_Pancasila.svg.png'\">" +
+        "<img src='/image001.jpg' alt='Garuda' onerror=\"this.style.display='none'\">" +
         "<div class='kop-teks'>WALI KOTA TARAKAN</div>" +
         "</div>" +
         "<div class='tanggal-kanan'>" + f.tanggalSurat + "</div>" +
@@ -414,8 +417,8 @@ export default function UndanganGenerator({ isMobile, showT }) {
         "<div class='tujuan-surat'>Yth:<br><b><span class='teks-multibaris'>" + f.yth + "</span></b><br>di-<br><b>TARAKAN</b></div>" +
         "<div class='paragraf-indent'>Mengharapkan dengan hormat kehadiran Bapak/Ibu/Saudara (i) pada:</div>" +
         "<table class='tabel-acara'>" +
-        "<tr><td class='col-label-acara'>hari/tanggal</td><td class='col-titikdua'>:</td><td>" + f.waktuAcara + "</td></tr>" +
-        "<tr><td>pukul</td><td>:</td><td>" + f.pukul + "</td></tr>" +
+        "<tr><td class='col-label-acara'>hari/tanggal</td><td class='col-titikdua'>:</td><td>" + tglText + "</td></tr>" +
+        "<tr><td>pukul</td><td>:</td><td>" + pklText + "</td></tr>" +
         "<tr><td>tempat</td><td>:</td><td>" + f.tempat + "</td></tr>" +
         "<tr><td>acara</td><td>:</td><td><b><div class='teks-multibaris'>" + f.acara + "</div></b></td></tr>" +
         "</table>" +
@@ -423,11 +426,15 @@ export default function UndanganGenerator({ isMobile, showT }) {
         "<div class='area-ttd'>WALI KOTA TARAKAN<br>" +
         "<div style='min-height:80px;position:relative;display:flex;flex-direction:column;justify-content:center;align-items:center;'>" + ttdPdf + "</div>" +
         "<b>dr. H. KHAIRUL, M.Kes.</b></div>" +
-        "<div class='area-kiri-bawah'>" +
-        "<b><u>Narahubung:</u></b><br>" + f.narahubung + "<br>" +
-        "<b><u>Pakaian:</u></b><br>" + f.pakaian + "<br>" +
-        catatanHtml +
+        
+        // Block Keterangan
+        "<div class='area-keterangan'>" +
+        (f.showTembusan ? "<div class='ket-item'><b><u>Tembusan:</u></b><br><span class='teks-multibaris'>" + f.tembusan + "</span></div>" : "") +
+        (f.showNarahubung ? "<div class='ket-item'><b><u>Narahubung:</u></b><br>" + f.narahubung + "</div>" : "") +
+        (f.showPakaian ? "<div class='ket-item'><b><u>Pakaian:</u></b><br>" + f.pakaian + "</div>" : "") +
+        (f.catatan.trim() ? "<div class='ket-item'><b><u>catatan:</u></b><br><span class='teks-multibaris'>" + f.catatan + "</span></div>" : "") +
         "</div>" +
+
         "<div class='footer-alamat'>Jalan Kalimantan No. 1, Kota Tarakan<br>Telp. (0551) 21620, 34320 Fax. (0551) 23782</div>" +
         "</div>" +
         halamanLampiran;
@@ -441,10 +448,10 @@ export default function UndanganGenerator({ isMobile, showT }) {
       container.innerHTML = htmlPdf;
       document.body.appendChild(container);
 
-      var nomorSurat = f.nomor.replace(/\//g, "-");
+      var nomorSurat = f.nomor.replace(/[\/\\]/g, "-").replace(/[^a-zA-Z0-9-]/g, "");
       var suffixTtd  = f.jenisTtd === "tte" ? "_TTE" : f.jenisTtd === "scan" ? "_Scan" : "";
       var prefix     = f.pilihanCetak === "utama" ? "Undangan_Utama" : "Undangan";
-      var namaFile   = prefix + suffixTtd + "_" + nomorSurat + ".pdf";
+      var namaFile   = prefix + suffixTtd + "_" + (nomorSurat || "Draft") + ".pdf";
 
       await html2pdf().set({
         margin: 0, filename: namaFile,
@@ -512,11 +519,10 @@ export default function UndanganGenerator({ isMobile, showT }) {
           {/* Body */}
           <div style={{ flex: 1, padding: "14px 14px 0", overflowY: "auto" }}>
 
-            {/* Info */}
             <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 9, padding: "10px 12px", marginBottom: 12, display: "flex", gap: 8 }}>
               <span style={{ fontSize: 14, flexShrink: 0 }}>ℹ️</span>
               <div style={{ fontSize: 11, color: "#1D4ED8", lineHeight: 1.6 }}>
-                Isi kolom sesuai kebutuhan. Kolom bertanda <span style={{ color: "#DC2626", fontWeight: 700 }}>*</span> wajib diisi sebelum mengunduh. Preview memperbarui otomatis.
+                Isi kolom sesuai kebutuhan. Kolom bertanda <span style={{ color: "#DC2626", fontWeight: 700 }}>*</span> wajib diisi sebelum mengunduh.
               </div>
             </div>
 
@@ -524,41 +530,45 @@ export default function UndanganGenerator({ isMobile, showT }) {
             <SectionBtn isActive={section === "surat"} onClick={() => setSection(s => s === "surat" ? "" : "surat")} icon="🗂" title="Data Surat" subtitle="Nomor, tanggal, sifat, lampiran"/>
             <SectionBody isActive={section === "surat"}>
               <div style={{ marginBottom: 12 }}>
-                <Label text="Tempat, Tanggal Surat" hint="Contoh: Tarakan, 1 April 2026"/>
+                <Label text="Tempat, Tanggal Surat"/>
                 <input className="ug-input" style={inputSt} placeholder="Tarakan, ..." value={form.tanggalSurat} onChange={set("tanggalSurat")}/>
               </div>
               <div style={{ marginBottom: 12 }}>
-                <Label text="Nomor Surat" required hint="Contoh: 8400/XXX/SETDA/2026"/>
-                <input className="ug-input" style={inputSt} placeholder="8400/…/SETDA/2026" value={form.nomor} onChange={set("nomor")}/>
+                <Label text="Nomor Surat" required />
+                <input className="ug-input" style={inputSt} value={form.nomor} onChange={set("nomor")}/>
               </div>
               <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
                 <div style={{ flex: 1 }}>
                   <Label text="Sifat"/>
-                  <select className="ug-input" style={inputSt} value={form.sifat} onChange={set("sifat")}>
-                    <option>Biasa</option><option>Penting</option><option>Segera</option><option>Rahasia</option>
-                  </select>
+                  <input className="ug-input" style={inputSt} value={form.sifat} onChange={set("sifat")}/>
                 </div>
                 <div style={{ flex: 1 }}>
-                  <Label text="Lampiran" hint="Contoh: 1 (satu) halaman"/>
-                  <input className="ug-input" style={inputSt} placeholder="1 (satu) halaman" value={form.lampiranCount} onChange={set("lampiranCount")}/>
+                  <Label text="Lampiran"/>
+                  <input className="ug-input" style={inputSt} value={form.lampiranCount} onChange={set("lampiranCount")}/>
                 </div>
               </div>
               <div style={{ marginBottom: 4 }}>
-                <Label text="Yth (Tujuan Surat)" hint="Tulis per baris. Contoh: (daftar terlampir)"/>
-                <textarea className="ug-input" style={Object.assign({},textareaSt,{minHeight:56})} placeholder="(daftar terlampir)" value={form.yth} onChange={set("yth")}/>
+                <Label text="Yth (Tujuan Surat)" hint="Tulis per baris."/>
+                <textarea className="ug-input" style={Object.assign({},textareaSt,{minHeight:56})} value={form.yth} onChange={set("yth")}/>
               </div>
             </SectionBody>
 
             {/* ── SEKSI 2: Data Acara ── */}
-            <SectionBtn isActive={section === "acara"} onClick={() => setSection(s => s === "acara" ? "" : "acara")} icon="📋" title="Data Acara" subtitle="Waktu, tempat, dan susunan kegiatan"/>
+            <SectionBtn isActive={section === "acara"} onClick={() => setSection(s => s === "acara" ? "" : "acara")} icon="📋" title="Data Acara" subtitle="Kalender, waktu, dan susunan kegiatan"/>
             <SectionBody isActive={section === "acara"}>
               <div style={{ marginBottom: 12 }}>
-                <Label text="Hari/Tanggal Acara" required hint="Contoh: Senin, 1 April 2026"/>
-                <input className="ug-input" style={inputSt} placeholder="Senin, 1 April 2026" value={form.waktuAcara} onChange={set("waktuAcara")}/>
+                <Label text="Hari/Tanggal Acara" required hint="Pilih dari kalender"/>
+                <input type="date" className="ug-input" style={inputSt} value={form.tanggalAcaraInput} onChange={set("tanggalAcaraInput")}/>
               </div>
-              <div style={{ marginBottom: 12 }}>
-                <Label text="Pukul" hint="Contoh: 09.00 WITA s/d selesai"/>
-                <input className="ug-input" style={inputSt} placeholder="09.00 WITA s/d selesai" value={form.pukul} onChange={set("pukul")}/>
+              <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+                <div style={{ flex: 1 }}>
+                  <Label text="Pukul Mulai" required />
+                  <input type="time" className="ug-input" style={inputSt} value={form.waktuMulai} onChange={set("waktuMulai")}/>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <Label text="Pukul Selesai" hint="Kosong = s.d. selesai"/>
+                  <input type="time" className="ug-input" style={inputSt} value={form.waktuSelesai} onChange={set("waktuSelesai")}/>
+                </div>
               </div>
               <div style={{ marginBottom: 12 }}>
                 <Label text="Tempat Acara" required/>
@@ -566,23 +576,37 @@ export default function UndanganGenerator({ isMobile, showT }) {
               </div>
               <div style={{ marginBottom: 4 }}>
                 <Label text="Nama / Susunan Acara" hint="Gunakan Enter untuk baris baru"/>
-                <textarea className="ug-input" style={Object.assign({},textareaSt,{minHeight:90})} placeholder={"1. …;\n2. …; dan\n3. Hal-hal lain yang dianggap perlu."} value={form.acara} onChange={set("acara")}/>
+                <textarea className="ug-input" style={Object.assign({},textareaSt,{minHeight:90})} value={form.acara} onChange={set("acara")}/>
               </div>
             </SectionBody>
 
             {/* ── SEKSI 3: Keterangan ── */}
-            <SectionBtn isActive={section === "keterangan"} onClick={() => setSection(s => s === "keterangan" ? "" : "keterangan")} icon="📌" title="Keterangan Tambahan" subtitle="Narahubung, pakaian, catatan"/>
+            <SectionBtn isActive={section === "keterangan"} onClick={() => setSection(s => s === "keterangan" ? "" : "keterangan")} icon="📌" title="Keterangan & Tembusan" subtitle="Tembusan, narahubung, pakaian (Font 10)"/>
             <SectionBody isActive={section === "keterangan"}>
-              <div style={{ marginBottom: 12 }}>
-                <Label text="Narahubung & Nomor HP" hint="Contoh: Kasubbag Protokol (0811-5961-116)"/>
-                <input className="ug-input" style={inputSt} placeholder="Kasubbag Protokol (…)" value={form.narahubung} onChange={set("narahubung")}/>
+              
+              <div style={{ marginBottom: 12, padding: 12, border: "1px solid #E2E8F0", borderRadius: 8, background: form.showTembusan ? "#EEF2FF" : "#F8FAFC" }}>
+                <CheckboxToggle checked={form.showTembusan} onChange={(e) => setForm(p => ({...p, showTembusan: e.target.checked}))} label="Tembusan" />
+                {form.showTembusan && (
+                  <textarea className="ug-input" style={{...textareaSt, minHeight: 60}} value={form.tembusan} onChange={set("tembusan")}/>
+                )}
               </div>
-              <div style={{ marginBottom: 12 }}>
-                <Label text="Pakaian" hint="Contoh: PDH Batik Daerah / PSH / Menyesuaikan"/>
-                <input className="ug-input" style={inputSt} placeholder="PDH Batik Daerah / Menyesuaikan" value={form.pakaian} onChange={set("pakaian")}/>
+
+              <div style={{ marginBottom: 12, padding: 12, border: "1px solid #E2E8F0", borderRadius: 8, background: form.showNarahubung ? "#EEF2FF" : "#F8FAFC" }}>
+                <CheckboxToggle checked={form.showNarahubung} onChange={(e) => setForm(p => ({...p, showNarahubung: e.target.checked}))} label="Narahubung" />
+                {form.showNarahubung && (
+                  <input className="ug-input" style={inputSt} value={form.narahubung} onChange={set("narahubung")}/>
+                )}
               </div>
+
+              <div style={{ marginBottom: 12, padding: 12, border: "1px solid #E2E8F0", borderRadius: 8, background: form.showPakaian ? "#EEF2FF" : "#F8FAFC" }}>
+                <CheckboxToggle checked={form.showPakaian} onChange={(e) => setForm(p => ({...p, showPakaian: e.target.checked}))} label="Pakaian" />
+                {form.showPakaian && (
+                  <input className="ug-input" style={inputSt} value={form.pakaian} onChange={set("pakaian")}/>
+                )}
+              </div>
+
               <div style={{ marginBottom: 4 }}>
-                <Label text="Catatan" hint="Kosongkan jika tidak ada — tidak muncul di surat"/>
+                <Label text="Catatan Khusus" hint="Kosongkan jika tidak ada — tidak muncul di surat"/>
                 <textarea className="ug-input" style={Object.assign({},textareaSt,{minHeight:56})} placeholder="Hadir 15 menit sebelum acara dimulai." value={form.catatan} onChange={set("catatan")}/>
               </div>
             </SectionBody>
@@ -612,11 +636,6 @@ export default function UndanganGenerator({ isMobile, showT }) {
                     </button>
                   );
                 })}
-                {form.jenisTtd==="scan"&&(
-                  <div style={{ background:"#FFF8E1",borderRadius:8,padding:"8px 11px",fontSize:11,color:"#856404",border:"1px solid #FDE68A" }}>
-                    ⚠️ Pastikan <code>stempel.png</code> dan <code>image.jpeg</code> ada di folder <code>public/</code>
-                  </div>
-                )}
               </div>
             </SectionBody>
 
@@ -625,7 +644,7 @@ export default function UndanganGenerator({ isMobile, showT }) {
             <SectionBody isActive={section === "lampiran"}>
               <div style={{ marginBottom: 12 }}>
                 <Label text="Judul Lampiran"/>
-                <input className="ug-input" style={inputSt} placeholder="DAFTAR UNDANGAN" value={form.judulLampiran} onChange={set("judulLampiran")}/>
+                <input className="ug-input" style={inputSt} value={form.judulLampiran} onChange={set("judulLampiran")}/>
               </div>
               <div style={{ marginBottom: 12 }}>
                 <Label text="Spasi Baris"/>
@@ -637,8 +656,8 @@ export default function UndanganGenerator({ isMobile, showT }) {
                 </select>
               </div>
               <div style={{ marginBottom: 4 }}>
-                <Label text="Isi Daftar Undangan" hint="Satu per baris, gunakan Enter"/>
-                <textarea className="ug-input" style={Object.assign({},textareaSt,{minHeight:130})} placeholder={"1. …;\n2. …;\n3. …."} value={form.lampiran} onChange={set("lampiran")}/>
+                <Label text="Isi Daftar Undangan"/>
+                <textarea className="ug-input" style={Object.assign({},textareaSt,{minHeight:130})} value={form.lampiran} onChange={set("lampiran")}/>
               </div>
             </SectionBody>
 
