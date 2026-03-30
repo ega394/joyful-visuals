@@ -175,18 +175,6 @@ const HTML_DOKUMEN_CETAK = `
   </div>
 `;
 
-// ── Muat html2pdf.js dari CDN ──
-function loadHtml2Pdf() {
-  return new Promise((resolve, reject) => {
-    if (window.html2pdf) { resolve(window.html2pdf); return; }
-    const s = document.createElement("script");
-    s.src = "https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js";
-    s.onload  = () => resolve(window.html2pdf);
-    s.onerror = () => reject(new Error("Gagal memuat html2pdf.js — cek koneksi internet"));
-    document.head.appendChild(s);
-  });
-}
-
 // ── Fungsi Format Tanggal Indo ──
 const formatTanggalIndo = (dateStr) => {
   if (!dateStr) return "";
@@ -347,8 +335,7 @@ export default function UndanganGenerator({ isMobile, showT }) {
       
       "document.getElementById('out_judulLampiran').innerText='" + esc(f.judulLampiran) + "';" +
       "var al=document.getElementById('out_lampiran');" +
-      "al.innerText='" + esc(f.lampiran) + "';" +
-      "al.style.lineHeight='" + esc(f.spasiLampiran) + "';" +
+      "if(al){ al.innerText='" + esc(f.lampiran) + "'; al.style.lineHeight='" + esc(f.spasiLampiran) + "'; }" +
       "}" +
       "window.onload=updatePreview;";
 
@@ -363,103 +350,140 @@ export default function UndanganGenerator({ isMobile, showT }) {
     );
   };
 
-  // ── generatePDF ──────────────────────────────────────────
+  // ── generatePDF (Versi Iframe Anti-Kosong) ────────────────────────────────
   const generatePDF = async () => {
     if (!form.nomor.trim() || !form.tanggalAcaraInput || !form.tempat.trim()) {
       if (showT) showT("Isi minimal: Nomor Surat, Hari/Tanggal Acara, dan Tempat", "warn");
       return;
     }
     setLoading(true);
+
     try {
-      var html2pdf = await loadHtml2Pdf();
+      var p = form.pilihanCetak;
       var f = form;
       var tglText = formatTanggalIndo(f.tanggalAcaraInput);
       var pklText = f.waktuMulai ? (f.waktuSelesai ? f.waktuMulai + " s.d. " + f.waktuSelesai + " WITA" : f.waktuMulai + " WITA s.d. selesai") : "";
 
-      var ttdPdf = "<br><br><br>";
+      var ttdContent = "<br><br><br>";
       if (f.jenisTtd === "scan") {
-        ttdPdf =
-          "<img src='/stempel.png' style='position:absolute;left:0;top:-30px;width:145px;z-index:1;mix-blend-mode:multiply' onerror=\"this.style.display='none'\">" +
-          "<img src='/image.jpeg' style='position:absolute;right:0;top:-30px;height:140px;z-index:2;mix-blend-mode:multiply' alt='TTD'>";
+        ttdContent = "<img src='/stempel.png' style='position:absolute;left:0;top:-30px;width:145px;z-index:1;mix-blend-mode:multiply' onerror=\"this.style.display='none'\">" +
+                     "<img src='/image.jpeg' style='position:absolute;right:0;top:-30px;height:140px;z-index:2;mix-blend-mode:multiply' alt='TTD'>";
       } else if (f.jenisTtd === "tte") {
-        ttdPdf = "<br><br>" + f.nomor + "<br><br>";
+        ttdContent = "<br><br><span class='tte-marker'>${ttd_pengirim}</span><br><br>";
       }
 
-      var halamanLampiran = "";
-      if (f.pilihanCetak !== "utama") {
-        halamanLampiran =
-          "<div class='halaman-a4 html2pdf__page-break'>" +
-          "<div style='margin-bottom:15px;'>LAMPIRAN SURAT</div>" +
-          "<table style='border-collapse:collapse;margin-bottom:25px;'>" +
-          "<tr><td style='width:70pt;'>Nomor</td><td style='width:15pt;'>:</td><td>" + f.nomor + "</td></tr>" +
-          "</table>" +
-          "<div style='text-align:center;margin-bottom:20px;'><b><u>" + f.judulLampiran + "</u></b></div>" +
-          "<div class='teks-multibaris' style='line-height:" + f.spasiLampiran + ";margin-bottom:20px;'>" + f.lampiran + "</div>" +
-          "<div class='area-ttd' style='margin-top:30px;'>WALI KOTA TARAKAN<br>" +
-          "<div style='min-height:80px;position:relative;display:flex;flex-direction:column;justify-content:center;align-items:center;'>" + ttdPdf + "</div>" +
-          "<b>dr. H. KHAIRUL, M.Kes.</b></div>" +
-          "</div>";
-      }
+      var esc = function(s) {
+        return (s || "").replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/\r?\n/g, "\\n");
+      };
 
-      var htmlPdf =
-        "<div class='halaman-a4'>" +
-        "<div class='kop'>" +
-        "<img src='/image001.jpg' alt='Garuda' onerror=\"this.style.display='none'\">" +
-        "<div class='kop-teks'>WALI KOTA TARAKAN</div>" +
-        "</div>" +
-        "<div class='tanggal-kanan'>" + f.tanggalSurat + "</div>" +
-        "<table class='tabel-info'>" +
-        "<tr><td class='col-label'>Nomor</td><td class='col-titikdua'>:</td><td>" + f.nomor + "</td></tr>" +
-        "<tr><td>Sifat</td><td>:</td><td>" + f.sifat + "</td></tr>" +
-        "<tr><td>Lampiran</td><td>:</td><td>" + f.lampiranCount + "</td></tr>" +
-        "<tr><td>Hal</td><td>:</td><td><b><u>Undangan</u></b></td></tr>" +
-        "</table>" +
-        "<div class='tujuan-surat'>Yth:<br><b><span class='teks-multibaris'>" + f.yth + "</span></b><br>di-<br><b>TARAKAN</b></div>" +
-        "<div class='paragraf-indent'>Mengharapkan dengan hormat kehadiran Bapak/Ibu/Saudara (i) pada:</div>" +
-        "<table class='tabel-acara'>" +
-        "<tr><td class='col-label-acara'>hari/tanggal</td><td class='col-titikdua'>:</td><td>" + tglText + "</td></tr>" +
-        "<tr><td>pukul</td><td>:</td><td>" + pklText + "</td></tr>" +
-        "<tr><td>tempat</td><td>:</td><td>" + f.tempat + "</td></tr>" +
-        "<tr><td>acara</td><td>:</td><td><b><div class='teks-multibaris'>" + f.acara + "</div></b></td></tr>" +
-        "</table>" +
-        "<div class='paragraf-indent'>Demikian, atas perhatian serta kehadirannya diucapkan terima kasih.</div>" +
-        "<div class='area-ttd'>WALI KOTA TARAKAN<br>" +
-        "<div style='min-height:80px;position:relative;display:flex;flex-direction:column;justify-content:center;align-items:center;'>" + ttdPdf + "</div>" +
-        "<b>dr. H. KHAIRUL, M.Kes.</b></div>" +
+      var scriptContent = "" +
+        "var p = '" + p + "';\n" +
+        "var hl = document.getElementById('halaman-lampiran');\n" +
+        "if(hl) hl.style.display = p === 'utama' ? 'none' : 'block';\n" +
+        "var tc = '" + esc(ttdContent) + "';\n" +
+        "var tu = document.getElementById('ttd_utama_space');\n" +
+        "var tl = document.getElementById('ttd_lampiran_space');\n" +
+        "if(tu) tu.innerHTML = tc;\n" +
+        "if(tl) tl.innerHTML = tc;\n" +
         
-        // Block Keterangan
-        "<div class='area-keterangan'>" +
-        (f.showTembusan ? "<div class='ket-item'><b><u>Tembusan:</u></b><br><span class='teks-multibaris'>" + f.tembusan + "</span></div>" : "") +
-        (f.showNarahubung ? "<div class='ket-item'><b><u>Narahubung:</u></b><br>" + f.narahubung + "</div>" : "") +
-        (f.showPakaian ? "<div class='ket-item'><b><u>Pakaian:</u></b><br>" + f.pakaian + "</div>" : "") +
-        (f.catatan.trim() ? "<div class='ket-item'><b><u>catatan:</u></b><br><span class='teks-multibaris'>" + f.catatan + "</span></div>" : "") +
-        "</div>" +
+        "document.getElementById('out_tanggalSurat').innerText='" + esc(f.tanggalSurat) + "';\n" +
+        "document.getElementById('out_nomor').innerText='" + esc(f.nomor) + "';\n" +
+        "document.getElementById('out_nomor_lampiran').innerText='" + esc(f.nomor) + "';\n" +
+        "document.getElementById('out_sifat').innerText='" + esc(f.sifat) + "';\n" +
+        "document.getElementById('out_lampiranCount').innerText='" + esc(f.lampiranCount) + "';\n" +
+        "document.getElementById('out_yth').innerText='" + esc(f.yth) + "';\n" +
+        "document.getElementById('out_waktuAcara').innerText='" + esc(tglText) + "';\n" +
+        "document.getElementById('out_pukul').innerText='" + esc(pklText) + "';\n" +
+        "document.getElementById('out_tempat').innerText='" + esc(f.tempat) + "';\n" +
+        "document.getElementById('out_acara').innerText='" + esc(f.acara) + "';\n" +
+        
+        "document.getElementById('out_tembusan').innerText='" + esc(f.tembusan) + "';\n" +
+        "document.getElementById('out_narahubung').innerText='" + esc(f.narahubung) + "';\n" +
+        "document.getElementById('out_pakaian').innerText='" + esc(f.pakaian) + "';\n" +
+        "var cat='" + esc(f.catatan) + "';\n" +
+        "document.getElementById('out_catatan').innerText=cat;\n" +
+        
+        "document.getElementById('wadah_tembusan').style.display=" + (f.showTembusan ? "'block'" : "'none'") + ";\n" +
+        "document.getElementById('wadah_narahubung').style.display=" + (f.showNarahubung ? "'block'" : "'none'") + ";\n" +
+        "document.getElementById('wadah_pakaian').style.display=" + (f.showPakaian ? "'block'" : "'none'") + ";\n" +
+        "document.getElementById('wadah_catatan').style.display=cat.trim()===''?'none':'block';\n" +
+        
+        "document.getElementById('out_judulLampiran').innerText='" + esc(f.judulLampiran) + "';\n" +
+        "var al=document.getElementById('out_lampiran');\n" +
+        "if(al){ al.innerText='" + esc(f.lampiran) + "'; al.style.lineHeight='" + esc(f.spasiLampiran) + "'; }\n" +
+        
+        "var nomorSurat = '" + esc(f.nomor.replace(/[\/\\]/g, "-").replace(/[^a-zA-Z0-9-]/g, "")) + "';\n" +
+        "var suffixTtd = '" + (f.jenisTtd === 'tte' ? '_TTE' : (f.jenisTtd === 'scan' ? '_Scan' : '')) + "';\n" +
+        "var prefix = p === 'utama' ? 'Undangan_Utama' : 'Undangan';\n" +
+        "var namaFile = prefix + suffixTtd + '_' + (nomorSurat || 'Draft') + '.pdf';\n" +
+        
+        // Jeda waktu agar gambar logo dan stempel sempat termuat sebelum difoto
+        "setTimeout(function() {\n" +
+        "  var element = document.getElementById('dokumen-cetak');\n" +
+        "  window.html2pdf().set({ margin: 0, filename: namaFile, image: { type: 'jpeg', quality: 1 }, html2canvas: { scale: 2, useCORS: true, allowTaint: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } }).from(element).save().then(function() { window.parent.postMessage('done', '*'); });\n" +
+        "}, 800);\n";
 
-        "<div class='footer-alamat'>Jalan Kalimantan No. 1, Kota Tarakan<br>Telp. (0551) 21620, 34320 Fax. (0551) 23782</div>" +
-        "</div>" +
-        halamanLampiran;
+      // Membangun dokumen HTML untuk Iframe
+      var srcDoc = "" +
+        "<!DOCTYPE html>\n" +
+        "<html><head><meta charset='UTF-8'>\n" +
+        // Baris INI SANGAT PENTING agar logo /image001.jpg terbaca alamat lengkapnya
+        "<base href='" + window.location.origin + "/'>\n" +
+        "<style>\n" +
+        "body{margin:0;padding:0;background:white;}\n" +
+        CSS_ASLI + 
+        "\n</style>\n" +
+        "<script src='https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js'></script>\n" +
+        "</head><body>\n" +
+        "<div id='dokumen-cetak'>\n" +
+        HTML_DOKUMEN_CETAK +
+        "</div>\n" +
+        "<script>\n" +
+        "window.onload = function() {\n" +
+        scriptContent +
+        "};\n" +
+        "</script>\n" +
+        "</body></html>";
 
-      // HTML dan CSS disatukan ke dalam satu string lalu diserahkan ke html2pdf
-      var finalContent = "<div id='dokumen-cetak'><style>" + CSS_ASLI + "</style>" + htmlPdf + "</div>";
+      // Eksekusi Iframe Rahasia di Latar Belakang
+      var blob = new Blob([srcDoc], {type: "text/html"});
+      var url = URL.createObjectURL(blob);
+      
+      var tempIframe = document.createElement("iframe");
+      tempIframe.style.position = "absolute";
+      tempIframe.style.width = "210mm";
+      tempIframe.style.height = "297mm";
+      tempIframe.style.top = "-9999px"; // Sembunyikan jauh di luar layar
+      tempIframe.style.left = "-9999px";
+      tempIframe.style.zIndex = "-9999";
+      tempIframe.src = url;
+      document.body.appendChild(tempIframe);
+      
+      var handleMessage = function(e) {
+        if (e.data === "done") {
+          setLoading(false);
+          document.body.removeChild(tempIframe);
+          URL.revokeObjectURL(url);
+          window.removeEventListener("message", handleMessage);
+          if (showT) showT("PDF berhasil diunduh!", "ok");
+        }
+      };
+      window.addEventListener("message", handleMessage);
+      
+      // Keamanan jika terjadi error (timeout setelah 12 detik)
+      setTimeout(function() {
+        if (document.body.contains(tempIframe)) {
+          setLoading(false);
+          document.body.removeChild(tempIframe);
+          URL.revokeObjectURL(url);
+          window.removeEventListener("message", handleMessage);
+          if (showT) showT("Waktu unduh habis, tapi file mungkin sudah tersimpan. Silakan periksa folder Download.", "warn");
+        }
+      }, 12000);
 
-      var nomorSurat = f.nomor.replace(/[\/\\]/g, "-").replace(/[^a-zA-Z0-9-]/g, "");
-      var suffixTtd  = f.jenisTtd === "tte" ? "_TTE" : f.jenisTtd === "scan" ? "_Scan" : "";
-      var prefix     = f.pilihanCetak === "utama" ? "Undangan_Utama" : "Undangan";
-      var namaFile   = prefix + suffixTtd + "_" + (nomorSurat || "Draft") + ".pdf";
-
-      await html2pdf().set({
-        margin: 0, 
-        filename: namaFile,
-        image: { type: "jpeg", quality: 1 },
-        html2canvas: { scale: 2, useCORS: true, allowTaint: true },
-        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-      }).from(finalContent).save();
-
-      if (showT) showT("PDF berhasil diunduh: " + namaFile, "ok");
     } catch (err) {
       if (showT) showT("Gagal membuat PDF: " + err.message, "error");
       else alert("Gagal: " + err.message);
-    } finally {
       setLoading(false);
     }
   };
