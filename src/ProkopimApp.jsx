@@ -4055,7 +4055,7 @@ function WeatherJarak({tanggal, jam, lokasi}) {
                         fontSize: 11, fontWeight: 700,
                         color: weather.hujan > 60 ? "#FCD34D" : "rgba(255,255,255,0.7)"
                       }}>
-                        💧 {weather.hujan}%{weather.hujan > 60 ? " ⚠️ persiapkan payung" : ""}
+                        💧 {weather.hujan}%{weather.hujan > 60 ? " ⚠️ sediakan payung " : ""}
                       </span>
                     )}
                     {weather.jauh && (
@@ -4082,7 +4082,7 @@ function WeatherJarak({tanggal, jam, lokasi}) {
           <span style={{fontSize: 22, lineHeight: 1}}>🚗</span>
           <div style={{minWidth: 0}}>
             <div style={{fontSize: 10, color: "rgba(255,255,255,0.65)", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 1}}>
-              dari Kantor Wali Kota
+              Dari Balaikota
             </div>
             {loadJ
               ? <div style={{fontSize:11,color:"rgba(255,255,255,0.6)"}}>Menghitung rute...</div>
@@ -4108,7 +4108,7 @@ function WeatherJarak({tanggal, jam, lokasi}) {
 // ── KartuSorotanHariIni ─────────────────────────────────────────────────────
 // Menampilkan agenda hari ini yang belum lewat, dengan cuaca + estimasi jarak
 // Muncul di atas daftar agenda untuk semua role (kecuali role khusus pimpinan)
-function KartuSorotanHariIni({ events, filterForRole, filterPimpinan }) {
+function KartuSorotanHariIni({ events, filterForRole, filterPimpinan, isMobile }) {
   const WEATHER_KEY = (import.meta?.env?.VITE_OPENWEATHER_KEY) || "";
   const LAT = "3.3169", LON = "117.5765";
   const now = new Date();
@@ -4192,7 +4192,7 @@ function KartuSorotanHariIni({ events, filterForRole, filterPimpinan }) {
   const fmtTgl = t => { const [y,m,d]=t.split("-"); return `${d} ${BULAN[+m]} ${y}`; };
 
   return (
-    <div style={{ background: bg, borderRadius: 16, padding: 16, marginBottom: 14,
+    <div style={{ background: bg, borderRadius: isMobile?12:16, padding: isMobile?"12px 14px":"14px 16px", marginBottom: 14,
       boxShadow: "0 4px 20px rgba(0,0,0,0.25)" }}>
 
       {/* Header cuaca */}
@@ -4204,7 +4204,7 @@ function KartuSorotanHariIni({ events, filterForRole, filterPimpinan }) {
               Sorotan Hari Ini · Tarakan
             </div>
             {weather ? (
-              <div style={{ fontSize: 15, fontWeight: 800, color: "white", textTransform: "capitalize" }}>
+              <div style={{ fontSize: isMobile?13:15, fontWeight: 800, color: "white", textTransform: "capitalize" }}>
                 {weather.deskripsi} · {weather.suhu}°C
               </div>
             ) : (
@@ -4214,8 +4214,8 @@ function KartuSorotanHariIni({ events, filterForRole, filterPimpinan }) {
         </div>
         {isHujan && (
           <div style={{ background: "rgba(239,68,68,0.25)", border: "1px solid rgba(239,68,68,0.4)",
-            borderRadius: 20, padding: "4px 10px", fontSize: 11, color: "#FCA5A5", fontWeight: 700 }}>
-            ⚠️ Siapkan Payung
+            borderRadius: 20, padding: isMobile?"3px 8px":"4px 10px", fontSize: isMobile?10:11, color: "#FCA5A5", fontWeight: 700 }}>
+            ⚠️ Siapkan {isMobile?"Payung":"Jas Hujan"}
           </div>
         )}
         <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)" }}>
@@ -4237,7 +4237,7 @@ function KartuSorotanHariIni({ events, filterForRole, filterPimpinan }) {
                 padding: "12px 14px", border: "1px solid rgba(255,255,255,0.12)" }}>
                 <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: "white", lineHeight: 1.3, marginBottom: 4 }}>
+                    <div style={{ fontSize: isMobile?12:13, fontWeight: 800, color: "white", lineHeight: 1.3, marginBottom: 4 }}>
                       {ev.namaAcara}
                     </div>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
@@ -4258,7 +4258,7 @@ function KartuSorotanHariIni({ events, filterForRole, filterPimpinan }) {
                     )}
                     {j && (
                       <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>
-                        {j.jarak} dari Kantor Wali Kota
+                        {j.jarak} dari Balaikota
                       </div>
                     )}
                   </div>
@@ -8919,7 +8919,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
 
       <div style={{padding:isMobile?"14px":"20px 28px"}}>
         {/* ── Kartu Sorotan Hari Ini — cuaca+jarak khusus pimpinan ── */}
-        <KartuSorotanHariIni events={myEvs}/>
+        <KartuSorotanHariIni events={myEvs} isMobile={isMobile}/>
         {/* ── Layout Side-by-Side khusus Wakil Wali Kota ───────────── */}
         {role==="wakilwalikota"&&!isMobile&&(
           <div style={{display:"grid",gridTemplateColumns:"340px 1fr",gap:16,marginBottom:16}}>
@@ -9375,9 +9375,9 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
           </div>
         );
       })()}
-      {/* ── Kartu Sorotan Hari Ini — cuaca+jarak, hanya hari ini, di atas semua ── */}
-      {(tab==="tayang"||tab==="semua")&&!["walikota","wakilwalikota","ajudan_walikota","ajudan_wakilwalikota"].includes(role)&&(
-        <KartuSorotanHariIni events={events} role={role}/>
+      {/* ── Kartu Sorotan Hari Ini — cuaca+jarak, tampil semua role ── */}
+      {(tab==="tayang"||tab==="semua")&&(
+        <KartuSorotanHariIni events={events} role={role} isMobile={isMobile}/>
       )}
       {/* ── Morning Summary + Streak ── */}
       {(tab==="tayang"||tab==="semua")&&<>
