@@ -1,6 +1,6 @@
 /**
  * UndanganGenerator.jsx — Prokopim Hibot v2.0
- * FIXED: Blank Render & Tambahan Fitur Cetak Langsung
+ * FIXED: Hapus Bayangan (Box Shadow) di hasil Cetak PDF
  */
 
 import React, { useState, useRef } from "react";
@@ -9,7 +9,10 @@ import React, { useState, useRef } from "react";
 const CSS_ASLI = `
   #dokumen-cetak, #dokumen-cetak * { font-family: Arial, Helvetica, sans-serif !important; }
   #dokumen-cetak { background: white; width: 210mm; }
-  .halaman-a4 { width: 210mm; min-height: 297mm; background: white; padding: 20mm 20mm 20mm 25mm; box-shadow: 0 4px 15px rgba(0,0,0,0.2); margin-bottom: 20px; box-sizing: border-box; font-size: 11pt; color: black; line-height: 1.5; position: relative; }
+  
+  /* FIX: box-shadow dan margin-bottom dihapus dari sini agar PDF bersih */
+  .halaman-a4 { width: 210mm; min-height: 297mm; background: white; padding: 20mm 20mm 20mm 25mm; box-sizing: border-box; font-size: 11pt; color: black; line-height: 1.5; position: relative; }
+  
   .kop { text-align: center; margin-bottom: 25px; }
   .kop img { width: 88px; margin-bottom: 5px; }
   .kop-teks { font-size: 20pt; font-weight: bold; margin-top: 5px; letter-spacing: 0.5px; }
@@ -297,14 +300,13 @@ export default function UndanganGenerator({ isMobile, showT }) {
     }
   };
 
-  // ── Fungsi Cetak Langsung ke Printer (FITUR BARU) ──
+  // ── Fungsi Cetak Langsung ke Printer ──
   const cetakLangsung = () => {
     const iframe = document.getElementById("preview-iframe");
     if (!iframe) {
       if (showT) showT("Pratinjau tidak tersedia untuk dicetak.", "error");
       return;
     }
-    // Fokuskan ke iframe lalu panggil dialog print bawaan browser
     iframe.contentWindow.focus();
     iframe.contentWindow.print();
   };
@@ -415,20 +417,17 @@ export default function UndanganGenerator({ isMobile, showT }) {
           </div>
 
           <div style={{ padding: "12px 14px 16px", borderTop: "1px solid #E2E8F0", background: "#F8FAFC", flexShrink: 0 }}>
-            {/* Tombol Unduh PDF */}
             <button onClick={generatePDF} disabled={loading}
               style={{ width: "100%", padding: "13px 0", borderRadius: 10, border: "none", background: loading ? "#94A3B8" : "linear-gradient(135deg," + NAVY + ",#1A2F50)", color: "white", fontWeight: 800, fontSize: 14, cursor: loading ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, boxShadow: loading ? "none" : "0 4px 14px rgba(10,22,40,0.25)", marginBottom: 8 }}>
               {loading ? <><span style={{ width:16,height:16,borderRadius:"50%",border:"2.5px solid rgba(255,255,255,0.3)",borderTopColor:"white",display:"inline-block",animation:"spin 0.7s linear infinite" }}/>&nbsp;Memproses PDF...</> : <><span style={{ fontSize:18 }}>⬇</span>&nbsp;Unduh PDF Undangan</>}
             </button>
             
-            {/* Tombol Cetak Langsung (FITUR BARU) */}
             <button onClick={cetakLangsung} disabled={loading}
               style={{ width: "100%", padding: "11px 0", borderRadius: 10, border: "2px solid " + NAVY, background: "white", color: NAVY, fontWeight: 800, fontSize: 13, cursor: loading ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 8 }}>
               <span style={{ fontSize:18 }}>🖨️</span> Cetak Langsung ke Printer
             </button>
 
-            {/* Tombol Reset */}
-            <button onClick={resetForm} style={{ width:"100%",padding:"9px 0",borderRadius:10,border:"1.5px solid #E2E8F0",background:"white",color:"#64748B",fontWeight:600,fontSize:12,cursor:"pointer" }}>🔄 Reset Semua Kolom</button>
+            <button onClick={resetForm} style={{ width:"100%",padding:"9px 0",borderRadius:10,border:"1.5px solid #E2E8F0",background:"background",color:"#64748B",fontWeight:600,fontSize:12,cursor:"pointer" }}>🔄 Reset Semua Kolom</button>
           </div>
         </div>
 
@@ -439,10 +438,23 @@ export default function UndanganGenerator({ isMobile, showT }) {
               <span style={{ fontSize: 13, color: "rgba(255,255,255,0.7)" }}>👁 Pratinjau Dokumen</span>
               <span style={{ marginLeft: "auto", fontSize: 11, color: "rgba(255,255,255,0.4)" }}>Live Render Engine</span>
             </div>
+            {/* FIX IFRAME: Menambahkan efek bayangan KHUSUS hanya untuk layar pratinjau */}
             <iframe 
               id="preview-iframe" 
               title="Preview Undangan" 
-              srcDoc={`<!DOCTYPE html><html><head><style>body{margin:0;padding:20px;background:#525659;display:flex;justify-content:center;}${CSS_ASLI}</style></head><body>${buildHTMLString()}</body></html>`} 
+              srcDoc={`
+                <!DOCTYPE html>
+                <html>
+                  <head>
+                    <style>
+                      body { margin:0; padding:20px; background:#525659; display:flex; flex-direction:column; align-items:center; gap:20px; }
+                      ${CSS_ASLI}
+                      .halaman-a4 { box-shadow: 0 4px 15px rgba(0,0,0,0.4); }
+                    </style>
+                  </head>
+                  <body>${buildHTMLString()}</body>
+                </html>
+              `} 
               style={{ flex: 1, border: "none", width: "100%", background: "#525659" }}
             />
           </div>
