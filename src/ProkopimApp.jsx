@@ -94,14 +94,14 @@ function hadirOleh(ev, multiLine){
   })();
   const wwkL = (()=>{
     if(!fWWK) return null;
-    if(ev.statusWWK==="hadir")      return (ev.delegasiKeWWK?"Wakil WK (mewakili WK)":"Wakil Wali Kota")+(ev.besertaIstriWWK?" (beserta Istri)":"");
+    if(ev.statusWWK==="hadir")      return "Wakil Wali Kota"+(ev.besertaIstriWWK?" (beserta Istri)":"");
     if(ev.statusWWK==="diwakilkan") return ev.perwakilanWWK||"Perwakilan WWK";
     return null;
   })();
   if(fWK && fWWK && multiLine){
-    return [wkL?"👤 Wali Kota: "+wkL:null, wwkL?"👤 Wakil WK: "+wwkL:null].filter(Boolean).join("\n");
+    return [wkL||null, wwkL||null].filter(Boolean).join("\n");
   }
-  return [wkL?"WK: "+wkL:null, wwkL?"WWK: "+wwkL:null].filter(Boolean).join(", ");
+  return [wkL||null, wwkL||null].filter(Boolean).join(", ");
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1118,7 +1118,23 @@ function SummaryModal({events,onToggleHide,onClose}){
     const printTime=_now.toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"});
     const rows=pub.map((ev,i)=>{
       const tgl=ev.tanggal?`<b>${getHari(ev.tanggal)}, ${fmt(ev.tanggal)}</b>`:"";
-      const pim=(ev.untukPimpinan||[]).map(p=>{if(p==="walikota")return "WK"+(ev.besertaIstriWK?" + Istri":"");if(p==="wakilwalikota")return "WWK"+(ev.besertaIstriWWK?" + Istri":"");return p;}).join(", ")||"-";
+      const _fWK=(ev.untukPimpinan||[]).includes("walikota");
+      const _fWWK=(ev.untukPimpinan||[]).includes("wakilwalikota")||ev.delegasiKeWWK;
+      const _pimLines=[];
+      if(_fWK){
+        if(ev.delegasiKeWWK)_pimLines.push("Wali Kota → Wakil Wali Kota");
+        else if(ev.statusWK==="hadir")_pimLines.push("Wali Kota"+(ev.besertaIstriWK?" (beserta Istri)":""));
+        else if(ev.statusWK==="tidak_hadir")_pimLines.push("Wali Kota (Tidak Hadir)");
+        else if(ev.statusWK==="diwakilkan"&&ev.perwakilanWK)_pimLines.push("Wali Kota → "+ev.perwakilanWK);
+        else _pimLines.push("Wali Kota");
+      }
+      if(_fWWK&&!ev.delegasiKeWWK||(_fWWK&&ev.delegasiKeWWK)){
+        if(ev.statusWWK==="hadir")_pimLines.push((ev.delegasiKeWWK?"Wakil Wali Kota (mewakili WK)":"Wakil Wali Kota")+(ev.besertaIstriWWK?" (beserta Istri)":""));
+        else if(ev.statusWWK==="tidak_hadir")_pimLines.push("Wakil Wali Kota (Tidak Hadir)");
+        else if(ev.statusWWK==="diwakilkan"&&ev.perwakilanWWK)_pimLines.push("Wakil Wali Kota → "+ev.perwakilanWWK);
+        else if(_fWWK)_pimLines.push(ev.delegasiKeWWK?"Wakil Wali Kota (mewakili WK)":"Wakil Wali Kota");
+      }
+      const pim=_pimLines.join("<br>")||"-";
       return `<tr><td class="c">${i+1}</td><td class="nw">${tgl}</td><td class="c"><b>${ev.jam}</b> WITA</td><td><b>${ev.namaAcara}</b><br><span class="sub">${ev.penyelenggara||""}</span></td><td>${ev.lokasi||"-"}</td><td class="c">${pim}</td></tr>`;
     }).join("");
     const w=window.open("","_blank");
