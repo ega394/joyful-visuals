@@ -474,12 +474,30 @@ async function dbDeletePendingReg(id){
   if(!SUPA_OK)return;
   await fetch(SUPA_URL+"/rest/v1/pending_regs?id=eq."+id,{method:"DELETE",headers:H()});
 }
-async function storageUpload(bucket,evId,file){
+async function storageUpload(bucket,evId,file,hintNama){
   if(!SUPA_OK)return null;
-  const path=evId+"/"+Date.now()+"_"+file.name.replace(/[^a-zA-Z0-9._-]/g,"_");
-  const r=await fetch(SUPA_URL+"/storage/v1/object/"+bucket+"/"+path,{method:"POST",headers:{apikey:SUPA_KEY,Authorization:"Bearer "+SUPA_KEY,"Content-Type":file.type},body:file});
-  if(!r.ok)return null;
-  return SUPA_URL+"/storage/v1/object/public/"+bucket+"/"+path;
+  // Tangani File dan Blob — Blob tidak punya .name
+  const rawName = hintNama || file.name || "berkas";
+  const ext = rawName.includes(".") ? "" : (file.type==="application/pdf"?".pdf":".jpg");
+  const safeName = rawName.replace(/[^a-zA-Z0-9._-]/g,"_") + ext;
+  const path = String(evId)+"/"+Date.now()+"_"+safeName;
+  const mime = file.type || "application/octet-stream";
+  try {
+    const r=await fetch(SUPA_URL+"/storage/v1/object/"+bucket+"/"+path,{
+      method:"POST",
+      headers:{apikey:SUPA_KEY,Authorization:"Bearer "+SUPA_KEY,"Content-Type":mime},
+      body:file
+    });
+    if(!r.ok){
+      const errText = await r.text().catch(()=>"");
+      console.warn("[storageUpload] gagal HTTP",r.status,"bucket="+bucket,"path="+path,"err="+errText);
+      return null;
+    }
+    return SUPA_URL+"/storage/v1/object/public/"+bucket+"/"+path;
+  } catch(e) {
+    console.warn("[storageUpload] exception:",e.message);
+    return null;
+  }
 }
 // Kompresi file ke maks 1MB sebelum upload
 // - Gambar: iterasi turunkan kualitas JPEG sampai ≤1MB
@@ -973,8 +991,8 @@ function AIModal({onFill,onClose}){
         </>}
         {loading&&<div style={{textAlign:"center",padding:"40px 20px"}}>
           <div style={{width:48,height:48,border:"4px solid #e0e7ff",borderTopColor:"#6366f1",borderRadius:"50%",animation:"spin 0.9s linear infinite",margin:"0 auto 16px"}}/>
-          <div style={{fontSize:14,fontWeight:700,color:NAVY,marginBottom:6}}>{result?"⚙️ Mengompresi & mengunggah ke server...":"🤖 AI sedang membaca dokumen..."}</div>
-          <div style={{fontSize:12,color:"#64748b"}}>{result?"Kompres maks 1 MB → upload Supabase Storage → siap digunakan":"Menganalisa isi undangan, mohon tunggu sebentar"}</div>
+          <div style={{fontSize:14,fontWeight:700,color:NAVY,marginBottom:6}}>{result?"⚙️ Mengompresi file...":"🤖 AI sedang membaca dokumen..."}</div>
+          <div style={{fontSize:12,color:"#64748b"}}>{result?"Kompres ke maks 1 MB — file akan diunggah ke Supabase saat Anda klik Simpan":"Menganalisa isi undangan, mohon tunggu sebentar"}</div>
           <style dangerouslySetInnerHTML={{__html:"@keyframes spin{to{transform:rotate(360deg)}}@keyframes loadbar{0%{background-position:200% 0}100%{background-position:-200% 0}}"}}/>
         </div>}
         {edited&&<>
@@ -1008,32 +1026,27 @@ function AIModal({onFill,onClose}){
               if(undanganFile){
                 setLoading(true);
                 try{
-                  // Langkah 1: Kompres ke maks 1 MB
+                  // Kompres ke maks 1 MB — hasil dikirim ke submit() sebagai base64
+                  // submit() yang akan upload ke Supabase dengan evId asli (bukan tempId)
                   const compressed=await compressFileTo1MB(undanganFile);
                   finalUndanganNama=compressed.name||undanganNama;
-                  // Langkah 2: Coba upload langsung ke Supabase Storage
-                  const SUPA_OK=!!(SUPA_URL&&SUPA_KEY);
-                  if(SUPA_OK){
-                    // evId sementara — akan di-re-link saat submit() menyimpan event
-                    const tempId="ai_"+Date.now();
-                    const url=await storageUpload("undangan",tempId,compressed);
-                    if(url){
-                      finalUndanganFile=url; // URL Supabase langsung
-                      console.log("[AIModal] Upload sukses →",url);
-                    } else {
-                      // Fallback: base64 untuk diproses submit()
-                      finalUndanganFile=await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=rej;r.readAsDataURL(compressed);});
-                    }
-                  } else {
-                    // Supabase tidak tersedia: simpan base64
-                    finalUndanganFile=await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=rej;r.readAsDataURL(compressed);});
-                  }
+                  // Konversi ke base64 untuk diteruskan via form state
+                  finalUndanganFile=await new Promise((res,rej)=>{
+                    const r=new FileReader();
+                    r.onload=e=>res(e.target.result); // "data:image/jpeg;base64,..."
+                    r.onerror=rej;
+                    r.readAsDataURL(compressed);
+                  });
+                  console.log("[AIModal] Kompresi selesai, ukuran:",Math.round(compressed.size/1024),"KB → diserahkan ke submit()");
                 }catch(e){
-                  console.error("Gagal memproses/upload file:",e);
-                  // Fallback base64 jika semua gagal
+                  console.error("[AIModal] Gagal kompres file:",e);
+                  // Fallback: kirim file asli sebagai base64
                   try{
-                    finalUndanganFile=await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=rej;r.readAsDataURL(undanganFile);});
-                  }catch(e2){console.error("Fallback base64 juga gagal:",e2);}
+                    finalUndanganFile=await new Promise((res,rej)=>{
+                      const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=rej;
+                      r.readAsDataURL(undanganFile);
+                    });
+                  }catch(e2){console.error("[AIModal] Fallback base64 gagal:",e2);}
                 }
                 setLoading(false);
               }
@@ -4055,7 +4068,7 @@ function WeatherJarak({tanggal, jam, lokasi}) {
                         fontSize: 11, fontWeight: 700,
                         color: weather.hujan > 60 ? "#FCD34D" : "rgba(255,255,255,0.7)"
                       }}>
-                        💧 {weather.hujan}%{weather.hujan > 60 ? " ⚠️ sediakan payung " : ""}
+                        💧 {weather.hujan}%{weather.hujan > 60 ? " ⚠️ persiapkan jas hujan" : ""}
                       </span>
                     )}
                     {weather.jauh && (
@@ -5741,7 +5754,7 @@ export default function App(){
   },[events,role]);
 
   const handleUndanganUpload=useCallback(async(evId,file,name)=>{
-    if(SUPA_OK){const url=await storageUpload("undangan",evId,file);if(url){updAndSync(evId,{undanganFile:url,undanganNama:name});return;}}
+    if(SUPA_OK){const url=await storageUpload("undangan",evId,file,name);if(url){updAndSync(evId,{undanganFile:url,undanganNama:name});return;}}
     const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=rej;r.readAsDataURL(file);});updAndSync(evId,{undanganFile:b64,undanganNama:name});
   },[updAndSync]);
 
@@ -5843,15 +5856,20 @@ const submit = async () => {
       showT("Mengamankan file ke penyimpanan...", "warn");
       try {
         const blob = await (await fetch(finalUndanganFile)).blob();
-        const storageUrl = await storageUpload("undangan", evId, blob);
+        // Ambil nama file dari form — form.undanganNama tersedia di scope ini
+        const namaHint = form.undanganNama || ("undangan_" + evId + ".jpg");
+        const storageUrl = await storageUpload("undangan", evId, blob, namaHint);
         if (storageUrl) {
-          finalUndanganFile = storageUrl; 
+          finalUndanganFile = storageUrl;
+          console.log("[submit] upload sukses →", storageUrl);
         } else {
-          finalUndanganFile = null; 
+          // Jangan nullkan — simpan base64, bisa diretry nanti
+          console.warn("[submit] storageUpload null — mempertahankan base64 fallback");
+          // finalUndanganFile tetap base64 (tidak diubah ke null)
         }
       } catch(e) {
-        console.warn("Storage upload gagal:", e.message);
-        finalUndanganFile = null;
+        console.warn("[submit] Storage upload exception:", e.message);
+        // Sama — pertahankan base64
       }
     }
 
