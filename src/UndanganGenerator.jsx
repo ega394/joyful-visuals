@@ -1,6 +1,6 @@
 /**
  * UndanganGenerator.jsx — Prokopim Hibot v2.0
- * FIXED: Full Mobile Support Print, Blank Render, & Shadow Removal
+ * FIXED: Forced Box-Shadow Removal using !important
  */
 
 import React, { useState, useRef } from "react";
@@ -8,10 +8,24 @@ import React, { useState, useRef } from "react";
 // ── CSS Kertas & Dokumen ──
 const CSS_ASLI = `
   #dokumen-cetak, #dokumen-cetak * { font-family: Arial, Helvetica, sans-serif !important; }
-  #dokumen-cetak { background: white; width: 210mm; }
+  #dokumen-cetak { background: white !important; width: 210mm !important; margin: 0 !important; padding: 0 !important; box-shadow: none !important; border: none !important; }
   
-  /* FIX: box-shadow dan margin-bottom dihapus dari sini agar PDF/Print bersih */
-  .halaman-a4 { width: 210mm; min-height: 297mm; background: white; padding: 20mm 20mm 20mm 25mm; box-sizing: border-box; font-size: 11pt; color: black; line-height: 1.5; position: relative; }
+  /* FIX UTAMA: Paksa hilangkan bayangan dan margin dengan !important agar kebal dari CSS Global */
+  .halaman-a4 { 
+    width: 210mm !important; 
+    min-height: 297mm !important; 
+    background: white !important; 
+    padding: 20mm 20mm 20mm 25mm !important; 
+    box-sizing: border-box !important; 
+    font-size: 11pt !important; 
+    color: black !important; 
+    line-height: 1.5 !important; 
+    position: relative !important; 
+    box-shadow: none !important; /* ⬅️ BUNUH BAYANGAN */
+    border: none !important; 
+    margin: 0 !important;        /* ⬅️ BUNUH JARAK ANTAR HALAMAN */
+    outline: none !important;
+  }
   
   .kop { text-align: center; margin-bottom: 25px; }
   .kop img { width: 88px; margin-bottom: 5px; }
@@ -28,7 +42,6 @@ const CSS_ASLI = `
   .col-label-acara { width: 113pt; }
   .area-ttd { float: right; width: 250px; text-align: center; margin-top: 15px; position: relative; }
   
-  /* AREA KETERANGAN (TEMBUSAN, NARAHUBUNG, PAKAIAN) - FONT 10PT */
   .area-keterangan { clear: both; margin-top: 25px; line-height: 1.5; font-size: 10pt !important; }
   .area-keterangan * { font-size: 10pt !important; }
   .ket-item { margin-bottom: 6px; }
@@ -59,9 +72,6 @@ const formatTanggalIndo = (dateStr) => {
   return `${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
 };
 
-// =====================================================================
-// HELPER UI: Didefinisikan DI LUAR komponen utama
-// =====================================================================
 const NAVY = "#0A1628";
 const GOLD = "#C9A84C";
 
@@ -97,9 +107,6 @@ const CheckboxToggle = ({ checked, onChange, label }) => (
   </label>
 );
 
-// =====================================================================
-// KOMPONEN UTAMA
-// =====================================================================
 export default function UndanganGenerator({ isMobile, showT }) {
   const EMPTY = {
     pilihanCetak:  "semua",
@@ -138,7 +145,6 @@ export default function UndanganGenerator({ isMobile, showT }) {
     if (window.confirm("Reset semua kolom? Data yang belum disimpan akan hilang.")) setForm(EMPTY);
   };
 
-  // Logika Waktu
   let tglText = formatTanggalIndo(form.tanggalAcaraInput);
   let pklText = "";
   if (form.waktuMulai) {
@@ -151,7 +157,6 @@ export default function UndanganGenerator({ isMobile, showT }) {
     }
   }
 
-  // Merakit HTML Murni
   const buildHTMLString = () => {
     let ttdPdf = "<br><br><br>";
     if (form.jenisTtd === "scan") {
@@ -226,7 +231,6 @@ export default function UndanganGenerator({ isMobile, showT }) {
     `;
   };
 
-  // ── Fungsi Generate PDF ──
   const generatePDF = async () => {
     if (!form.nomor.trim() || !form.tanggalAcaraInput || !form.tempat.trim()) {
       if (showT) showT("Isi minimal: Nomor Surat, Hari/Tanggal Acara, dan Tempat", "warn");
@@ -241,8 +245,9 @@ export default function UndanganGenerator({ isMobile, showT }) {
       styleEl.textContent = CSS_ASLI;
       document.head.appendChild(styleEl);
 
+      // Pastikan kontainer PDF juga bersih dari border/shadow
       const container = document.createElement("div");
-      container.style.cssText = "position:absolute; top:0; left:0; width:210mm; background:white; z-index:-9999;";
+      container.style.cssText = "position:absolute; top:0; left:0; width:210mm; background:white; z-index:-9999; border:none; box-shadow:none; margin:0; padding:0;";
       container.innerHTML = buildHTMLString();
       document.body.appendChild(container);
 
@@ -294,9 +299,7 @@ export default function UndanganGenerator({ isMobile, showT }) {
     }
   };
 
-  // ── Fungsi Cetak Langsung ke Printer (FIX: Support Mobile & PC) ──
   const cetakLangsung = () => {
-    // Buat iframe sementara di latar belakang khusus untuk proses cetak
     const printFrame = document.createElement("iframe");
     printFrame.style.position = "fixed";
     printFrame.style.right = "0";
@@ -306,7 +309,6 @@ export default function UndanganGenerator({ isMobile, showT }) {
     printFrame.style.border = "0";
     document.body.appendChild(printFrame);
 
-    // Isi iframe tersebut dengan HTML undangan kita
     const doc = printFrame.contentWindow.document;
     doc.open();
     doc.write(`
@@ -317,9 +319,7 @@ export default function UndanganGenerator({ isMobile, showT }) {
           <style>
             body { margin: 0; background: white; }
             ${CSS_ASLI}
-            /* Paksa ukuran A4 dan hilangkan bayangan khusus saat masuk printer */
             @page { size: 210mm 297mm; margin: 0; }
-            .halaman-a4 { box-shadow: none !important; margin: 0 !important; border: none !important; }
           </style>
         </head>
         <body>${buildHTMLString()}</body>
@@ -327,12 +327,10 @@ export default function UndanganGenerator({ isMobile, showT }) {
     `);
     doc.close();
 
-    // Beri jeda 500ms agar browser selesai me-render sebelum memanggil dialog print
     setTimeout(() => {
       printFrame.contentWindow.focus();
       printFrame.contentWindow.print();
       
-      // Bersihkan iframe dari memori setelah dialog print selesai (delay 5 detik)
       setTimeout(() => {
         if (document.body.contains(printFrame)) {
           document.body.removeChild(printFrame);
@@ -347,10 +345,8 @@ export default function UndanganGenerator({ isMobile, showT }) {
 
       <div style={{ display: "flex", height: isMobile ? "auto" : "calc(100vh - 60px)", overflow: "hidden", fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
 
-        {/* ══ PANEL KIRI: FORM ══════════════════════════════════════════ */}
         <div style={{ flex: "0 0 400px", background: "#F8FAFC", overflowY: "auto", display: "flex", flexDirection: "column", borderRight: "1px solid #E2E8F0" }}>
           
-          {/* Header */}
           <div style={{ background: "linear-gradient(135deg," + NAVY + ",#1A2F50)", padding: "20px 20px 16px", flexShrink: 0 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
               <span style={{ fontSize: 22 }}>📄</span>
@@ -447,31 +443,27 @@ export default function UndanganGenerator({ isMobile, showT }) {
           </div>
 
           <div style={{ padding: "12px 14px 16px", borderTop: "1px solid #E2E8F0", background: "#F8FAFC", flexShrink: 0 }}>
-            {/* Tombol Unduh PDF */}
             <button onClick={generatePDF} disabled={loading}
               style={{ width: "100%", padding: "13px 0", borderRadius: 10, border: "none", background: loading ? "#94A3B8" : "linear-gradient(135deg," + NAVY + ",#1A2F50)", color: "white", fontWeight: 800, fontSize: 14, cursor: loading ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, boxShadow: loading ? "none" : "0 4px 14px rgba(10,22,40,0.25)", marginBottom: 8 }}>
               {loading ? <><span style={{ width:16,height:16,borderRadius:"50%",border:"2.5px solid rgba(255,255,255,0.3)",borderTopColor:"white",display:"inline-block",animation:"spin 0.7s linear infinite" }}/>&nbsp;Memproses PDF...</> : <><span style={{ fontSize:18 }}>⬇</span>&nbsp;Unduh PDF Undangan</>}
             </button>
             
-            {/* Tombol Cetak Langsung (FIXED Mobile) */}
             <button onClick={cetakLangsung} disabled={loading}
               style={{ width: "100%", padding: "11px 0", borderRadius: 10, border: "2px solid " + NAVY, background: "white", color: NAVY, fontWeight: 800, fontSize: 13, cursor: loading ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 8 }}>
               <span style={{ fontSize:18 }}>🖨️</span> Cetak Langsung ke Printer
             </button>
 
-            {/* Tombol Reset */}
             <button onClick={resetForm} style={{ width:"100%",padding:"9px 0",borderRadius:10,border:"1.5px solid #E2E8F0",background:"white",color:"#64748B",fontWeight:600,fontSize:12,cursor:"pointer" }}>🔄 Reset Semua Kolom</button>
           </div>
         </div>
 
-        {/* ══ PANEL KANAN: PREVIEW IFRAME ═══════════════════════════════════════ */}
         {!isMobile && (
           <div style={{ flex: 1, background: "#525659", display: "flex", flexDirection: "column", overflow: "hidden" }}>
             <div style={{ background: "rgba(0,0,0,0.35)", padding: "9px 16px", display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
               <span style={{ fontSize: 13, color: "rgba(255,255,255,0.7)" }}>👁 Pratinjau Dokumen</span>
               <span style={{ marginLeft: "auto", fontSize: 11, color: "rgba(255,255,255,0.4)" }}>Live Render Engine</span>
             </div>
-            {/* Menambahkan efek bayangan KHUSUS hanya untuk layar pratinjau agar tetap estetik */}
+            {/* Supaya layarnya tetap estetik, bayangannya kita kembalikan HANYA untuk iframe ini saja */}
             <iframe 
               id="preview-iframe" 
               title="Preview Undangan" 
@@ -482,7 +474,7 @@ export default function UndanganGenerator({ isMobile, showT }) {
                     <style>
                       body { margin:0; padding:20px; background:#525659; display:flex; flex-direction:column; align-items:center; gap:20px; }
                       ${CSS_ASLI}
-                      .halaman-a4 { box-shadow: 0 4px 15px rgba(0,0,0,0.4); }
+                      .halaman-a4 { box-shadow: 0 4px 15px rgba(0,0,0,0.4) !important; margin-bottom: 20px !important; }
                     </style>
                   </head>
                   <body>${buildHTMLString()}</body>
