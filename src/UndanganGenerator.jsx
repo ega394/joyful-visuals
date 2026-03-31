@@ -1,6 +1,6 @@
 /**
  * UndanganGenerator.jsx — Prokopim Hibot v2.0
- * FIXED: CORS Issue, Image Preloader, & Canvas Rendering Position
+ * FIXED: Blank Render & Tambahan Fitur Cetak Langsung
  */
 
 import React, { useState, useRef } from "react";
@@ -148,7 +148,7 @@ export default function UndanganGenerator({ isMobile, showT }) {
     }
   }
 
-  // Merakit HTML Murni (Anti-Kosong)
+  // Merakit HTML Murni
   const buildHTMLString = () => {
     let ttdPdf = "<br><br><br>";
     if (form.jenisTtd === "scan") {
@@ -223,7 +223,7 @@ export default function UndanganGenerator({ isMobile, showT }) {
     `;
   };
 
-  // ── Fungsi Generate PDF (FIXED: Blank Render) ──
+  // ── Fungsi Generate PDF (FIX UTAMA POSISI & PRELOAD) ──
   const generatePDF = async () => {
     if (!form.nomor.trim() || !form.tanggalAcaraInput || !form.tempat.trim()) {
       if (showT) showT("Isi minimal: Nomor Surat, Hari/Tanggal Acara, dan Tempat", "warn");
@@ -239,12 +239,9 @@ export default function UndanganGenerator({ isMobile, showT }) {
       styleEl.textContent = CSS_ASLI;
       document.head.appendChild(styleEl);
 
-      // 2. FIX UTAMA: Gunakan position:fixed + top:-9999px
-      // Elemen berada di luar viewport (tidak terlihat user) TAPI masih
-      // di-render penuh oleh browser sehingga html2canvas bisa menangkapnya.
-      // Ini menghindari masalah blank yang terjadi saat z-index negatif dipakai.
+      // 2. FIX: Posisi absolute di (0,0) dengan z-index negatif agar tidak blank
       const container = document.createElement("div");
-      container.style.cssText = "position:fixed; top:-9999px; left:0; width:210mm; background:white;";
+      container.style.cssText = "position:absolute; top:0; left:0; width:210mm; background:white; z-index:-9999;";
       container.innerHTML = buildHTMLString();
       document.body.appendChild(container);
 
@@ -272,7 +269,7 @@ export default function UndanganGenerator({ isMobile, showT }) {
       const prefix     = form.pilihanCetak === "utama" ? "Undangan_Utama" : "Undangan";
       const namaFile   = `${prefix}${suffixTtd}_${nomorSurat || "Draft"}.pdf`;
 
-      // 4. html2canvas tanpa scrollX/Y (tidak relevan dengan position:fixed)
+      // 4. html2canvas dengan scrollX/Y dikunci di 0
       await html2pdf().set({
         margin: 0,
         filename: namaFile,
@@ -280,7 +277,9 @@ export default function UndanganGenerator({ isMobile, showT }) {
         html2canvas: { 
           scale: 2, 
           useCORS: true,
-          logging: false
+          logging: false,
+          scrollY: 0,
+          scrollX: 0
         },
         jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
       }).from(container).save();
@@ -296,6 +295,18 @@ export default function UndanganGenerator({ isMobile, showT }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  // ── Fungsi Cetak Langsung ke Printer (FITUR BARU) ──
+  const cetakLangsung = () => {
+    const iframe = document.getElementById("preview-iframe");
+    if (!iframe) {
+      if (showT) showT("Pratinjau tidak tersedia untuk dicetak.", "error");
+      return;
+    }
+    // Fokuskan ke iframe lalu panggil dialog print bawaan browser
+    iframe.contentWindow.focus();
+    iframe.contentWindow.print();
   };
 
   return (
@@ -404,10 +415,19 @@ export default function UndanganGenerator({ isMobile, showT }) {
           </div>
 
           <div style={{ padding: "12px 14px 16px", borderTop: "1px solid #E2E8F0", background: "#F8FAFC", flexShrink: 0 }}>
+            {/* Tombol Unduh PDF */}
             <button onClick={generatePDF} disabled={loading}
               style={{ width: "100%", padding: "13px 0", borderRadius: 10, border: "none", background: loading ? "#94A3B8" : "linear-gradient(135deg," + NAVY + ",#1A2F50)", color: "white", fontWeight: 800, fontSize: 14, cursor: loading ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, boxShadow: loading ? "none" : "0 4px 14px rgba(10,22,40,0.25)", marginBottom: 8 }}>
               {loading ? <><span style={{ width:16,height:16,borderRadius:"50%",border:"2.5px solid rgba(255,255,255,0.3)",borderTopColor:"white",display:"inline-block",animation:"spin 0.7s linear infinite" }}/>&nbsp;Memproses PDF...</> : <><span style={{ fontSize:18 }}>⬇</span>&nbsp;Unduh PDF Undangan</>}
             </button>
+            
+            {/* Tombol Cetak Langsung (FITUR BARU) */}
+            <button onClick={cetakLangsung} disabled={loading}
+              style={{ width: "100%", padding: "11px 0", borderRadius: 10, border: "2px solid " + NAVY, background: "white", color: NAVY, fontWeight: 800, fontSize: 13, cursor: loading ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 8 }}>
+              <span style={{ fontSize:18 }}>🖨️</span> Cetak Langsung ke Printer
+            </button>
+
+            {/* Tombol Reset */}
             <button onClick={resetForm} style={{ width:"100%",padding:"9px 0",borderRadius:10,border:"1.5px solid #E2E8F0",background:"white",color:"#64748B",fontWeight:600,fontSize:12,cursor:"pointer" }}>🔄 Reset Semua Kolom</button>
           </div>
         </div>
@@ -420,6 +440,7 @@ export default function UndanganGenerator({ isMobile, showT }) {
               <span style={{ marginLeft: "auto", fontSize: 11, color: "rgba(255,255,255,0.4)" }}>Live Render Engine</span>
             </div>
             <iframe 
+              id="preview-iframe" 
               title="Preview Undangan" 
               srcDoc={`<!DOCTYPE html><html><head><style>body{margin:0;padding:20px;background:#525659;display:flex;justify-content:center;}${CSS_ASLI}</style></head><body>${buildHTMLString()}</body></html>`} 
               style={{ flex: 1, border: "none", width: "100%", background: "#525659" }}
