@@ -2071,8 +2071,9 @@ function ApprovalQueueView({events,role,upd,showT,askConfirm,isMobile}){
   const isKasubbag=KASUBBAG_ROLES.includes(role);
   const pending=events.filter(e=>isKasubbag?e.alur==="menunggu_kasubbag":e.alur==="menunggu_kabag")
     .sort((a,b)=>a.tanggal.localeCompare(b.tanggal));
-  const recent=events.filter(e=>e.alur==="disetujui"||e.alur==="ditolak")
-    .sort((a,b)=>b.tanggal.localeCompare(a.tanggal)).slice(0,5);
+  const todayForRecent = new Date().toISOString().slice(0,10);
+  const recent = events.filter(e => e.alur==="disetujui" && e.tanggal >= todayForRecent)
+  .sort((a,b) => a.tanggal.localeCompare(b.tanggal));
   const fmt=d=>{if(!d)return"";const[y,m,dd]=d.split("-");const M=["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];return dd+" "+M[parseInt(m)-1]+" "+y;};
   return <div style={{padding:isMobile?"12px":"20px",maxWidth:700,margin:"0 auto"}}>
     <div style={{fontSize:15,fontWeight:700,color:NAVY,marginBottom:4}}>
