@@ -2911,7 +2911,7 @@ function PenugasanModal({ev, onClose, onSave, currentUser, allUsers, allEvents})
       (e.personil||[]).includes(username)
     ).filter(e=>{
       const d=new Date(e.tanggal+"T"+e.jam);
-      return Math.abs(d-evDate)<2*60*60*1000; // dalam 2 jam
+      return Math.abs(d-evDate)<90*60*1000; // dalam 90 menit
     });
   }
 
@@ -3007,16 +3007,18 @@ function PenugasanModal({ev, onClose, onSave, currentUser, allUsers, allEvents})
 }
 
 function FormView({form,setForm,editId,isMobile,onSubmit,onCancel,onOpenAI,onUndanganUpload,showT,canUploadUndangan=false}){
-  const fld=(k,l,type="text",full=false)=>(
-    <div key={k} style={{marginBottom:12,gridColumn:full?"1 / -1":"auto"}}>
-      <label style={{display:"block",fontSize:12,color:"#475569",fontWeight:600,marginBottom:4}}>{l}</label>
-      <input
-        type={type}
-        value={form[k]||""}
-        onChange={e=>setForm(p=>({...p,[k]:e.target.value}))}
-        style={{width:"100%",padding:"10px 12px",borderRadius:9,border:"1.5px solid #e2e8f0",
-          color:"#1e293b",background:"white",fontSize:14,boxSizing:"border-box"}}
-      />
+  const todayMin=new Date().toISOString().split("T")[0];
+const fld=(k,l,type="text",full=false)=>(
+  <div key={k} style={{marginBottom:12,gridColumn:full?"1 / -1":"auto"}}>
+    <label style={{display:"block",fontSize:12,color:"#475569",fontWeight:600,marginBottom:4}}>{l}</label>
+    <input
+      type={type}
+      value={form[k]||""}
+      onChange={e=>setForm(p=>({...p,[k]:e.target.value}))}
+      {...(type==="date"&&k==="tanggal"?{min:todayMin}:{})}
+      style={{width:"100%",padding:"10px 12px",borderRadius:9,border:"1.5px solid #e2e8f0",
+        color:"#1e293b",background:"white",fontSize:14,boxSizing:"border-box"}}
+    />
       {k==="tanggal"&&form.tanggal&&
         <div style={{marginTop:4,fontSize:12,color:"#0B2545",fontWeight:700}}>
           {getHari(form.tanggal)}, {fmt(form.tanggal)}
@@ -5869,6 +5871,8 @@ export default function App(){
 const submit = async () => {
     setGlobalLoading(true);
     if(!form.namaAcara||!form.tanggal||!form.jam){showT("Nama acara, tanggal & jam wajib diisi.","error");setGlobalLoading(false);return;}
+    const _todayStr=new Date().toISOString().split("T")[0];
+if(form.tanggal<_todayStr){showT("Tanggal tidak boleh lebih kecil dari hari ini.","error");setGlobalLoading(false);return;}
     if(!form.untukPimpinan||!form.untukPimpinan.length){showT("Pilih tujuan undangan (Wali Kota dan/atau Wakil Wali Kota) sebelum menyimpan.","error");setGlobalLoading(false);return;}
     
     const evId = editId || Date.now();
