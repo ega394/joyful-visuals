@@ -2071,9 +2071,9 @@ function ApprovalQueueView({events,role,upd,showT,askConfirm,isMobile}){
   const isKasubbag=KASUBBAG_ROLES.includes(role);
   const pending=events.filter(e=>isKasubbag?e.alur==="menunggu_kasubbag":e.alur==="menunggu_kabag")
     .sort((a,b)=>a.tanggal.localeCompare(b.tanggal));
-  const todayForRecent=new Date().toISOString().slice(0,10);
-  const recent=events.filter(e=>e.alur==="disetujui"&&e.tanggal>=todayForRecent)
-    .sort((a,b)=>a.tanggal.localeCompare(b.tanggal));
+  const todayForRecent = new Date().toISOString().slice(0,10);
+  const recent = events.filter(e => e.alur==="disetujui" && e.tanggal >= todayForRecent)
+  .sort((a,b) => a.tanggal.localeCompare(b.tanggal));
   const fmt=d=>{if(!d)return"";const[y,m,dd]=d.split("-");const M=["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];return dd+" "+M[parseInt(m)-1]+" "+y;};
   return <div style={{padding:isMobile?"12px":"20px",maxWidth:700,margin:"0 auto"}}>
     <div style={{fontSize:15,fontWeight:700,color:NAVY,marginBottom:4}}>
@@ -2129,11 +2129,11 @@ function ApprovalQueueView({events,role,upd,showT,askConfirm,isMobile}){
           </div>}
           {/* Catatan recall */}
           {ev._kabagRecall&&<div style={{background:"#FEF2F2",border:"1.5px solid #FECACA",borderRadius:9,padding:"9px 12px",marginBottom:10,fontSize:12,color:"#991B1B",fontWeight:600}}>
-            ↩ Jadwal ini ditarik Kabag — periksa, edit, atau ajukan ulang
-            {ev.catatanKabag&&<div style={{marginTop:6,padding:"6px 10px",background:"white",borderRadius:7,border:"1px solid #FECACA",fontSize:12,color:"#7C2D12",fontWeight:500,lineHeight:1.5}}>
-              <span style={{fontWeight:700}}>📝 Catatan Kabag:</span> {ev.catatanKabag}
-            </div>}
-          </div>}
+  ↩ Jadwal ini ditarik Kabag — periksa, edit, atau ajukan ulang
+  {ev.catatanKabag&&<div style={{marginTop:6,padding:"6px 10px",background:"white",borderRadius:7,border:"1px solid #FECACA",fontSize:12,color:"#7C2D12",fontWeight:500,lineHeight:1.5}}>
+    <span style={{fontWeight:700}}>📝 Catatan Kabag:</span> {ev.catatanKabag}
+  </div>}
+</div>}
         </div>
         {/* Zona aksi — selalu terlihat */}
         <div style={{padding:"0 18px 16px"}}>
@@ -2156,7 +2156,7 @@ function ApprovalQueueView({events,role,upd,showT,askConfirm,isMobile}){
         </div>
       </div>;
     })}
-    {recent.length>0&&<><div style={{fontSize:13,fontWeight:700,color:"#64748b",marginTop:8,marginBottom:10}}>Antrian Terkini ({recent.length} agenda belum dilaksanakan)</div>
+    {recent.length>0&&<><div style={{fontSize:13,fontWeight:700,color:"#64748b",marginTop:8,marginBottom:10}}>Riwayat Terkini</div>
     {recent.map(ev=><div key={ev.id} style={{background:"#f8fafc",borderRadius:10,padding:"10px 14px",marginBottom:8}}>
       <div style={{display:"flex",alignItems:"center",gap:10}}>
         <span style={{fontSize:14}}>{ev.alur==="disetujui"?"✅":"❌"}</span>
@@ -8030,11 +8030,11 @@ function KasubbagDashboard({events, user, upd, showT, askConfirm, isMobile, onPe
         </div>
         {exp&&<div style={{borderTop:"1px solid #EFF6FF",padding:"12px 16px",background:"#FAFBFF"}}>
           {ev._kabagRecall&&<div style={{background:"#FEF2F2",border:"1.5px solid #FECACA",borderRadius:9,padding:"9px 12px",marginBottom:10,fontSize:12,color:"#991B1B",fontWeight:600}}>
-            ↩ Jadwal ini ditarik Kabag — periksa, edit, atau ajukan ulang
-            {ev.catatanKabag&&<div style={{marginTop:6,padding:"6px 10px",background:"white",borderRadius:7,border:"1px solid #FECACA",fontSize:12,color:"#7C2D12",fontWeight:500,lineHeight:1.5}}>
-              <span style={{fontWeight:700}}>📝 Catatan Kabag:</span> {ev.catatanKabag}
-            </div>}
-          </div>}
+  ↩ Jadwal ini ditarik Kabag — periksa, edit, atau ajukan ulang
+  {ev.catatanKabag&&<div style={{marginTop:6,padding:"6px 10px",background:"white",borderRadius:7,border:"1px solid #FECACA",fontSize:12,color:"#7C2D12",fontWeight:500,lineHeight:1.5}}>
+    <span style={{fontWeight:700}}>📝 Catatan Kabag:</span> {ev.catatanKabag}
+  </div>}
+</div>}
           <div style={{display:"flex",flexDirection:"column",gap:8}}>
             <button onClick={()=>{upd(ev.id,{alur:"menunggu_kabag",_kabagRecall:false});showT("Diteruskan ke Kabag");loadUsers().filter(u=>u.role==="kabag"&&u.noWA).forEach(u=>sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"kasubbag_approve"}));sendPush({targetRole:"kabag",title:"✅ Menunggu Persetujuan Anda",body:ev.namaAcara+" — "+ev.jam+" WITA",url:"/",tag:"approve-"+ev.id});setExpanded(null);}}
               style={{width:"100%",padding:"12px",borderRadius:10,border:"none",background:GREEN,color:"white",cursor:"pointer",fontSize:13,fontWeight:800}}>
