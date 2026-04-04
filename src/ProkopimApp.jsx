@@ -5440,7 +5440,7 @@ export default function App(){
   const[events,setEvents]=useState([]);const[dbReady,setDbReady]=useState(false);const[dbError,setDbError]=useState("");
   const[tab,setTab]=useState("jadwal");const[agendaFilter,setAgendaFilter]=useState("semua");const[form,setForm]=useState(emptyForm);const[editId,setEditId]=useState(null);
   const[toast,setToast]=useState(null);const[globalLoading,setGlobalLoading]=useState(false);const[confirmDlg,setConfirmDlg]=useState(null);const[showOnboarding,setShowOnboarding]=useState(false);const[filterDate,setFDate]=useState("");const[filterFrom,setFilterFrom]=useState("");const[filterTo,setFilterTo]=useState("");const[showRangeFilter,setShowRangeFilter]=useState(false);const[searchQ,setSearchQ]=useState("");const[showSearch,setShowSearch]=useState(false);
-  const[showAI,setShowAI]=useState(false);const[showReport,setShowReport]=useState(false);const[showReportTamu,setShowReportTamu]=useState(false);const[showSummary,setShowSummary]=useState(false);const[showAdmin,setShowAdmin]=useState(false);const[showProfile,setShowProfile]=useState(false);const[showLaporan,setShowLaporan]=useState(false);const[showBroadcast,setShowBroadcast]=useState(false);const[showArsip,setShowArsip]=useState(false);
+  const[showAI,setShowAI]=useState(false);const[showReport,setShowReport]=useState(false);const[showReportTamu,setShowReportTamu]=useState(false);const[showSummary,setShowSummary]=useState(false);const[showAdmin,setShowAdmin]=useState(false);const[showProfile,setShowProfile]=useState(false);const[showLaporan,setShowLaporan]=useState(false);const[showBroadcast,setShowBroadcast]=useState(false);const[showArsip,setShowArsip]=useState(false);const[showUndanganTool,setShowUndanganTool]=useState(false);
   const[showForgot,setShowForgot]=useState(false);const[showRegister,setShowRegister]=useState(false);const[pendingRegs,setPendingRegs]=useState(()=>loadPendingRegs());
   const[loginLoading,setLoginLoading]=useState(false);const[loginPhase,setLoginPhase]=useState("");
   const[delegTarget,setDelegTarget]= useState(null);const[expandedId,setExp]=useState(null);const[rejectTexts,setRT]=useState({});const[catatanInput,setCatatanInput]=useState({});const[penugasanEv,setPenugasanEv]=useState(null);const[notifPenugasan,setNotifPenugasan]=useState([]);const[evaluasiEv,setEvaluasiEv]=useState(null);const[showMobMenu,setMobMenu]=useState(false);const[showNotifCenter,setShowNotifCenter]=useState(false);
@@ -6408,6 +6408,7 @@ const TH={
     ...((KASUBBAG_ROLES.includes(role)||role==="kabag")?[{key:"penugasan",icon:"📈",label:"Rekap Evaluasi Kinerja"}]:[]),
     ...(role==="admin_rk"||role==="kabag"?[{key:"action:arsip",icon:"📦",label:"Unduh Arsip Berkas"}]:[]),
     ...(!["walikota","wakilwalikota","ajudan_walikota","ajudan_wakilwalikota","admin_undangan","mitra_kerja"].includes(role)?[{key:"ekinerja",icon:"📊",label:"E-Kinerja"}]:[]),
+    ...(["kabag","kasubbag_protokol","staf","admin_rk"].includes(role)?[{key:"action:undangan",icon:"📋",label:"Generator Undangan"}]:[]),
   ]},
   {label:"AKUN",items:[
     {key:"action:profile",   icon:"👤", label:"Pengaturan Akun"},
@@ -6417,7 +6418,7 @@ const TH={
 ];
 
   const handleNavClick=key=>{
-    if(key==="action:summary"){setShowSummary(true);return;}if(key==="action:report"){setShowReport(true);return;}if(key==="action:report_tamu"){setShowReportTamu(true);return;}if(key==="action:laporan"){setShowLaporan(true);return;}if(key==="action:admin"){setShowAdmin(true);return;}if(key==="action:broadcast"){setShowBroadcast(true);return;}if(key==="action:profile"){setShowProfile(true);return;}if(key==="action:arsip"){setShowArsip(true);return;}
+    if(key==="action:summary"){setShowSummary(true);return;}if(key==="action:report"){setShowReport(true);return;}if(key==="action:report_tamu"){setShowReportTamu(true);return;}if(key==="action:laporan"){setShowLaporan(true);return;}if(key==="action:admin"){setShowAdmin(true);return;}if(key==="action:broadcast"){setShowBroadcast(true);return;}if(key==="action:profile"){setShowProfile(true);return;}if(key==="action:arsip"){setShowArsip(true);return;}if(key==="action:undangan"){setShowUndanganTool(true);return;}
     setTab(key);if(key==="form"){setForm(emptyForm);setEditId(null);}
   };
 
@@ -6581,6 +6582,7 @@ const TH={
               ...(role==="kabag"?[{icon:"⚙️",label:"Kelola User"+(loadPendingRegs().length>0?" ("+loadPendingRegs().length+")":""),action:()=>{setShowAdmin(true);setMobMenu(false);}}]:[]),
               ...(role==="kabag"?[{icon:"📢",label:"Kirim Pengumuman",action:()=>{setShowBroadcast(true);setMobMenu(false);}}]:[]),
               ...((role==="admin_rk"||role==="kabag")?[{icon:"📦",label:"Arsip Berkas",action:()=>{setShowArsip(true);setMobMenu(false);}}]:[]),
+              ...(["kabag","kasubbag_protokol","staf","admin_rk"].includes(role)?[{icon:"📋",label:"Generator Undangan",action:()=>{setShowUndanganTool(true);setMobMenu(false);}}]:[]),
             ].map((btn,i)=>(
               <button key={i} onClick={btn.action} className="btn-ios" style={{padding:"14px 12px",borderRadius:14,border:"1.5px solid #E4EAF2",background:"#F8FAFF",color:NAVY,cursor:"pointer",fontSize:13,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
                 <span style={{fontSize:20}}>{btn.icon}</span>{btn.label}
@@ -9640,6 +9642,23 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
     {showReportTamu&&<ReportingTamuModal user={user} cetakOleh={user?.nama||user?.username||"Sistem"} showT={showT} onClose={()=>setShowReportTamu(false)}/>}
     {showLaporan&&<LaporanModal events={events} kabagNama={kabagNama} cetakOleh={user?.nama||user?.username||""} onClose={()=>setShowLaporan(false)}/>}
     {showArsip&&<ArsipModal events={events} user={user} onClose={()=>setShowArsip(false)}/>}
+    {showUndanganTool&&(
+      <div style={{position:"fixed",inset:0,zIndex:9800,background:"rgba(10,22,40,0.72)",backdropFilter:"blur(6px)",display:"flex",flexDirection:"column",overflowY:"auto"}}>
+        <div style={{background:"linear-gradient(135deg,#0A1628,#1E3A5F)",padding:"14px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0,boxShadow:"0 2px 12px rgba(0,0,0,0.3)"}}>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            <span style={{fontSize:22}}>📋</span>
+            <div>
+              <div style={{color:"white",fontSize:15,fontWeight:800,letterSpacing:"-0.2px"}}>Generator Undangan Resmi</div>
+              <div style={{color:"rgba(255,255,255,0.5)",fontSize:11}}>Tools Protokol &amp; Komunikasi Pimpinan</div>
+            </div>
+          </div>
+          <button onClick={()=>setShowUndanganTool(false)} style={{width:36,height:36,borderRadius:10,border:"1.5px solid rgba(255,255,255,0.2)",background:"rgba(255,255,255,0.08)",color:"white",cursor:"pointer",fontSize:18,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+        </div>
+        <div style={{flex:1,overflowY:"auto"}}>
+          <UndanganGenerator isMobile={isMobile} showT={showT}/>
+        </div>
+      </div>
+    )}
     {delegTarget&&<DelegateModal label={delegTarget.side==="wk"||delegTarget.side==="wk_adminrk"?"Wali Kota":"Wakil Wali Kota"} onConfirm={name=>{const byWK=role==="walikota"?"walikota":role==="admin_rk"?"admin_rk":"ajudan";const byWWK=role==="wakilwalikota"?"wakilwalikota":role==="admin_rk"?"admin_rk":"ajudan";if(delegTarget.side==="wk")upd(delegTarget.id,{statusWK:"diwakilkan",perwakilanWK:name,delegasiKeWWK:false,statusWK_by:byWK});else if(delegTarget.side==="wk_adminrk")upd(delegTarget.id,{statusWK:"diwakilkan",perwakilanWK:name,delegasiKeWWK:false,statusWK_by:"admin_rk"});else upd(delegTarget.id,{statusWWK:"diwakilkan",perwakilanWWK:name,statusWWK_by:byWWK});setDelegTarget(null);showT("Diwakilkan ke "+name);}} onCancel={()=>setDelegTarget(null)}/>}
     {isMobile
       ?<div style={{width:"100%",minHeight:"100vh",display:"flex",flexDirection:"column",background:"#F0F4FA",paddingTop:"env(safe-area-inset-top,0px)"}}>
