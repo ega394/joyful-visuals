@@ -4,6 +4,7 @@ import { ZenDashboard } from "./ZenModeUI.jsx";
 import UndanganGenerator from "./UndanganGenerator.jsx";
 import TamuPage from "./TamuPage.jsx";
 import GuestDashboard from "./GuestDashboard.jsx"
+import RekapPenugasanBulanan from "./RekapPenugasanBulanan.jsx"
 import WaliKotaAudiensiDashboard from "./WaliKotaAudiensiDashboard.jsx"
 import NewsroomDashboard from "./NewsroomDashboard.jsx";
 
@@ -7355,11 +7356,13 @@ function calcCPIOrg(evList){
   };
 }
 
-function RekapEvaluasi({events,user,isMobile}){
+function RekapEvaluasi({events,user,isMobile,RekapPenugasan}){
   const NAVY="#0A1628",GOLD="#C9A84C",GREEN="#0D6B4F";
+  const [mainTab,setMainTab]=React.useState("evaluasi");
   const [filterPeriod,setFilterPeriod]=React.useState("semua");
-  const [activeTeam,setActiveTeam]=React.useState("semua"); // semua|Protokol|Komdok
+  const [activeTeam,setActiveTeam]=React.useState("semua");
   const now=new Date();
+  if(mainTab==="penugasan"&&RekapPenugasan)return <RekapPenugasan events={events} user={user} isMobile={isMobile}/>;
 
   // Filter periode
   const periodFiltered=React.useMemo(()=>events.filter(e=>{
@@ -7473,6 +7476,11 @@ function RekapEvaluasi({events,user,isMobile}){
 
   return(
     <div style={{padding:isMobile?"12px 14px":"20px 28px",overflowY:"auto",flex:1,background:"#F4F7FF"}}>
+      <div style={{display:"flex",gap:4,background:"white",padding:"4px",borderRadius:12,border:"1px solid #E2E8F0",marginBottom:16,width:"fit-content"}}>
+        {[["evaluasi","📊 Evaluasi Kinerja"],["penugasan","📋 Rekap Penugasan"]].map(([k,l])=>(
+          <button key={k} onClick={()=>setMainTab(k)} style={{padding:"8px 16px",borderRadius:9,border:"none",background:mainTab===k?NAVY:"transparent",color:mainTab===k?"white":"#64748B",cursor:"pointer",fontSize:12,fontWeight:700}}>{l}</button>
+        ))}
+      </div>
       {/* Header */}
       <div style={{background:`linear-gradient(135deg,${NAVY},#1A2F50)`,borderRadius:16,padding:"20px",marginBottom:16,position:"relative",overflow:"hidden"}}>
         <div style={{position:"absolute",top:-20,right:-20,width:120,height:120,borderRadius:"50%",background:"rgba(201,168,76,0.08)"}}/>
@@ -9452,7 +9460,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
       {/* ══ CONTENT ROUTING — setiap tab×role HARUS punya handler ══ */}
       {/* 1. Penugasan (semua role yang punya tab ini) */}
       {showPenugasan&&(role==="kabag"||KASUBBAG_ROLES.includes(role))
-        ?<RekapEvaluasi events={events} user={user} isMobile={isMobile}/>
+        ?<RekapEvaluasi events={events} user={user} isMobile={isMobile} RekapPenugasan={RekapPenugasanBulanan}/>
       :showPenugasan
         ?<PenugasanSayaView events={events} user={user} onOpenEvaluasi={setEvaluasiEv} isMobile={isMobile}/>
 
