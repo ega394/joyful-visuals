@@ -7356,12 +7356,13 @@ function calcCPIOrg(evList){
   };
 }
 
-function RekapEvaluasi({events,user,isMobile,RekapPenugasan}){
+function RekapEvaluasi({events,user,isMobile,allUsers}){
   const NAVY="#0A1628",GOLD="#C9A84C",GREEN="#0D6B4F";
   const [mainTab,setMainTab]=React.useState("evaluasi");
   const [filterPeriod,setFilterPeriod]=React.useState("semua");
   const [activeTeam,setActiveTeam]=React.useState("semua");
   const now=new Date();
+  if(mainTab==="penugasan") return <RekapPenugasanBulanan events={events} user={user} isMobile={isMobile} allUsers={allUsers}/>;
   if(mainTab==="penugasan"&&RekapPenugasan)return <RekapPenugasan events={events} user={user} isMobile={isMobile}/>;
 
   // Filter periode
@@ -7476,9 +7477,10 @@ function RekapEvaluasi({events,user,isMobile,RekapPenugasan}){
 
   return(
     <div style={{padding:isMobile?"12px 14px":"20px 28px",overflowY:"auto",flex:1,background:"#F4F7FF"}}>
+      {/* Sub-tab toggle */}
       <div style={{display:"flex",gap:4,background:"white",padding:"4px",borderRadius:12,border:"1px solid #E2E8F0",marginBottom:16,width:"fit-content"}}>
         {[["evaluasi","📊 Evaluasi Kinerja"],["penugasan","📋 Rekap Penugasan"]].map(([k,l])=>(
-          <button key={k} onClick={()=>setMainTab(k)} style={{padding:"8px 16px",borderRadius:9,border:"none",background:mainTab===k?NAVY:"transparent",color:mainTab===k?"white":"#64748B",cursor:"pointer",fontSize:12,fontWeight:700}}>{l}</button>
+          <button key={k} onClick={()=>setMainTab(k)} style={{padding:"8px 16px",borderRadius:9,border:"none",background:mainTab===k?NAVY:"transparent",color:mainTab===k?"white":"#64748B",cursor:"pointer",fontSize:12,fontWeight:700,transition:"all 0.15s"}}>{l}</button>
         ))}
       </div>
       {/* Header */}
@@ -9460,7 +9462,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
       {/* ══ CONTENT ROUTING — setiap tab×role HARUS punya handler ══ */}
       {/* 1. Penugasan (semua role yang punya tab ini) */}
       {showPenugasan&&(role==="kabag"||KASUBBAG_ROLES.includes(role))
-        ?<RekapEvaluasi events={events} user={user} isMobile={isMobile} RekapPenugasan={RekapPenugasanBulanan}/>
+        ?<RekapEvaluasi events={events} user={user} isMobile={isMobile} allUsers={loadUsers()} RekapPenugasan={RekapPenugasanBulanan}/>
       :showPenugasan
         ?<PenugasanSayaView events={events} user={user} onOpenEvaluasi={setEvaluasiEv} isMobile={isMobile}/>
 
