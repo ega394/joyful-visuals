@@ -7362,9 +7362,7 @@ function RekapEvaluasi({events,user,isMobile,allUsers}){
   const [filterPeriod,setFilterPeriod]=React.useState("semua");
   const [activeTeam,setActiveTeam]=React.useState("semua");
   const now=new Date();
-  if(mainTab==="penugasan") return <RekapPenugasanBulanan events={events} user={user} isMobile={isMobile} allUsers={allUsers}/>;
-  if(mainTab==="penugasan"&&RekapPenugasan)return <RekapPenugasan events={events} user={user} isMobile={isMobile}/>;
-
+  
   // Filter periode
   const periodFiltered=React.useMemo(()=>events.filter(e=>{
     if(filterPeriod==="semua")return true;
