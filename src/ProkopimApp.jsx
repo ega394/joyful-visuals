@@ -7483,6 +7483,9 @@ function RekapEvaluasi({events,user,isMobile,allUsers}){
           <button key={k} onClick={()=>setMainTab(k)} style={{padding:"8px 16px",borderRadius:9,border:"none",background:mainTab===k?NAVY:"transparent",color:mainTab===k?"white":"#64748B",cursor:"pointer",fontSize:12,fontWeight:700,transition:"all 0.15s"}}>{l}</button>
         ))}
       </div>
+      {mainTab==="penugasan"
+        ?<RekapPenugasanBulanan events={events} user={user} isMobile={isMobile} allUsers={allUsers}/>
+        :<>
       {/* Header */}
       <div style={{background:`linear-gradient(135deg,${NAVY},#1A2F50)`,borderRadius:16,padding:"20px",marginBottom:16,position:"relative",overflow:"hidden"}}>
         <div style={{position:"absolute",top:-20,right:-20,width:120,height:120,borderRadius:"50%",background:"rgba(201,168,76,0.08)"}}/>
@@ -7586,6 +7589,7 @@ function RekapEvaluasi({events,user,isMobile,allUsers}){
             </div>
           </div>
         </>}
+      </>}
       </>}
     </div>
   );
