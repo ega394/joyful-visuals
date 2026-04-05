@@ -4,6 +4,7 @@ import { ZenDashboard } from "./ZenModeUI.jsx";
 import UndanganGenerator from "./UndanganGenerator.jsx";
 import TamuPage from "./TamuPage.jsx";
 import GuestDashboard from "./GuestDashboard.jsx"
+import WaliKotaAudiensiDashboard from "./WaliKotaAudiensiDashboard.jsx"
 import NewsroomDashboard from "./NewsroomDashboard.jsx";
 
 // ═══════════════════════════════════════════════════════
@@ -9460,6 +9461,8 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
         ?<AjudanDashboard events={events} user={user} upd={upd} showT={showT} setDelegTarget={setDelegTarget} isMobile={isMobile} initialExpandedId={pendingExpandTarget} onExpandConsumed={()=>setPendingExpandTarget(null)}/>
 
       /* 2b. Manajemen Tamu (GuestDashboard) */
+      :tab==="tamu"&&(role==="walikota"||role==="wakilwalikota")
+        ?<WaliKotaAudiensiDashboard role={role} user={user} showT={showT} isMobile={isMobile}/>
       :tab==="tamu"
         ?<GuestDashboard
           role={role}
