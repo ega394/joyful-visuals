@@ -3886,7 +3886,7 @@ function GroupedEventList({ evList, isMobile, viewMode }) {
           }}>
             <span style={{ fontSize: 12 }}>📁</span>
             <span style={{ fontSize: 11, fontWeight: 800, color: "#64748B", letterSpacing: 0.5 }}>
-              SUDAH BERLALU
+              YANG SUDAH BERLALU BIARLAH BERLALU, NAMUN BISA DILIHAT BALIK JIKA PERLU
             </span>
             <span style={{
               background: "#E2E8F0", color: "#64748B",
