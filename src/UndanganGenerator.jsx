@@ -205,9 +205,9 @@ export default function UndanganGenerator({ isMobile, showT }) {
           <div class="tanggal-kanan">${form.tanggalSurat}</div>
           <table class="tabel-info">
             <tr><td class="col-label">Nomor</td><td class="col-titikdua">:</td><td>${form.nomor}</td></tr>
-            <tr><td>Sifat</td><td>:</td><td>${form.sifat}</td></tr>
-            <tr><td>Lampiran</td><td>:</td><td>${form.lampiranCount}</td></tr>
-            <tr><td>Hal</td><td>:</td><td><b><u>Undangan</u></b></td></tr>
+            <tr><td class="col-label">Sifat</td><td class="col-titikdua">:</td><td>${form.sifat}</td></tr>
+            <tr><td class="col-label">Lampiran</td><td class="col-titikdua">:</td><td>${form.lampiranCount}</td></tr>
+            <tr><td class="col-label">Hal</td><td class="col-titikdua">:</td><td><b><u>Undangan</u></b></td></tr>
           </table>
           <div class="tujuan-surat">Yth:<br><b><span class="teks-multibaris">${form.yth}</span></b><br>di-<br><b>TARAKAN</b></div>
           <div class="paragraf-indent">Mengharapkan dengan hormat kehadiran Bapak/Ibu/Saudara (i) pada:</div>
