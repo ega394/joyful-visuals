@@ -4591,7 +4591,7 @@ function ExpandedDetail({ev,hariEv}){
       </>}
       {ev.alur==="disetujui"&&["kasubbag_protokol","kasubbag_komdokpim","kabag"].includes(role)&&(
         <div style={{marginTop:8}}>
-          {(!ev.personil||ev.personil.length===0)
+          {(!ev.personil||ev.personil.length===0)&&new Date(ev.tanggal+"T"+ev.jam)>=new Date()
             ?<div style={{background:"#FFFBEB",borderRadius:10,padding:"10px 14px",border:"1.5px solid #FDE68A",marginBottom:8}}>
               <div style={{fontSize:11,fontWeight:800,color:"#92400E",marginBottom:2}}>⚠️ Belum ada personil yang ditugaskan</div>
               <div style={{fontSize:10,color:"#B45309"}}>Agenda ini belum memiliki personil bertugas. Segera tugaskan agar tidak kosong saat hari H.</div>
@@ -6408,7 +6408,7 @@ const TH={
     {key:"action:report_tamu", icon:"📇",label:"Cetak Rekap Tamu"},
     ...(canReport?[{key:"action:laporan",icon:"📊",label:"Laporan Mingguan/Bulanan"}]:[]),
     ...((KASUBBAG_ROLES.includes(role)||role==="kabag")?[{key:"penugasan",icon:"📈",label:"Rekap Evaluasi Kinerja"}]:[]),
-
+    ...((KASUBBAG_ROLES.includes(role)||role==="kabag")?[{key:"rekap_penugasan",icon:"🏆",label:"Rekap Penugasan Bulanan"}]:[]),
     ...(role==="admin_rk"||role==="kabag"?[{key:"action:arsip",icon:"📦",label:"Unduh Arsip Berkas"}]:[]),
     ...(!["walikota","wakilwalikota","ajudan_walikota","ajudan_wakilwalikota","admin_undangan","mitra_kerja"].includes(role)?[{key:"ekinerja",icon:"📊",label:"E-Kinerja"}]:[]),
     ...(["kabag","kasubbag_protokol","staf","admin_rk"].includes(role)?[{key:"action:undangan",icon:"📋",label:"Generator Undangan"}]:[]),
@@ -6581,7 +6581,7 @@ const TH={
               {icon:"📇",label:"Cetak Tamu",action:()=>{setShowReportTamu(true);setMobMenu(false);}},
               ...(canReport?[{icon:"📊",label:"Laporan",action:()=>{setShowLaporan(true);setMobMenu(false);}}]:[]),
               ...((KASUBBAG_ROLES.includes(role)||role==="kabag")?[{icon:"📈",label:"Rekap Evaluasi",action:()=>{setTab("penugasan");setMobMenu(false);}}]:[]),
-
+              ...((KASUBBAG_ROLES.includes(role)||role==="kabag")?[{icon:"🏆",label:"Rekap Penugasan",action:()=>{setTab("rekap_penugasan");setMobMenu(false);}}]:[]),
               {icon:"👤",label:"Profil",action:()=>{setShowProfile(true);setMobMenu(false);}},
               ...(role==="kabag"?[{icon:"⚙️",label:"Kelola User"+(loadPendingRegs().length>0?" ("+loadPendingRegs().length+")":""),action:()=>{setShowAdmin(true);setMobMenu(false);}}]:[]),
               ...(role==="kabag"?[{icon:"📢",label:"Kirim Pengumuman",action:()=>{setShowBroadcast(true);setMobMenu(false);}}]:[]),
@@ -8173,7 +8173,8 @@ function KasubbagDashboard({events, user, upd, showT, askConfirm, isMobile, onPe
         {activeTab==="jadwal"&&<>
           {/* ── Summary bar: agenda belum ada personil ── */}
           {(()=>{
-            const belumAda=approved.filter(e=>!e.personil||e.personil.length===0);
+            const now=new Date();
+            const belumAda=approved.filter(e=>(!e.personil||e.personil.length===0)&&new Date(e.tanggal+"T"+e.jam)>=now);
             if(belumAda.length===0)return(
               <div style={{background:"#F0FDF4",borderRadius:12,padding:"11px 14px",marginBottom:14,border:"1px solid #86EFAC",display:"flex",alignItems:"center",gap:8}}>
                 <span style={{fontSize:16}}>✅</span>
@@ -9337,7 +9338,8 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
       </div>}
       {/* ── Summary bar penugasan — kasubbag protokol & komdokpim di tab tayang ── */}
       {tab==="tayang"&&["kasubbag_protokol","kasubbag_komdokpim"].includes(role)&&(()=>{
-        const belumAda=listEvents.filter(e=>!e.personil||e.personil.length===0);
+        const now=new Date();
+        const belumAda=listEvents.filter(e=>(!e.personil||e.personil.length===0)&&new Date(e.tanggal+"T"+e.jam)>=now);
         if(belumAda.length===0)return(
           <div style={{background:"#F0FDF4",borderRadius:12,padding:"11px 14px",marginBottom:14,border:"1px solid #86EFAC",display:"flex",alignItems:"center",gap:8}}>
             <span style={{fontSize:16}}>✅</span>
@@ -9465,7 +9467,9 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
       </div>}
       {/* ══ CONTENT ROUTING — setiap tab×role HARUS punya handler ══ */}
       {/* 1. Penugasan (semua role yang punya tab ini) */}
-      {showPenugasan&&(role==="kabag"||KASUBBAG_ROLES.includes(role))
+      {tab==="rekap_penugasan"&&(role==="kabag"||KASUBBAG_ROLES.includes(role))
+        ?<RekapPenugasanBulanan events={events} user={user} isMobile={isMobile} allUsers={loadUsers()}/>
+      :showPenugasan&&(role==="kabag"||KASUBBAG_ROLES.includes(role))
         ?<RekapEvaluasi events={events} user={user} isMobile={isMobile} allUsers={loadUsers()} RekapPenugasan={RekapPenugasanBulanan}/>
       :showPenugasan
         ?<PenugasanSayaView events={events} user={user} onOpenEvaluasi={setEvaluasiEv} isMobile={isMobile}/>
