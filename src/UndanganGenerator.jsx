@@ -213,9 +213,9 @@ export default function UndanganGenerator({ isMobile, showT }) {
           <div class="paragraf-indent">Mengharapkan dengan hormat kehadiran Bapak/Ibu/Saudara (i) pada:</div>
           <table class="tabel-acara">
             <tr><td class="col-label-acara">hari/tanggal</td><td class="col-titikdua">:</td><td>${tglText}</td></tr>
-            <tr><td>pukul</td><td>:</td><td>${pklText}</td></tr>
-            <tr><td>tempat</td><td>:</td><td>${form.tempat}</td></tr>
-            <tr><td>acara</td><td>:</td><td><b><div class="teks-multibaris">${form.acara}</div></b></td></tr>
+            <tr><td class="col-label-acara">pukul</td><td class="col-titikdua">:</td><td>${pklText}</td></tr>
+            <tr><td class="col-label-acara">tempat</td><td class="col-titikdua">:</td><td>${form.tempat}</td></tr>
+            <tr><td class="col-label-acara">acara</td><td class="col-titikdua">:</td><td><b><div class="teks-multibaris">${form.acara}</div></b></td></tr>
           </table>
           <div class="paragraf-indent">Demikian, atas perhatian serta kehadirannya diucapkan terima kasih.</div>
           <div class="area-ttd">
