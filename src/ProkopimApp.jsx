@@ -4381,6 +4381,14 @@ function KartuSorotanHariIni({ events, filterForRole, filterPimpinan, isMobile, 
                 </div>
               </div>
             );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ==================== SHARE KARTU AGENDA ====================
 // Fungsi standalone — fetch cuaca & jarak sendiri, output portrait mobile-friendly
 async function generateAndShareAgendaCard(ev) {
   // ── 1. Fetch cuaca & jarak secara paralel ──
