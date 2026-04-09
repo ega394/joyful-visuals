@@ -4412,15 +4412,20 @@ async function generateAndShareAgendaCard(ev) {
   const fWK=(ev.untukPimpinan||[]).includes("walikota");
   const fWWK=(ev.untukPimpinan||[]).includes("wakilwalikota")||ev.delegasiKeWWK;
   if(fWK){
-    if(ev.statusWK==="diwakilkan"&&ev.perwakilanWK&&ev.perwakilanWK!=="Perwakilan WK")
+    if(ev.delegasiKeWWK){
+      // Delegasi WK ke WWK — satu kalimat, WWK tidak perlu ditambah lagi
+      pimpinanParts.push("Wali Kota · didelegasikan ke Wakil Wali Kota");
+    }else if(ev.statusWK==="diwakilkan"&&ev.perwakilanWK&&ev.perwakilanWK!=="Perwakilan WK"){
       pimpinanParts.push("Wali Kota · diwakilkan: "+ev.perwakilanWK);
-    else if(ev.delegasiKeWWK) pimpinanParts.push("Wali Kota · delegasi ke Wakil");
-    else pimpinanParts.push("Wali Kota"+(ev.besertaIstriWK?" (beserta Istri)":""));
+    }else{
+      pimpinanParts.push("Wali Kota"+(ev.besertaIstriWK?" (beserta Istri)":""));
+    }
   }
-  if(fWWK){
+  if(fWWK&&!ev.delegasiKeWWK){
+    // Hanya tampilkan WWK jika bukan dari delegasi WK (sudah tercakup di atas)
     if(ev.statusWWK==="diwakilkan"&&ev.perwakilanWWK&&ev.perwakilanWWK!=="Perwakilan WWK")
       pimpinanParts.push("Wakil Wali Kota · diwakilkan: "+ev.perwakilanWWK);
-    else if(!ev.delegasiKeWWK||ev.statusWWK==="hadir")
+    else
       pimpinanParts.push("Wakil Wali Kota"+(ev.besertaIstriWWK?" (beserta Istri)":""));
   }
   const pimpinanStr=pimpinanParts.join(" dan ");
