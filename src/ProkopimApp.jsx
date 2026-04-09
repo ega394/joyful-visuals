@@ -4389,342 +4389,205 @@ function KartuSorotanHariIni({ events, filterForRole, filterPimpinan, isMobile, 
 }
 
 // ==================== SHARE KARTU AGENDA ====================
-// Fungsi standalone — fetch cuaca & jarak sendiri, output portrait mobile-friendly
 async function generateAndShareAgendaCard(ev) {
-  // ── 1. Fetch cuaca & jarak secara paralel ──
-  const WEATHER_KEY = (typeof import.meta !== "undefined" && import.meta.env?.VITE_OPENWEATHER_KEY) || "";
-  const LAT = "3.3169", LON = "117.5765";
-  let weather = null;
-  let jarakInfo = null;
-
+  const WEATHER_KEY=(typeof import.meta!=="undefined"&&import.meta.env?.VITE_OPENWEATHER_KEY)||"";
+  const LAT="3.3169",LON="117.5765";
+  let weather=null,jarakInfo=null;
   await Promise.allSettled([
-    // Cuaca
-    WEATHER_KEY ? fetch(
-      `https://api.openweathermap.org/data/2.5/weather?lat=${LAT}&lon=${LON}&appid=${WEATHER_KEY}&units=metric&lang=id`
-    ).then(r=>r.json()).then(d => {
-      if (d.cod === 200) weather = {
-        emoji: ({"01":"☀️","02":"⛅","03":"🌥","04":"☁️","09":"🌧","10":"🌦","11":"⛈","13":"❄️","50":"🌫"})[(d.weather?.[0]?.icon||"01").replace(/[dn]/g,"")] || "🌤",
-        deskripsi: d.weather?.[0]?.description || "cerah",
-        suhu: Math.round(d.main?.temp || 28),
-        kelembapan: d.main?.humidity || 0,
-        angin: Math.round((d.wind?.speed||0)*3.6),
-        main: d.weather?.[0]?.main || "Clear",
-      };
-    }) : Promise.resolve(),
-    // Jarak
-    ev.lokasi ? fetch(`/api/jarak?destination=${encodeURIComponent(ev.lokasi)}`)
-      .then(r=>r.json()).then(d => { if(d.ok) jarakInfo = { durasi: d.durasi, jarak: d.jarak }; })
-    : Promise.resolve(),
+    WEATHER_KEY?fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${LAT}&lon=${LON}&appid=${WEATHER_KEY}&units=metric&lang=id`)
+      .then(r=>r.json()).then(d=>{if(d.cod===200)weather={
+        emoji:({"01":"☀️","02":"⛅","03":"🌥","04":"☁️","09":"🌧","10":"🌦","11":"⛈","13":"❄️","50":"🌫"})[(d.weather?.[0]?.icon||"01").replace(/[dn]/g,"")]||"🌤",
+        deskripsi:d.weather?.[0]?.description||"cerah",suhu:Math.round(d.main?.temp||28),main:d.weather?.[0]?.main||"Clear",
+      };}):Promise.resolve(),
+    ev.lokasi?fetch(`/api/jarak?destination=${encodeURIComponent(ev.lokasi)}`).then(r=>r.json()).then(d=>{if(d.ok)jarakInfo={durasi:d.durasi,jarak:d.jarak};}):Promise.resolve(),
   ]);
 
-  // ── 2. Siapkan data konten ──
-  const BULAN = ["","Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
-  const HARI  = ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
-  const [ty,tm,td] = (ev.tanggal||"").split("-");
-  const tglObj = ev.tanggal ? new Date(ev.tanggal+"T00:00:00") : new Date();
-  const tglStr = `${HARI[tglObj.getDay()]}, ${parseInt(td||0)} ${BULAN[+tm]} ${ty}`;
+  const BULAN=["","Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+  const HARI=["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
+  const [ty,tm,td]=(ev.tanggal||"").split("-");
+  const tglObj=ev.tanggal?new Date(ev.tanggal+"T00:00:00"):new Date();
+  const tglStr=`${HARI[tglObj.getDay()]}, ${parseInt(td||0)} ${BULAN[+tm]} ${ty}`;
 
-  const pimpinanLines = [];
-  const fWK  = (ev.untukPimpinan||[]).includes("walikota");
-  const fWWK = (ev.untukPimpinan||[]).includes("wakilwalikota") || ev.delegasiKeWWK;
-  const pimpinanParts = [];
+  const pimpinanParts=[];
+  const fWK=(ev.untukPimpinan||[]).includes("walikota");
+  const fWWK=(ev.untukPimpinan||[]).includes("wakilwalikota")||ev.delegasiKeWWK;
+  if(fWK){
+    if(ev.statusWK==="diwakilkan"&&ev.perwakilanWK&&ev.perwakilanWK!=="Perwakilan WK")
+      pimpinanParts.push("Wali Kota · diwakilkan: "+ev.perwakilanWK);
+    else if(ev.delegasiKeWWK) pimpinanParts.push("Wali Kota · delegasi ke Wakil");
+    else pimpinanParts.push("Wali Kota"+(ev.besertaIstriWK?" (beserta Istri)":""));
+  }
+  if(fWWK){
+    if(ev.statusWWK==="diwakilkan"&&ev.perwakilanWWK&&ev.perwakilanWWK!=="Perwakilan WWK")
+      pimpinanParts.push("Wakil Wali Kota · diwakilkan: "+ev.perwakilanWWK);
+    else if(!ev.delegasiKeWWK||ev.statusWWK==="hadir")
+      pimpinanParts.push("Wakil Wali Kota"+(ev.besertaIstriWWK?" (beserta Istri)":""));
+  }
+  const pimpinanStr=pimpinanParts.join(" dan ");
 
-  if (fWK) {
-    const namaWakil = ev.perwakilanWK && !["Perwakilan WK",""].includes(ev.perwakilanWK.trim())
-      ? ev.perwakilanWK.trim() : null;
-    if (ev.delegasiKeWWK) {
-      // Didelegasi ke WWK — cukup sebut di baris WWK, tidak perlu sebut WK
-    } else if (ev.statusWK === "diwakilkan") {
-      pimpinanParts.push(namaWakil
-        ? `Wali Kota · diwakilkan: ${namaWakil}`
-        : "Wali Kota · diwakilkan");
-    } else {
-      pimpinanParts.push("Wali Kota" + (ev.besertaIstriWK ? " (beserta Istri)" : ""));
-    }
+  const W=1080,P=64;
+  const NAVY="#0A1628",NAVY_DARK="#050e1a";
+  const GOLD="rgba(201,168,76,";
+
+  const setFont=(ctx,size,weight="400",family="system-ui,sans-serif")=>{ctx.font=`${weight} ${size}px ${family}`;};
+  const wrapText=(ctx,text,maxW)=>{
+    const words=(text||"").split(" ");let line="";const lines=[];
+    for(const w of words){const t=line+w+" ";if(ctx.measureText(t).width>maxW&&line){lines.push(line.trim());line=w+" ";}else line=t;}
+    if(line.trim())lines.push(line.trim());
+    return lines.length?lines:[""];
+  };
+
+  const tmpC=document.createElement("canvas");tmpC.width=W;
+  const tmpX=tmpC.getContext("2d");
+  const TITLE_MAX_W=W*0.68-P;
+  setFont(tmpX,52,"900");
+  const titleLines=wrapText(tmpX,ev.namaAcara||"",TITLE_MAX_W);
+  const TITLE_LH=68;
+  const HEADER_H=P+36+14+titleLines.length*TITLE_LH+16+26+P;
+
+  const ROW_ICON=44,ROW_GAP=16,ROW_LABEL_H=14,ROW_VAL_LH=30;
+  setFont(tmpX,26,"600");
+  const lokasiLines=ev.lokasi?wrapText(tmpX,ev.lokasi,W-P*2-ROW_ICON-ROW_GAP):[];
+  const lokasiH=ROW_LABEL_H+6+lokasiLines.length*ROW_VAL_LH+(jarakInfo?42:0);
+  const pimpinanLinesArr=pimpinanStr?wrapText(tmpX,pimpinanStr,W-P*2-ROW_ICON-ROW_GAP):[];
+
+  const rows=[];
+  rows.push({type:"time",h:Math.max(ROW_ICON,ROW_LABEL_H+6+ROW_VAL_LH)});
+  if(ev.lokasi||jarakInfo)rows.push({type:"lokasi",h:Math.max(ROW_ICON,lokasiH+20)});
+  if(ev.penyelenggara)rows.push({type:"org",h:Math.max(ROW_ICON,ROW_LABEL_H+6+ROW_VAL_LH)});
+  if(ev.pakaian)rows.push({type:"pakaian",h:Math.max(ROW_ICON,ROW_LABEL_H+6+36)});
+  if(pimpinanStr)rows.push({type:"pimpinan",h:Math.max(ROW_ICON,ROW_LABEL_H+6+pimpinanLinesArr.length*ROW_VAL_LH)});
+
+  const BODY_H=rows.reduce((s,r)=>s+r.h+24,0)+24;
+  const FOOTER_H=88;
+  const DIVIDER_H=24;
+  const H=HEADER_H+DIVIDER_H+BODY_H+FOOTER_H;
+
+  const canvas=document.createElement("canvas");
+  canvas.width=W;canvas.height=H;
+  const ctx=canvas.getContext("2d");
+
+  const bg=ctx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,"#0D1F38");bg.addColorStop(0.5,NAVY);bg.addColorStop(1,"#071425");
+  ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+  const glow=ctx.createRadialGradient(P,P,10,P,P,320);
+  glow.addColorStop(0,"rgba(201,168,76,0.07)");glow.addColorStop(1,"rgba(201,168,76,0)");
+  ctx.fillStyle=glow;ctx.beginPath();ctx.arc(P,P,320,0,Math.PI*2);ctx.fill();
+
+  let y=P;
+
+  if(weather){
+    const wx=W-P,wy=P;
+    ctx.font="52px serif";ctx.textAlign="right";ctx.fillText(weather.emoji,wx,wy+46);
+    setFont(ctx,42,"900");ctx.fillStyle="rgba(255,255,255,0.88)";ctx.fillText(weather.suhu+"°",wx,wy+100);
+    setFont(ctx,18,"400");ctx.fillStyle="rgba(255,255,255,0.35)";
+    const wDesc=wrapText(ctx,weather.deskripsi,160);
+    wDesc.slice(0,2).forEach((l,i)=>ctx.fillText(l,wx,wy+128+i*22));
+    ctx.textAlign="left";
   }
 
-  if (fWWK) {
-    const namaWakilWWK = ev.perwakilanWWK && !["Perwakilan WWK",""].includes(ev.perwakilanWWK.trim())
-      ? ev.perwakilanWWK.trim() : null;
-    if (ev.delegasiKeWWK) {
-      // WK mendelegasikan ke WWK — tampilkan sebagai satu entri terpadu
-      if (ev.statusWWK === "diwakilkan") {
-        pimpinanParts.push(namaWakilWWK
-          ? `Wakil Wali Kota · diwakilkan: ${namaWakilWWK}`
-          : "Wakil Wali Kota · diwakilkan");
-      } else {
-        pimpinanParts.push("Wakil Wali Kota" + (ev.besertaIstriWWK ? " (beserta Istri)" : ""));
+  ctx.fillStyle=GOLD+"0.85)";
+  setFont(ctx,19,"700");ctx.letterSpacing="3px";
+  ctx.fillText("AGENDA KEGIATAN PIMPINAN",P,y+20);ctx.letterSpacing="0px";
+  y+=36+14;
+
+  ctx.fillStyle="white";setFont(ctx,52,"900");
+  titleLines.forEach(l=>{ctx.fillText(l,P,y+TITLE_LH*0.75);y+=TITLE_LH;});
+  y+=16;
+
+  ctx.fillStyle="rgba(255,255,255,0.42)";setFont(ctx,22,"500");
+  ctx.fillText(tglStr,P,y);y+=P;
+
+  const dg=ctx.createLinearGradient(P,0,W-P,0);
+  dg.addColorStop(0,"rgba(201,168,76,0)");dg.addColorStop(0.15,"rgba(201,168,76,0.65)");
+  dg.addColorStop(0.85,"rgba(201,168,76,0.65)");dg.addColorStop(1,"rgba(201,168,76,0)");
+  ctx.strokeStyle=dg;ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(P,y);ctx.lineTo(W-P,y);ctx.stroke();
+  y+=DIVIDER_H;
+
+  const ICON_R=22,ICON_CX=P+ICON_R,COL_X=P+ICON_R*2+ROW_GAP,COL_MAX=W-P-COL_X;
+  const drawIcon=(cy,emoji)=>{
+    ctx.fillStyle="rgba(201,168,76,0.12)";ctx.beginPath();ctx.arc(ICON_CX,cy+ICON_R,ICON_R,0,Math.PI*2);ctx.fill();
+    ctx.font="24px serif";ctx.textAlign="center";ctx.fillText(emoji,ICON_CX,cy+ICON_R+8);ctx.textAlign="left";
+  };
+  const drawLabel=(y2,text)=>{
+    ctx.fillStyle="rgba(255,255,255,0.3)";setFont(ctx,17,"600");
+    ctx.letterSpacing="2px";ctx.fillText(text.toUpperCase(),COL_X,y2);ctx.letterSpacing="0px";
+  };
+
+  for(const row of rows){
+    const rowY=y;
+    drawIcon(rowY,row.type==="time"?"🕐":row.type==="lokasi"?"📍":row.type==="org"?"🏛":row.type==="pakaian"?"👔":"👤");
+    let cy=rowY;
+    drawLabel(cy+16,row.type==="time"?"Waktu":row.type==="lokasi"?"Lokasi":row.type==="org"?"Penyelenggara":row.type==="pakaian"?"Pakaian":"Kehadiran Pimpinan");
+    cy+=ROW_LABEL_H+6+ROW_VAL_LH*0.8;
+
+    if(row.type==="time"){
+      ctx.fillStyle="rgba(255,255,255,0.9)";setFont(ctx,30,"700");
+      ctx.fillText((ev.jam||"-")+" WITA",COL_X,cy);
+    }else if(row.type==="lokasi"){
+      ctx.fillStyle="rgba(255,255,255,0.85)";setFont(ctx,26,"600");
+      const ll=wrapText(ctx,ev.lokasi||"",COL_MAX);
+      ll.forEach(l=>{ctx.fillText(l,COL_X,cy);cy+=ROW_VAL_LH;});
+      if(jarakInfo){
+        cy+=10;
+        const pill1="🚗 ±"+jarakInfo.durasi;
+        const pill2=jarakInfo.jarak+" dari Kantor";
+        setFont(ctx,18,"600");
+        [[pill1,"rgba(255,255,255,0.55)","rgba(255,255,255,0.09)"],
+         [pill2,"rgba(255,255,255,0.35)","rgba(255,255,255,0.05)"]].reduce((bx,[txt,clr,bg2])=>{
+          const pw=ctx.measureText(txt).width+28;
+          ctx.fillStyle=bg2;ctx.roundRect(bx,cy,pw,32,16);ctx.fill();
+          ctx.fillStyle=clr;ctx.fillText(txt,bx+14,cy+21);
+          return bx+pw+10;
+        },COL_X);
       }
-    } else if (ev.statusWWK === "diwakilkan") {
-      pimpinanParts.push(namaWakilWWK
-        ? `Wakil Wali Kota · diwakilkan: ${namaWakilWWK}`
-        : "Wakil Wali Kota · diwakilkan");
-    } else {
-      pimpinanParts.push("Wakil Wali Kota" + (ev.besertaIstriWWK ? " (beserta Istri)" : ""));
+    }else if(row.type==="org"){
+      ctx.fillStyle="rgba(255,255,255,0.85)";setFont(ctx,26,"600");
+      ctx.fillText(ev.penyelenggara||"",COL_X,cy);
+    }else if(row.type==="pakaian"){
+      setFont(ctx,22,"800");
+      const tagW=ctx.measureText(ev.pakaian||"").width+32;
+      ctx.fillStyle="#FEF3C7";ctx.roundRect(COL_X,cy-22,tagW,34,8);ctx.fill();
+      ctx.fillStyle="#92400E";ctx.fillText(ev.pakaian||"",COL_X+16,cy);
+    }else if(row.type==="pimpinan"){
+      ctx.fillStyle="rgba(255,255,255,0.83)";setFont(ctx,25,"600");
+      wrapText(ctx,pimpinanStr,COL_MAX).forEach(l=>{ctx.fillText(l,COL_X,cy);cy+=ROW_VAL_LH;});
     }
+    y+=row.h+24;
   }
 
-  if (pimpinanParts.length)
-    pimpinanLines.push(pimpinanParts.join(" dan "));
+  const footerY=H-FOOTER_H;
+  ctx.fillStyle=NAVY_DARK;ctx.fillRect(0,footerY,W,FOOTER_H);
+  const fg=ctx.createLinearGradient(P,0,W-P,0);
+  fg.addColorStop(0,"rgba(201,168,76,0)");fg.addColorStop(0.2,"rgba(201,168,76,0.5)");
+  fg.addColorStop(0.8,"rgba(201,168,76,0.5)");fg.addColorStop(1,"rgba(201,168,76,0)");
+  ctx.strokeStyle=fg;ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(P,footerY);ctx.lineTo(W-P,footerY);ctx.stroke();
 
-  const infoRows = [
-    { icon:"🕐", label:"Waktu",         val:(ev.jam||"-")+" WITA" },
-    ev.penyelenggara ? { icon:"🏛️",  label:"Penyelenggara", val:ev.penyelenggara } : null,
-    ev.lokasi        ? { icon:"📍",  label:"Lokasi",        val:ev.lokasi }        : null,
-    ev.pakaian       ? { icon:"👔",  label:"Pakaian",       val:ev.pakaian }       : null,
-    ...pimpinanLines.map(p=>({ icon:"👤", label:"Kehadiran Pimpinan", val:p })),
-    ev.catatan       ? { icon:"📝",  label:"Catatan",       val:ev.catatan }       : null,
-  ].filter(Boolean);
+  ctx.fillStyle=GOLD+"0.88)";setFont(ctx,24,"900");ctx.letterSpacing="2px";
+  ctx.fillText("PROKOPIM",P,footerY+36);ctx.letterSpacing="0px";
+  ctx.fillStyle="rgba(255,255,255,0.28)";setFont(ctx,18,"400");
+  ctx.fillText("Protokol & Komunikasi Pimpinan · Setda Kota Tarakan",P,footerY+62);
 
-  // ── 3. Ukuran canvas — portrait 9:16 style ──
-  const W = 1080;
-  const P = 52;          // padding samping
-  const HEADER_H = 320;  // zona cuaca atas
-  const ROW_H    = 88;   // tinggi tiap baris info
-  const NAMA_FONT = 46;
-  const NAMA_LEAD = 62;
+  const now3=new Date();
+  const jamNow=`${String(now3.getHours()).padStart(2,"0")}.${String(now3.getMinutes()).padStart(2,"0")} WITA`;
+  ctx.textAlign="right";ctx.fillStyle="rgba(255,255,255,0.2)";setFont(ctx,17,"400");
+  ctx.fillText("Dibagikan",W-P,footerY+38);ctx.fillText(jamNow,W-P,footerY+60);ctx.textAlign="left";
 
-  // Hitung baris nama acara
-  const tmpC = document.createElement("canvas"); tmpC.width = W;
-  const tmpX = tmpC.getContext("2d");
-  tmpX.font = `800 ${NAMA_FONT}px system-ui,sans-serif`;
-  const maxNamaW = W - P*2;
-  const namaWords = (ev.namaAcara||"").split(" ");
-  let nLine="", nLines=1;
-  for (const w of namaWords) {
-    const t = nLine+w+" ";
-    if (tmpX.measureText(t).width > maxNamaW && nLine) { nLines++; nLine=w+" "; } else { nLine=t; }
-  }
-  const NAMA_H = nLines * NAMA_LEAD + 32;
-
-  // Zona info cuaca+jarak (sekarang hanya satu baris teks tipis)
-  const BADGE_H = (weather || jarakInfo) ? 44 : 0;
-  const FOOTER_H = 96;
-  const CARD_PAD = 40;
-
-  const CONTENT_H = CARD_PAD + NAMA_H + infoRows.length * ROW_H + BADGE_H + CARD_PAD;
-  const H = HEADER_H + CONTENT_H + FOOTER_H;
-
-  // ── 4. Setup canvas ──
-  const canvas = document.createElement("canvas");
-  canvas.width  = W;
-  canvas.height = H;
-  const ctx = canvas.getContext("2d");
-
-  // ── 5. Background full gelap ──
-  const isHujan   = ["Rain","Drizzle","Thunderstorm"].includes(weather?.main);
-  const isBerawan = ["Clouds","Mist","Fog","Haze"].includes(weather?.main);
-  const bgA = isHujan ? "#0f172a" : isBerawan ? "#0c2340" : "#071425";
-  const bgB = isHujan ? "#1e293b" : isBerawan ? "#1e3a5f" : "#0A1628";
-  const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
-  bgGrad.addColorStop(0, bgA);
-  bgGrad.addColorStop(0.45, bgB);
-  bgGrad.addColorStop(1, "#050e1a");
-  ctx.fillStyle = bgGrad;
-  ctx.fillRect(0, 0, W, H);
-
-  // ── 6. Lingkaran dekorasi blur kiri atas ──
-  const c1 = ctx.createRadialGradient(160, 160, 10, 160, 160, 280);
-  c1.addColorStop(0, "rgba(201,168,76,0.18)");
-  c1.addColorStop(1, "rgba(201,168,76,0)");
-  ctx.fillStyle = c1; ctx.beginPath(); ctx.arc(160,160,280,0,Math.PI*2); ctx.fill();
-
-  // Lingkaran kanan bawah
-  const c2 = ctx.createRadialGradient(W-120, H-120, 10, W-120, H-120, 220);
-  c2.addColorStop(0, "rgba(30,90,160,0.25)");
-  c2.addColorStop(1, "rgba(30,90,160,0)");
-  ctx.fillStyle = c2; ctx.beginPath(); ctx.arc(W-120,H-120,220,0,Math.PI*2); ctx.fill();
-
-  // ── 7. HEADER — zona cuaca ──
-  // Label kota atas
-  ctx.fillStyle = "rgba(255,255,255,0.35)";
-  ctx.font = "600 22px system-ui,sans-serif";
-  ctx.letterSpacing = "3px";
-  ctx.fillText("TARAKAN · KALIMANTAN UTARA", P, 64);
-  ctx.letterSpacing = "0px";
-
-  // Emoji cuaca besar
-  if (weather) {
-    ctx.font = "120px serif";
-    ctx.fillText(weather.emoji, P, 200);
-
-    // Suhu besar
-    ctx.fillStyle = "white";
-    ctx.font = "800 96px system-ui,sans-serif";
-    ctx.fillText(`${weather.suhu}°`, P + 148, 196);
-
-    // Deskripsi cuaca
-    ctx.fillStyle = "rgba(255,255,255,0.55)";
-    ctx.font = "500 26px system-ui,sans-serif";
-    const deskCap = weather.deskripsi.charAt(0).toUpperCase() + weather.deskripsi.slice(1);
-    ctx.fillText(deskCap, P + 148, 236);
-
-    // Detail cuaca kecil (kelembapan, angin)
-    ctx.fillStyle = "rgba(255,255,255,0.35)";
-    ctx.font = "400 20px system-ui,sans-serif";
-    ctx.fillText(`💧 ${weather.kelembapan}%   💨 ${weather.angin} km/j`, P + 148, 278);
-  } else {
-    // Tidak ada cuaca — tunjukkan saja label
-    ctx.font = "80px serif"; ctx.fillText("🌤", P, 200);
-    ctx.fillStyle = "rgba(255,255,255,0.3)";
-    ctx.font = "400 24px system-ui,sans-serif";
-    ctx.fillText("Data cuaca tidak tersedia", P + 120, 180);
-  }
-
-  // Tanggal — pojok kanan atas header
-  ctx.textAlign = "right";
-  ctx.fillStyle = "rgba(201,168,76,0.9)";
-  ctx.font = "700 22px system-ui,sans-serif";
-  ctx.fillText(tglStr, W - P, 64);
-  ctx.fillStyle = "rgba(255,255,255,0.25)";
-  ctx.font = "400 18px system-ui,sans-serif";
-  ctx.fillText("Prakiraan Cuaca", W - P, 96);
-  ctx.textAlign = "left";
-
-  // ── 8. Garis pemisah emas ──
-  const lineGrad = ctx.createLinearGradient(P, 0, W-P, 0);
-  lineGrad.addColorStop(0,   "rgba(201,168,76,0)");
-  lineGrad.addColorStop(0.1, "rgba(201,168,76,0.8)");
-  lineGrad.addColorStop(0.9, "rgba(201,168,76,0.8)");
-  lineGrad.addColorStop(1,   "rgba(201,168,76,0)");
-  ctx.strokeStyle = lineGrad;
-  ctx.lineWidth   = 1.5;
-  ctx.beginPath(); ctx.moveTo(P, HEADER_H); ctx.lineTo(W-P, HEADER_H); ctx.stroke();
-
-  // ── 9. KARTU KONTEN ──
-  let y = HEADER_H + CARD_PAD;
-
-  // Label "AGENDA KEGIATAN"
-  ctx.fillStyle = "rgba(201,168,76,0.7)";
-  ctx.font = "700 18px system-ui,sans-serif";
-  ctx.letterSpacing = "3px";
-  ctx.fillText("AGENDA KEGIATAN PIMPINAN", P, y);
-  ctx.letterSpacing = "0px";
-  y += 44;
-
-  // Nama acara — word wrap
-  ctx.fillStyle = "white";
-  ctx.font = `800 ${NAMA_FONT}px system-ui,sans-serif`;
-  let curLine2="", lineY2=y;
-  for (const w of namaWords) {
-    const t = curLine2+w+" ";
-    if (ctx.measureText(t).width > maxNamaW && curLine2) {
-      ctx.fillText(curLine2.trim(), P, lineY2); lineY2+=NAMA_LEAD; curLine2=w+" ";
-    } else { curLine2=t; }
-  }
-  if (curLine2) ctx.fillText(curLine2.trim(), P, lineY2);
-  y = lineY2 + NAMA_LEAD + 36;
-
-  // Divider tipis
-  ctx.strokeStyle = "rgba(255,255,255,0.1)";
-  ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(P, y); ctx.lineTo(W-P, y); ctx.stroke();
-  y += 36;
-
-  // ── 10. Baris info ──
-  for (let i=0; i < infoRows.length; i++) {
-    const row = infoRows[i];
-    const rowY = y;
-
-    // Background alternating sangat subtle
-    if (i % 2 === 0) {
-      ctx.fillStyle = "rgba(255,255,255,0.03)";
-      ctx.roundRect(P-8, rowY-12, W-P*2+16, ROW_H-8, 12);
-      ctx.fill();
+  canvas.toBlob(blob=>{
+    if(!blob)return;
+    const fname=`Agenda_${(ev.namaAcara||"").slice(0,30).replace(/\s+/g,"_")}.png`;
+    const file=new File([blob],fname,{type:"image/png"});
+    const url=URL.createObjectURL(blob);
+    if(navigator.share&&navigator.canShare?.({files:[file]})){
+      navigator.share({files:[file],title:ev.namaAcara,text:tglStr}).catch(()=>{});
+    }else{
+      const a=document.createElement("a");a.href=url;a.download=fname;a.click();
     }
-
-    // Ikon di lingkaran kecil
-    ctx.fillStyle = "rgba(201,168,76,0.15)";
-    ctx.beginPath(); ctx.arc(P+22, rowY+22, 22, 0, Math.PI*2); ctx.fill();
-    ctx.font = "24px serif";
-    ctx.textAlign = "center";
-    ctx.fillText(row.icon, P+22, rowY+32);
-    ctx.textAlign = "left";
-
-    // Label
-    ctx.fillStyle = "rgba(255,255,255,0.38)";
-    ctx.font = "500 18px system-ui,sans-serif";
-    ctx.fillText(row.label.toUpperCase(), P+56, rowY+16);
-
-    // Nilai — word wrap jika panjang
-    ctx.fillStyle = "rgba(255,255,255,0.9)";
-    ctx.font = "600 24px system-ui,sans-serif";
-    const valMaxW2 = W - P - 56 - P;
-    const valWds = (row.val||"").split(" ");
-    let vl="", vy=rowY+44;
-    for (const vw of valWds) {
-      const vt = vl+vw+" ";
-      if (ctx.measureText(vt).width > valMaxW2 && vl) {
-        ctx.fillText(vl.trim(), P+56, vy); vy+=30; vl=vw+" ";
-      } else { vl=vt; }
-    }
-    if (vl) ctx.fillText(vl.trim(), P+56, vy);
-
-    y += ROW_H;
-  }
-
-  y += 16;
-
-  // ── 11. Info cuaca + jarak — subtle, tidak mencolok ──
-  if (weather || jarakInfo) {
-    const parts = [];
-    if (weather) {
-      const isHj = ["Rain","Drizzle","Thunderstorm"].includes(weather.main);
-      parts.push(isHj ? "⚠️ Siapkan Jas Hujan" : `${weather.emoji} ${weather.suhu}°C · ${weather.deskripsi}`);
-    }
-    if (jarakInfo) parts.push(`🚗 ±${jarakInfo.durasi} · ${jarakInfo.jarak} dari Kantor`);
-
-    const infoText = parts.join("    ");
-    ctx.font = "400 17px system-ui,sans-serif";
-    ctx.fillStyle = "rgba(255,255,255,0.32)";
-    ctx.fillText(infoText, P, y + 18);
-    y += 40;
-  }
-
-  // ── 12. FOOTER ──
-  const footerY = H - FOOTER_H;
-  // Garis tipis atas footer
-  const fLineGrad = ctx.createLinearGradient(P,0,W-P,0);
-  fLineGrad.addColorStop(0,"rgba(201,168,76,0)");
-  fLineGrad.addColorStop(0.15,"rgba(201,168,76,0.4)");
-  fLineGrad.addColorStop(0.85,"rgba(201,168,76,0.4)");
-  fLineGrad.addColorStop(1,"rgba(201,168,76,0)");
-  ctx.strokeStyle=fLineGrad; ctx.lineWidth=1;
-  ctx.beginPath(); ctx.moveTo(P,footerY+14); ctx.lineTo(W-P,footerY+14); ctx.stroke();
-
-  // Logo teks
-  ctx.fillStyle = "rgba(201,168,76,0.85)";
-  ctx.font = "800 26px system-ui,sans-serif";
-  ctx.fillText("PROKOPIM", P, footerY+52);
-
-  ctx.fillStyle = "rgba(255,255,255,0.3)";
-  ctx.font = "400 18px system-ui,sans-serif";
-  ctx.fillText("Protokol & Komunikasi Pimpinan · Setda Kota Tarakan", P, footerY+78);
-
-  // Jam dibagikan — kanan
-  const now3 = new Date();
-  const jamNow = `${String(now3.getHours()).padStart(2,"0")}.${String(now3.getMinutes()).padStart(2,"0")} WITA`;
-  ctx.textAlign = "right";
-  ctx.fillStyle = "rgba(255,255,255,0.2)";
-  ctx.font = "400 18px system-ui,sans-serif";
-  ctx.fillText("Dibagikan pukul " + jamNow, W-P, footerY+78);
-  ctx.textAlign = "left";
-
-  // ── 13. Trigger share / download ──
-  canvas.toBlob(blob => {
-    if (!blob) return;
-    const fname = `Agenda_${(ev.namaAcara||"").slice(0,30).replace(/\s+/g,"_")}.png`;
-    const file  = new File([blob], fname, { type: "image/png" });
-    const url   = URL.createObjectURL(blob);
-    if (navigator.share && navigator.canShare?.({ files:[file] })) {
-      navigator.share({ files:[file], title:ev.namaAcara, text:tglStr }).catch(()=>{});
-    } else {
-      const a=document.createElement("a"); a.href=url; a.download=fname; a.click();
-    }
-    setTimeout(()=>URL.revokeObjectURL(url), 5000);
-  }, "image/png");
+    setTimeout(()=>URL.revokeObjectURL(url),5000);
+  },"image/png");
 }
-
 // ==================== EXPANDED DETAIL ====================
 function ExpandedDetail({ev,hariEv}){
   const {role,user,isMobile,handleUndanganUpload,handleSambutanDocx,handleSambutanUpload,updAndSync,storageDelete,showT,upd,setDelegTarget,setTab,setForm,setEditId,setPenugasanEv,setEvaluasiEv,rejectTexts,setRT,askConfirm,deleteAndSync,makeICS,getNamaByUsername,setExp}=React.useContext(AppCtx);
