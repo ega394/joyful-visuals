@@ -133,7 +133,7 @@ function PasswordStrengthBar({password}){
     <div style={{height:4,borderRadius:4,background:"#F1F5F9",overflow:"hidden",marginBottom:3}}>
       <div style={{height:"100%",width:s.score+"%",background:s.color,borderRadius:4,transition:"all 0.4s cubic-bezier(0.34,1.56,0.64,1)"}}/>
     </div>
-    <div style={{fontSize:10,fontWeight:700,color:s.color,textAlign:"right"}}>{s.label}</div>
+    <div style={{fontSize:12,fontWeight:700,color:s.color,textAlign:"right"}}>{s.label}</div>
   </div>;
 }
 
@@ -192,8 +192,8 @@ function CaptchaBox({onValid}){
         🔄
       </button>}
     </div>
-    {status==="err"&&<div style={{fontSize:11,color:"#DC2626",marginTop:4}}>Jawaban salah, soal diganti otomatis.</div>}
-    {status==="ok"&&<div style={{fontSize:11,color:"#166534",marginTop:4}}>✓ Verifikasi berhasil.</div>}
+    {status==="err"&&<div style={{fontSize:13,color:"#DC2626",marginTop:4}}>Jawaban salah, soal diganti otomatis.</div>}
+    {status==="ok"&&<div style={{fontSize:13,color:"#166534",marginTop:4}}>✓ Verifikasi berhasil.</div>}
   </div>;
 }
 
@@ -238,7 +238,7 @@ function RegisterModal({onClose, onSuccess}){
     <div style={{position:"fixed",inset:0,zIndex:9000,background:"rgba(0,0,0,0.55)",backdropFilter:"blur(4px)",overflowY:"auto",display:"flex",alignItems:"flex-start",justifyContent:"center",padding:"20px 0 40px"}}>
       <div style={{background:"white",borderRadius:20,width:"100%",maxWidth:440,margin:"0 16px",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
         <div style={{background:"linear-gradient(135deg,"+NAVY+",#1B4080)",padding:"20px",borderRadius:"20px 20px 0 0"}}>
-          <div style={{color:GOLD,fontSize:11,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase"}}>Prokopim Tarakan</div>
+          <div style={{color:GOLD,fontSize:13,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase"}}>Prokopim Tarakan</div>
           <div style={{color:"white",fontSize:18,fontWeight:800,marginTop:3}}>Daftar Akun Baru</div>
           <div style={{color:"rgba(255,255,255,0.6)",fontSize:12,marginTop:3}}>Perlu persetujuan Kabag sebelum aktif</div>
         </div>
@@ -676,11 +676,11 @@ const emptyForm={tanggal:"",jam:"",namaAcara:"",penyelenggara:"",kontak:"",bukti
 
 // ==================== SMALL COMPONENTS ====================
 const StatusPill=({alur,hapus})=>{
-  if(hapus)return <span style={{fontSize:11,fontWeight:700,padding:"3px 9px",borderRadius:20,background:"#fff1f2",color:"#e11d48",whiteSpace:"nowrap"}}>Minta Hapus</span>;
+  if(hapus)return <span style={{fontSize:13,fontWeight:700,padding:"3px 9px",borderRadius:20,background:"#fff1f2",color:"#e11d48",whiteSpace:"nowrap"}}>Minta Hapus</span>;
   const c=WF[alur]||WF.draft;
-  return <span style={{fontSize:11,fontWeight:700,padding:"3px 9px",borderRadius:20,background:c.bg,color:c.color,whiteSpace:"nowrap"}}>{c.label}</span>;
+  return <span style={{fontSize:13,fontWeight:700,padding:"3px 9px",borderRadius:20,background:c.bg,color:c.color,whiteSpace:"nowrap"}}>{c.label}</span>;
 };
-const JenisBadge=({j})=>{const m={Sambutan:{bg:"#fdf4ff",c:"#9333ea"},Pengarahan:{bg:"#eff6ff",c:"#2563eb"},Menghadiri:{bg:"#f0fdf4",c:"#16a34a"}};const x=m[j]||{bg:"#f1f5f9",c:"#64748b"};return <span style={{fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:20,background:x.bg,color:x.c}}>{j}</span>;};
+const JenisBadge=({j})=>{const m={Sambutan:{bg:"#fdf4ff",c:"#9333ea"},Pengarahan:{bg:"#eff6ff",c:"#2563eb"},Menghadiri:{bg:"#f0fdf4",c:"#16a34a"}};const x=m[j]||{bg:"#f1f5f9",c:"#64748b"};return <span style={{fontSize:13,fontWeight:700,padding:"2px 8px",borderRadius:20,background:x.bg,color:x.c}}>{j}</span>;};
 // ── GlobalLoadingBar — bar tipis di atas layar saat ada operasi async ──
 function GlobalLoadingBar({active}){
   if(!active)return null;
@@ -761,10 +761,10 @@ function UndanganBlock({ev,canEdit,onUpload,onRemove}){
       <div style={{background:"#f0f9ff",borderRadius:10,padding:"9px 11px",border:"1.5px solid #bae6fd",display:"flex",alignItems:"center",gap:8}}>
         <span style={{fontSize:15}}>{isImg?"🖼️":"📄"}</span>
         <div style={{flex:1,minWidth:0,fontSize:12,fontWeight:600,color:"#0c4a6e",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ev.undanganNama||"Berkas Undangan"}</div>
-        <button onClick={()=>setV(true)} style={{padding:"5px 9px",borderRadius:7,border:"1.5px solid #0284c7",background:"white",color:"#0284c7",cursor:"pointer",fontSize:11,fontWeight:700,flexShrink:0}}>Lihat</button>
+        <button onClick={()=>setV(true)} style={{padding:"5px 9px",borderRadius:7,border:"1.5px solid #0284c7",background:"white",color:"#0284c7",cursor:"pointer",fontSize:13,fontWeight:700,flexShrink:0}}>Lihat</button>
         <input ref={ref} type="file" accept="application/pdf,image/*" onChange={e=>{handleFile(e.target.files[0]);e.target.value="";}} style={{display:"none"}}/>
-        <button onClick={()=>ref.current.click()} disabled={load} style={{padding:"5px 9px",borderRadius:7,border:"1.5px solid #94a3b8",background:"white",color:"#64748b",cursor:load?"default":"pointer",fontSize:11,fontWeight:700,flexShrink:0}}>{load?"...":"Ganti"}</button>
-        <button onClick={onRemove} style={{padding:"5px 9px",borderRadius:7,border:"1.5px solid #fca5a5",background:"white",color:"#ef4444",cursor:"pointer",fontSize:11,fontWeight:700,flexShrink:0}}>Hapus</button>
+        <button onClick={()=>ref.current.click()} disabled={load} style={{padding:"5px 9px",borderRadius:7,border:"1.5px solid #94a3b8",background:"white",color:"#64748b",cursor:load?"default":"pointer",fontSize:13,fontWeight:700,flexShrink:0}}>{load?"...":"Ganti"}</button>
+        <button onClick={onRemove} style={{padding:"5px 9px",borderRadius:7,border:"1.5px solid #fca5a5",background:"white",color:"#ef4444",cursor:"pointer",fontSize:13,fontWeight:700,flexShrink:0}}>Hapus</button>
       </div>
     </>;
   }
@@ -823,8 +823,8 @@ function SambutanBlock({ev,canUpload,onUploadDocx,onUploadPdf,onRemove}){
       {viewPdf&&<div style={{position:"fixed",inset:0,zIndex:8500,background:"rgba(0,0,0,0.92)",display:"flex",flexDirection:"column"}}>
         <div style={{background:NAVY_,padding:"11px 16px",display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
           <span style={{color:"white",fontWeight:700,fontSize:13,flex:1}}>{"📄 "+ev.sambutanNama}</span>
-          {ev.sambutanDocx&&<a href={ev.sambutanDocx} download={ev.sambutanDocxNama||"naskah.docx"} style={{padding:"6px 12px",borderRadius:7,background:GOLD_,color:NAVY_,textDecoration:"none",fontSize:11,fontWeight:700}}>⬇ DOCX Asli</a>}
-          <a href={ev.sambutanFile} download={ev.sambutanNama} style={{padding:"6px 12px",borderRadius:7,background:"white",color:NAVY_,textDecoration:"none",fontSize:11,fontWeight:700}}>⬇ PDF</a>
+          {ev.sambutanDocx&&<a href={ev.sambutanDocx} download={ev.sambutanDocxNama||"naskah.docx"} style={{padding:"6px 12px",borderRadius:7,background:GOLD_,color:NAVY_,textDecoration:"none",fontSize:13,fontWeight:700}}>⬇ DOCX Asli</a>}
+          <a href={ev.sambutanFile} download={ev.sambutanNama} style={{padding:"6px 12px",borderRadius:7,background:"white",color:NAVY_,textDecoration:"none",fontSize:13,fontWeight:700}}>⬇ PDF</a>
           <button onClick={()=>setViewPdf(false)} style={{padding:"6px 12px",borderRadius:7,background:"rgba(255,255,255,0.15)",border:"none",color:"white",cursor:"pointer",fontSize:12,fontWeight:700}}>✕ Tutup</button>
         </div>
         <div style={{flex:1,overflow:"hidden",background:"#1a1a2e",display:"flex",alignItems:"stretch"}}>
@@ -837,16 +837,16 @@ function SambutanBlock({ev,canUpload,onUploadDocx,onUploadPdf,onRemove}){
           <div style={{flex:1,minWidth:0}}>
             <div style={{display:"flex",alignItems:"center",gap:6}}>
               <div style={{fontSize:12,fontWeight:800,color:GREEN_}}>Naskah Sambutan</div>
-              {isPdfDirect&&<span style={{fontSize:9,padding:"1px 6px",borderRadius:10,background:"#e0f2fe",color:"#0369a1",fontWeight:700}}>PDF</span>}
+              {isPdfDirect&&<span style={{fontSize:12,padding:"1px 6px",borderRadius:10,background:"#e0f2fe",color:"#0369a1",fontWeight:700}}>PDF</span>}
             </div>
-            <div style={{fontSize:11,color:"#065f46",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ev.sambutanNama}</div>
-            {ev.sambutanDocxNama&&<div style={{fontSize:10,color:"#6B7280",marginTop:1}}>{"📎 DOCX: "+ev.sambutanDocxNama}</div>}
+            <div style={{fontSize:13,color:"#065f46",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ev.sambutanNama}</div>
+            {ev.sambutanDocxNama&&<div style={{fontSize:12,color:"#6B7280",marginTop:1}}>{"📎 DOCX: "+ev.sambutanDocxNama}</div>}
           </div>
         </div>
         <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
           <button onClick={()=>setViewPdf(true)} style={{flex:1,minWidth:80,padding:"9px 8px",borderRadius:9,border:"none",background:NAVY_,color:"white",cursor:"pointer",fontSize:12,fontWeight:700}}>👁 Baca PDF</button>
           <a href={ev.sambutanFile} download={ev.sambutanNama} style={{flex:1,minWidth:80,padding:"9px 8px",borderRadius:9,border:"1.5px solid "+NAVY_,background:"white",color:NAVY_,textDecoration:"none",textAlign:"center",fontSize:12,fontWeight:700}}>⬇ Unduh PDF</a>
-          {canUpload&&<><button onClick={()=>{if(ref.current)ref.current.click();}} style={{padding:"9px 10px",borderRadius:9,border:"1.5px solid #94A3B8",background:"white",color:"#475569",cursor:"pointer",fontSize:11,fontWeight:700}}>🔄 Ganti</button><button onClick={onRemove} style={{padding:"9px 10px",borderRadius:9,border:"1.5px solid #FCA5A5",background:"white",color:"#EF4444",cursor:"pointer",fontSize:11,fontWeight:700}}>🗑</button><input ref={ref} type="file" accept=".docx,.pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf" onChange={e=>{handleFile(e.target.files[0]);e.target.value="";}} style={{display:"none"}}/></>}
+          {canUpload&&<><button onClick={()=>{if(ref.current)ref.current.click();}} style={{padding:"9px 10px",borderRadius:9,border:"1.5px solid #94A3B8",background:"white",color:"#475569",cursor:"pointer",fontSize:13,fontWeight:700}}>🔄 Ganti</button><button onClick={onRemove} style={{padding:"9px 10px",borderRadius:9,border:"1.5px solid #FCA5A5",background:"white",color:"#EF4444",cursor:"pointer",fontSize:13,fontWeight:700}}>🗑</button><input ref={ref} type="file" accept=".docx,.pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf" onChange={e=>{handleFile(e.target.files[0]);e.target.value="";}} style={{display:"none"}}/></>}
         </div>
       </div>
     </>;
@@ -865,7 +865,7 @@ function SambutanBlock({ev,canUpload,onUploadDocx,onUploadPdf,onRemove}){
           ?<>
             <div style={{fontSize:28,marginBottom:8}}>⚙️</div>
             <div style={{fontSize:13,fontWeight:700,color:"#4F46E5",marginBottom:4}}>Memproses...</div>
-            <div style={{fontSize:11,color:"#818CF8"}}>{progress}</div>
+            <div style={{fontSize:13,color:"#818CF8"}}>{progress}</div>
             <div style={{marginTop:12,height:4,background:"#E0E7FF",borderRadius:4,overflow:"hidden"}}>
               <div style={{height:"100%",background:"linear-gradient(90deg,#6366F1,#A5B4FC)",borderRadius:4}}/>
             </div>
@@ -880,11 +880,11 @@ function SambutanBlock({ev,canUpload,onUploadDocx,onUploadPdf,onRemove}){
             <div style={{fontSize:32,marginBottom:8}}>📝</div>
             <div style={{fontSize:13,fontWeight:700,color:"#4F46E5",marginBottom:6}}>Upload Naskah Sambutan</div>
             <div style={{display:"flex",gap:8,justifyContent:"center",marginBottom:12,flexWrap:"wrap"}}>
-              <span style={{fontSize:10,padding:"3px 9px",borderRadius:10,background:"#EDE9FE",color:"#5B21B6",fontWeight:700}}>📝 DOCX → PDF Otomatis</span>
-              <span style={{fontSize:10,padding:"3px 9px",borderRadius:10,background:"#E0F2FE",color:"#0369A1",fontWeight:700}}>📄 PDF Langsung</span>
+              <span style={{fontSize:12,padding:"3px 9px",borderRadius:10,background:"#EDE9FE",color:"#5B21B6",fontWeight:700}}>📝 DOCX → PDF Otomatis</span>
+              <span style={{fontSize:12,padding:"3px 9px",borderRadius:10,background:"#E0F2FE",color:"#0369A1",fontWeight:700}}>📄 PDF Langsung</span>
             </div>
             <button onClick={()=>ref.current.click()} style={{padding:"10px 22px",borderRadius:9,border:"none",background:"linear-gradient(135deg,#6366F1,#4F46E5)",color:"white",cursor:"pointer",fontSize:13,fontWeight:700,boxShadow:"0 3px 10px rgba(99,102,241,0.35)"}}>Pilih File</button>
-            <div style={{fontSize:10,color:"#9CA3AF",marginTop:8}}>DOCX atau PDF · Maks 10MB · atau seret & lepas di sini</div>
+            <div style={{fontSize:12,color:"#9CA3AF",marginTop:8}}>DOCX atau PDF · Maks 10MB · atau seret & lepas di sini</div>
           </>
         }
       </div>
@@ -1009,11 +1009,11 @@ function AIModal({onFill,onClose}){
               ?<div style={{borderRadius:9,overflow:"hidden",border:"1.5px solid #86efac"}}>
                   <div style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",background:"#f0fdf4"}}>
                     <span style={{fontSize:13}}>✅</span>
-                    <span style={{fontSize:11,color:"#15803d",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontWeight:600}}>{undanganNama}</span>
+                    <span style={{fontSize:13,color:"#15803d",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontWeight:600}}>{undanganNama}</span>
                     <button type="button" onClick={()=>{setUndanganFile(null);setUndanganNama("");}} style={{background:"none",border:"none",color:"#ef4444",cursor:"pointer",fontSize:13,fontWeight:700}}>✕</button>
                   </div>
                   <div style={{display:"flex",gap:0}}>
-                    <button type="button" onClick={()=>undanganRef.current.click()} style={{flex:1,padding:"6px 8px",border:"none",borderTop:"1px solid #bbf7d0",background:"#f8fffe",color:"#15803d",cursor:"pointer",fontSize:11,fontWeight:600}}>🔄 Ganti File</button>
+                    <button type="button" onClick={()=>undanganRef.current.click()} style={{flex:1,padding:"6px 8px",border:"none",borderTop:"1px solid #bbf7d0",background:"#f8fffe",color:"#15803d",cursor:"pointer",fontSize:13,fontWeight:600}}>🔄 Ganti File</button>
                   </div>
                 </div>
               :<button type="button" onClick={()=>undanganRef.current.click()} style={{width:"100%",padding:"9px",borderRadius:8,border:"2px dashed #c7d2fe",background:"#f8faff",color:NAVY,cursor:"pointer",fontSize:12,fontWeight:600}}>📎 Klik untuk upload berkas undangan</button>}
@@ -1170,9 +1170,9 @@ function SummaryModal({events,onToggleHide,onClose}){
         <>{filtered.map(ev=><div key={ev.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:10,marginBottom:8,background:ev.tersembunyi?"#f8fafc":"white",border:"1px solid #f1f5f9",opacity:ev.tersembunyi?0.5:1}}>
           <div style={{flex:1,minWidth:0}}>
             <div style={{fontSize:13,fontWeight:700,color:"#0F2040",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ev.namaAcara}</div>
-            <div style={{fontSize:11,color:"#64748b"}}>{mode==="range"?fmt(ev.tanggal)+" · ":""}{ev.jam} WITA | {ev.penyelenggara}</div>
+            <div style={{fontSize:13,color:"#64748b"}}>{mode==="range"?fmt(ev.tanggal)+" · ":""}{ev.jam} WITA | {ev.penyelenggara}</div>
           </div>
-          <button onClick={()=>onToggleHide(ev.id)} style={{flexShrink:0,padding:"5px 10px",borderRadius:8,border:"1.5px solid "+(ev.tersembunyi?"#94a3b8":NAVY),background:ev.tersembunyi?"#f1f5f9":"white",color:ev.tersembunyi?"#94a3b8":NAVY,cursor:"pointer",fontSize:11,fontWeight:600}}>
+          <button onClick={()=>onToggleHide(ev.id)} style={{flexShrink:0,padding:"5px 10px",borderRadius:8,border:"1.5px solid "+(ev.tersembunyi?"#94a3b8":NAVY),background:ev.tersembunyi?"#f1f5f9":"white",color:ev.tersembunyi?"#94a3b8":NAVY,cursor:"pointer",fontSize:13,fontWeight:600}}>
             {ev.tersembunyi?"Tampilkan":"Sembunyikan"}
           </button>
         </div>)}
@@ -1213,7 +1213,7 @@ function tujuanPimpinanLabel(ev){
 }
 const TujuanBadge=({ev})=>{
   const label=tujuanPimpinanLabel(ev);
-  return <div style={{fontSize:11,color:"#1E40AF",background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:8,padding:"3px 9px",fontWeight:700,display:"inline-flex",alignItems:"center",gap:4}}>
+  return <div style={{fontSize:13,color:"#1E40AF",background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:8,padding:"3px 9px",fontWeight:700,display:"inline-flex",alignItems:"center",gap:4}}>
     <span style={{fontSize:12}}>🎯</span> {label}
   </div>;
 };
@@ -1302,7 +1302,7 @@ _Setda Kota Tarakan_`;
           <div style={{marginBottom:14}}>
             <div style={{fontSize:12,fontWeight:700,color:"#475569",marginBottom:8}}>Penerima ({targets.length} orang)</div>
             <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
-              {targets.map(u=><span key={u.username} style={{fontSize:10,padding:"3px 8px",borderRadius:10,background:"#EFF6FF",color:"#1D4ED8",fontWeight:600}}>{u.nama||u.username}</span>)}
+              {targets.map(u=><span key={u.username} style={{fontSize:12,padding:"3px 8px",borderRadius:10,background:"#EFF6FF",color:"#1D4ED8",fontWeight:600}}>{u.nama||u.username}</span>)}
             </div>
             {targets.length===0&&<div style={{padding:"10px",background:"#fef3c7",borderRadius:8,fontSize:12,color:"#92400e"}}>⚠️ Belum ada pengguna dengan nomor WA terdaftar</div>}
           </div>
@@ -1312,7 +1312,7 @@ _Setda Kota Tarakan_`;
             <label style={{display:"block",fontSize:12,fontWeight:700,color:"#475569",marginBottom:6}}>Isi Pengumuman</label>
             <textarea value={pesan} onChange={e=>setPesan(e.target.value)} rows={14}
               style={{width:"100%",padding:"10px 12px",borderRadius:10,border:"1.5px solid #e2e8f0",fontSize:12,fontFamily:"monospace",lineHeight:1.6,resize:"vertical",boxSizing:"border-box",color:"#1e293b"}}/>
-            <div style={{fontSize:10,color:"#94a3b8",marginTop:4,textAlign:"right"}}>{pesan.length} karakter</div>
+            <div style={{fontSize:12,color:"#94a3b8",marginTop:4,textAlign:"right"}}>{pesan.length} karakter</div>
           </div>
 
           <button onClick={kirim} disabled={targets.length===0}
@@ -1516,13 +1516,13 @@ tbody tr:nth-child(even) td:not(.nw){background:#f8fafc}
           {["today","tomorrow","week","month","range"].map(m=><button key={m} onClick={()=>setMode(m)} style={{padding:"6px 14px",borderRadius:20,border:"1.5px solid "+(mode===m?NAVY:"#e2e8f0"),background:mode===m?NAVY:"white",color:mode===m?"white":"#475569",cursor:"pointer",fontSize:12,fontWeight:700}}>{modeLabel[m]}</button>)}
         </div>
         {mode==="range"&&<div style={{display:"flex",gap:8,marginBottom:14,alignItems:"center"}}>
-          <div style={{flex:1}}><label style={{fontSize:11,color:"#64748b",fontWeight:600,display:"block",marginBottom:2}}>Dari</label><input type="date" value={from} onChange={e=>setFrom(e.target.value)} style={{width:"100%",padding:"8px 10px",borderRadius:8,border:"1.5px solid #e2e8f0",fontSize:14}}/></div>
+          <div style={{flex:1}}><label style={{fontSize:13,color:"#64748b",fontWeight:600,display:"block",marginBottom:2}}>Dari</label><input type="date" value={from} onChange={e=>setFrom(e.target.value)} style={{width:"100%",padding:"8px 10px",borderRadius:8,border:"1.5px solid #e2e8f0",fontSize:14}}/></div>
           <span style={{color:"#94a3b8",marginTop:14}}>s.d.</span>
-          <div style={{flex:1}}><label style={{fontSize:11,color:"#64748b",fontWeight:600,display:"block",marginBottom:2}}>Sampai</label><input type="date" value={to} onChange={e=>setTo(e.target.value)} style={{width:"100%",padding:"8px 10px",borderRadius:8,border:"1.5px solid #e2e8f0",fontSize:14}}/></div>
+          <div style={{flex:1}}><label style={{fontSize:13,color:"#64748b",fontWeight:600,display:"block",marginBottom:2}}>Sampai</label><input type="date" value={to} onChange={e=>setTo(e.target.value)} style={{width:"100%",padding:"8px 10px",borderRadius:8,border:"1.5px solid #e2e8f0",fontSize:14}}/></div>
         </div>}
         <div style={{background:"#f8fafc",borderRadius:10,padding:"10px 14px",marginBottom:12,border:"1.5px solid #e2e8f0"}}>
           <div style={{fontSize:13,fontWeight:700,color:NAVY}}>{filtered.length} kegiatan tayang</div>
-          <div style={{fontSize:11,color:"#64748b",marginTop:2}}>Periode: {rangeLabel()}</div>
+          <div style={{fontSize:13,color:"#64748b",marginTop:2}}>Periode: {rangeLabel()}</div>
         </div>
         <div style={{background:"#EBF0FA",borderRadius:10,padding:"10px 14px",marginBottom:16,border:"1.5px solid "+NAVY,fontSize:12,color:NAVY,lineHeight:1.8}}>
           Isi PDF: kop surat &bull; lokasi acara &bull; kolom catatan kepala daerah &bull; TTD Kabag Prokopim
@@ -1591,20 +1591,20 @@ const printF4L_lap=()=>{
         {mode==="week"&&<div style={{marginBottom:14}}>
           <label style={{display:"block",fontSize:12,color:"#64748b",fontWeight:600,marginBottom:4}}>Pilih Minggu (isi tanggal hari Senin)</label>
           <input type="date" value={selWeek} onChange={e=>setSelWeek(e.target.value)} style={{...inp,width:"100%"}}/>
-          <div style={{fontSize:11,color:"#64748b",marginTop:4}}>{range.label}</div>
+          <div style={{fontSize:13,color:"#64748b",marginTop:4}}>{range.label}</div>
         </div>}
         {mode==="month"&&<div style={{display:"flex",gap:8,marginBottom:14}}>
           <div style={{flex:2}}><label style={{display:"block",fontSize:12,color:"#64748b",fontWeight:600,marginBottom:4}}>Bulan</label><select value={selMonth} onChange={e=>setSelMonth(parseInt(e.target.value))} style={{...inp,width:"100%"}}>{months.map((m,i)=><option key={i} value={i}>{m}</option>)}</select></div>
           <div style={{flex:1}}><label style={{display:"block",fontSize:12,color:"#64748b",fontWeight:600,marginBottom:4}}>Tahun</label><select value={selYear} onChange={e=>setSelYear(parseInt(e.target.value))} style={{...inp,width:"100%"}}>{years.map(y=><option key={y}>{y}</option>)}</select></div>
         </div>}
         <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:14}}>
-          {[["Total",stats.total,NAVY],["Wali Kota",stats.wk,"#1B4080"],["Wakil WK",stats.wwk,GREEN],["Sambutan",stats.sambutan,"#7c3aed"],["Pengarahan",stats.pengarahan,"#2563eb"],["Menghadiri",stats.menghadiri,"#16a34a"]].map(([l,v,c])=><div key={l} style={{background:c,borderRadius:10,padding:"10px 12px",textAlign:"center"}}><div style={{color:"rgba(255,255,255,0.7)",fontSize:10,marginBottom:2}}>{l}</div><div style={{color:"white",fontSize:20,fontWeight:900}}>{v}</div></div>)}
+          {[["Total",stats.total,NAVY],["Wali Kota",stats.wk,"#1B4080"],["Wakil WK",stats.wwk,GREEN],["Sambutan",stats.sambutan,"#7c3aed"],["Pengarahan",stats.pengarahan,"#2563eb"],["Menghadiri",stats.menghadiri,"#16a34a"]].map(([l,v,c])=><div key={l} style={{background:c,borderRadius:10,padding:"10px 12px",textAlign:"center"}}><div style={{color:"rgba(255,255,255,0.7)",fontSize:12,marginBottom:2}}>{l}</div><div style={{color:"white",fontSize:20,fontWeight:900}}>{v}</div></div>)}
         </div>
         <div style={{background:"#f8fafc",borderRadius:10,padding:"10px 14px",marginBottom:16,border:"1px solid #e2e8f0",maxHeight:200,overflowY:"auto"}}>
           {filtered.length===0?<div style={{textAlign:"center",color:"#94a3b8",fontSize:13,padding:"16px"}}>Tidak ada kegiatan pada periode ini</div>:
           filtered.map((ev,i)=><div key={ev.id} style={{display:"flex",gap:10,padding:"7px 0",borderBottom:i<filtered.length-1?"1px solid #f1f5f9":"none"}}>
-            <div style={{width:44,flexShrink:0,textAlign:"center"}}><div style={{fontSize:10,fontWeight:700,color:NAVY}}>{getHari(ev.tanggal).slice(0,3)}</div><div style={{fontSize:12,fontWeight:800,color:"#334155"}}>{ev.tanggal.slice(8)}</div><div style={{fontSize:9,color:"#94a3b8"}}>{ev.jam}</div></div>
-            <div style={{flex:1,minWidth:0}}><div style={{fontSize:12,fontWeight:700,color:"#1e293b",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ev.namaAcara}</div><div style={{fontSize:11,color:"#64748b"}}>{ev.penyelenggara}</div></div>
+            <div style={{width:44,flexShrink:0,textAlign:"center"}}><div style={{fontSize:12,fontWeight:700,color:NAVY}}>{getHari(ev.tanggal).slice(0,3)}</div><div style={{fontSize:12,fontWeight:800,color:"#334155"}}>{ev.tanggal.slice(8)}</div><div style={{fontSize:12,color:"#94a3b8"}}>{ev.jam}</div></div>
+            <div style={{flex:1,minWidth:0}}><div style={{fontSize:12,fontWeight:700,color:"#1e293b",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ev.namaAcara}</div><div style={{fontSize:13,color:"#64748b"}}>{ev.penyelenggara}</div></div>
           </div>)}
         </div>
         <div style={{display:"flex",gap:4,marginBottom:12,background:"#f1f5f9",borderRadius:10,padding:4}}>
@@ -1726,9 +1726,9 @@ function NotifTab({user,showT}){
         </div>
       </div>
       {aktif
-        ?<><div style={{background:"#f0f9ff",borderRadius:10,padding:"10px 13px",marginBottom:12,border:"1px solid #bae6fd",fontSize:11,color:"#0284c7",wordBreak:"break-all"}}>
+        ?<><div style={{background:"#f0f9ff",borderRadius:10,padding:"10px 13px",marginBottom:12,border:"1px solid #bae6fd",fontSize:13,color:"#0284c7",wordBreak:"break-all"}}>
             <div style={{fontWeight:700,marginBottom:4}}>FCM Token (untuk testing):</div>
-            <div style={{fontFamily:"monospace",fontSize:10}}>{fcmToken.slice(0,40)}...</div>
+            <div style={{fontFamily:"monospace",fontSize:12}}>{fcmToken.slice(0,40)}...</div>
           </div>
           <button onClick={()=>{try{localStorage.removeItem('fcm_token');}catch{}setFcmToken("");showT("Token FCM dihapus","warn");}} style={{width:"100%",padding:"12px",borderRadius:11,border:"1.5px solid #fca5a5",background:"white",color:"#ef4444",cursor:"pointer",fontSize:13,fontWeight:700}}>
             🔕 Nonaktifkan Notifikasi
@@ -1737,7 +1737,7 @@ function NotifTab({user,showT}){
           {loading?"Mengaktifkan...":"🔔 Aktifkan Notifikasi FCM"}
         </button>}
       {msg&&<div style={{marginTop:10,background:"#fee2e2",borderRadius:8,padding:"9px 12px",fontSize:13,color:"#991b1b"}}>{msg}</div>}
-      <div style={{marginTop:14,padding:"10px 13px",background:"#f8fafc",borderRadius:9,border:"1px solid #e2e8f0",fontSize:11,color:"#64748b",lineHeight:1.8}}>
+      <div style={{marginTop:14,padding:"10px 13px",background:"#f8fafc",borderRadius:9,border:"1px solid #e2e8f0",fontSize:13,color:"#64748b",lineHeight:1.8}}>
         <div style={{fontWeight:700,color:"#475569",marginBottom:4}}>ℹ️ Push Notification di APK</div>
         <div>✅ Menggunakan Firebase Cloud Messaging (FCM)</div>
         <div>✅ Berjalan di background tanpa membuka app</div>
@@ -1835,7 +1835,7 @@ function NotifTab({user,showT}){
         {isIOS&&isStandalone?"✅ Perangkat siap. Tap tombol di atas untuk mengaktifkan.":""}
       </div>}
     {msg&&<div style={{marginTop:10,background:"#fee2e2",borderRadius:8,padding:"9px 12px",fontSize:13,color:"#991b1b"}}>{msg}</div>}
-    <div style={{marginTop:14,padding:"10px 13px",background:"#f8fafc",borderRadius:9,border:"1px solid #e2e8f0",fontSize:11,color:"#64748b",lineHeight:1.8}}>
+    <div style={{marginTop:14,padding:"10px 13px",background:"#f8fafc",borderRadius:9,border:"1px solid #e2e8f0",fontSize:13,color:"#64748b",lineHeight:1.8}}>
       <div style={{fontWeight:700,color:"#475569",marginBottom:4}}>Syarat push notification (PWA):</div>
       <div>✅ App sudah di-install ke Home Screen</div>
       <div>✅ Dibuka dari ikon Home Screen (bukan browser)</div>
@@ -1901,7 +1901,7 @@ function ProfileModal({user,onClose,showT}){
       </div>
       <div style={{flex:1,overflowY:"auto",padding:"16px 20px 20px"}}>
         {err&&<div style={{background:"#fee2e2",borderRadius:8,padding:"9px 12px",marginBottom:12,fontSize:13,color:"#991b1b"}}>{err}</div>}
-        {tabP==="profile"&&<><div style={{marginBottom:12}}><label style={{display:"block",fontSize:12,color:"#64748b",fontWeight:600,marginBottom:4}}>Nama Lengkap</label><input value={form.nama} onChange={e=>setForm(p=>({...p,nama:e.target.value}))} style={inp}/></div><div style={{marginBottom:12}}><label style={{display:"block",fontSize:12,color:"#64748b",fontWeight:600,marginBottom:4}}>Jabatan</label><input value={form.jabatan} onChange={e=>setForm(p=>({...p,jabatan:e.target.value}))} style={inp}/></div><div style={{marginBottom:16}}><label style={{display:"block",fontSize:12,color:"#64748b",fontWeight:600,marginBottom:4}}>No. WhatsApp</label><input value={form.noWA} onChange={e=>setForm(p=>({...p,noWA:e.target.value}))} placeholder="08123456789" style={inp}/><div style={{fontSize:11,color:"#94a3b8",marginTop:3}}>📱 Digunakan untuk menerima kode OTP reset password</div></div><button onClick={saveProfile} style={{width:"100%",padding:"12px",borderRadius:10,border:"none",background:NAVY,color:"white",cursor:"pointer",fontSize:14,fontWeight:700}}>Simpan Profil</button></>}
+        {tabP==="profile"&&<><div style={{marginBottom:12}}><label style={{display:"block",fontSize:12,color:"#64748b",fontWeight:600,marginBottom:4}}>Nama Lengkap</label><input value={form.nama} onChange={e=>setForm(p=>({...p,nama:e.target.value}))} style={inp}/></div><div style={{marginBottom:12}}><label style={{display:"block",fontSize:12,color:"#64748b",fontWeight:600,marginBottom:4}}>Jabatan</label><input value={form.jabatan} onChange={e=>setForm(p=>({...p,jabatan:e.target.value}))} style={inp}/></div><div style={{marginBottom:16}}><label style={{display:"block",fontSize:12,color:"#64748b",fontWeight:600,marginBottom:4}}>No. WhatsApp</label><input value={form.noWA} onChange={e=>setForm(p=>({...p,noWA:e.target.value}))} placeholder="08123456789" style={inp}/><div style={{fontSize:13,color:"#94a3b8",marginTop:3}}>📱 Digunakan untuk menerima kode OTP reset password</div></div><button onClick={saveProfile} style={{width:"100%",padding:"12px",borderRadius:10,border:"none",background:NAVY,color:"white",cursor:"pointer",fontSize:14,fontWeight:700}}>Simpan Profil</button></>}
         {tabP==="password"&&<><div style={{marginBottom:12}}><label style={{display:"block",fontSize:12,color:"#64748b",fontWeight:600,marginBottom:4}}>Password Lama</label><input type="password" value={pw.old} onChange={e=>setPw(p=>({...p,old:e.target.value}))} style={inp}/></div><div style={{marginBottom:12}}><label style={{display:"block",fontSize:12,color:"#64748b",fontWeight:600,marginBottom:4}}>Password Baru (min. 6 karakter)</label><input type="password" value={pw.next} onChange={e=>setPw(p=>({...p,next:e.target.value}))} style={inp}/><PasswordStrengthBar password={pw.next}/></div><div style={{marginBottom:16}}><label style={{display:"block",fontSize:12,color:"#64748b",fontWeight:600,marginBottom:4}}>Konfirmasi Password Baru</label><input type="password" value={pw.confirm} onChange={e=>setPw(p=>({...p,confirm:e.target.value}))} style={inp}/></div><button onClick={changePassword} style={{width:"100%",padding:"12px",borderRadius:10,border:"none",background:GREEN,color:"white",cursor:"pointer",fontSize:14,fontWeight:700}}>Ubah Password</button></>}
         {tabP==="username"&&<><div style={{background:"#fef3c7",borderRadius:9,padding:"9px 12px",marginBottom:14,fontSize:13,color:"#92400e",border:"1px solid #fde68a"}}>Setelah ubah username, Anda akan diminta login ulang.</div><div style={{marginBottom:12}}><label style={{display:"block",fontSize:12,color:"#64748b",fontWeight:600,marginBottom:4}}>Username Baru</label><input value={uname.newUsername} onChange={e=>setUname(p=>({...p,newUsername:e.target.value}))} autoCapitalize="none" style={inp}/></div><div style={{marginBottom:16}}><label style={{display:"block",fontSize:12,color:"#64748b",fontWeight:600,marginBottom:4}}>Konfirmasi dengan Password Anda</label><input type="password" value={uname.pwConfirm} onChange={e=>setUname(p=>({...p,pwConfirm:e.target.value}))} style={inp}/></div><button onClick={changeUsername} style={{width:"100%",padding:"12px",borderRadius:10,border:"none",background:"#d97706",color:"white",cursor:"pointer",fontSize:14,fontWeight:700}}>Ubah Username</button></>}
         {tabP==="biometric"&&<BiometricTab user={user} showT={showT}/>}
@@ -2007,14 +2007,14 @@ function DraftProgressView({events,user,upd,showT,askConfirm,setTab,isMobile,set
         return (
           <div key={ev.id} style={{background:"white",borderRadius:14,padding:"14px 16px",marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,0.07)",border:"1.5px solid "+(isDitolak?"#fca5a5":isDraft?"#e2e8f0":isDisetujui?"#86efac":"#e2e8f0")}}>
             <div style={{fontSize:13,fontWeight:700,color:"#0F2040",marginBottom:4}}>{ev.namaAcara}</div>
-            <div style={{fontSize:11,color:"#64748b",marginBottom:10}}>{fmt(ev.tanggal)} · {ev.jam} WITA · {ev.penyelenggara}</div>
+            <div style={{fontSize:13,color:"#64748b",marginBottom:10}}>{fmt(ev.tanggal)} · {ev.jam} WITA · {ev.penyelenggara}</div>
             
             {!isDraft&&!isDitolak&&<div style={{display:"flex",alignItems:"center",gap:0,marginBottom:12}}>
               {steps.map((s,i)=>(
                 <React.Fragment key={s.key}>
                   <div style={{display:"flex",flexDirection:"column",alignItems:"center",minWidth:0,flex:1}}>
-                    <div style={{width:24,height:24,borderRadius:"50%",background:i<=stepIdx?s.color:"#e2e8f0",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:"white",fontWeight:700}}>{i<stepIdx?"✓":i===stepIdx?"●":"○"}</div>
-                    <div style={{fontSize:9,color:i<=stepIdx?s.color:"#94a3b8",marginTop:2,textAlign:"center",fontWeight:i===stepIdx?700:400}}>{s.label}</div>
+                    <div style={{width:24,height:24,borderRadius:"50%",background:i<=stepIdx?s.color:"#e2e8f0",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,color:"white",fontWeight:700}}>{i<stepIdx?"✓":i===stepIdx?"●":"○"}</div>
+                    <div style={{fontSize:12,color:i<=stepIdx?s.color:"#94a3b8",marginTop:2,textAlign:"center",fontWeight:i===stepIdx?700:400}}>{s.label}</div>
                   </div>
                   {i<steps.length-1&&<div style={{flex:1,height:2,background:i<stepIdx?s.color:"#e2e8f0",minWidth:8,marginBottom:14}}/>}
                 </React.Fragment>
@@ -2099,9 +2099,9 @@ function ApprovalQueueView({events,role,upd,showT,askConfirm,isMobile}){
           {/* Tanggal + hari */}
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
             <div style={{background:"#EFF6FF",borderRadius:10,padding:"6px 12px",textAlign:"center",flexShrink:0}}>
-              <div style={{fontSize:9,fontWeight:800,color:"#1D4ED8",textTransform:"uppercase",letterSpacing:1}}>{hari.slice(0,3)}</div>
+              <div style={{fontSize:12,fontWeight:800,color:"#1D4ED8",textTransform:"uppercase",letterSpacing:1}}>{hari.slice(0,3)}</div>
               <div style={{fontSize:20,fontWeight:900,color:"#0A1628",lineHeight:1.1}}>{ev.tanggal?.slice(8)}</div>
-              <div style={{fontSize:9,color:"#64748B"}}>{BULAN[parseInt(ev.tanggal?.slice(5,7))-1]}</div>
+              <div style={{fontSize:12,color:"#64748B"}}>{BULAN[parseInt(ev.tanggal?.slice(5,7))-1]}</div>
             </div>
             <div style={{flex:1,minWidth:0}}>
               <div style={{fontSize:15,fontWeight:800,color:"#0F172A",marginBottom:4,lineHeight:1.3}}>{ev.namaAcara}</div>
@@ -2113,17 +2113,17 @@ function ApprovalQueueView({events,role,upd,showT,askConfirm,isMobile}){
           </div>
           {/* Detail lengkap */}
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"6px 12px",marginBottom:10}}>
-            {ev.lokasi&&<div style={{fontSize:11,color:"#475569",display:"flex",gap:4,alignItems:"flex-start",gridColumn:"1/-1"}}>
+            {ev.lokasi&&<div style={{fontSize:13,color:"#475569",display:"flex",gap:4,alignItems:"flex-start",gridColumn:"1/-1"}}>
               <span style={{flexShrink:0}}>📍</span><span>{ev.lokasi}</span>
             </div>}
-            {ev.pakaian&&<div style={{fontSize:11,color:"#475569"}}><span style={{color:"#94A3B8",fontWeight:600}}>Pakaian: </span>{ev.pakaian}</div>}
-            {ev.kontak&&<div style={{fontSize:11,color:"#475569"}}><span style={{color:"#94A3B8",fontWeight:600}}>Kontak: </span>{ev.kontak}</div>}
-            {ev.catatan&&<div style={{fontSize:11,color:"#475569",gridColumn:"1/-1"}}><span style={{color:"#94A3B8",fontWeight:600}}>Catatan: </span>{ev.catatan}</div>}
+            {ev.pakaian&&<div style={{fontSize:13,color:"#475569"}}><span style={{color:"#94A3B8",fontWeight:600}}>Pakaian: </span>{ev.pakaian}</div>}
+            {ev.kontak&&<div style={{fontSize:13,color:"#475569"}}><span style={{color:"#94A3B8",fontWeight:600}}>Kontak: </span>{ev.kontak}</div>}
+            {ev.catatan&&<div style={{fontSize:13,color:"#475569",gridColumn:"1/-1"}}><span style={{color:"#94A3B8",fontWeight:600}}>Catatan: </span>{ev.catatan}</div>}
           </div>
           {/* Pimpinan & pengaju */}
           <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:10,alignItems:"center"}}>
             <TujuanBadge ev={ev}/>
-            {ev.submittedBy&&<span style={{fontSize:10,color:"#94A3B8"}}>· Diajukan: {getNamaByUsername(ev.submittedBy)}</span>}
+            {ev.submittedBy&&<span style={{fontSize:12,color:"#94A3B8"}}>· Diajukan: {getNamaByUsername(ev.submittedBy)}</span>}
           </div>
           {/* Undangan — satu tombol saja */}
           {ev.undanganFile&&<div style={{display:"flex",gap:7,marginBottom:12}}>
@@ -2164,14 +2164,14 @@ function ApprovalQueueView({events,role,upd,showT,askConfirm,isMobile}){
         <span style={{fontSize:14}}>{ev.alur==="disetujui"?"✅":"❌"}</span>
         <div style={{flex:1,minWidth:0}}>
           <div style={{fontSize:12,fontWeight:600,color:"#0F2040",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ev.namaAcara}</div>
-          <div style={{fontSize:10,color:"#94a3b8"}}>{fmt(ev.tanggal)} · {ev.alur==="disetujui"?"Disetujui":"Ditolak"}</div>
+          <div style={{fontSize:12,color:"#94a3b8"}}>{fmt(ev.tanggal)} · {ev.alur==="disetujui"?"Disetujui":"Ditolak"}</div>
         </div>
       </div>
       {!isKasubbag&&ev.alur==="disetujui"&&<div style={{marginTop:8,display:"flex",gap:6,alignItems:"center"}}>
-        <textarea placeholder="Catatan perbaikan..." value={rejectTexts[ev.id+"_recall"]||""} onChange={e=>setRT(p=>({...p,[ev.id+"_recall"]:e.target.value}))} rows={1} style={{flex:1,padding:"6px 10px",borderRadius:7,border:"1.5px solid #fde68a",fontSize:11,resize:"none",boxSizing:"border-box"}}/>
-        <button onClick={()=>askConfirm("Batalkan Tayang?","Jadwal ini akan ditarik dan dikembalikan ke Kasubbag untuk perbaikan.",()=>{upd(ev.id,{alur:"menunggu_kasubbag",catatanKabag:rejectTexts[ev.id+"_recall"]||"Perlu perbaikan",_kabagRecall:true});showT("Jadwal ditarik & dikembalikan","warn");loadUsers().filter(u=>(u.role==="kasubbag_protokol")&&u.noWA).forEach(u=>sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"recalled"}));const _subU=loadUsers().find(u=>u.username===ev.submittedBy);if(_subU?.noWA)sendWA({to:_subU.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"recalled",submittedBy:getNamaByUsername(ev.submittedBy)});},"Tarik","#f59e0b")} style={{padding:"6px 12px",borderRadius:7,border:"1.5px solid #f59e0b",background:"white",color:"#b45309",cursor:"pointer",fontSize:11,fontWeight:700,whiteSpace:"nowrap"}}>↩ Batalkan Tayang</button>
+        <textarea placeholder="Catatan perbaikan..." value={rejectTexts[ev.id+"_recall"]||""} onChange={e=>setRT(p=>({...p,[ev.id+"_recall"]:e.target.value}))} rows={1} style={{flex:1,padding:"6px 10px",borderRadius:7,border:"1.5px solid #fde68a",fontSize:13,resize:"none",boxSizing:"border-box"}}/>
+        <button onClick={()=>askConfirm("Batalkan Tayang?","Jadwal ini akan ditarik dan dikembalikan ke Kasubbag untuk perbaikan.",()=>{upd(ev.id,{alur:"menunggu_kasubbag",catatanKabag:rejectTexts[ev.id+"_recall"]||"Perlu perbaikan",_kabagRecall:true});showT("Jadwal ditarik & dikembalikan","warn");loadUsers().filter(u=>(u.role==="kasubbag_protokol")&&u.noWA).forEach(u=>sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"recalled"}));const _subU=loadUsers().find(u=>u.username===ev.submittedBy);if(_subU?.noWA)sendWA({to:_subU.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"recalled",submittedBy:getNamaByUsername(ev.submittedBy)});},"Tarik","#f59e0b")} style={{padding:"6px 12px",borderRadius:7,border:"1.5px solid #f59e0b",background:"white",color:"#b45309",cursor:"pointer",fontSize:13,fontWeight:700,whiteSpace:"nowrap"}}>↩ Batalkan Tayang</button>
       </div>}
-      {isKasubbag&&ev.alur==="menunggu_kasubbag"&&ev.catatanKabag&&<div style={{marginTop:6,padding:"5px 10px",background:ev._kabagRecall?"#FEF2F2":"#fffbeb",borderRadius:7,fontSize:11,color:ev._kabagRecall?"#991B1B":"#b45309",border:"1px solid "+(ev._kabagRecall?"#FECACA":"#fde68a"),fontWeight:600}}>{ev._kabagRecall?"↩ Ditarik Kabag: ":"📝 Catatan Kabag: "}{ev.catatanKabag}</div>}
+      {isKasubbag&&ev.alur==="menunggu_kasubbag"&&ev.catatanKabag&&<div style={{marginTop:6,padding:"5px 10px",background:ev._kabagRecall?"#FEF2F2":"#fffbeb",borderRadius:7,fontSize:13,color:ev._kabagRecall?"#991B1B":"#b45309",border:"1px solid "+(ev._kabagRecall?"#FECACA":"#fde68a"),fontWeight:600}}>{ev._kabagRecall?"↩ Ditarik Kabag: ":"📝 Catatan Kabag: "}{ev.catatanKabag}</div>}
     </div>)}</>}
   </div>;
 }
@@ -2231,13 +2231,13 @@ function ImportUsersTab({users,save,showT}){
     {preview.length>0&&!done&&<>
       <div style={{fontSize:12,fontWeight:700,color:NAVY,marginBottom:8}}>{preview.length} baris ditemukan</div>
       <div style={{overflowX:"auto",marginBottom:12}}>
-        <table style={{width:"100%",fontSize:11,borderCollapse:"collapse"}}>
+        <table style={{width:"100%",fontSize:13,borderCollapse:"collapse"}}>
           <thead><tr style={{background:"#f1f5f9"}}><th style={{padding:"6px 8px",textAlign:"left"}}>Nama</th><th style={{padding:"6px 8px",textAlign:"left"}}>NIP/Username</th><th style={{padding:"6px 8px",textAlign:"left"}}>Jabatan</th><th style={{padding:"6px 8px",textAlign:"left"}}>Role</th></tr></thead>
           <tbody>{preview.map((r,i)=><tr key={i} style={{borderBottom:"1px solid #f1f5f9"}}>
             <td style={{padding:"6px 8px"}}>{r.nama}</td>
             <td style={{padding:"6px 8px",color:users.find(u=>u.username===r.nip.toLowerCase())?"#ef4444":"#16a34a"}}>{r.nip}{users.find(u=>u.username===r.nip.toLowerCase())&&" (sudah ada)"}</td>
             <td style={{padding:"6px 8px"}}>{r.jabatan}</td>
-            <td style={{padding:"4px 8px"}}><select value={r.role} onChange={e=>setPreview(p=>p.map((x,j)=>j===i?{...x,role:e.target.value}:x))} style={{fontSize:11,padding:"3px 6px",borderRadius:6,border:"1px solid #e2e8f0"}}>{ROLES.map(ro=><option key={ro}>{ro}</option>)}</select></td>
+            <td style={{padding:"4px 8px"}}><select value={r.role} onChange={e=>setPreview(p=>p.map((x,j)=>j===i?{...x,role:e.target.value}:x))} style={{fontSize:13,padding:"3px 6px",borderRadius:6,border:"1px solid #e2e8f0"}}>{ROLES.map(ro=><option key={ro}>{ro}</option>)}</select></td>
           </tr>)}</tbody>
         </table>
       </div>
@@ -2325,11 +2325,11 @@ function MitraKerjaView({events,isMobile}){
           <div onClick={()=>setExpandedMitra(expM?null:ev.id)} style={{padding:"14px 16px",cursor:"pointer",userSelect:"none"}}>
             <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
               <div style={{background:isToday?"#EFF6FF":"#F8FAFC",border:"1px solid "+(isToday?"#BFDBFE":"#E2E8F0"),
-                borderRadius:8,padding:"4px 10px",fontSize:11,fontWeight:700,color:isToday?"#1D4ED8":"#64748B",whiteSpace:"nowrap"}}>
+                borderRadius:8,padding:"4px 10px",fontSize:13,fontWeight:700,color:isToday?"#1D4ED8":"#64748B",whiteSpace:"nowrap"}}>
                 {isToday?"🔵 HARI INI":fmtShort(ev.tanggal)}
               </div>
               <div style={{fontSize:12,color:"#64748B",fontWeight:600}}>⏰ {ev.jam} WITA</div>
-              {ev.jenisKegiatan&&<div style={{fontSize:10,padding:"2px 7px",borderRadius:6,background:"#F1F5F9",color:"#64748B",fontWeight:600}}>{ev.jenisKegiatan}</div>}
+              {ev.jenisKegiatan&&<div style={{fontSize:12,padding:"2px 7px",borderRadius:6,background:"#F1F5F9",color:"#64748B",fontWeight:600}}>{ev.jenisKegiatan}</div>}
               <span style={{marginLeft:"auto",fontSize:13,color:"#94A3B8"}}>{expM?"▲":"▼"}</span>
             </div>
             <div style={{fontSize:15,fontWeight:800,color:NAVY,marginBottom:4,lineHeight:1.3}}>{ev.namaAcara}</div>
@@ -2341,15 +2341,15 @@ function MitraKerjaView({events,isMobile}){
           {/* Detail — expand saat diklik */}
           {expM&&<div style={{borderTop:"1px solid #F1F5F9",padding:"12px 16px",background:"#FAFBFF"}}>
             {hadirList.length>0&&<div style={{background:"#F0F9FF",borderRadius:9,padding:"8px 12px",marginBottom:8}}>
-              <div style={{fontSize:10,fontWeight:700,color:"#0369A1",marginBottom:4,textTransform:"uppercase",letterSpacing:0.8}}>Pimpinan yang Hadir</div>
+              <div style={{fontSize:12,fontWeight:700,color:"#0369A1",marginBottom:4,textTransform:"uppercase",letterSpacing:0.8}}>Pimpinan yang Hadir</div>
               {hadirList.map((h,i)=><div key={i} style={{fontSize:12,color:"#0C4A6E",fontWeight:600,display:"flex",alignItems:"center",gap:6}}>
                 <span style={{fontSize:14}}>👤</span>{h}
               </div>)}
             </div>}
             {timList.length>0&&<div style={{background:"#F0FDF4",borderRadius:9,padding:"8px 12px",marginBottom:8}}>
-              <div style={{fontSize:10,fontWeight:700,color:"#15803D",marginBottom:4,textTransform:"uppercase",letterSpacing:0.8}}>Tim Bertugas ({timList.length} orang)</div>
+              <div style={{fontSize:12,fontWeight:700,color:"#15803D",marginBottom:4,textTransform:"uppercase",letterSpacing:0.8}}>Tim Bertugas ({timList.length} orang)</div>
               <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
-                {timList.map((n,i)=><span key={i} style={{fontSize:11,padding:"3px 8px",borderRadius:8,background:"#DCFCE7",color:"#166534",fontWeight:600}}>🟢 {n}</span>)}
+                {timList.map((n,i)=><span key={i} style={{fontSize:13,padding:"3px 8px",borderRadius:8,background:"#DCFCE7",color:"#166534",fontWeight:600}}>🟢 {n}</span>)}
               </div>
             </div>}
             {[{l:"Pakaian",v:ev.pakaian},{l:"Catatan",v:ev.catatan},{l:"Kontak",v:ev.kontak}].filter(f=>f.v).map(f=>(
@@ -2358,7 +2358,7 @@ function MitraKerjaView({events,isMobile}){
                 <span style={{color:"#1E293B"}}>{f.v}</span>
               </div>
             ))}
-            {timList.length===0&&hadirList.length===0&&<div style={{fontSize:11,color:"#CBD5E1",fontStyle:"italic",marginBottom:8}}>Belum ada data kehadiran & penugasan</div>}
+            {timList.length===0&&hadirList.length===0&&<div style={{fontSize:13,color:"#CBD5E1",fontStyle:"italic",marginBottom:8}}>Belum ada data kehadiran & penugasan</div>}
             {(ev.undanganFile||ev.sambutanFile)&&<div style={{display:"flex",gap:6,marginTop:10,flexWrap:"wrap"}}>
               {ev.undanganFile&&<a href={ev.undanganFile} target="_blank" rel="noopener noreferrer"
                 style={{display:"flex",alignItems:"center",gap:5,padding:"7px 12px",borderRadius:8,background:"#EFF6FF",border:"1.5px solid #BFDBFE",color:"#1D4ED8",textDecoration:"none",fontSize:12,fontWeight:700}}>
@@ -2529,10 +2529,10 @@ function AdminModal({onClose, showT, events, updAndSync}) {
                 <div key={u.username} style={{display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, marginBottom: 7, border: "1.5px solid #e2e8f0", background: "#f8fafc"}}>
                   <div style={{flex: 1, minWidth: 0}}>
                     <div style={{fontSize: 13, fontWeight: 700, color: "#1e293b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"}}>{u.nama}</div>
-                    <div style={{fontSize: 11, color: "#64748b"}}>{u.username} | {ALL_ROLE_DEFS.find(r => r.key === u.role)?.label || u.role}</div>
+                    <div style={{fontSize: 13, color: "#64748b"}}>{u.username} | {ALL_ROLE_DEFS.find(r => r.key === u.role)?.label || u.role}</div>
                   </div>
-                  <button onClick={() => setEditUser({...u, _newPw: ""})} style={{padding: "5px 10px", borderRadius: 7, border: "1.5px solid #0A1628", background: "white", color: "#0A1628", cursor: "pointer", fontSize: 11, fontWeight: 700}}>Edit</button>
-                  <button onClick={() => doDelete(u.username)} style={{padding: "5px 10px", borderRadius: 7, border: "1.5px solid #fca5a5", background: "white", color: "#ef4444", cursor: "pointer", fontSize: 11, fontWeight: 700}}>Hapus</button>
+                  <button onClick={() => setEditUser({...u, _newPw: ""})} style={{padding: "5px 10px", borderRadius: 7, border: "1.5px solid #0A1628", background: "white", color: "#0A1628", cursor: "pointer", fontSize: 13, fontWeight: 700}}>Edit</button>
+                  <button onClick={() => doDelete(u.username)} style={{padding: "5px 10px", borderRadius: 7, border: "1.5px solid #fca5a5", background: "white", color: "#ef4444", cursor: "pointer", fontSize: 13, fontWeight: 700}}>Hapus</button>
                 </div>
               ))}
               {/* ── Form Edit User ── */}
@@ -2552,7 +2552,7 @@ function AdminModal({onClose, showT, events, updAndSync}) {
                     { k: "noWA",    l: "No WhatsApp (62xxx)" },
                   ].map(f => (
                     <div key={f.k} style={{ marginBottom: 10 }}>
-                      <label style={{ display: "block", fontSize: 11, color: "#475569", fontWeight: 600, marginBottom: 3 }}>
+                      <label style={{ display: "block", fontSize: 13, color: "#475569", fontWeight: 600, marginBottom: 3 }}>
                         {f.l}
                       </label>
                       <input
@@ -2564,7 +2564,7 @@ function AdminModal({onClose, showT, events, updAndSync}) {
                   ))}
 
                   <div style={{ marginBottom: 10 }}>
-                    <label style={{ display: "block", fontSize: 11, color: "#475569", fontWeight: 600, marginBottom: 3 }}>
+                    <label style={{ display: "block", fontSize: 13, color: "#475569", fontWeight: 600, marginBottom: 3 }}>
                       Role / Hak Akses
                     </label>
                     <select
@@ -2577,7 +2577,7 @@ function AdminModal({onClose, showT, events, updAndSync}) {
                   </div>
 
                   <div style={{ marginBottom: 14 }}>
-                    <label style={{ display: "block", fontSize: 11, color: "#475569", fontWeight: 600, marginBottom: 3 }}>
+                    <label style={{ display: "block", fontSize: 13, color: "#475569", fontWeight: 600, marginBottom: 3 }}>
                       Password Baru <span style={{ color: "#94A3B8", fontWeight: 400 }}>(kosongkan jika tidak ingin mengganti)</span>
                     </label>
                     <input
@@ -2627,12 +2627,12 @@ function AdminModal({onClose, showT, events, updAndSync}) {
                 <div key={r.id} style={{background: "#FAFAFA", borderRadius: 10, border: "1.5px solid #E2E8F0", marginBottom: 12, padding: "12px 14px"}}>
                   <div style={{marginBottom: 10}}>
                     <div style={{fontWeight: 800, color: "#0A1628", fontSize: 14}}>{r.nama}</div>
-                    <div style={{fontSize: 11, color: "#64748B", marginTop: 2}}>{r.jabatan}</div>
-                    <div style={{fontSize: 11, color: "#94A3B8", marginTop: 1}}>@{r.username}{r.noWA ? " · " + r.noWA : ""}</div>
-                    {r.alasan && <div style={{fontSize: 11, color: "#475569", fontStyle: "italic", marginTop: 5, background: "#F0F4FF", borderRadius: 6, padding: "5px 8px", lineHeight: 1.5}}>💬 {r.alasan}</div>}
+                    <div style={{fontSize: 13, color: "#64748B", marginTop: 2}}>{r.jabatan}</div>
+                    <div style={{fontSize: 13, color: "#94A3B8", marginTop: 1}}>@{r.username}{r.noWA ? " · " + r.noWA : ""}</div>
+                    {r.alasan && <div style={{fontSize: 13, color: "#475569", fontStyle: "italic", marginTop: 5, background: "#F0F4FF", borderRadius: 6, padding: "5px 8px", lineHeight: 1.5}}>💬 {r.alasan}</div>}
                   </div>
                   <div style={{background: "#FFFBEB", border: "1.5px solid #FDE68A", borderRadius: 9, padding: "10px 12px", marginBottom: 10}}>
-                    <div style={{fontSize: 11, fontWeight: 700, color: "#92400E", marginBottom: 6}}>⚙️ Tetapkan Role / Hak Akses</div>
+                    <div style={{fontSize: 13, fontWeight: 700, color: "#92400E", marginBottom: 6}}>⚙️ Tetapkan Role / Hak Akses</div>
                     <select value={approveRoles[r.id] || "staf"} onChange={e => setApproveRoles(p => ({...p, [r.id]: e.target.value}))} style={{width: "100%", padding: "8px 10px", borderRadius: 8, border: "1.5px solid #FCD34D", fontSize: 13, fontWeight: 600, color: "#0A1628", background: "white", outline: "none", WebkitAppearance: "none"}}>
                       {ALL_ROLE_DEFS.map(rd => <option key={rd.key} value={rd.key}>{rd.label}</option>)}
                     </select>
@@ -2659,7 +2659,7 @@ function AdminModal({onClose, showT, events, updAndSync}) {
               <div style={{ marginTop: 10, borderTop: "2px dashed #E2E8F0", paddingTop: 20 }}>
                 <div style={{ background: "#FFFBEB", padding: 12, borderRadius: 10, border: "1px solid #FDE68A", marginBottom: 12 }}>
                   <div style={{ fontSize: 13, fontWeight: 800, color: "#92400E", marginBottom: 4 }}>☁️ Sinkronisasi Cloud (Google Drive)</div>
-                  <div style={{ fontSize: 11, color: "#B45309", lineHeight: 1.5 }}>
+                  <div style={{ fontSize: 13, color: "#B45309", lineHeight: 1.5 }}>
                     Pindahkan semua file lama (Undangan & Sambutan) dari database internal ke Google Drive secara otomatis.
                   </div>
                 </div>
@@ -2669,7 +2669,7 @@ function AdminModal({onClose, showT, events, updAndSync}) {
                     <style>{"@keyframes spinDrive { 100% { transform: rotate(360deg); } }"}</style>
                     <div style={{ width: 36, height: 36, border: "4px solid #E2E8F0", borderTopColor: "#059669", borderRadius: "50%", animation: "spinDrive 1s linear infinite", margin: "0 auto 12px" }}></div>
                     <div style={{ fontSize: 14, fontWeight: 800, color: "#0A1628", marginBottom: 4 }}>Memproses {syncState.current} dari {syncState.total} agenda</div>
-                    <div style={{ fontSize: 11, color: "#64748B", marginBottom: 12, fontStyle: "italic", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{syncState.fileName}</div>
+                    <div style={{ fontSize: 13, color: "#64748B", marginBottom: 12, fontStyle: "italic", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{syncState.fileName}</div>
                     
                     <div style={{ width: "100%", height: 8, background: "#E2E8F0", borderRadius: 4, overflow: "hidden" }}>
                       <div style={{ width: `${(syncState.current / syncState.total) * 100}%`, height: "100%", background: "linear-gradient(90deg, #059669, #10B981)", transition: "width 0.3s ease" }}></div>
@@ -2807,18 +2807,18 @@ function EvaluasiModal({ev, onClose, onSave, currentUser}){
         {/* Header */}
         <div style={{background:"linear-gradient(135deg,"+NAVY+",#1B4080)",padding:"18px 20px 14px",flexShrink:0}}>
           <div style={{width:36,height:4,background:"rgba(255,255,255,0.3)",borderRadius:4,margin:"0 auto 14px"}}/>
-          <div style={{color:GOLD,fontSize:11,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",marginBottom:4}}>Evaluasi Pasca Kegiatan · {tipeTugas}</div>
+          <div style={{color:GOLD,fontSize:13,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",marginBottom:4}}>Evaluasi Pasca Kegiatan · {tipeTugas}</div>
           <div style={{color:"white",fontSize:16,fontWeight:800,lineHeight:1.3}}>{ev.namaAcara}</div>
           <div style={{color:"rgba(255,255,255,0.6)",fontSize:12,marginTop:3}}>{ev.tanggal} · {ev.jam} WITA</div>
         </div>
 
         {/* Info header */}
         <div style={{background:"#f8fafc",padding:"10px 16px",borderBottom:"1px solid #e2e8f0",display:"flex",gap:16,flexShrink:0}}>
-          <div><div style={{fontSize:10,color:"#94a3b8",fontWeight:700,letterSpacing:1,textTransform:"uppercase"}}>Nama</div><div style={{fontSize:13,fontWeight:700,color:NAVY}}>{currentUser.nama}</div></div>
-          <div><div style={{fontSize:10,color:"#94a3b8",fontWeight:700,letterSpacing:1,textTransform:"uppercase"}}>Jabatan</div><div style={{fontSize:13,fontWeight:700,color:NAVY}}>{currentUser.jabatan}</div></div>
+          <div><div style={{fontSize:12,color:"#94a3b8",fontWeight:700,letterSpacing:1,textTransform:"uppercase"}}>Nama</div><div style={{fontSize:13,fontWeight:700,color:NAVY}}>{currentUser.nama}</div></div>
+          <div><div style={{fontSize:12,color:"#94a3b8",fontWeight:700,letterSpacing:1,textTransform:"uppercase"}}>Jabatan</div><div style={{fontSize:13,fontWeight:700,color:NAVY}}>{currentUser.jabatan}</div></div>
           {avgScore>0&&<div style={{marginLeft:"auto",textAlign:"right"}}>
-            <div style={{fontSize:10,color:"#94a3b8",fontWeight:700,letterSpacing:1,textTransform:"uppercase"}}>Rata-rata</div>
-            <div style={{fontSize:20,fontWeight:900,color:avgLabel.color}}>{avgScore}<span style={{fontSize:11,fontWeight:500}}>&nbsp;{"/"}100</span></div>
+            <div style={{fontSize:12,color:"#94a3b8",fontWeight:700,letterSpacing:1,textTransform:"uppercase"}}>Rata-rata</div>
+            <div style={{fontSize:20,fontWeight:900,color:avgLabel.color}}>{avgScore}<span style={{fontSize:13,fontWeight:500}}>&nbsp;{"/"}100</span></div>
           </div>}
         </div>
 
@@ -2840,7 +2840,7 @@ function EvaluasiModal({ev, onClose, onSave, currentUser}){
                     </div>
                     <div style={{textAlign:"center",flexShrink:0,minWidth:64}}>
                       <div style={{fontSize:22,fontWeight:900,color:lbl.color,lineHeight:1}}>{v}</div>
-                      <div style={{fontSize:9,color:lbl.color,fontWeight:700}}>{lbl.text}</div>
+                      <div style={{fontSize:12,color:lbl.color,fontWeight:700}}>{lbl.text}</div>
                     </div>
                   </div>
                   {/* Slider */}
@@ -2859,7 +2859,7 @@ function EvaluasiModal({ev, onClose, onSave, currentUser}){
                   </div>
                   {/* Tick marks */}
                   <div style={{display:"flex",justifyContent:"space-between",marginTop:3}}>
-                    {[0,20,40,60,80,100].map(n=><span key={n} style={{fontSize:9,color:v===n?lbl.color:"#cbd5e1",fontWeight:v===n?800:400,transition:"color 0.2s"}}>{n}</span>)}
+                    {[0,20,40,60,80,100].map(n=><span key={n} style={{fontSize:12,color:v===n?lbl.color:"#cbd5e1",fontWeight:v===n?800:400,transition:"color 0.2s"}}>{n}</span>)}
                   </div>
                 </div>
               );
@@ -2939,7 +2939,7 @@ function PenugasanModal({ev, onClose, onSave, currentUser, allUsers, allEvents})
         {/* Header */}
         <div style={{background:"linear-gradient(135deg,"+NAVY+",#1B4080)",padding:"18px 20px 14px",flexShrink:0}}>
           <div style={{width:36,height:4,background:"rgba(255,255,255,0.3)",borderRadius:4,margin:"0 auto 14px"}}/>
-          <div style={{color:GOLD,fontSize:11,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",marginBottom:4}}>Penugasan Personil</div>
+          <div style={{color:GOLD,fontSize:13,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",marginBottom:4}}>Penugasan Personil</div>
           <div style={{color:"white",fontSize:16,fontWeight:800,lineHeight:1.3}}>{ev.namaAcara}</div>
           <div style={{color:"rgba(255,255,255,0.6)",fontSize:12,marginTop:4}}>{ev.tanggal} · {ev.jam} WITA · {ev.lokasi||"-"}</div>
         </div>
@@ -2966,11 +2966,11 @@ function PenugasanModal({ev, onClose, onSave, currentUser, allUsers, allEvents})
                     </div>
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{fontSize:13,fontWeight:700,color:NAVY,display:"flex",alignItems:"center",gap:6}}>
-                        {u.nama}{isMe&&<span style={{fontSize:10,background:"#dbeafe",color:"#1d4ed8",borderRadius:4,padding:"1px 6px",fontWeight:600}}>Saya</span>}
+                        {u.nama}{isMe&&<span style={{fontSize:12,background:"#dbeafe",color:"#1d4ed8",borderRadius:4,padding:"1px 6px",fontWeight:600}}>Saya</span>}
                       </div>
-                      <div style={{fontSize:11,color:"#64748b"}}>{u.jabatan}</div>
+                      <div style={{fontSize:13,color:"#64748b"}}>{u.jabatan}</div>
                     </div>
-                    {conflicts.length>0&&<div style={{fontSize:10,background:"#fef2f2",border:"1px solid #fecaca",color:"#dc2626",borderRadius:6,padding:"2px 8px",fontWeight:700,flexShrink:0}}>
+                    {conflicts.length>0&&<div style={{fontSize:12,background:"#fef2f2",border:"1px solid #fecaca",color:"#dc2626",borderRadius:6,padding:"2px 8px",fontWeight:700,flexShrink:0}}>
                       ⚡ {conflicts.length} acara berdekatan
                     </div>}
                   </div>
@@ -2988,7 +2988,7 @@ function PenugasanModal({ev, onClose, onSave, currentUser, allUsers, allEvents})
 
           {/* Summary terpilih */}
           {selected.length>0&&<div style={{background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:10,padding:"10px 12px",marginBottom:16}}>
-            <div style={{fontSize:11,color:"#166534",fontWeight:700,marginBottom:6}}>✓ {selected.length} PERSONIL DITUGASKAN</div>
+            <div style={{fontSize:13,color:"#166534",fontWeight:700,marginBottom:6}}>✓ {selected.length} PERSONIL DITUGASKAN</div>
             {selected.map(un=>{
               const u=candidates.find(x=>x.username===un);
               const cf=getConflicts(un);
@@ -3047,7 +3047,7 @@ const fld=(k,l,type="text",full=false)=>(
         transition:"all 0.2s"}}>
         {wizStep>n?"✓":n}
       </div>
-      <div style={{fontSize:10,fontWeight:600,color:wizStep>=n?NAVY2:"#94A3B8",whiteSpace:"nowrap"}}>{label}</div>
+      <div style={{fontSize:12,fontWeight:600,color:wizStep>=n?NAVY2:"#94A3B8",whiteSpace:"nowrap"}}>{label}</div>
     </div>
   );
 
@@ -3084,7 +3084,7 @@ const fld=(k,l,type="text",full=false)=>(
         <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:"0 20px"}}>
           {fld("tanggal","Tanggal *","date")}
           <div style={{marginBottom:12}}>
-            <label style={{display:"block",fontSize:12,color:"#475569",fontWeight:600,marginBottom:4}}>Jam * <span style={{fontSize:10,fontWeight:400,color:"#94a3b8"}}>(WITA)</span></label>
+            <label style={{display:"block",fontSize:12,color:"#475569",fontWeight:600,marginBottom:4}}>Jam * <span style={{fontSize:12,fontWeight:400,color:"#94a3b8"}}>(WITA)</span></label>
             <input type="time" value={form.jam||""} onChange={e=>setForm(p=>({...p,jam:e.target.value}))}
               style={{width:"100%",padding:"10px 12px",borderRadius:9,border:"1.5px solid #e2e8f0",
                 color:"#1e293b",background:"white",fontSize:15,fontWeight:700,boxSizing:"border-box"}}/>
@@ -3094,7 +3094,7 @@ const fld=(k,l,type="text",full=false)=>(
                   style={{padding:"3px 8px",borderRadius:14,
                     border:"1.5px solid "+(form.jam===t?NAVY2:"#e2e8f0"),
                     background:form.jam===t?NAVY2:"white",
-                    color:form.jam===t?"white":"#475569",cursor:"pointer",fontSize:10,fontWeight:700}}>
+                    color:form.jam===t?"white":"#475569",cursor:"pointer",fontSize:12,fontWeight:700}}>
                   {t}
                 </button>
               ))}
@@ -3104,7 +3104,7 @@ const fld=(k,l,type="text",full=false)=>(
         </div>
         {/* Untuk Pimpinan — di step 1 karena wajib */}
         <div style={{marginBottom:16,padding:form.untukPimpinan.length===0?"10px":"0",borderRadius:10,border:form.untukPimpinan.length===0?"2px solid #FCA5A5":"none",background:form.untukPimpinan.length===0?"#FFF5F5":"transparent",transition:"all 0.2s"}}>
-          <label style={{display:"flex",alignItems:"center",gap:6,fontSize:12,fontWeight:700,marginBottom:6,color:form.untukPimpinan.length===0?"#DC2626":"#475569"}}>Untuk Pimpinan&nbsp;{form.untukPimpinan.length===0?<span style={{fontSize:10,background:"#FEE2E2",color:"#DC2626",padding:"1px 6px",borderRadius:4,fontWeight:700}}>wajib dipilih</span>:<span style={{fontSize:10,background:"#DCFCE7",color:"#16a34a",padding:"1px 6px",borderRadius:4,fontWeight:700}}>✓</span>}</label>
+          <label style={{display:"flex",alignItems:"center",gap:6,fontSize:12,fontWeight:700,marginBottom:6,color:form.untukPimpinan.length===0?"#DC2626":"#475569"}}>Untuk Pimpinan&nbsp;{form.untukPimpinan.length===0?<span style={{fontSize:12,background:"#FEE2E2",color:"#DC2626",padding:"1px 6px",borderRadius:4,fontWeight:700}}>wajib dipilih</span>:<span style={{fontSize:12,background:"#DCFCE7",color:"#16a34a",padding:"1px 6px",borderRadius:4,fontWeight:700}}>✓</span>}</label>
           <div style={{display:"flex",gap:10}}>
             {[{key:"walikota",label:"🏛 Wali Kota",istriKey:"besertaIstriWK"},{key:"wakilwalikota",label:"🏛 Wakil Wali Kota",istriKey:"besertaIstriWWK"}].map(p=>{
               const aktif=form.untukPimpinan.includes(p.key);
@@ -3121,7 +3121,7 @@ const fld=(k,l,type="text",full=false)=>(
                 </label>
                 {aktif&&<label style={{display:"flex",alignItems:"center",gap:7,padding:"7px 10px",borderRadius:8,cursor:"pointer",
                   border:form[p.istriKey]?"1.5px solid #db2777":"1.5px solid #fce7f3",
-                  background:form[p.istriKey]?"#fdf2f8":"#fff9fc",fontSize:11,fontWeight:600,
+                  background:form[p.istriKey]?"#fdf2f8":"#fff9fc",fontSize:13,fontWeight:600,
                   color:form[p.istriKey]?"#be185d":"#f9a8d4"}}>
                   <input type="checkbox" checked={!!form[p.istriKey]} style={{display:"none"}}
                     onChange={e=>setForm(prev=>({...prev,[p.istriKey]:e.target.checked}))}/>
@@ -3213,14 +3213,14 @@ const fld=(k,l,type="text",full=false)=>(
           </label>
           {form.undanganFile
             ?<div style={{background:"#f0fdf4",borderRadius:10,padding:11,border:"1.5px solid #86efac"}}>
-              {form._undanganFromAI&&<div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8,padding:"5px 8px",background:"linear-gradient(90deg,#ede9fe,#ddd6fe)",borderRadius:7,fontSize:11,fontWeight:700,color:"#5b21b6"}}>
+              {form._undanganFromAI&&<div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8,padding:"5px 8px",background:"linear-gradient(90deg,#ede9fe,#ddd6fe)",borderRadius:7,fontSize:13,fontWeight:700,color:"#5b21b6"}}>
                 <span>🤖</span> Berkas ini otomatis tersimpan dari AI Auto-Isi
               </div>}
               <div style={{display:"flex",alignItems:"center",gap:8,background:"white",borderRadius:8,padding:"8px 10px",border:"1px solid #bbf7d0",marginBottom:7}}>
                 <span style={{fontSize:18,flexShrink:0}}>{form.undanganNama?.match(/\.(jpg|jpeg|png|webp)$/i)?"🖼️":"📄"}</span>
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{fontSize:12,fontWeight:700,color:"#15803d",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{form.undanganNama||"Berkas Undangan"}</div>
-                  <div style={{fontSize:10,color:"#64748b",marginTop:1}}>✓ Siap diunggah bersama jadwal</div>
+                  <div style={{fontSize:12,color:"#64748b",marginTop:1}}>✓ Siap diunggah bersama jadwal</div>
                 </div>
               </div>
               <div style={{display:"flex",gap:6}}>
@@ -3403,9 +3403,9 @@ function ForgotPasswordModal({onClose}){
               ✅ Kode OTP dikirim ke WA <strong>{masked}</strong> atas nama <strong>{nama}</strong>. Berlaku 10 menit.
             </div>
             :<div style={{background:"#fef3c7",borderRadius:9,padding:"14px",marginBottom:16,border:"1px solid #fde68a",textAlign:"center"}}>
-              <div style={{fontSize:11,color:"#92400e",fontWeight:700,marginBottom:6}}>⚠️ WhatsApp belum aktif — Kode OTP Anda:</div>
+              <div style={{fontSize:13,color:"#92400e",fontWeight:700,marginBottom:6}}>⚠️ WhatsApp belum aktif — Kode OTP Anda:</div>
               <div style={{fontSize:36,fontWeight:900,color:"#0A1628",letterSpacing:8,fontFamily:"monospace"}}>{screenCode}</div>
-              <div style={{fontSize:11,color:"#92400e",marginTop:6}}>Berlaku 10 menit. Salin kode ini dan masukkan di bawah.</div>
+              <div style={{fontSize:13,color:"#92400e",marginTop:6}}>Berlaku 10 menit. Salin kode ini dan masukkan di bawah.</div>
             </div>
           }
           <div style={{marginBottom:12}}>
@@ -3534,24 +3534,24 @@ function PersonilBanner({ev,role,user,setPenugasanEv,setEvaluasiEv,onCabutPerson
     <div style={{flex:1,display:"flex",flexWrap:"wrap",gap:4,alignItems:"center",minWidth:0}}>
       {showNames
         ?pLabels.map((p,i)=>(
-            <span key={i} style={{display:"inline-flex",alignItems:"center",gap:3,background:p.isMe?"#D1FAE5":"#E0F2FE",color:p.isMe?"#065F46":"#0369A1",borderRadius:5,padding:"2px 7px",fontSize:10,fontWeight:700,whiteSpace:"nowrap"}}>
-              {p.isMe&&<span style={{fontSize:9}}>🎯</span>}{p.nm}{p.isMe?" (Anda)":""}
+            <span key={i} style={{display:"inline-flex",alignItems:"center",gap:3,background:p.isMe?"#D1FAE5":"#E0F2FE",color:p.isMe?"#065F46":"#0369A1",borderRadius:5,padding:"2px 7px",fontSize:12,fontWeight:700,whiteSpace:"nowrap"}}>
+              {p.isMe&&<span style={{fontSize:12}}>🎯</span>}{p.nm}{p.isMe?" (Anda)":""}
               {/* Tombol cabut inline per personil — hanya untuk Kasubbag */}
               {isKasubbag&&onCabutPersonil&&<button onClick={e=>{e.stopPropagation();onCabutPersonil(ev,p.un,p.nm);}}
-                style={{marginLeft:2,width:14,height:14,borderRadius:"50%",border:"none",background:"rgba(220,38,38,0.15)",color:"#DC2626",cursor:"pointer",fontSize:9,fontWeight:900,display:"inline-flex",alignItems:"center",justifyContent:"center",lineHeight:1}}
+                style={{marginLeft:2,width:14,height:14,borderRadius:"50%",border:"none",background:"rgba(220,38,38,0.15)",color:"#DC2626",cursor:"pointer",fontSize:12,fontWeight:900,display:"inline-flex",alignItems:"center",justifyContent:"center",lineHeight:1}}
                 title={"Cabut "+p.nm}>✕</button>}
             </span>))
-        :<span style={{fontSize:11,fontWeight:700,color:urgent?"#92400E":"#94A3B8"}}>{urgent?"⚠️ Belum ada personil":"Belum ada penugasan"}</span>
+        :<span style={{fontSize:13,fontWeight:700,color:urgent?"#92400E":"#94A3B8"}}>{urgent?"⚠️ Belum ada personil":"Belum ada penugasan"}</span>
       }
     </div>
     {/* Tombol tugaskan cepat untuk Kasubbag */}
     {isKasubbag&&ev.alur==="disetujui"&&<button onClick={e=>{e.stopPropagation();setPenugasanEv(ev);}}
       style={{flexShrink:0,padding:"2px 9px",borderRadius:6,border:"none",
         background:showNames?"#0A1628":"#D97706",
-        color:"white",cursor:"pointer",fontSize:10,fontWeight:700}}>
+        color:"white",cursor:"pointer",fontSize:12,fontWeight:700}}>
       {showNames?"Edit":"+ Tugaskan"}
     </button>}
-    {isAssigned&&sudahLewat&&<button onClick={e=>{e.stopPropagation();setEvaluasiEv(ev);}} style={{flexShrink:0,padding:"2px 8px",borderRadius:5,border:"1px solid "+(sudahEval?"#16A34A":"#7C3AED"),background:"white",color:sudahEval?"#16A34A":"#7C3AED",cursor:"pointer",fontSize:10,fontWeight:700}}>{sudahEval?"✅ Evaluasi":"📝 Evaluasi"}</button>}
+    {isAssigned&&sudahLewat&&<button onClick={e=>{e.stopPropagation();setEvaluasiEv(ev);}} style={{flexShrink:0,padding:"2px 8px",borderRadius:5,border:"1px solid "+(sudahEval?"#16A34A":"#7C3AED"),background:"white",color:sudahEval?"#16A34A":"#7C3AED",cursor:"pointer",fontSize:12,fontWeight:700}}>{sudahEval?"✅ Evaluasi":"📝 Evaluasi"}</button>}
   </div>;
 }
 
@@ -3606,7 +3606,7 @@ function CatatanInput({evId, initial, onSave, btnColor, placeholder, label}){
             transition:"background 0.2s",flexShrink:0}}>
           {saved?"✓ Tersimpan":"Simpan Catatan"}
         </button>
-        <span style={{fontSize:10,color:"#94A3B8"}}>Ctrl+Enter untuk simpan cepat</span>
+        <span style={{fontSize:12,color:"#94A3B8"}}>Ctrl+Enter untuk simpan cepat</span>
       </div>
     </div>
   );
@@ -3621,9 +3621,9 @@ function WKKehadiran({ev,upd,showT,setDelegTarget,role}){
   return <div>
     {isAjudan&&<div style={{background:"#FFF8E1",border:"1.5px solid #FBC02D",borderRadius:9,padding:"8px 12px",marginBottom:12,display:"flex",gap:8,alignItems:"flex-start"}}>
       <span style={{fontSize:16,flexShrink:0}}>⚠️</span>
-      <div style={{fontSize:11,color:"#7C4D00",lineHeight:1.5}}><strong>Perhatian Ajudan:</strong> Pastikan Anda telah mengkonfirmasi langsung ke Bapak/Ibu Wali Kota sebelum mengisi disposisi ini. Semua input yang Anda buat akan tercatat sebagai <em>"diisi oleh Ajudan"</em>.</div>
+      <div style={{fontSize:13,color:"#7C4D00",lineHeight:1.5}}><strong>Perhatian Ajudan:</strong> Pastikan Anda telah mengkonfirmasi langsung ke Bapak/Ibu Wali Kota sebelum mengisi disposisi ini. Semua input yang Anda buat akan tercatat sebagai <em>"diisi oleh Ajudan"</em>.</div>
     </div>}
-    {ev.statusWK&&ev.statusWK_by==="ajudan"&&!isAjudan&&<div style={{background:"#FFF3E0",border:"1px solid #FFB74D",borderRadius:7,padding:"6px 10px",marginBottom:8,fontSize:11,color:"#E65100"}}>ℹ️ Status kehadiran ini diisi oleh Ajudan — harap konfirmasi langsung ke Bapak Wali Kota.</div>}
+    {ev.statusWK&&ev.statusWK_by==="ajudan"&&!isAjudan&&<div style={{background:"#FFF3E0",border:"1px solid #FFB74D",borderRadius:7,padding:"6px 10px",marginBottom:8,fontSize:13,color:"#E65100"}}>ℹ️ Status kehadiran ini diisi oleh Ajudan — harap konfirmasi langsung ke Bapak Wali Kota.</div>}
     <div style={{fontSize:12,fontWeight:700,color:NAVY,marginBottom:10}}>{isAjudan?"Input Kehadiran Wali Kota":"Konfirmasi Kehadiran"}</div>
     {/* Hadir / Tidak Hadir — gap lebih lebar, padding lebih besar untuk mobile */}
     <div style={{display:"flex",gap:12,marginBottom:12}}>{[{s:"hadir",l:"✓  Hadir",c:GREEN},{s:"tidak_hadir",l:"✗  Tidak Hadir",c:"#991b1b"}].map(({s,l,c})=><button key={s} onClick={()=>{upd(ev.id,{statusWK:s,delegasiKeWWK:false,perwakilanWK:"",statusWK_by:isAjudan?"ajudan":"walikota"});showT(isAjudan?"Kehadiran Wali Kota berhasil diinput":"Status diperbarui");loadUsers().filter(u=>(u.role==="kabag"||u.role==="kasubbag_protokol"||u.role==="kasubbag_komdokpim")&&u.noWA).forEach(u=>sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"konfirmasi_kehadiran",labelPimpinan:"Wali Kota",statusKehadiran:s,jabatanPengirim:isAjudan?"ajudan_walikota":"walikota"}));sendPush({targetRole:"ajudan_walikota",title:"✅ Kehadiran WK Dikonfirmasi",body:ev.namaAcara+": "+(s==="hadir"?"Hadir":"Tidak Hadir"),url:"/",tag:"status-wk-"+ev.id});sendPush({targetRole:"ajudan_wakilwalikota",title:"ℹ️ Info Kehadiran WK",body:ev.namaAcara+": Wali Kota "+(s==="hadir"?"Hadir":"Tidak Hadir"),url:"/",tag:"status-wk-"+ev.id});}} style={{flex:1,padding:"14px 8px",borderRadius:12,cursor:"pointer",fontWeight:800,fontSize:14,border:"2px solid "+c,background:ev.statusWK===s?c:"white",color:ev.statusWK===s?"white":c}}>{l}</button>)}</div>
@@ -3633,7 +3633,7 @@ function WKKehadiran({ev,upd,showT,setDelegTarget,role}){
       <button onClick={()=>askConfirm("Delegasi ke Wakil Wali Kota?","Agenda '"+ev.namaAcara+"' akan didelegasikan kepada Wakil Wali Kota. Tindakan ini akan mengirim notifikasi ke Ajudan Wakil.",()=>{upd(ev.id,{statusWK:"diwakilkan",delegasiKeWWK:true,perwakilanWK:"",statusWK_by:isAjudan?"ajudan":"walikota"});showT(isAjudan?"Delegasi ke WWK diinput oleh Ajudan":"Didelegasi ke Wakil Wali Kota");sendPush({targetRole:"ajudan_wakilwalikota",title:"↩ Disposisi dari Wali Kota",body:ev.namaAcara+" — "+ev.jam+" WITA: mohon konfirmasi kehadiran",url:"/",tag:"delegasi-wwk-"+ev.id});sendPush({targetRole:"ajudan_walikota",title:"✅ Delegasi WWK Dicatat",body:ev.namaAcara+" berhasil didelegasikan ke Wakil WK",url:"/",tag:"delegasi-wk-"+ev.id});loadUsers().filter(u=>u.role==="ajudan_wakilwalikota"&&u.noWA).forEach(u=>sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"delegasi_wwk"}));loadUsers().filter(u=>(u.role==="kabag"||u.role==="kasubbag_protokol"||u.role==="kasubbag_komdokpim")&&u.noWA).forEach(u=>sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"konfirmasi_kehadiran",labelPimpinan:"Wali Kota",statusKehadiran:"delegasi",jabatanPengirim:isAjudan?"ajudan_walikota":"walikota"}));},"Ya, Delegasikan","#7C3AED")} style={{width:"100%",padding:"12px",borderRadius:9,border:"none",cursor:"pointer",fontWeight:700,fontSize:13,marginBottom:6,background:ev.delegasiKeWWK?GREEN:"#d1fae5",color:ev.delegasiKeWWK?"white":GREEN}}>{ev.delegasiKeWWK?"✓ Didelegasi ke Wakil Wali Kota":"Delegasi ke Wakil Wali Kota"}</button>
       {ev.delegasiKeWWK&&<button onClick={()=>{upd(ev.id,{statusWK:null,delegasiKeWWK:false,perwakilanWK:""});showT("Delegasi dibatalkan","warn");}} style={{width:"100%",padding:"8px",borderRadius:9,border:"1.5px solid #fca5a5",background:"white",color:"#e11d48",cursor:"pointer",fontSize:12,fontWeight:700,marginBottom:6}}>Batalkan Delegasi ke WWK</button>}
       <button onClick={()=>setDelegTarget({id:ev.id,side:"wk"})} style={{width:"100%",padding:"9px",borderRadius:9,border:"1.5px solid #94a3b8",background:"white",color:"#334155",cursor:"pointer",fontSize:12}}>Wakilkan ke Pejabat Lain</button>
-      {ev.statusWK==="diwakilkan"&&ev.perwakilanWK&&<><div style={{marginTop:6,padding:"5px 10px",background:"#fef3c7",borderRadius:7,fontSize:12,color:"#92400e",fontWeight:600}}>Diwakilkan ke: {ev.perwakilanWK}</div><button onClick={()=>{upd(ev.id,{statusWK:null,perwakilanWK:"",delegasiKeWWK:false});showT("Disposisi dibatalkan","warn");}} style={{marginTop:5,width:"100%",padding:"7px",borderRadius:8,border:"1.5px solid #fca5a5",background:"white",color:"#e11d48",cursor:"pointer",fontSize:11,fontWeight:700}}>Batalkan Disposisi</button></>}
+      {ev.statusWK==="diwakilkan"&&ev.perwakilanWK&&<><div style={{marginTop:6,padding:"5px 10px",background:"#fef3c7",borderRadius:7,fontSize:12,color:"#92400e",fontWeight:600}}>Diwakilkan ke: {ev.perwakilanWK}</div><button onClick={()=>{upd(ev.id,{statusWK:null,perwakilanWK:"",delegasiKeWWK:false});showT("Disposisi dibatalkan","warn");}} style={{marginTop:5,width:"100%",padding:"7px",borderRadius:8,border:"1.5px solid #fca5a5",background:"white",color:"#e11d48",cursor:"pointer",fontSize:13,fontWeight:700}}>Batalkan Disposisi</button></>}
     </div>
     {!isAjudan&&<div><label style={{display:"block",fontSize:12,color:"#64748b",fontWeight:600,marginBottom:4}}>Catatan untuk Tim</label>
       <CatatanInput evId={ev.id} initial={ev.catatanPimpinan} onSave={v=>{upd(ev.id,{catatanPimpinan:v});showT("Catatan disimpan");}} btnColor={NAVY} placeholder="Arahan atau permintaan khusus..."/>
@@ -3649,16 +3649,16 @@ function WWKKehadiran({ev,upd,showT,setDelegTarget,role}){
   return <div style={{marginTop:isAjudan?12:0}}>
     {isAjudan&&<div style={{background:"#FFF8E1",border:"1.5px solid #FBC02D",borderRadius:9,padding:"8px 12px",marginBottom:12,display:"flex",gap:8,alignItems:"flex-start"}}>
       <span style={{fontSize:16,flexShrink:0}}>⚠️</span>
-      <div style={{fontSize:11,color:"#7C4D00",lineHeight:1.5}}><strong>Perhatian Ajudan:</strong> Pastikan Anda telah mengkonfirmasi ke Bapak/Ibu Wakil Wali Kota. Input ini akan tercatat <em>"diisi oleh Ajudan"</em>.</div>
+      <div style={{fontSize:13,color:"#7C4D00",lineHeight:1.5}}><strong>Perhatian Ajudan:</strong> Pastikan Anda telah mengkonfirmasi ke Bapak/Ibu Wakil Wali Kota. Input ini akan tercatat <em>"diisi oleh Ajudan"</em>.</div>
     </div>}
-    {ev.statusWWK&&ev.statusWWK_by==="ajudan"&&!isAjudan&&<div style={{background:"#FFF3E0",border:"1px solid #FFB74D",borderRadius:7,padding:"6px 10px",marginBottom:8,fontSize:11,color:"#E65100"}}>ℹ️ Status kehadiran ini diisi oleh Ajudan — harap konfirmasi ke Ibu/Bapak Wakil Wali Kota.</div>}
+    {ev.statusWWK&&ev.statusWWK_by==="ajudan"&&!isAjudan&&<div style={{background:"#FFF3E0",border:"1px solid #FFB74D",borderRadius:7,padding:"6px 10px",marginBottom:8,fontSize:13,color:"#E65100"}}>ℹ️ Status kehadiran ini diisi oleh Ajudan — harap konfirmasi ke Ibu/Bapak Wakil Wali Kota.</div>}
     <div style={{fontSize:12,fontWeight:700,color:GREEN,marginBottom:7}}>{isAjudan?"Input Kehadiran Wakil Wali Kota":"Konfirmasi Kehadiran"}</div>
     {ev.delegasiKeWWK&&role==="wakilwalikota"&&<button onClick={()=>{upd(ev.id,{statusWK:null,delegasiKeWWK:false,perwakilanWK:"",statusWWK:"",statusWWK_by:""});showT("Disposisi dari WK dibatalkan","warn");}} style={{width:"100%",padding:"8px",borderRadius:9,border:"1.5px dashed #fca5a5",background:"white",color:"#dc2626",cursor:"pointer",fontSize:12,fontWeight:700,marginBottom:8}}>↩ Batalkan Disposisi dari Wali Kota</button>}
     <div style={{display:"flex",gap:12,marginBottom:12}}>{[{s:"hadir",l:"✓  Hadir",c:GREEN},{s:"tidak_hadir",l:"✗  Tidak Hadir",c:"#991b1b"}].map(({s,l,c})=><button key={s} onClick={()=>{upd(ev.id,{statusWWK:s,statusWWK_by:isAjudan?"ajudan":"wakilwalikota"});showT(isAjudan?"Kehadiran Wakil Wali Kota diinput":"Status diperbarui");loadUsers().filter(u=>(u.role==="kabag"||u.role==="kasubbag_protokol"||u.role==="kasubbag_komdokpim")&&u.noWA).forEach(u=>sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"konfirmasi_kehadiran",labelPimpinan:"Wakil Wali Kota",statusKehadiran:s,jabatanPengirim:isAjudan?"ajudan_wakilwalikota":"wakilwalikota"}));sendPush({targetRole:"ajudan_wakilwalikota",title:"✅ Kehadiran WWK Dikonfirmasi",body:ev.namaAcara+": "+(s==="hadir"?"Hadir":"Tidak Hadir"),url:"/",tag:"status-wwk-"+ev.id});sendPush({targetRole:"ajudan_walikota",title:"ℹ️ Info Kehadiran WWK",body:ev.namaAcara+": Wakil WK "+(s==="hadir"?"Hadir":"Tidak Hadir"),url:"/",tag:"status-wwk-"+ev.id});}} style={{flex:1,padding:"14px 8px",borderRadius:12,cursor:"pointer",fontWeight:800,fontSize:14,border:"2px solid "+c,background:ev.statusWWK===s?c:"white",color:ev.statusWWK===s?"white":c}}>{l}</button>)}</div>
     <div style={{background:"#f8fafc",borderRadius:10,padding:11,border:"1.5px solid #e2e8f0",marginBottom:10}}>
       <div style={{fontSize:12,color:"#64748b",fontWeight:700,marginBottom:6}}>Wakilkan ke Pejabat Lain</div>
       <button onClick={()=>setDelegTarget({id:ev.id,side:"wwk"})} style={{width:"100%",padding:"10px",borderRadius:9,cursor:"pointer",fontSize:12,fontWeight:ev.statusWWK==="diwakilkan"?700:500,border:"1.5px solid "+(ev.statusWWK==="diwakilkan"?NAVY:"#94a3b8"),background:ev.statusWWK==="diwakilkan"?"#EBF0FA":"white",color:ev.statusWWK==="diwakilkan"?NAVY:"#334155"}}>{ev.statusWWK==="diwakilkan"&&ev.perwakilanWWK?"Diwakilkan ke: "+ev.perwakilanWWK:"Pilih Pejabat Perwakilan"}</button>
-      {ev.statusWWK==="diwakilkan"&&ev.perwakilanWWK&&<button onClick={()=>{upd(ev.id,{statusWWK:null,perwakilanWWK:""});showT("Disposisi dibatalkan","warn");}} style={{marginTop:5,width:"100%",padding:"7px",borderRadius:8,border:"1.5px solid #fca5a5",background:"white",color:"#e11d48",cursor:"pointer",fontSize:11,fontWeight:700}}>Batalkan Disposisi</button>}
+      {ev.statusWWK==="diwakilkan"&&ev.perwakilanWWK&&<button onClick={()=>{upd(ev.id,{statusWWK:null,perwakilanWWK:""});showT("Disposisi dibatalkan","warn");}} style={{marginTop:5,width:"100%",padding:"7px",borderRadius:8,border:"1.5px solid #fca5a5",background:"white",color:"#e11d48",cursor:"pointer",fontSize:13,fontWeight:700}}>Batalkan Disposisi</button>}
     </div>
     {!isAjudan&&<div><label style={{display:"block",fontSize:12,color:"#64748b",fontWeight:600,marginBottom:4}}>Catatan untuk Tim</label>
       <CatatanInput evId={ev.id} initial={ev.catatanPimpinan} onSave={v=>{upd(ev.id,{catatanPimpinan:v});showT("Catatan disimpan");}} btnColor={GREEN} placeholder="Arahan..."/>
@@ -3672,18 +3672,18 @@ function AdminRKKehadiran({ev,upd,showT,setDelegTarget}){
   const forWK=(ev.untukPimpinan||[]).includes("walikota");
   const forWWK=(ev.untukPimpinan||[]).includes("wakilwalikota")||ev.delegasiKeWWK;
   const notifAtasan=()=>loadUsers().filter(u=>(u.role==="kabag"||u.role==="kasubbag_protokol"||u.role==="kasubbag_komdokpim")&&u.noWA).forEach(u=>sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"konfirmasi_kehadiran",labelPimpinan:"Wali Kota",statusKehadiran:"delegasi",jabatanPengirim:"admin_rk"}));
-  const Badge=()=><span style={{fontSize:10,color:"#92400E",background:"#FEF3C7",padding:"2px 7px",borderRadius:20,border:"1px solid #FDE68A",fontWeight:600}}>✏️ Admin RK</span>;
+  const Badge=()=><span style={{fontSize:12,color:"#92400E",background:"#FEF3C7",padding:"2px 7px",borderRadius:20,border:"1px solid #FDE68A",fontWeight:600}}>✏️ Admin RK</span>;
   if(locked)return <div style={{marginBottom:14}}><KehadiranLockedBanner/></div>;
   return <div style={{marginBottom:14,borderRadius:12,border:"1.5px solid #FDE68A",overflow:"hidden"}}>
     <div style={{background:"#FFFBEB",padding:"8px 12px",display:"flex",alignItems:"center",gap:7,borderBottom:"1px solid #FDE68A"}}>
       <span style={{fontSize:14}}>✏️</span>
-      <span style={{fontSize:11,fontWeight:700,color:"#92400E"}}>Input Kehadiran Pimpinan</span>
-      <span style={{fontSize:10,color:"#92400E",marginLeft:"auto",background:"#FEF3C7",padding:"2px 7px",borderRadius:20,border:"1px solid #FDE68A"}}>dicatat sebagai Admin RK</span>
+      <span style={{fontSize:13,fontWeight:700,color:"#92400E"}}>Input Kehadiran Pimpinan</span>
+      <span style={{fontSize:12,color:"#92400E",marginLeft:"auto",background:"#FEF3C7",padding:"2px 7px",borderRadius:20,border:"1px solid #FDE68A"}}>dicatat sebagai Admin RK</span>
     </div>
     <div style={{padding:"10px 12px"}}>
       {/* ── WALI KOTA ── */}
       {forWK&&!ev.delegasiKeWWK&&<div style={{marginBottom:14}}>
-        <div style={{fontSize:11,fontWeight:800,color:"#475569",textTransform:"uppercase",letterSpacing:0.5,marginBottom:7}}>Wali Kota</div>
+        <div style={{fontSize:13,fontWeight:800,color:"#475569",textTransform:"uppercase",letterSpacing:0.5,marginBottom:7}}>Wali Kota</div>
         {(ev.statusWK||ev.delegasiKeWWK)&&<div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8,padding:"6px 10px",borderRadius:8,background:ev.delegasiKeWWK?"#EDE9FE":ev.statusWK==="hadir"?"#DCFCE7":ev.statusWK==="tidak_hadir"?"#FEE2E2":"#FEF3C7",border:"1px solid "+(ev.delegasiKeWWK?"#C4B5FD":ev.statusWK==="hadir"?"#86EFAC":ev.statusWK==="tidak_hadir"?"#FCA5A5":"#FDE68A")}}>
           <span style={{fontSize:14}}>{ev.delegasiKeWWK?"↩":ev.statusWK==="hadir"?"✅":ev.statusWK==="tidak_hadir"?"❌":"↗"}</span>
           <span style={{fontSize:12,fontWeight:700,color:ev.delegasiKeWWK?"#7C3AED":ev.statusWK==="hadir"?"#065F46":ev.statusWK==="tidak_hadir"?"#991B1B":"#92400E",flex:1}}>
@@ -3700,13 +3700,13 @@ function AdminRKKehadiran({ev,upd,showT,setDelegTarget}){
           </div>
           <div style={{display:"flex",gap:7}}>
             <button onClick={e=>{e.stopPropagation();upd(ev.id,{statusWK:"diwakilkan",delegasiKeWWK:true,perwakilanWK:"",statusWK_by:"admin_rk"});showT("WK Delegasi ke WWK — dicatat Admin RK");notifAtasan();}}
-              style={{flex:1,padding:"9px 6px",borderRadius:10,cursor:"pointer",fontWeight:700,fontSize:11,border:"2px solid #7C3AED",background:"white",color:"#7C3AED"}}>↩ Delegasi ke Wakil WK</button>
+              style={{flex:1,padding:"9px 6px",borderRadius:10,cursor:"pointer",fontWeight:700,fontSize:13,border:"2px solid #7C3AED",background:"white",color:"#7C3AED"}}>↩ Delegasi ke Wakil WK</button>
             <button onClick={e=>{e.stopPropagation();setDelegTarget({id:ev.id,side:"wk_adminrk"});}}
-              style={{flex:1,padding:"9px 6px",borderRadius:10,cursor:"pointer",fontWeight:700,fontSize:11,border:"2px solid #0284C7",background:"white",color:"#0284C7"}}>↗ Wakilkan ke Jajaran</button>
+              style={{flex:1,padding:"9px 6px",borderRadius:10,cursor:"pointer",fontWeight:700,fontSize:13,border:"2px solid #0284C7",background:"white",color:"#0284C7"}}>↗ Wakilkan ke Jajaran</button>
           </div>
         </>}
         {ev.statusWK==="diwakilkan"&&!ev.delegasiKeWWK&&<div style={{marginTop:8}}>
-          <div style={{fontSize:11,color:"#64748B",marginBottom:5,fontWeight:600}}>Pilih pejabat yang mewakili:</div>
+          <div style={{fontSize:13,color:"#64748B",marginBottom:5,fontWeight:600}}>Pilih pejabat yang mewakili:</div>
           <div style={{display:"flex",flexDirection:"column",gap:5,marginBottom:7}}>
             {PEJABAT.map(p=><button key={p} onClick={e=>{e.stopPropagation();upd(ev.id,{perwakilanWK:p});showT("Diwakilkan ke "+p);}}
               style={{padding:"8px 11px",borderRadius:8,border:"1.5px solid "+(ev.perwakilanWK===p?"#0284C7":"#E2E8F0"),background:ev.perwakilanWK===p?"#EFF6FF":"white",color:ev.perwakilanWK===p?"#0284C7":"#334155",cursor:"pointer",fontSize:12,textAlign:"left",fontWeight:ev.perwakilanWK===p?700:400}}>{p}</button>)}
@@ -3715,12 +3715,12 @@ function AdminRKKehadiran({ev,upd,showT,setDelegTarget}){
           </div>
         </div>}
         {(ev.statusWK||ev.delegasiKeWWK)&&<button onClick={e=>{e.stopPropagation();upd(ev.id,{statusWK:null,delegasiKeWWK:false,perwakilanWK:"",statusWK_by:null});showT("Status WK direset","warn");}}
-          style={{width:"100%",marginTop:6,padding:"7px",borderRadius:9,border:"1.5px dashed #94A3B8",background:"#F8FAFC",color:"#64748B",cursor:"pointer",fontSize:11,fontWeight:600}}>↩ Reset Status Wali Kota</button>}
+          style={{width:"100%",marginTop:6,padding:"7px",borderRadius:9,border:"1.5px dashed #94A3B8",background:"#F8FAFC",color:"#64748B",cursor:"pointer",fontSize:13,fontWeight:600}}>↩ Reset Status Wali Kota</button>}
       </div>}
       {/* ── WAKIL WALI KOTA ── */}
       {(forWWK||ev.delegasiKeWWK)&&<div>
-        <div style={{fontSize:11,fontWeight:800,color:"#475569",textTransform:"uppercase",letterSpacing:0.5,marginBottom:7}}>
-          Wakil Wali Kota{ev.delegasiKeWWK&&<span style={{fontSize:10,fontWeight:700,color:"#7C3AED",background:"#EDE9FE",padding:"2px 7px",borderRadius:20,marginLeft:6}}>menerima delegasi WK</span>}
+        <div style={{fontSize:13,fontWeight:800,color:"#475569",textTransform:"uppercase",letterSpacing:0.5,marginBottom:7}}>
+          Wakil Wali Kota{ev.delegasiKeWWK&&<span style={{fontSize:12,fontWeight:700,color:"#7C3AED",background:"#EDE9FE",padding:"2px 7px",borderRadius:20,marginLeft:6}}>menerima delegasi WK</span>}
         </div>
         {ev.statusWWK&&<div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8,padding:"6px 10px",borderRadius:8,background:ev.statusWWK==="hadir"?"#DCFCE7":ev.statusWWK==="tidak_hadir"?"#FEE2E2":"#FEF3C7",border:"1px solid "+(ev.statusWWK==="hadir"?"#86EFAC":ev.statusWWK==="tidak_hadir"?"#FCA5A5":"#FDE68A")}}>
           <span style={{fontSize:14}}>{ev.statusWWK==="hadir"?"✅":ev.statusWWK==="tidak_hadir"?"❌":"↗"}</span>
@@ -3737,10 +3737,10 @@ function AdminRKKehadiran({ev,upd,showT,setDelegTarget}){
               style={{flex:1,padding:"10px 6px",borderRadius:10,cursor:"pointer",fontWeight:800,fontSize:12,border:"2px solid #991B1B",background:"white",color:"#991B1B"}}>✗ Tidak Hadir</button>
           </div>
           <button onClick={e=>{e.stopPropagation();upd(ev.id,{statusWWK:"diwakilkan",delegasiWWKJajaran:true,statusWWK_by:"admin_rk"});showT("WWK Diwakilkan — pilih pejabat");}}
-            style={{width:"100%",padding:"9px 6px",borderRadius:10,cursor:"pointer",fontWeight:700,fontSize:11,border:"2px solid #0284C7",background:"white",color:"#0284C7"}}>↗ Wakilkan ke Jajaran</button>
+            style={{width:"100%",padding:"9px 6px",borderRadius:10,cursor:"pointer",fontWeight:700,fontSize:13,border:"2px solid #0284C7",background:"white",color:"#0284C7"}}>↗ Wakilkan ke Jajaran</button>
         </>}
         {ev.statusWWK==="diwakilkan"&&<div style={{marginTop:8}}>
-          <div style={{fontSize:11,color:"#64748B",marginBottom:5,fontWeight:600}}>Pilih pejabat yang mewakili:</div>
+          <div style={{fontSize:13,color:"#64748B",marginBottom:5,fontWeight:600}}>Pilih pejabat yang mewakili:</div>
           <div style={{display:"flex",flexDirection:"column",gap:5,marginBottom:7}}>
             {PEJABAT.map(p=><button key={p} onClick={e=>{e.stopPropagation();upd(ev.id,{perwakilanWWK:p});showT("WWK diwakilkan ke "+p);}}
               style={{padding:"8px 11px",borderRadius:8,border:"1.5px solid "+(ev.perwakilanWWK===p?"#0284C7":"#E2E8F0"),background:ev.perwakilanWWK===p?"#EFF6FF":"white",color:ev.perwakilanWWK===p?"#0284C7":"#334155",cursor:"pointer",fontSize:12,textAlign:"left",fontWeight:ev.perwakilanWWK===p?700:400}}>{p}</button>)}
@@ -3749,7 +3749,7 @@ function AdminRKKehadiran({ev,upd,showT,setDelegTarget}){
           </div>
         </div>}
         {ev.statusWWK&&<button onClick={e=>{e.stopPropagation();upd(ev.id,{statusWWK:null,statusWWK_by:null,perwakilanWWK:"",delegasiWWKJajaran:false});showT("Status WWK direset","warn");}}
-          style={{width:"100%",marginTop:6,padding:"7px",borderRadius:9,border:"1.5px dashed #94A3B8",background:"#F8FAFC",color:"#64748B",cursor:"pointer",fontSize:11,fontWeight:600}}>↩ Reset Status Wakil Wali Kota</button>}
+          style={{width:"100%",marginTop:6,padding:"7px",borderRadius:9,border:"1.5px dashed #94A3B8",background:"#F8FAFC",color:"#64748B",cursor:"pointer",fontSize:13,fontWeight:600}}>↩ Reset Status Wakil Wali Kota</button>}
       </div>}
     </div>
   </div>;
@@ -3786,7 +3786,7 @@ function EventCard({ev}){
   const anyPimpinan=(ev.untukPimpinan||[]).length>0||ev.delegasiKeWWK;
   const showMenungguKehadiran=!hadirStr&&anyPimpinan&&isUpcoming;
   return <div id={"ev-"+ev.id} className="ev-card" style={{background:cardBg,borderRadius:16,marginBottom:10,boxShadow:"0 2px 12px rgba(0,0,0,0.07),0 0 0 1px rgba(0,0,0,0.04)",border:"1.5px solid "+borderColor,overflow:"hidden",opacity:cardOpacity}}>
-    {ev.catatanPimpinan&&<div style={{background:"linear-gradient(90deg,#EEF2FF,#F5F3FF)",padding:"6px 14px",fontSize:11,color:"#4338CA",fontWeight:600,borderBottom:"1px solid #E0E7FF",display:"flex",alignItems:"center",gap:5}}>
+    {ev.catatanPimpinan&&<div style={{background:"linear-gradient(90deg,#EEF2FF,#F5F3FF)",padding:"6px 14px",fontSize:13,color:"#4338CA",fontWeight:600,borderBottom:"1px solid #E0E7FF",display:"flex",alignItems:"center",gap:5}}>
       <span style={{fontSize:12}}>💬</span>{ev.catatanPimpinan}
     </div>}
     {/* Banner penugasan — semua role yang terlibat penugasan */}
@@ -3797,17 +3797,17 @@ function EventCard({ev}){
         <div style={{background:isToday?"linear-gradient(145deg,"+NAVY+",#1E3254)":"#F6F8FC",borderRadius:12,padding:"8px 7px",textAlign:"center",minWidth:46,flexShrink:0,boxShadow:isToday?"0 4px 12px rgba(10,22,40,0.25)":"none"}}>
           <div style={{fontSize:8,color:isToday?"rgba(212,175,90,0.9)":"#94A3B8",fontWeight:800,textTransform:"uppercase",letterSpacing:1}}>{hariEv.slice(0,3)}</div>
           <div style={{fontSize:18,fontWeight:900,color:isToday?"white":"#1E293B",lineHeight:1.1}}>{ev.tanggal.slice(8)}</div>
-          <div style={{fontSize:9,color:isToday?"rgba(255,255,255,0.6)":"#94A3B8",fontWeight:500,marginTop:1}}>{ev.jam}</div>
+          <div style={{fontSize:12,color:isToday?"rgba(255,255,255,0.6)":"#94A3B8",fontWeight:500,marginTop:1}}>{ev.jam}</div>
         </div>
         {/* Info */}
         <div style={{flex:1,minWidth:0}}>
           <div style={{display:"flex",alignItems:"center",gap:4,flexWrap:"wrap",marginBottom:5}}>
             <JenisBadge j={ev.jenisKegiatan}/><StatusPill alur={ev.alur} hapus={ev.alurHapus}/>
-            {isPast&&<span style={{fontSize:9,background:"#E2E8F0",color:"#64748B",borderRadius:4,padding:"1px 5px",fontWeight:700,letterSpacing:0.3}}>SELESAI</span>}
-            {isPending&&<span style={{fontSize:9,background:"#FEF3C7",color:"#92400E",borderRadius:4,padding:"1px 5px",fontWeight:700,letterSpacing:0.3}}>DIPROSES</span>}
-            {isUpcoming&&!isToday&&<span style={{fontSize:9,background:"#EFF6FF",color:"#1D4ED8",borderRadius:4,padding:"1px 5px",fontWeight:700,letterSpacing:0.3}}>{relativeDate(ev.tanggal)||"AKAN DATANG"}</span>}
-            {isToday&&isUpcoming&&<span style={{fontSize:9,background:"linear-gradient(90deg,#0A1628,#1B4080)",color:"#C9A84C",borderRadius:4,padding:"1px 5px",fontWeight:700,letterSpacing:0.3}}>HARI INI</span>}
-            <span style={{fontSize:9,padding:"2px 6px",borderRadius:10,background:"#EFF6FF",color:"#1E40AF",fontWeight:700,border:"1px solid #BFDBFE"}}>🎯 {tujuanPimpinanLabel(ev)}</span>
+            {isPast&&<span style={{fontSize:12,background:"#E2E8F0",color:"#64748B",borderRadius:4,padding:"1px 5px",fontWeight:700,letterSpacing:0.3}}>SELESAI</span>}
+            {isPending&&<span style={{fontSize:12,background:"#FEF3C7",color:"#92400E",borderRadius:4,padding:"1px 5px",fontWeight:700,letterSpacing:0.3}}>DIPROSES</span>}
+            {isUpcoming&&!isToday&&<span style={{fontSize:12,background:"#EFF6FF",color:"#1D4ED8",borderRadius:4,padding:"1px 5px",fontWeight:700,letterSpacing:0.3}}>{relativeDate(ev.tanggal)||"AKAN DATANG"}</span>}
+            {isToday&&isUpcoming&&<span style={{fontSize:12,background:"linear-gradient(90deg,#0A1628,#1B4080)",color:"#C9A84C",borderRadius:4,padding:"1px 5px",fontWeight:700,letterSpacing:0.3}}>HARI INI</span>}
+            <span style={{fontSize:12,padding:"2px 6px",borderRadius:10,background:"#EFF6FF",color:"#1E40AF",fontWeight:700,border:"1px solid #BFDBFE"}}>🎯 {tujuanPimpinanLabel(ev)}</span>
           </div>
           <div style={{fontSize:14,fontWeight:700,color:"#0F1C2E",lineHeight:1.35,marginBottom:3,letterSpacing:"-0.1px"}}>{ev.namaAcara}</div>
           <div style={{fontSize:12,color:"#64748B",display:"flex",alignItems:"center",gap:4}}>
@@ -3815,15 +3815,15 @@ function EventCard({ev}){
             {ev.lokasi&&<><span style={{color:"#CBD5E1"}}>·</span><span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:130}}>{ev.lokasi}</span></>}
           </div>
           {(hadirStr||showMenungguKehadiran)&&
-            <div style={{marginTop:4,fontSize:11,display:"flex",alignItems:"center",gap:6}}>
-              <span style={{fontSize:11}}>👤</span>
+            <div style={{marginTop:4,fontSize:13,display:"flex",alignItems:"center",gap:6}}>
+              <span style={{fontSize:13}}>👤</span>
               {hadirStr
                 ?<span style={{color:"#16A34A",fontWeight:600}}>Hadir: {hadirStr}</span>
                 :<span style={{color:"#B45309",fontWeight:600}}>Menunggu konfirmasi kehadiran pimpinan</span>}
             </div>}
         </div>
         {/* Chevron */}
-        <div style={{color:"#CBD5E1",fontSize:11,flexShrink:0,transition:"transform 0.25s cubic-bezier(0.34,1.56,0.64,1)",transform:exp?"rotate(180deg)":"none",marginTop:4}}>▼</div>
+        <div style={{color:"#CBD5E1",fontSize:13,flexShrink:0,transition:"transform 0.25s cubic-bezier(0.34,1.56,0.64,1)",transform:exp?"rotate(180deg)":"none",marginTop:4}}>▼</div>
       </div>
     </div>
     {exp&&<ExpandedDetail ev={ev} hariEv={hariEv}/>}
@@ -3838,7 +3838,7 @@ function EventCard({ev}){
       </div>
       <div style={{display:"flex",justifyContent:"space-between"}}>
         {ALUR_STEPS.map((s,i)=>(
-          <div key={s.key} style={{flex:1,textAlign:"center",fontSize:9,fontWeight:i===alurIdx?800:400,
+          <div key={s.key} style={{flex:1,textAlign:"center",fontSize:12,fontWeight:i===alurIdx?800:400,
             color:ev.alur==="ditolak"&&s.key==="draft"?"#EF4444":i<=alurIdx?s.color:"#CBD5E1",letterSpacing:0.2}}>
             {ev.alur==="ditolak"&&s.key==="draft"?"Ditolak":s.label}
           </div>
@@ -3879,13 +3879,13 @@ function GroupedEventList({ evList, isMobile, viewMode }) {
             borderRadius: 20, padding: "5px 14px",
           }}>
             <span style={{ fontSize: 12 }}>📅</span>
-            <span style={{ fontSize: 11, fontWeight: 800, color: "white", letterSpacing: 0.5 }}>
+            <span style={{ fontSize: 13, fontWeight: 800, color: "white", letterSpacing: 0.5 }}>
               AKAN DATANG
             </span>
             <span style={{
               background: GOLD, color: NAVY,
               borderRadius: 20, padding: "1px 8px",
-              fontSize: 10, fontWeight: 900,
+              fontSize: 12, fontWeight: 900,
             }}>{upcoming.length}</span>
           </div>
           <div style={{ flex: 1, height: 1, background: "linear-gradient(90deg,#E2E8F0,transparent)" }}/>
@@ -3906,13 +3906,13 @@ function GroupedEventList({ evList, isMobile, viewMode }) {
             border: "1px solid #E2E8F0",
           }}>
             <span style={{ fontSize: 12 }}>📁</span>
-            <span style={{ fontSize: 11, fontWeight: 800, color: "#64748B", letterSpacing: 0.5 }}>
+            <span style={{ fontSize: 13, fontWeight: 800, color: "#64748B", letterSpacing: 0.5 }}>
               YANG SUDAH BERLALU BIARLAH BERLALU, NAMUN BISA DILIHAT BALIK JIKA PERLU
             </span>
             <span style={{
               background: "#E2E8F0", color: "#64748B",
               borderRadius: 20, padding: "1px 8px",
-              fontSize: 10, fontWeight: 900,
+              fontSize: 12, fontWeight: 900,
             }}>{past.length}</span>
           </div>
           <div style={{ flex: 1, height: 1, background: "linear-gradient(90deg,#E2E8F0,transparent)" }}/>
@@ -3956,22 +3956,22 @@ function TableView({evList}){
         const anyPimpinan=(ev.untukPimpinan||[]).length>0||ev.delegasiKeWWK;
         const waitingLabel=anyPimpinan?"Menunggu konfirmasi":"—";
         return <><tr key={ev.id} id={"ev-"+ev.id} className="card-row" style={{cursor:"pointer"}} onClick={()=>setExp(exp?null:ev.id)}>
-          <td><div style={{fontWeight:700,fontSize:12,color:isToday?NAVY:"#334155",whiteSpace:"nowrap"}}>{hariEv}, {fmtShort(ev.tanggal)}</div>{(isToday||relativeDate(ev.tanggal))&&<span style={{fontSize:10,color:isToday?"#2563eb":"#64748B",fontWeight:700}}>{isToday?"Hari ini":relativeDate(ev.tanggal)}</span>}</td>
+          <td><div style={{fontWeight:700,fontSize:12,color:isToday?NAVY:"#334155",whiteSpace:"nowrap"}}>{hariEv}, {fmtShort(ev.tanggal)}</div>{(isToday||relativeDate(ev.tanggal))&&<span style={{fontSize:12,color:isToday?"#2563eb":"#64748B",fontWeight:700}}>{isToday?"Hari ini":relativeDate(ev.tanggal)}</span>}</td>
           <td><span style={{fontWeight:700,fontSize:13,color:NAVY}}>{ev.jam}</span></td>
           <td><div style={{fontWeight:700,fontSize:13,color:"#0F2040",lineHeight:1.3}}>{ev.namaAcara}</div>
             <div style={{display:"flex",gap:4,marginTop:3,flexWrap:"wrap"}}>
-              <span style={{fontSize:9,padding:"1px 5px",borderRadius:10,background:"#EFF6FF",color:"#1E40AF",fontWeight:700,border:"1px solid #BFDBFE"}}>🎯 {tujuanPimpinanLabel(ev)}</span>
+              <span style={{fontSize:12,padding:"1px 5px",borderRadius:10,background:"#EFF6FF",color:"#1E40AF",fontWeight:700,border:"1px solid #BFDBFE"}}>🎯 {tujuanPimpinanLabel(ev)}</span>
             </div>
           </td>
           <td><JenisBadge j={ev.jenisKegiatan}/></td>
           <td style={{fontSize:12,color:"#475569",maxWidth:140,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ev.penyelenggara}</td>
           <td style={{fontSize:12,color:"#475569",maxWidth:130,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ev.lokasi||<span style={{color:"#cbd5e1"}}>-</span>}</td>
-          <td style={{fontSize:11,color:"#475569",whiteSpace:"nowrap"}}>{ev.pakaian}</td>
-          <td style={{fontSize:11,color:hadirStr?"#16A34A":"#9CA3AF",whiteSpace:"nowrap",maxWidth:140,overflow:"hidden",textOverflow:"ellipsis"}}>
+          <td style={{fontSize:13,color:"#475569",whiteSpace:"nowrap"}}>{ev.pakaian}</td>
+          <td style={{fontSize:13,color:hadirStr?"#16A34A":"#9CA3AF",whiteSpace:"nowrap",maxWidth:140,overflow:"hidden",textOverflow:"ellipsis"}}>
             {hadirStr ? "Hadir: "+hadirStr : waitingLabel}
           </td>
           <td><StatusPill alur={ev.alur} hapus={ev.alurHapus}/></td>
-          <td><button onClick={e=>{e.stopPropagation();setExp(exp?null:ev.id);}} style={{padding:"5px 10px",borderRadius:7,border:"1.5px solid #e2e8f0",background:exp?"#EBF0FA":"white",color:exp?NAVY:"#64748b",cursor:"pointer",fontSize:11,fontWeight:700,whiteSpace:"nowrap"}}>{exp?"Tutup":"Detail"}</button></td>
+          <td><button onClick={e=>{e.stopPropagation();setExp(exp?null:ev.id);}} style={{padding:"5px 10px",borderRadius:7,border:"1.5px solid #e2e8f0",background:exp?"#EBF0FA":"white",color:exp?NAVY:"#64748b",cursor:"pointer",fontSize:13,fontWeight:700,whiteSpace:"nowrap"}}>{exp?"Tutup":"Detail"}</button></td>
         </tr>
         {exp&&<tr key={ev.id+"_exp"}><td colSpan={10} style={{padding:0,background:"#fafbfc",borderBottom:"2px solid #EBF0FA"}}>
           <div style={{padding:"16px 20px"}}><ExpandedDetail ev={ev} hariEv={hariEv}/></div>
@@ -4104,38 +4104,38 @@ function WeatherJarak({tanggal, jam, lokasi}) {
         boxShadow: "0 2px 8px rgba(2,132,199,0.2)",
       }}>
         {loadW
-          ? <div style={{fontSize:11,color:"rgba(255,255,255,0.6)"}}>🌤 Mengambil prakiraan...</div>
+          ? <div style={{fontSize:13,color:"rgba(255,255,255,0.6)"}}>🌤 Mengambil prakiraan...</div>
           : weather
             ? <>
                 <span style={{fontSize: 28, lineHeight: 1}}>{iconEmoji(weather.icon)}</span>
                 <div style={{minWidth: 0}}>
-                  <div style={{fontSize: 10, color: "rgba(255,255,255,0.65)", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 1}}>
+                  <div style={{fontSize: 12, color: "rgba(255,255,255,0.65)", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 1}}>
                     {weather.jauh ? "Cuaca Sekarang (Tarakan)" : "Prakiraan Hari H"}
                   </div>
                   <div style={{fontSize: 14, fontWeight: 800, color: "white", textTransform: "capitalize", lineHeight: 1.2}}>
                     {weather.deskripsi}
                   </div>
                   <div style={{display: "flex", gap: 8, marginTop: 3, flexWrap: "wrap"}}>
-                    <span style={{fontSize: 11, color: "rgba(255,255,255,0.85)", fontWeight: 700}}>
+                    <span style={{fontSize: 13, color: "rgba(255,255,255,0.85)", fontWeight: 700}}>
                       🌡 {weather.suhu}°C
                     </span>
                     {weather.hujan !== null && (
                       <span style={{
-                        fontSize: 11, fontWeight: 700,
+                        fontSize: 13, fontWeight: 700,
                         color: weather.hujan > 60 ? "#FCD34D" : "rgba(255,255,255,0.7)"
                       }}>
                         💧 {weather.hujan}%{weather.hujan > 60 ? " ⚠️ persiapkan jas hujan" : ""}
                       </span>
                     )}
                     {weather.jauh && (
-                      <span style={{fontSize: 10, color: "rgba(255,255,255,0.5)"}}>
+                      <span style={{fontSize: 12, color: "rgba(255,255,255,0.5)"}}>
                         (H+5 belum tersedia)
                       </span>
                     )}
                   </div>
                 </div>
               </>
-            : <div style={{fontSize:11,color:"rgba(255,255,255,0.5)"}}>Cuaca tidak tersedia</div>
+            : <div style={{fontSize:13,color:"rgba(255,255,255,0.5)"}}>Cuaca tidak tersedia</div>
         }
       </div>
 
@@ -4150,21 +4150,21 @@ function WeatherJarak({tanggal, jam, lokasi}) {
         }}>
           <span style={{fontSize: 22, lineHeight: 1}}>🚗</span>
           <div style={{minWidth: 0}}>
-            <div style={{fontSize: 10, color: "rgba(255,255,255,0.65)", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 1}}>
+            <div style={{fontSize: 12, color: "rgba(255,255,255,0.65)", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 1}}>
               Dari Kantor Wali Kota
             </div>
             {loadJ
-              ? <div style={{fontSize:11,color:"rgba(255,255,255,0.6)"}}>Menghitung rute...</div>
+              ? <div style={{fontSize:13,color:"rgba(255,255,255,0.6)"}}>Menghitung rute...</div>
               : jarak?.ok
                 ? <>
                     <div style={{fontSize: 15, fontWeight: 800, color: "white"}}>
                       ±{jarak.durasi}
                     </div>
-                    <div style={{fontSize: 10, color: "rgba(255,255,255,0.7)"}}>
+                    <div style={{fontSize: 12, color: "rgba(255,255,255,0.7)"}}>
                       {jarak.jarak} · lewat jalan raya
                     </div>
                   </>
-                : <div style={{fontSize:11,color:"rgba(255,255,255,0.5)"}}>Tidak tersedia</div>
+                : <div style={{fontSize:13,color:"rgba(255,255,255,0.5)"}}>Tidak tersedia</div>
             }
           </div>
         </div>
@@ -4280,7 +4280,7 @@ function KartuSorotanHariIni({ events, filterForRole, filterPimpinan, isMobile, 
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ fontSize: 28 }}>{iconEmoji(weather?.icon)}</span>
           <div>
-            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.55)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 700 }}>
+            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.55)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 700 }}>
               Sorotan Hari Ini · Tarakan
             </div>
             {weather ? (
@@ -4329,7 +4329,7 @@ function KartuSorotanHariIni({ events, filterForRole, filterPimpinan, isMobile, 
               <div key={ev.id} style={{ background: "rgba(255,255,255,0.09)", borderRadius: 12,
                 padding: "12px 14px", border: "1px solid "+(isUnconfirmed(ev)?"rgba(251,191,36,0.5)":"rgba(255,255,255,0.12)") }}>
                 {/* Badge belum konfirmasi */}
-                {isUnconfirmed(ev)&&<div style={{display:"inline-flex",alignItems:"center",gap:4,background:"rgba(251,191,36,0.2)",border:"1px solid rgba(251,191,36,0.4)",borderRadius:6,padding:"2px 8px",marginBottom:6,fontSize:10,fontWeight:700,color:"#FDE68A",letterSpacing:0.3}}>
+                {isUnconfirmed(ev)&&<div style={{display:"inline-flex",alignItems:"center",gap:4,background:"rgba(251,191,36,0.2)",border:"1px solid rgba(251,191,36,0.4)",borderRadius:6,padding:"2px 8px",marginBottom:6,fontSize:12,fontWeight:700,color:"#FDE68A",letterSpacing:0.3}}>
                   🔔 BELUM DIKONFIRMASI
                 </div>}
                 {/* Baris atas: nama acara + info cuaca/jarak */}
@@ -4339,8 +4339,8 @@ function KartuSorotanHariIni({ events, filterForRole, filterPimpinan, isMobile, 
                       {ev.namaAcara}
                     </div>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                      <span style={{ fontSize: 11, color: "rgba(255,255,255,0.7)" }}>🕐 {ev.jam} WITA</span>
-                      {ev.lokasi && <span style={{ fontSize: 11, color: "rgba(255,255,255,0.7)" }}>📍 {ev.lokasi}</span>}
+                      <span style={{ fontSize: 13, color: "rgba(255,255,255,0.7)" }}>🕐 {ev.jam} WITA</span>
+                      {ev.lokasi && <span style={{ fontSize: 13, color: "rgba(255,255,255,0.7)" }}>📍 {ev.lokasi}</span>}
                     </div>
                   </div>
                   <div style={{ flexShrink: 0, textAlign: "right" }}>
@@ -4350,12 +4350,12 @@ function KartuSorotanHariIni({ events, filterForRole, filterPimpinan, isMobile, 
                       </div>
                     )}
                     {j && (
-                      <div style={{ fontSize: 11, color: "rgba(255,255,255,0.6)", marginTop: 2 }}>
+                      <div style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", marginTop: 2 }}>
                         🚗 ±{j.durasi}
                       </div>
                     )}
                     {j && (
-                      <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>
+                      <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)" }}>
                         {j.jarak} dari Kantor Wali Kota
                       </div>
                     )}
@@ -4373,7 +4373,7 @@ function KartuSorotanHariIni({ events, filterForRole, filterPimpinan, isMobile, 
                       border:"1px solid rgba(255,255,255,0.22)",
                       background:"rgba(255,255,255,0.1)",
                       color:"rgba(255,255,255,0.8)",
-                      cursor:"pointer",fontSize:11,fontWeight:600,
+                      cursor:"pointer",fontSize:13,fontWeight:600,
                     }}
                   >
                     <ShareIcon /> Bagikan
@@ -4602,14 +4602,14 @@ function ExpandedDetail({ev,hariEv}){
         <div style={{display:"flex",flexDirection:"column",gap:5}}>
           {[{i:"Tgl",l:"Tanggal",v:hariEv+", "+fmt(ev.tanggal)},{i:"Jam",l:"Waktu",v:ev.jam+" WITA"},{i:"Org",l:"Penyelenggara",v:ev.penyelenggara},{i:"Tel",l:"Kontak",v:ev.kontak},{i:"No",l:"Bukti Undangan",v:ev.buktiUndangan},{i:"Bj",l:"Pakaian",v:ev.pakaian},{i:"Ket",l:"Catatan",v:ev.catatan}].filter(f=>f.v).map(f=>(
             <div key={f.l} style={{display:"flex",gap:8,padding:"6px 10px",background:"#f8fafc",borderRadius:8}}>
-              <div style={{minWidth:80,fontSize:10,color:"#94a3b8",fontWeight:700,textTransform:"uppercase"}}>{f.l}</div>
+              <div style={{minWidth:80,fontSize:12,color:"#94a3b8",fontWeight:700,textTransform:"uppercase"}}>{f.l}</div>
               <div style={{fontSize:12,color:"#1e293b",flex:1}}>{f.v}</div>
             </div>
           ))}
           {ev.lokasi&&<div style={{display:"flex",gap:8,padding:"6px 10px",background:"#f0f9ff",borderRadius:8,border:"1px solid #bae6fd",alignItems:"center"}}>
-            <div style={{minWidth:80,fontSize:10,color:"#0284c7",fontWeight:700,textTransform:"uppercase"}}>Lokasi</div>
+            <div style={{minWidth:80,fontSize:12,color:"#0284c7",fontWeight:700,textTransform:"uppercase"}}>Lokasi</div>
             <div style={{flex:1,fontSize:12,color:"#0c4a6e",fontWeight:600}}>{ev.lokasi}</div>
-            <a href={"https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(ev.lokasi)} target="_blank" rel="noopener noreferrer" style={{padding:"5px 10px",borderRadius:7,background:"#1a73e8",color:"white",textDecoration:"none",fontSize:11,fontWeight:700,flexShrink:0}}>Maps</a>
+            <a href={"https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(ev.lokasi)} target="_blank" rel="noopener noreferrer" style={{padding:"5px 10px",borderRadius:7,background:"#1a73e8",color:"white",textDecoration:"none",fontSize:13,fontWeight:700,flexShrink:0}}>Maps</a>
           </div>}
           <div style={{marginTop:4}}>
             <UndanganBlock ev={ev} canEdit={role==="admin_rk"&&ev.alur!=="disetujui"} onUpload={(file,name)=>handleUndanganUpload(ev.id,file,name).then(()=>showT("Berkas undangan diupload"))} onRemove={()=>{if(ev.undanganFile&&!ev.undanganFile.startsWith("data:"))storageDelete("undangan",ev.undanganFile).catch(e=>console.warn("Sync:",e?.message||e));updAndSync(ev.id,{undanganFile:null,undanganNama:""}); }}/>
@@ -4660,7 +4660,7 @@ function ExpandedDetail({ev,hariEv}){
     {role==="admin_rk"&&ev.alur==="disetujui"&&<AdminRKKehadiran ev={ev} upd={upd} showT={showT} setDelegTarget={setDelegTarget}/>}
     {/* REKAN KERJA — tampilkan untuk staf & timkom yang ditugaskan */}
     {["staf","timkom"].includes(role)&&(ev.personil||[]).includes(user.username)&&ev.alur==="disetujui"&&<div style={{marginBottom:12,padding:"11px 14px",borderRadius:11,background:"linear-gradient(90deg,#ECFDF5,#F0FDF4)",border:"1.5px solid #6EE7B7"}}>
-      <div style={{fontSize:10,fontWeight:800,color:"#065F46",letterSpacing:1,textTransform:"uppercase",marginBottom:8,display:"flex",alignItems:"center",gap:5}}>
+      <div style={{fontSize:12,fontWeight:800,color:"#065F46",letterSpacing:1,textTransform:"uppercase",marginBottom:8,display:"flex",alignItems:"center",gap:5}}>
         🎯 Tim Bertugas di Acara Ini
       </div>
       <div style={{display:"flex",flexDirection:"column",gap:5}}>
@@ -4673,11 +4673,11 @@ function ExpandedDetail({ev,hariEv}){
             <div style={{width:28,height:28,borderRadius:8,background:isMe?"#059669":NAVY,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:800,color:"white",flexShrink:0}}>{nama.slice(0,1)}</div>
             <div style={{flex:1}}>
               <div style={{fontSize:12,fontWeight:isMe?800:600,color:isMe?"#065F46":"#1E293B"}}>{nama}{isMe?" — Anda":""}</div>
-              <div style={{fontSize:10,color:"#94A3B8",textTransform:"capitalize"}}>{roleLabel}</div>
+              <div style={{fontSize:12,color:"#94A3B8",textTransform:"capitalize"}}>{roleLabel}</div>
             </div>
           </div>;
         })}
-        {ev.catatanPenugasan&&<div style={{marginTop:5,padding:"6px 10px",background:"#EEF2FF",borderRadius:8,fontSize:11,color:"#4338CA",fontStyle:"italic"}}>💬 Catatan: {ev.catatanPenugasan}</div>}
+        {ev.catatanPenugasan&&<div style={{marginTop:5,padding:"6px 10px",background:"#EEF2FF",borderRadius:8,fontSize:13,color:"#4338CA",fontStyle:"italic"}}>💬 Catatan: {ev.catatanPenugasan}</div>}
       </div>
     </div>}
     {/* ADMIN RK ACTIONS — hierarki: Primary → Secondary → Destructive */}
@@ -4713,7 +4713,7 @@ function ExpandedDetail({ev,hariEv}){
         </div>
         {/* Pilihan tindakan */}
         <div style={{background:"#FAFAFA",borderRadius:10,border:"1px solid #E2E8F0",overflow:"hidden"}}>
-          <div style={{padding:"10px 14px",fontSize:11,color:"#64748B",fontWeight:600,borderBottom:"1px solid #E2E8F0",background:"white"}}>
+          <div style={{padding:"10px 14px",fontSize:13,color:"#64748B",fontWeight:600,borderBottom:"1px solid #E2E8F0",background:"white"}}>
             Pilih tindakan untuk jadwal ini:
           </div>
           {/* Opsi 1: Edit & Kirim Ulang */}
@@ -4722,7 +4722,7 @@ function ExpandedDetail({ev,hariEv}){
             <span style={{width:36,height:36,borderRadius:9,background:"#EFF6FF",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>✏️</span>
             <div>
               <div style={{fontSize:13,fontWeight:700,color:"#1D4ED8"}}>Edit & Kirim Ulang</div>
-              <div style={{fontSize:11,color:"#64748B",marginTop:1}}>Perbaiki jadwal lalu kirim kembali ke Kasubbag</div>
+              <div style={{fontSize:13,color:"#64748B",marginTop:1}}>Perbaiki jadwal lalu kirim kembali ke Kasubbag</div>
             </div>
             <span style={{marginLeft:"auto",fontSize:16,color:"#94A3B8"}}>›</span>
           </button>
@@ -4732,7 +4732,7 @@ function ExpandedDetail({ev,hariEv}){
             <span style={{width:36,height:36,borderRadius:9,background:"#FEF2F2",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>🗑️</span>
             <div>
               <div style={{fontSize:13,fontWeight:700,color:"#DC2626"}}>Hapus Jadwal</div>
-              <div style={{fontSize:11,color:"#64748B",marginTop:1}}>Hapus permanen, tidak bisa dikembalikan</div>
+              <div style={{fontSize:13,color:"#64748B",marginTop:1}}>Hapus permanen, tidak bisa dikembalikan</div>
             </div>
             <span style={{marginLeft:"auto",fontSize:16,color:"#94A3B8"}}>›</span>
           </button>
@@ -4766,11 +4766,11 @@ function ExpandedDetail({ev,hariEv}){
       {ev.alur==="disetujui"&&!ev.alurHapus&&<>
         <div style={{height:1,background:"#E2E8F0",margin:"4px 0"}}/>
         <div style={{borderRadius:9,border:"1.5px solid #FECACA",overflow:"hidden"}}>
-          <div style={{background:"#FFF5F5",padding:"8px 12px",fontSize:11,color:"#7F1D1D",fontWeight:700}}>
+          <div style={{background:"#FFF5F5",padding:"8px 12px",fontSize:13,color:"#7F1D1D",fontWeight:700}}>
             Ajukan Pembatalan Jadwal
           </div>
           <div style={{padding:"8px 12px",background:"white"}}>
-            <label style={{display:"block",fontSize:11,color:"#64748B",fontWeight:600,marginBottom:4}}>
+            <label style={{display:"block",fontSize:13,color:"#64748B",fontWeight:600,marginBottom:4}}>
               Alasan pembatalan (wajib):
             </label>
             <textarea
@@ -4828,11 +4828,11 @@ function ExpandedDetail({ev,hariEv}){
         {/* DESTRUCTIVE — dipisah garis */}
         <div style={{display:"flex",alignItems:"center",gap:8,margin:"2px 0"}}>
           <div style={{flex:1,height:1,background:"#E2E8F0"}}/>
-          <span style={{fontSize:10,color:"#94A3B8",fontWeight:600}}>atau tolak</span>
+          <span style={{fontSize:12,color:"#94A3B8",fontWeight:600}}>atau tolak</span>
           <div style={{flex:1,height:1,background:"#E2E8F0"}}/>
         </div>
         <div style={{borderRadius:10,border:"1.5px solid #FECACA",overflow:"hidden"}}>
-          <div style={{padding:"8px 11px 6px",background:"#FFF0F0",borderBottom:"1px solid #FECACA",fontSize:11,color:"#991B1B",fontWeight:700,display:"flex",alignItems:"center",gap:5}}>
+          <div style={{padding:"8px 11px 6px",background:"#FFF0F0",borderBottom:"1px solid #FECACA",fontSize:13,color:"#991B1B",fontWeight:700,display:"flex",alignItems:"center",gap:5}}>
             <span>⚠️</span> Wajib diisi — jelaskan alasannya agar Admin RK tahu apa yang perlu diperbaiki
           </div>
           <textarea placeholder="Contoh: Lokasi belum lengkap, jam mulai perlu dikonfirmasi ulang ke penyelenggara..." value={rejectTexts[ev.id]||""} onChange={e=>setRT(p=>({...p,[ev.id]:e.target.value}))} rows={3} style={{width:"100%",padding:"9px 11px",border:"none",resize:"none",color:"#334155",background:"#FFF5F5",fontSize:13,boxSizing:"border-box"}}/>
@@ -4844,13 +4844,13 @@ function ExpandedDetail({ev,hariEv}){
       </>}
       {ev.alurHapus==="menunggu_kasubbag"&&<>
         <div style={{background:"#FFF8DC",border:"1.5px solid #FCD34D",borderRadius:10,padding:"10px 14px",marginBottom:4}}>
-          <div style={{fontSize:11,fontWeight:800,color:"#92400E",marginBottom:4}}>⚠️ Permintaan Pembatalan Jadwal</div>
+          <div style={{fontSize:13,fontWeight:800,color:"#92400E",marginBottom:4}}>⚠️ Permintaan Pembatalan Jadwal</div>
           <div style={{fontSize:12,color:"#78350F",lineHeight:1.6}}>
             <span style={{fontWeight:700}}>Alasan: </span>{ev.alasanHapus||"Tidak ada alasan"}
           </div>
         </div>
         <div style={{borderRadius:9,border:"1.5px solid #E2E8F0",overflow:"hidden"}}>
-          <div style={{padding:"8px 12px",background:"#F8FAFC",borderBottom:"1px solid #E2E8F0",fontSize:11,color:"#475569",fontWeight:600}}>
+          <div style={{padding:"8px 12px",background:"#F8FAFC",borderBottom:"1px solid #E2E8F0",fontSize:13,color:"#475569",fontWeight:600}}>
             Catatan tambahan (opsional):
           </div>
           <textarea
@@ -4890,11 +4890,11 @@ function ExpandedDetail({ev,hariEv}){
         <div style={{marginTop:8}}>
           {(!ev.personil||ev.personil.length===0)&&new Date(ev.tanggal+"T"+ev.jam)>=new Date()
             ?<div style={{background:"#FFFBEB",borderRadius:10,padding:"10px 14px",border:"1.5px solid #FDE68A",marginBottom:8}}>
-              <div style={{fontSize:11,fontWeight:800,color:"#92400E",marginBottom:2}}>⚠️ Belum ada personil yang ditugaskan</div>
-              <div style={{fontSize:10,color:"#B45309"}}>Agenda ini belum memiliki personil bertugas. Segera tugaskan agar tidak kosong saat hari H.</div>
+              <div style={{fontSize:13,fontWeight:800,color:"#92400E",marginBottom:2}}>⚠️ Belum ada personil yang ditugaskan</div>
+              <div style={{fontSize:12,color:"#B45309"}}>Agenda ini belum memiliki personil bertugas. Segera tugaskan agar tidak kosong saat hari H.</div>
             </div>
             :<div style={{background:"#F0FDF4",borderRadius:10,padding:"8px 12px",border:"1px solid #86EFAC",marginBottom:8}}>
-              <div style={{fontSize:10,fontWeight:700,color:"#065F46"}}>{ev.personil.length} personil sudah ditugaskan</div>
+              <div style={{fontSize:12,fontWeight:700,color:"#065F46"}}>{ev.personil.length} personil sudah ditugaskan</div>
             </div>
           }
           <button onClick={()=>setPenugasanEv(ev)}
@@ -4920,11 +4920,11 @@ function ExpandedDetail({ev,hariEv}){
         {/* DESTRUCTIVE — dipisah garis */}
         <div style={{display:"flex",alignItems:"center",gap:8,margin:"2px 0"}}>
           <div style={{flex:1,height:1,background:"#E2E8F0"}}/>
-          <span style={{fontSize:10,color:"#94A3B8",fontWeight:600}}>atau tolak</span>
+          <span style={{fontSize:12,color:"#94A3B8",fontWeight:600}}>atau tolak</span>
           <div style={{flex:1,height:1,background:"#E2E8F0"}}/>
         </div>
         <div style={{borderRadius:10,border:"1.5px solid #FECACA",overflow:"hidden"}}>
-          <div style={{padding:"8px 11px 6px",background:"#FFF0F0",borderBottom:"1px solid #FECACA",fontSize:11,color:"#991B1B",fontWeight:700,display:"flex",alignItems:"center",gap:5}}>
+          <div style={{padding:"8px 11px 6px",background:"#FFF0F0",borderBottom:"1px solid #FECACA",fontSize:13,color:"#991B1B",fontWeight:700,display:"flex",alignItems:"center",gap:5}}>
             <span>⚠️</span> Wajib diisi — jelaskan alasannya agar Admin RK tahu apa yang perlu diperbaiki
           </div>
           <textarea placeholder="Contoh: Data penyelenggara perlu dilengkapi, lokasi tidak sesuai..." value={rejectTexts[ev.id]||""} onChange={e=>setRT(p=>({...p,[ev.id]:e.target.value}))} rows={3} style={{width:"100%",padding:"9px 11px",border:"none",resize:"none",color:"#334155",background:"#FFF5F5",fontSize:13,boxSizing:"border-box"}}/>
@@ -4936,7 +4936,7 @@ function ExpandedDetail({ev,hariEv}){
       </>}
       {ev.alurHapus==="menunggu_kabag"&&<>
         <div style={{background:"#FEF3C7",border:"1.5px solid #FDE68A",borderRadius:10,padding:"10px 14px",marginBottom:6}}>
-          <div style={{fontSize:11,fontWeight:800,color:"#78350F",marginBottom:4}}>⚠️ Permintaan Pembatalan — Keputusan Akhir</div>
+          <div style={{fontSize:13,fontWeight:800,color:"#78350F",marginBottom:4}}>⚠️ Permintaan Pembatalan — Keputusan Akhir</div>
           <div style={{fontSize:12,color:"#92400E",lineHeight:1.6}}>
             <span style={{fontWeight:700}}>Alasan: </span>{ev.alasanHapus||"Tidak ada alasan"}
           </div>
@@ -4976,11 +4976,11 @@ function ExpandedDetail({ev,hariEv}){
         <div style={{marginTop:8}}>
           {(!ev.personil||ev.personil.length===0)
             ?<div style={{background:"#FFFBEB",borderRadius:10,padding:"10px 14px",border:"1.5px solid #FDE68A",marginBottom:8}}>
-              <div style={{fontSize:11,fontWeight:800,color:"#92400E",marginBottom:2}}>⚠️ Belum ada personil ditugaskan</div>
-              <div style={{fontSize:10,color:"#B45309"}}>Segera tugaskan agar tidak kosong saat hari H.</div>
+              <div style={{fontSize:13,fontWeight:800,color:"#92400E",marginBottom:2}}>⚠️ Belum ada personil ditugaskan</div>
+              <div style={{fontSize:12,color:"#B45309"}}>Segera tugaskan agar tidak kosong saat hari H.</div>
             </div>
             :<div style={{background:"#F0FDF4",borderRadius:10,padding:"8px 12px",border:"1px solid #86EFAC",marginBottom:8}}>
-              <div style={{fontSize:10,fontWeight:700,color:"#065F46"}}>{ev.personil.length} personil sudah ditugaskan</div>
+              <div style={{fontSize:12,fontWeight:700,color:"#065F46"}}>{ev.personil.length} personil sudah ditugaskan</div>
             </div>
           }
           <button onClick={()=>setPenugasanEv(ev)}
@@ -5047,7 +5047,7 @@ function TimelineView({evList}){
           border:"2px solid "+(isToday?"#C9A84C":"#CBD5E1"),display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
           <div style={{width:6,height:6,borderRadius:"50%",background:isToday?"#C9A84C":"#94A3B8"}}/>
         </div>
-        <span style={{fontSize:11,fontWeight:800,color:isToday?"#0A1628":"#64748B",letterSpacing:0.3,
+        <span style={{fontSize:13,fontWeight:800,color:isToday?"#0A1628":"#64748B",letterSpacing:0.3,
           background:isToday?"linear-gradient(90deg,#FEF9EC,transparent)":isPast?"transparent":"#F8FAFF",
           padding:isToday?"3px 8px":"0",borderRadius:6,
           borderLeft:isToday?"3px solid #C9A84C":"none",paddingLeft:isToday?"8px":"0"}}>
@@ -5078,21 +5078,21 @@ function TimelineView({evList}){
             <div style={{flex:1,minWidth:0}}>
               <div style={{fontSize:13,fontWeight:700,color:isPast?"#94A3B8":"#0F172A",lineHeight:1.3,
                 overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ev.namaAcara}</div>
-              <div style={{fontSize:11,color:isPast?"#CBD5E1":"#64748B",marginTop:2,
+              <div style={{fontSize:13,color:isPast?"#CBD5E1":"#64748B",marginTop:2,
                 overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
                 {ev.penyelenggara}{ev.lokasi?" · "+ev.lokasi:""}
               </div>
               {(hadirStr||showMenungguKehadiran)&&
-                <div style={{marginTop:3,fontSize:10,display:"flex",alignItems:"center",gap:5}}>
-                  <span style={{fontSize:11}}>👤</span>
+                <div style={{marginTop:3,fontSize:12,display:"flex",alignItems:"center",gap:5}}>
+                  <span style={{fontSize:13}}>👤</span>
                   {hadirStr
                     ?<span style={{color:isPast?"#16A34A":"#15803D",fontWeight:600}}>Hadir: {hadirStr}</span>
                     :<span style={{color:"#B45309",fontWeight:600}}>Menunggu konfirmasi kehadiran pimpinan</span>}
                 </div>}
             </div>
-            {isNow&&<span style={{fontSize:9,background:"linear-gradient(90deg,#0A1628,#1B4080)",color:"#C9A84C",
+            {isNow&&<span style={{fontSize:12,background:"linear-gradient(90deg,#0A1628,#1B4080)",color:"#C9A84C",
               borderRadius:4,padding:"2px 7px",fontWeight:800,flexShrink:0,animation:"pulse 2s ease infinite"}}>Berlangsung</span>}
-            {isFuture&&<span style={{fontSize:11,color:"#CBD5E1",flexShrink:0}}>▼</span>}
+            {isFuture&&<span style={{fontSize:13,color:"#CBD5E1",flexShrink:0}}>▼</span>}
           </div>
         </div>
         {expandedId===ev.id&&<div style={{marginTop:4}}><ExpandedDetail ev={ev} hariEv={getHari(ev.tanggal)}/></div>}
@@ -5124,7 +5124,7 @@ function TimelineView({evList}){
         <span style={{flex:1,textAlign:"left"}}>
           {showPast?"▲ Sembunyikan":"▼ Lihat"} {past.length} agenda yang sudah berlalu
         </span>
-        <span style={{fontSize:10,background:"#E2E8F0",borderRadius:20,padding:"2px 8px",color:"#94A3B8"}}>
+        <span style={{fontSize:12,background:"#E2E8F0",borderRadius:20,padding:"2px 8px",color:"#94A3B8"}}>
           {past.length}
         </span>
       </button>
@@ -5419,7 +5419,7 @@ function ReportingTamuModal({ user, onClose, cetakOleh, showT }) {
             <>
               {/* Filter status */}
               <div style={{marginBottom:14}}>
-                <label style={{display:"block",fontSize:11,fontWeight:800,color:"#475569",textTransform:"uppercase",letterSpacing:1,marginBottom:6}}>Filter Status</label>
+                <label style={{display:"block",fontSize:13,fontWeight:800,color:"#475569",textTransform:"uppercase",letterSpacing:1,marginBottom:6}}>Filter Status</label>
                 <select value={mode} onChange={e => setMode(e.target.value)} style={{width:"100%",padding:"11px 14px",borderRadius:10,border:"1.5px solid #CBD5E1",fontSize:13,color:NAVY,fontWeight:600}}>
                   <option value="all">Semua Status (Histori Lengkap)</option>
                   <option value="pending_rk">Baru Masuk (Admin RK)</option>
@@ -5437,7 +5437,7 @@ function ReportingTamuModal({ user, onClose, cetakOleh, showT }) {
                 <div style={{fontSize:22}}>👥</div>
                 <div>
                   <div style={{fontSize:14,fontWeight:800,color:NAVY}}>{filtered.length} permohonan ditemukan</div>
-                  <div style={{fontSize:11,color:"#64748B",marginTop:2}}>
+                  <div style={{fontSize:13,color:"#64748B",marginTop:2}}>
                     {filtered.filter(g=>g.status==="approved").length} disetujui &nbsp;·&nbsp;
                     {filtered.filter(g=>g.status==="rejected").length} ditolak &nbsp;·&nbsp;
                     {filtered.filter(g=>["pending_rk","pending_kasubbag","pending_kabag","pending_pimpinan"].includes(g.status)).length} dalam proses
@@ -5447,7 +5447,7 @@ function ReportingTamuModal({ user, onClose, cetakOleh, showT }) {
 
               {/* Pilihan ukuran kertas */}
               <div style={{marginBottom:18}}>
-                <label style={{display:"block",fontSize:11,fontWeight:800,color:"#475569",textTransform:"uppercase",letterSpacing:1,marginBottom:6}}>Ukuran Kertas</label>
+                <label style={{display:"block",fontSize:13,fontWeight:800,color:"#475569",textTransform:"uppercase",letterSpacing:1,marginBottom:6}}>Ukuran Kertas</label>
                 <div style={{display:"flex",gap:6,background:"#F1F5F9",borderRadius:12,padding:5}}>
                   {[{k:"a4",l:"A4 Landscape"},{k:"f4",l:"F4 / Folio Landscape"}].map(o => {
                     const act = printMode === o.k;
@@ -5616,7 +5616,7 @@ function ArsipModal({events, onClose, user}){
         <div style={{background:"linear-gradient(135deg,"+NAVY+",#1B4080)",padding:"20px 24px",borderRadius:"20px 20px 0 0"}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
             <div>
-              <div style={{color:GOLD,fontSize:11,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",marginBottom:4}}>Admin Rencana Kegiatan</div>
+              <div style={{color:GOLD,fontSize:13,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",marginBottom:4}}>Admin Rencana Kegiatan</div>
               <div style={{color:"white",fontSize:18,fontWeight:800}}>📦 Unduh Arsip Berkas</div>
               <div style={{color:"rgba(255,255,255,0.6)",fontSize:12,marginTop:3}}>Unduhan & Sambutan per bulan</div>
             </div>
@@ -5629,14 +5629,14 @@ function ArsipModal({events, onClose, user}){
           {/* Pilih Bulan & Tahun */}
           <div style={{display:"flex",gap:10,marginBottom:14}}>
             <div style={{flex:2}}>
-              <label style={{display:"block",fontSize:11,fontWeight:700,color:"#475569",marginBottom:5,textTransform:"uppercase",letterSpacing:1}}>Bulan</label>
+              <label style={{display:"block",fontSize:13,fontWeight:700,color:"#475569",marginBottom:5,textTransform:"uppercase",letterSpacing:1}}>Bulan</label>
               <select value={selMonth} onChange={e=>setSelMonth(parseInt(e.target.value))}
                 style={{width:"100%",padding:"10px 12px",borderRadius:10,border:"1.5px solid #E2E8F0",fontSize:13,color:NAVY,fontWeight:600,background:"white"}}>
                 {BULAN_LABEL.map((b,i)=><option key={i} value={i}>{b}</option>)}
               </select>
             </div>
             <div style={{flex:1}}>
-              <label style={{display:"block",fontSize:11,fontWeight:700,color:"#475569",marginBottom:5,textTransform:"uppercase",letterSpacing:1}}>Tahun</label>
+              <label style={{display:"block",fontSize:13,fontWeight:700,color:"#475569",marginBottom:5,textTransform:"uppercase",letterSpacing:1}}>Tahun</label>
               <select value={selYear} onChange={e=>setSelYear(parseInt(e.target.value))}
                 style={{width:"100%",padding:"10px 12px",borderRadius:10,border:"1.5px solid #E2E8F0",fontSize:13,color:NAVY,fontWeight:600,background:"white"}}>
                 {years.map(y=><option key={y}>{y}</option>)}
@@ -5661,7 +5661,7 @@ function ArsipModal({events, onClose, user}){
           <div style={{background:"#F8FAFC",borderRadius:12,padding:"12px 14px",marginBottom:14,border:"1px solid #E2E8F0",display:"flex",alignItems:"center",gap:12}}>
             <div style={{flex:1}}>
               <div style={{fontSize:14,fontWeight:800,color:NAVY}}>{arsipList.length} berkas ditemukan</div>
-              <div style={{fontSize:11,color:"#64748B",marginTop:2}}>{BULAN_LABEL[selMonth]} {selYear} · {filter==="semua"?"Undangan & Sambutan":filter==="undangan"?"Undangan saja":"Sambutan saja"}</div>
+              <div style={{fontSize:13,color:"#64748B",marginTop:2}}>{BULAN_LABEL[selMonth]} {selYear} · {filter==="semua"?"Undangan & Sambutan":filter==="undangan"?"Undangan saja":"Sambutan saja"}</div>
             </div>
             {arsipList.length>1&&(
               <button onClick={downloadSemua} disabled={downloading==="batch"}
@@ -5699,22 +5699,22 @@ function ArsipModal({events, onClose, user}){
                   {/* Info */}
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontSize:12,fontWeight:800,color:NAVY,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.namaAcara}</div>
-                    <div style={{fontSize:10,color:"#64748B",marginTop:2}}>{fmtTgl(item.tanggal)} · {item.jam} WITA</div>
+                    <div style={{fontSize:12,color:"#64748B",marginTop:2}}>{fmtTgl(item.tanggal)} · {item.jam} WITA</div>
                     <div style={{display:"flex",alignItems:"center",gap:5,marginTop:3}}>
-                      <span style={{fontSize:9,padding:"1px 7px",borderRadius:10,fontWeight:700,
+                      <span style={{fontSize:12,padding:"1px 7px",borderRadius:10,fontWeight:700,
                         background:item.tipe==="undangan"?"#DBEAFE":"#EDE9FE",
                         color:item.tipe==="undangan"?"#1D4ED8":"#6D28D9"}}>
                         {item.label}
                       </span>
-                      <span style={{fontSize:9,color:"#94A3B8",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:180}}>{item.nama}</span>
-                      {!item.isUrl&&<span style={{fontSize:9,color:"#F59E0B",fontWeight:700,flexShrink:0}}>📱 Lokal</span>}
+                      <span style={{fontSize:12,color:"#94A3B8",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:180}}>{item.nama}</span>
+                      {!item.isUrl&&<span style={{fontSize:12,color:"#F59E0B",fontWeight:700,flexShrink:0}}>📱 Lokal</span>}
                     </div>
                   </div>
                   {/* Tombol unduh */}
                   <button onClick={()=>downloadSatu(item)} disabled={downloading===item.evId+item.tipe}
                     style={{flexShrink:0,padding:"8px 12px",borderRadius:9,border:"none",
                       background:item.tipe==="undangan"?"#2563EB":"#7C3AED",
-                      color:"white",cursor:"pointer",fontSize:11,fontWeight:700,
+                      color:"white",cursor:"pointer",fontSize:13,fontWeight:700,
                       opacity:downloading===item.evId+item.tipe?0.6:1}}>
                     {downloading===item.evId+item.tipe?"...":"⬇️"}
                   </button>
@@ -6418,7 +6418,7 @@ const TH={
       <img src="/logo_tarakan.png" alt="" style={{height:80,width:"auto",objectFit:"contain",filter:"drop-shadow(0 4px 24px rgba(201,168,76,0.35))",marginBottom:20,animation:"pulse 2s ease infinite"}} onError={e=>e.target.style.display="none"}/>
       {/* Nama sistem */}
       <div style={{color:"white",fontSize:20,fontWeight:800,letterSpacing:"1px",marginBottom:4}}>Prokopim Tarakan</div>
-      <div style={{color:"rgba(201,168,76,0.7)",fontSize:11,fontWeight:500,letterSpacing:"2px",textTransform:"uppercase",marginBottom:32}}>Sistem Informasi Jadwal Pimpinan</div>
+      <div style={{color:"rgba(201,168,76,0.7)",fontSize:13,fontWeight:500,letterSpacing:"2px",textTransform:"uppercase",marginBottom:32}}>Sistem Informasi Jadwal Pimpinan</div>
       {/* Spinner emas */}
       <div style={{width:44,height:44,position:"relative",marginBottom:20}}>
         <div style={{position:"absolute",inset:0,border:"3px solid rgba(201,168,76,0.15)",borderTopColor:"#C9A84C",borderRadius:"50%",animation:"spin 0.9s linear infinite"}}/>
@@ -6427,7 +6427,7 @@ const TH={
       <div style={{color:"#C9A84C",fontSize:13,fontWeight:600,letterSpacing:"0.5px",marginBottom:40,minHeight:20,animation:"pulse 1.2s ease infinite"}}>{loginPhase}</div>
       {/* Tagline di bawah */}
       <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"28px 20px 32px",textAlign:"center",background:"linear-gradient(to top,rgba(0,0,0,0.5),transparent)"}}>
-        <div style={{color:"rgba(255,255,255,0.45)",fontSize:10,fontWeight:500,letterSpacing:"1.5px",textTransform:"uppercase",marginBottom:8}}>Motto Pelayanan</div>
+        <div style={{color:"rgba(255,255,255,0.45)",fontSize:12,fontWeight:500,letterSpacing:"1.5px",textTransform:"uppercase",marginBottom:8}}>Motto Pelayanan</div>
         <div style={{color:"rgba(255,255,255,0.75)",fontSize:13,fontWeight:600,fontStyle:"italic",lineHeight:1.6}}>
           "Berikan yang terbaik, untuk kota kita"
         </div>
@@ -6493,12 +6493,12 @@ const TH={
           <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:14}}>
             <img src="/logo_tarakan.png" alt="Logo" style={{height:48,width:"auto",objectFit:"contain",filter:"drop-shadow(0 2px 8px rgba(0,0,0,0.5))",flexShrink:0}} onError={e=>e.target.style.display="none"}/>
             <div>
-              <div style={{color:GOLD2,fontSize:9,letterSpacing:2.5,textTransform:"uppercase",fontWeight:700,marginBottom:3}}>Pemerintah Kota Tarakan</div>
+              <div style={{color:GOLD2,fontSize:12,letterSpacing:2.5,textTransform:"uppercase",fontWeight:700,marginBottom:3}}>Pemerintah Kota Tarakan</div>
               <div style={{color:FG,fontSize:15,fontWeight:800,lineHeight:1.3}}>Protokol &amp; Komunikasi Pimpinan</div>
             </div>
           </div>
           <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
-            {features.map(([ic,t])=><span key={t} style={{background:"hsla(42,78%,55%,0.12)",border:"1px solid hsla(42,78%,55%,0.3)",borderRadius:20,padding:"3px 10px",fontSize:10,color:GOLD2,fontWeight:700}}>{ic} {t}</span>)}
+            {features.map(([ic,t])=><span key={t} style={{background:"hsla(42,78%,55%,0.12)",border:"1px solid hsla(42,78%,55%,0.3)",borderRadius:20,padding:"3px 10px",fontSize:12,color:GOLD2,fontWeight:700}}>{ic} {t}</span>)}
           </div>
         </div>
 
@@ -6510,11 +6510,11 @@ const TH={
           </div>
 
           <div style={{marginBottom:14}}>
-            <label style={{display:"block",fontSize:11,color:MUTED,fontWeight:700,marginBottom:6,letterSpacing:1.2,textTransform:"uppercase"}}>Username</label>
+            <label style={{display:"block",fontSize:13,color:MUTED,fontWeight:700,marginBottom:6,letterSpacing:1.2,textTransform:"uppercase"}}>Username</label>
             <input className="login-inp" type="text" value={loginForm.username} onChange={e=>setLF(p=>({...p,username:e.target.value}))} onKeyDown={e=>e.key==="Enter"&&doLogin()} placeholder="Masukkan username" autoCapitalize="none" autoCorrect="off" style={inpStyle}/>
           </div>
           <div style={{marginBottom:16}}>
-            <label style={{display:"block",fontSize:11,color:MUTED,fontWeight:700,marginBottom:6,letterSpacing:1.2,textTransform:"uppercase"}}>Password</label>
+            <label style={{display:"block",fontSize:13,color:MUTED,fontWeight:700,marginBottom:6,letterSpacing:1.2,textTransform:"uppercase"}}>Password</label>
             <div style={{position:"relative"}}>
               <input className="login-inp" type={showPass?"text":"password"} value={loginForm.password} onChange={e=>setLF(p=>({...p,password:e.target.value}))} onKeyDown={e=>e.key==="Enter"&&doLogin()} placeholder="Masukkan password" style={{...inpStyle,paddingRight:44}}/>
               <button onClick={()=>setShowPass(p=>!p)} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:MUTED,fontSize:18,padding:4}}>{showPass?"👁️":"👁️‍🗨️"}</button>
@@ -6523,7 +6523,7 @@ const TH={
 
           {loginErr&&<div style={{background:"hsla(0,84%,60%,0.15)",borderRadius:9,padding:"10px 13px",marginBottom:12,fontSize:13,color:"hsl(0,84%,75%)",fontWeight:600,border:"1px solid hsla(0,84%,60%,0.3)",animation:"gentleShake 0.4s ease"}}>
             {loginErr}
-            {lockSeconds>0&&<div style={{marginTop:6,fontSize:11,opacity:0.8}}>⏳ Coba lagi dalam {Math.floor(lockSeconds/60)}:{String(lockSeconds%60).padStart(2,"0")}</div>}
+            {lockSeconds>0&&<div style={{marginTop:6,fontSize:13,opacity:0.8}}>⏳ Coba lagi dalam {Math.floor(lockSeconds/60)}:{String(lockSeconds%60).padStart(2,"0")}</div>}
           </div>}
           {(bioErr||bioLoading)&&<div style={{background:"hsla(210,80%,55%,0.12)",borderRadius:9,padding:"10px 13px",marginBottom:12,fontSize:13,color:"hsl(210,80%,75%)",fontWeight:600,border:"1px solid hsla(210,80%,55%,0.25)"}}>{bioLoading?"Memverifikasi biometrik...":bioErr}</div>}
 
@@ -6543,7 +6543,7 @@ const TH={
               </div>}
           </>}
 
-          <div style={{marginTop:"auto",paddingTop:24,textAlign:"center",color:MUTED,fontSize:10,letterSpacing:1.5,opacity:0.5}}>v{import.meta.env.VITE_APP_VERSION || "1.0.0"} (Build {import.meta.env.VITE_BUILD_TIME}) · Prokopim Tarakan</div>
+          <div style={{marginTop:"auto",paddingTop:24,textAlign:"center",color:MUTED,fontSize:12,letterSpacing:1.5,opacity:0.5}}>v{import.meta.env.VITE_APP_VERSION || "1.0.0"} (Build {import.meta.env.VITE_BUILD_TIME}) · Prokopim Tarakan</div>
         </div>
       </>}
 
@@ -6555,7 +6555,7 @@ const TH={
             <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:32}}>
               <img src="/logo_tarakan.png" alt="Logo" style={{height:64,width:"auto",objectFit:"contain",filter:"drop-shadow(0 2px 12px rgba(0,0,0,0.5))",flexShrink:0}} onError={e=>e.target.style.display="none"}/>
               <div>
-                <div style={{color:GOLD2,fontSize:9,letterSpacing:2.5,textTransform:"uppercase",fontWeight:700,marginBottom:4}}>Pemerintah Kota Tarakan</div>
+                <div style={{color:GOLD2,fontSize:12,letterSpacing:2.5,textTransform:"uppercase",fontWeight:700,marginBottom:4}}>Pemerintah Kota Tarakan</div>
                 <div style={{color:FG,fontSize:17,fontWeight:800,lineHeight:1.25}}>Bagian Protokol &amp;</div>
                 <div style={{color:FG,fontSize:17,fontWeight:800}}>Komunikasi Pimpinan</div>
               </div>
@@ -6567,11 +6567,11 @@ const TH={
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px 16px"}}>
               {features.map(([ic,t,d],i)=><div key={t} className="feat-item" style={{display:"flex",alignItems:"flex-start",gap:10,animationDelay:(i*0.06)+"s"}}>
                 <div style={{width:30,height:30,borderRadius:8,background:"hsla(42,78%,55%,0.1)",border:"1px solid hsla(42,78%,55%,0.18)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,flexShrink:0,marginTop:1}}>{ic}</div>
-                <div><div style={{color:FG,fontSize:12,fontWeight:700,lineHeight:1.3}}>{t}</div><div style={{color:MUTED,fontSize:10,lineHeight:1.4,marginTop:1}}>{d}</div></div>
+                <div><div style={{color:FG,fontSize:12,fontWeight:700,lineHeight:1.3}}>{t}</div><div style={{color:MUTED,fontSize:12,lineHeight:1.4,marginTop:1}}>{d}</div></div>
               </div>)}
             </div>
           </div>
-          <div style={{color:MUTED,fontSize:10,letterSpacing:1.5,opacity:0.5,marginTop:20}}>v{import.meta.env.VITE_APP_VERSION || "1.0.0"} (Build {import.meta.env.VITE_BUILD_TIME}) · Prokopim Tarakan</div>
+          <div style={{color:MUTED,fontSize:12,letterSpacing:1.5,opacity:0.5,marginTop:20}}>v{import.meta.env.VITE_APP_VERSION || "1.0.0"} (Build {import.meta.env.VITE_BUILD_TIME}) · Prokopim Tarakan</div>
         </div>
 
         {/* Right panel login */}
@@ -6582,11 +6582,11 @@ const TH={
           </div>
 
           <div style={{marginBottom:14}}>
-            <label style={{display:"block",fontSize:11,color:MUTED,fontWeight:700,marginBottom:6,letterSpacing:1.2,textTransform:"uppercase"}}>Username</label>
+            <label style={{display:"block",fontSize:13,color:MUTED,fontWeight:700,marginBottom:6,letterSpacing:1.2,textTransform:"uppercase"}}>Username</label>
             <input className="login-inp" type="text" value={loginForm.username} onChange={e=>setLF(p=>({...p,username:e.target.value}))} onKeyDown={e=>e.key==="Enter"&&doLogin()} placeholder="Masukkan username" autoCapitalize="none" autoCorrect="off" style={inpStyle}/>
           </div>
           <div style={{marginBottom:18}}>
-            <label style={{display:"block",fontSize:11,color:MUTED,fontWeight:700,marginBottom:6,letterSpacing:1.2,textTransform:"uppercase"}}>Password</label>
+            <label style={{display:"block",fontSize:13,color:MUTED,fontWeight:700,marginBottom:6,letterSpacing:1.2,textTransform:"uppercase"}}>Password</label>
             <div style={{position:"relative"}}>
               <input className="login-inp" type={showPass?"text":"password"} value={loginForm.password} onChange={e=>setLF(p=>({...p,password:e.target.value}))} onKeyDown={e=>e.key==="Enter"&&doLogin()} placeholder="Masukkan password" style={{...inpStyle,paddingRight:44}}/>
               <button onClick={()=>setShowPass(p=>!p)} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:MUTED,fontSize:16,padding:4}}>{showPass?"👁️":"👁️‍🗨️"}</button>
@@ -6595,7 +6595,7 @@ const TH={
 
           {loginErr&&<div style={{background:"hsla(0,84%,60%,0.15)",borderRadius:9,padding:"9px 13px",marginBottom:12,fontSize:13,color:"hsl(0,84%,75%)",fontWeight:600,border:"1px solid hsla(0,84%,60%,0.3)",animation:"gentleShake 0.4s ease"}}>
             {loginErr}
-            {lockSeconds>0&&<div style={{marginTop:6,fontSize:11,opacity:0.8}}>⏳ Coba lagi dalam {Math.floor(lockSeconds/60)}:{String(lockSeconds%60).padStart(2,"0")}</div>}
+            {lockSeconds>0&&<div style={{marginTop:6,fontSize:13,opacity:0.8}}>⏳ Coba lagi dalam {Math.floor(lockSeconds/60)}:{String(lockSeconds%60).padStart(2,"0")}</div>}
           </div>}
           {(bioErr||bioLoading)&&<div style={{background:"hsla(210,80%,55%,0.12)",borderRadius:9,padding:"9px 13px",marginBottom:12,fontSize:13,color:"hsl(210,80%,75%)",fontWeight:600,border:"1px solid hsla(210,80%,55%,0.25)"}}>{bioLoading?"Memverifikasi biometrik perangkat...":bioErr}</div>}
 
@@ -6610,7 +6610,7 @@ const TH={
               <span style={{fontSize:16}}>🔐</span>{bioLoading?"Memproses...":"Login dengan Biometrik / PIN"}
             </button>
             {loginForm.username&&!bioIsRegistered(loginForm.username.toLowerCase().trim())&&
-              <div style={{background:"hsla(42,78%,55%,0.1)",borderRadius:8,padding:"7px 11px",fontSize:11,color:GOLD2,display:"flex",gap:6,alignItems:"flex-start",border:"1px solid hsla(42,78%,55%,0.2)"}}>
+              <div style={{background:"hsla(42,78%,55%,0.1)",borderRadius:8,padding:"7px 11px",fontSize:13,color:GOLD2,display:"flex",gap:6,alignItems:"flex-start",border:"1px solid hsla(42,78%,55%,0.2)"}}>
                 <span>⚠️</span><span>Biometrik belum aktif. Login dulu, lalu aktifkan di <strong>Pengaturan Akun</strong>.</span>
               </div>}
           </>}
@@ -6729,17 +6729,17 @@ const TH={
     <div style={{padding:"20px 16px 14px",borderBottom:"1px solid rgba(255,255,255,0.1)"}}>
       <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
         <img src="/logo_tarakan.png" alt="Logo" style={{height:36,width:"auto",objectFit:"contain",filter:"drop-shadow(0 1px 4px rgba(0,0,0,0.3))",flexShrink:0}} onError={e=>e.target.style.display="none"}/>
-        <div><div style={{color:th.a,fontSize:8,letterSpacing:1.5,textTransform:"uppercase",fontWeight:700}}>Pemkot Tarakan</div><div style={{color:"white",fontSize:11,fontWeight:700,lineHeight:1.3}}>Protokol &amp; Komunikasi</div></div>
+        <div><div style={{color:th.a,fontSize:8,letterSpacing:1.5,textTransform:"uppercase",fontWeight:700}}>Pemkot Tarakan</div><div style={{color:"white",fontSize:13,fontWeight:700,lineHeight:1.3}}>Protokol &amp; Komunikasi</div></div>
       </div>
       <button onClick={()=>setShowProfile(true)} style={{width:"100%",background:"rgba(255,255,255,0.09)",borderRadius:11,padding:"10px 12px",display:"flex",alignItems:"center",gap:10,border:"1px solid rgba(255,255,255,0.12)",cursor:"pointer",textAlign:"left",transition:"all 0.15s"}} onMouseOver={e=>e.currentTarget.style.background="rgba(255,255,255,0.16)"} onMouseOut={e=>e.currentTarget.style.background="rgba(255,255,255,0.09)"}>
         <div style={{width:34,height:34,borderRadius:9,background:"rgba(255,255,255,0.12)",border:"1.5px solid "+th.a,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0,color:"white",fontWeight:700}}>{user?.nama?.slice(0,1)}</div>
-        <div style={{flex:1,minWidth:0}}><div style={{color:"white",fontSize:12,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user?.nama}</div><div style={{color:"rgba(255,255,255,0.5)",fontSize:9,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{roleInfo.label}</div></div>
+        <div style={{flex:1,minWidth:0}}><div style={{color:"white",fontSize:12,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user?.nama}</div><div style={{color:"rgba(255,255,255,0.5)",fontSize:12,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{roleInfo.label}</div></div>
         <div title={SUPA_OK?"DB OK":"Mode Lokal"} style={{width:7,height:7,borderRadius:"50%",background:SUPA_OK?"#34d399":"#f87171",flexShrink:0}}/>
       </button>
     </div>
     <nav style={{flex:1,padding:"10px 10px",overflowY:"auto"}}>
       {navGroups.map(group=><div key={group.label} style={{marginBottom:8}}>
-        <div style={{color:"rgba(255,255,255,0.3)",fontSize:9,fontWeight:800,letterSpacing:1.5,padding:"6px 10px 4px",textTransform:"uppercase"}}>{group.label}</div>
+        <div style={{color:"rgba(255,255,255,0.3)",fontSize:12,fontWeight:800,letterSpacing:1.5,padding:"6px 10px 4px",textTransform:"uppercase"}}>{group.label}</div>
         {group.items.map(item=>{const isActive=tab===item.key&&!item.key.startsWith("action:");return(
           <button key={item.key+item.label} className="nav-btn sidebar-link" onClick={()=>handleNavClick(item.key)} style={{width:"100%",padding:"9px 14px",borderRadius:9,border:"none",background:isActive?"rgba(255,255,255,0.18)":"transparent",color:"white",cursor:"pointer",fontSize:12.5,fontWeight:isActive?700:400,textAlign:"left",display:"flex",alignItems:"center",gap:10,marginBottom:2,borderLeft:isActive?"3px solid "+th.a:"3px solid transparent",opacity:isActive?1:0.72}}>
             <span style={{fontSize:15,minWidth:22,textAlign:"center"}}>{item.icon}</span>{item.label}
@@ -6748,7 +6748,7 @@ const TH={
     </nav>
     <div style={{padding:"10px",borderTop:"1px solid rgba(255,255,255,0.08)"}}>
       {pendingList.length>0&&["kasubbag_protokol","kasubbag_komdokpim","kabag","walikota","wakilwalikota","admin_rk"].includes(role)&&<button onClick={goToPending} style={{width:"100%",padding:"10px 14px",borderRadius:10,border:"none",background:role==="walikota"||role==="wakilwalikota"?"linear-gradient(135deg,#0A1628,#1E3A5F)":"linear-gradient(135deg,#ef4444,#dc2626)",color:"white",cursor:"pointer",fontSize:12,fontWeight:700,textAlign:"left",display:"flex",alignItems:"center",gap:10,marginBottom:8,boxShadow:role==="walikota"||role==="wakilwalikota"?"0 4px 12px rgba(10,22,40,0.3)":"0 4px 12px rgba(239,68,68,0.3)"}}>
-        <span style={{background:"rgba(255,255,255,0.2)",color:"white",borderRadius:"50%",width:18,height:18,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:900,flexShrink:0}}>{pendingList.length}</span>
+        <span style={{background:"rgba(255,255,255,0.2)",color:"white",borderRadius:"50%",width:18,height:18,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:900,flexShrink:0}}>{pendingList.length}</span>
         {role==="walikota"||role==="wakilwalikota"?"Perlu Konfirmasi Hadir":role==="kasubbag_komdokpim"?"Caption Menunggu Review":"Pending Approval"}
       </button>}
       <button onClick={doLogout} style={{width:"100%",padding:"9px 12px",borderRadius:9,border:"1px solid rgba(255,255,255,0.18)",background:"transparent",color:"rgba(255,255,255,0.65)",cursor:"pointer",fontSize:12,fontWeight:600,textAlign:"left"}}>Keluar</button>
@@ -6830,10 +6830,10 @@ const TH={
         <img src="/logo_tarakan.png" alt="" style={{height:32,width:"auto",objectFit:"contain",flexShrink:0,filter:"drop-shadow(0 1px 3px rgba(0,0,0,0.3))"}} onError={e=>e.target.style.display="none"}/>
         <div style={{flex:1,minWidth:0}}>
           <div style={{color:"white",fontSize:13,fontWeight:800,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",letterSpacing:"-0.2px"}}>{user?.nama}</div>
-          <div style={{color:GOLD,fontSize:9.5,fontWeight:600,letterSpacing:"0.5px",textTransform:"uppercase"}}>{roleInfo.label}</div>
+          <div style={{color:GOLD,fontSize:12.5,fontWeight:600,letterSpacing:"0.5px",textTransform:"uppercase"}}>{roleInfo.label}</div>
         </div>
-        {pendingList.length>0&&["kasubbag_protokol","kasubbag_komdokpim","kabag","walikota","wakilwalikota","admin_rk"].includes(role)&&<button onClick={goToPending} className="btn-ios" style={{background:role==="walikota"||role==="wakilwalikota"?"#0A1628":"#EF4444",color:"white",borderRadius:20,padding:"4px 11px",fontSize:11,fontWeight:800,border:"none",cursor:"pointer",flexShrink:0,boxShadow:role==="walikota"||role==="wakilwalikota"?"0 2px 10px rgba(10,22,40,0.4)":"0 2px 10px rgba(239,68,68,0.5)",display:"flex",alignItems:"center",gap:5}}>
-          <span style={{background:"rgba(255,255,255,0.25)",borderRadius:"50%",width:16,height:16,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:900}}>{pendingList.length}</span>
+        {pendingList.length>0&&["kasubbag_protokol","kasubbag_komdokpim","kabag","walikota","wakilwalikota","admin_rk"].includes(role)&&<button onClick={goToPending} className="btn-ios" style={{background:role==="walikota"||role==="wakilwalikota"?"#0A1628":"#EF4444",color:"white",borderRadius:20,padding:"4px 11px",fontSize:13,fontWeight:800,border:"none",cursor:"pointer",flexShrink:0,boxShadow:role==="walikota"||role==="wakilwalikota"?"0 2px 10px rgba(10,22,40,0.4)":"0 2px 10px rgba(239,68,68,0.5)",display:"flex",alignItems:"center",gap:5}}>
+          <span style={{background:"rgba(255,255,255,0.25)",borderRadius:"50%",width:16,height:16,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:900}}>{pendingList.length}</span>
           {role==="walikota"||role==="wakilwalikota"?"Konfirmasi":role==="kasubbag_komdokpim"?"Review":"Pending"}
         </button>}
         <button aria-label="Notifikasi" onClick={()=>setShowNotifCenter(true)} style={{position:"relative",width:32,height:32,borderRadius:9,border:"1px solid rgba(255,255,255,0.2)",background:"rgba(255,255,255,0.1)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>
@@ -6858,7 +6858,7 @@ const TH={
           <span className="ios-tab-icon" style={{filter:isActive?"none":"grayscale(0.3)"}}>{t.icon}</span>
           <span className="ios-tab-label" style={{fontWeight:isActive?700:500,color:isActive?NAVY:"#94A3B8"}}>{t.label}</span>
           {t.key==="action:more"&&!showMobMenu&&(
-            (pendingList.length>0?<span style={{position:"absolute",top:6,right:"calc(50% - 14px)",background:"#EF4444",color:"white",borderRadius:"50%",width:16,height:16,fontSize:9,fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center"}}>{pendingList.length}</span>:null)
+            (pendingList.length>0?<span style={{position:"absolute",top:6,right:"calc(50% - 14px)",background:"#EF4444",color:"white",borderRadius:"50%",width:16,height:16,fontSize:12,fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center"}}>{pendingList.length}</span>:null)
           )}
         </button>;
       })}
@@ -6871,7 +6871,7 @@ const TH={
         {/* Handle + scrollable content */}
         <div style={{flexShrink:0,padding:"0 16px"}}>
           <div style={{width:36,height:4,background:"#E2E8F0",borderRadius:4,margin:"12px auto 16px"}}/>
-          <div style={{fontSize:11,fontWeight:700,color:"#94A3B8",letterSpacing:1.5,textTransform:"uppercase",marginBottom:10,paddingLeft:2}}>MENU</div>
+          <div style={{fontSize:13,fontWeight:700,color:"#94A3B8",letterSpacing:1.5,textTransform:"uppercase",marginBottom:10,paddingLeft:2}}>MENU</div>
         </div>
         <div style={{flex:1,overflowY:"auto",padding:"0 16px 16px",WebkitOverflowScrolling:"touch"}}>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
@@ -6953,11 +6953,11 @@ function RKView({events,user,upd,updAndSync,showT,isMobile}){
         <div style={{flex:1}}>
           <div style={{fontWeight:700,color:_NAVY,fontSize:14}}>{r.judul}</div>
           {r.perihal&&<div style={{fontSize:12,color:"#475569",marginTop:2}}>{r.perihal}</div>}
-          <div style={{fontSize:11,color:"#94a3b8",marginTop:4}}>{r.tanggalMulai}{r.tanggalSelesai&&" s.d. "+r.tanggalSelesai} · Oleh: {r.dibuatOlehNama}</div>
+          <div style={{fontSize:13,color:"#94a3b8",marginTop:4}}>{r.tanggalMulai}{r.tanggalSelesai&&" s.d. "+r.tanggalSelesai} · Oleh: {r.dibuatOlehNama}</div>
           {r.uraian&&<div style={{fontSize:12,color:"#334155",marginTop:6,padding:"6px 8px",background:"#f8fafc",borderRadius:6}}>{r.uraian}</div>}
-          {r.catatan&&<div style={{fontSize:11,color:"#64748b",marginTop:4,fontStyle:"italic"}}>{r.catatan}</div>}
+          {r.catatan&&<div style={{fontSize:13,color:"#64748b",marginTop:4,fontStyle:"italic"}}>{r.catatan}</div>}
         </div>
-        <button onClick={()=>hapusRk(r.id)} style={{flexShrink:0,padding:"6px 10px",borderRadius:8,border:"1.5px solid #fca5a5",background:"white",color:"#ef4444",cursor:"pointer",fontSize:11,fontWeight:700}}>✕</button>
+        <button onClick={()=>hapusRk(r.id)} style={{flexShrink:0,padding:"6px 10px",borderRadius:8,border:"1.5px solid #fca5a5",background:"white",color:"#ef4444",cursor:"pointer",fontSize:13,fontWeight:700}}>✕</button>
       </div>
     </div>)}
     {showAI&&<AIModalRK onFill={d=>{setForm(p=>({...p,...d}));setShowForm(true);setShowAI(false);showT("Data terisi dari AI ✓","warn");}} onClose={()=>setShowAI(false)}/>}
@@ -7049,23 +7049,23 @@ function PenugasanSayaView({events, user, onOpenEvaluasi, isMobile}){
     const sudahEval=!!(ev.evaluasi||{})[user.username]?.submitted;
     return(
       <div style={{background:isMyTask?(isPast?"#F8FFFE":"#FAFFFD"):"#FAFBFF",borderRadius:14,border:"1.5px solid "+(isMyTask?(isPast?"#a7f3d0":"#6ee7b7"):"#E2E8F0"),marginBottom:8,overflow:"hidden",opacity:isPast&&!isMyTask?0.6:1}}>
-        {isMyTask&&<div style={{background:isPast?"linear-gradient(90deg,#d1fae5,#a7f3d0)":"linear-gradient(90deg,#ECFDF5,#d1fae5)",padding:"5px 14px",fontSize:10,color:isPast?"#065f46":"#047857",fontWeight:800,letterSpacing:0.5,display:"flex",alignItems:"center",gap:5,borderBottom:"1px solid "+(isPast?"#a7f3d0":"#bbf7d0")}}>
+        {isMyTask&&<div style={{background:isPast?"linear-gradient(90deg,#d1fae5,#a7f3d0)":"linear-gradient(90deg,#ECFDF5,#d1fae5)",padding:"5px 14px",fontSize:12,color:isPast?"#065f46":"#047857",fontWeight:800,letterSpacing:0.5,display:"flex",alignItems:"center",gap:5,borderBottom:"1px solid "+(isPast?"#a7f3d0":"#bbf7d0")}}>
           <span>🎯</span> {isPast?"SUDAH BERTUGAS":"ANDA BERTUGAS"}
-          {isUrgent&&<span style={{marginLeft:"auto",background:"#FEF3C7",color:"#92400E",borderRadius:4,padding:"1px 7px",fontSize:9}}>⚠️ {Math.round(hoursLeft)} JAM LAGI</span>}
-          {isPast&&!sudahEval&&onOpenEvaluasi&&<button onClick={()=>onOpenEvaluasi(ev)} style={{marginLeft:"auto",background:"#7c3aed",color:"white",border:"none",borderRadius:5,padding:"2px 8px",fontSize:9,fontWeight:700,cursor:"pointer"}}>📝 Isi Evaluasi</button>}
-          {isPast&&sudahEval&&<span style={{marginLeft:"auto",background:"#d1fae5",color:"#065f46",borderRadius:4,padding:"1px 7px",fontSize:9,fontWeight:700}}>✅ Dievaluasi</span>}
+          {isUrgent&&<span style={{marginLeft:"auto",background:"#FEF3C7",color:"#92400E",borderRadius:4,padding:"1px 7px",fontSize:12}}>⚠️ {Math.round(hoursLeft)} JAM LAGI</span>}
+          {isPast&&!sudahEval&&onOpenEvaluasi&&<button onClick={()=>onOpenEvaluasi(ev)} style={{marginLeft:"auto",background:"#7c3aed",color:"white",border:"none",borderRadius:5,padding:"2px 8px",fontSize:12,fontWeight:700,cursor:"pointer"}}>📝 Isi Evaluasi</button>}
+          {isPast&&sudahEval&&<span style={{marginLeft:"auto",background:"#d1fae5",color:"#065f46",borderRadius:4,padding:"1px 7px",fontSize:12,fontWeight:700}}>✅ Dievaluasi</span>}
         </div>}
         <div style={{padding:"12px 14px",display:"flex",gap:12,alignItems:"flex-start"}}>
           <div style={{minWidth:44,textAlign:"center",background:isMyTask?(isPast?"#d1fae5":"#ecfdf5"):"#f1f5f9",borderRadius:10,padding:"6px 0"}}>
-            <div style={{fontSize:9,fontWeight:800,color:isMyTask?"#065f46":"#64748B",letterSpacing:0.5,textTransform:"uppercase"}}>{new Date(ev.tanggal).toLocaleDateString("id-ID",{weekday:"short"})}</div>
+            <div style={{fontSize:12,fontWeight:800,color:isMyTask?"#065f46":"#64748B",letterSpacing:0.5,textTransform:"uppercase"}}>{new Date(ev.tanggal).toLocaleDateString("id-ID",{weekday:"short"})}</div>
             <div style={{fontSize:20,fontWeight:900,color:isMyTask?(isPast?"#047857":NAVY):"#334155",lineHeight:1}}>{ev.tanggal.slice(8)}</div>
-            <div style={{fontSize:10,color:isMyTask?"#059669":"#94A3B8",fontWeight:600}}>{ev.jam}</div>
+            <div style={{fontSize:12,color:isMyTask?"#059669":"#94A3B8",fontWeight:600}}>{ev.jam}</div>
           </div>
           <div style={{flex:1,minWidth:0}}>
             <div style={{fontSize:13,fontWeight:800,color:"#0F1C2E",marginBottom:3,lineHeight:1.3}}>{ev.namaAcara}</div>
-            <div style={{fontSize:11,color:"#64748B",marginBottom:3}}>{ev.penyelenggara}{ev.lokasi?" · "+ev.lokasi:""}</div>
-            {ev.catatanPenugasan&&<div style={{fontSize:11,color:"#4338CA",background:"#EEF2FF",borderRadius:6,padding:"4px 8px",marginTop:4,fontStyle:"italic"}}>💬 {ev.catatanPenugasan}</div>}
-            {(ev.personil||[]).length>0&&isMyTask&&<div style={{fontSize:10,color:"#64748B",marginTop:4}}>Rekan: {(ev.personil||[]).filter(u=>u!==user.username).map(u=>getNamaByUsername(u)).join(", ")||"-"}</div>}
+            <div style={{fontSize:13,color:"#64748B",marginBottom:3}}>{ev.penyelenggara}{ev.lokasi?" · "+ev.lokasi:""}</div>
+            {ev.catatanPenugasan&&<div style={{fontSize:13,color:"#4338CA",background:"#EEF2FF",borderRadius:6,padding:"4px 8px",marginTop:4,fontStyle:"italic"}}>💬 {ev.catatanPenugasan}</div>}
+            {(ev.personil||[]).length>0&&isMyTask&&<div style={{fontSize:12,color:"#64748B",marginTop:4}}>Rekan: {(ev.personil||[]).filter(u=>u!==user.username).map(u=>getNamaByUsername(u)).join(", ")||"-"}</div>}
           </div>
         </div>
       </div>
@@ -7079,14 +7079,14 @@ function PenugasanSayaView({events, user, onOpenEvaluasi, isMobile}){
         {[{n:upcoming.length,l:"Akan Datang",c:NAVY,ic:"📅"},{n:past.length,l:"Selesai",c:"#059669",ic:"✅"},{n:myEvents.filter(e=>!(e.evaluasi||{})[user.username]?.submitted&&new Date(e.tanggal+"T"+e.jam)<now).length,l:"Belum Dievaluasi",c:"#7c3aed",ic:"📝"}].map(it=>(
           <div key={it.l} style={{flex:1,minWidth:90,background:"white",borderRadius:12,padding:"12px",boxShadow:"0 1px 8px rgba(0,0,0,0.06)",border:"1.5px solid #E8EDF4",textAlign:"center"}}>
             <div style={{fontSize:22,fontWeight:900,color:it.c}}>{it.n}</div>
-            <div style={{fontSize:10,color:"#94A3B8",fontWeight:600,marginTop:2}}>{it.ic} {it.l}</div>
+            <div style={{fontSize:12,color:"#94A3B8",fontWeight:600,marginTop:2}}>{it.ic} {it.l}</div>
           </div>
         ))}
       </div>
 
       {/* AKAN DATANG */}
       {upcoming.length>0&&<>
-        <div style={{fontSize:11,fontWeight:800,color:NAVY,letterSpacing:1.2,textTransform:"uppercase",marginBottom:8,display:"flex",alignItems:"center",gap:6}}>
+        <div style={{fontSize:13,fontWeight:800,color:NAVY,letterSpacing:1.2,textTransform:"uppercase",marginBottom:8,display:"flex",alignItems:"center",gap:6}}>
           <span>{user.role==="kabag"?"📊":"📅"}</span> {user.role==="kabag"?"Kegiatan Mendatang":"Penugasan Mendatang"}
         </div>
         {upcoming.map(ev=><PenCard key={ev.id} ev={ev} isMyTask={(ev.personil||[]).includes(user.username)}/>)}
@@ -7102,17 +7102,17 @@ function PenugasanSayaView({events, user, onOpenEvaluasi, isMobile}){
 
       {/* RIWAYAT */}
       {past.length>0&&<>
-        <div style={{fontSize:11,fontWeight:800,color:"#64748B",letterSpacing:1.2,textTransform:"uppercase",margin:"18px 0 8px",display:"flex",alignItems:"center",gap:6}}>
+        <div style={{fontSize:13,fontWeight:800,color:"#64748B",letterSpacing:1.2,textTransform:"uppercase",margin:"18px 0 8px",display:"flex",alignItems:"center",gap:6}}>
           <span>📁</span> Riwayat Penugasan
         </div>
         {past.map(ev=><PenCard key={ev.id} ev={ev} isMyTask={(ev.personil||[]).includes(user.username)}/>)}
       </>}
 
       {/* SEMUA JADWAL DISETUJUI */}
-      <div style={{fontSize:11,fontWeight:800,color:"#64748B",letterSpacing:1.2,textTransform:"uppercase",margin:"22px 0 8px",display:"flex",alignItems:"center",gap:6,borderTop:"1px solid #E2E8F0",paddingTop:16}}>
+      <div style={{fontSize:13,fontWeight:800,color:"#64748B",letterSpacing:1.2,textTransform:"uppercase",margin:"22px 0 8px",display:"flex",alignItems:"center",gap:6,borderTop:"1px solid #E2E8F0",paddingTop:16}}>
         <span>🗓️</span> Semua Jadwal Aktif
       </div>
-      <div style={{fontSize:11,color:"#94A3B8",marginBottom:10}}>Jadwal yang sudah disetujui — termasuk yang tidak ada penugasan Anda</div>
+      <div style={{fontSize:13,color:"#94A3B8",marginBottom:10}}>Jadwal yang sudah disetujui — termasuk yang tidak ada penugasan Anda</div>
       {allApproved.length===0
         ?<div style={{textAlign:"center",padding:"20px",color:"#94A3B8",fontSize:13}}>Belum ada jadwal aktif</div>
         :allApproved.map(ev=>{
@@ -7213,10 +7213,10 @@ function AjudanDashboard({events, user, upd, showT, setDelegTarget, isMobile}){
         border:"1.5px solid "+(urgent?"#FCA5A5":needWK||needWWK?"#FDE68A":"#DBEAFE"),
         boxShadow:"0 2px 12px rgba(10,22,40,0.07)"}}>
         {/* Strip urgent */}
-        {urgent&&<div style={{background:"#FEF2F2",padding:"4px 14px",fontSize:10,fontWeight:800,color:"#DC2626",letterSpacing:1}}>
+        {urgent&&<div style={{background:"#FEF2F2",padding:"4px 14px",fontSize:12,fontWeight:800,color:"#DC2626",letterSpacing:1}}>
           ⚠️ SEGERA — {Math.round((new Date(ev.tanggal+"T"+ev.jam)-now)/3600000)} JAM LAGI
         </div>}
-        {(needWK||needWWK)&&!urgent&&<div style={{background:"#FFFBEB",padding:"4px 14px",fontSize:10,fontWeight:800,color:"#B45309",letterSpacing:1}}>
+        {(needWK||needWWK)&&!urgent&&<div style={{background:"#FFFBEB",padding:"4px 14px",fontSize:12,fontWeight:800,color:"#B45309",letterSpacing:1}}>
           📋 BELUM DIKONFIRMASI
         </div>}
         <div style={{padding:"12px 14px"}}>
@@ -7226,9 +7226,9 @@ function AjudanDashboard({events, user, upd, showT, setDelegTarget, isMobile}){
           </div>
           {/* WK */}
           {forWK&&<div style={{marginBottom:8}}>
-            <div style={{fontSize:11,fontWeight:700,color:NAVY,textTransform:"uppercase",letterSpacing:0.5,marginBottom:5}}>
+            <div style={{fontSize:13,fontWeight:700,color:NAVY,textTransform:"uppercase",letterSpacing:0.5,marginBottom:5}}>
               Wali Kota &nbsp;
-              {ev.statusWK_by&&ev.statusWK_by!=="walikota"&&<span style={{background:ev.statusWK_by==="ajudan"?"#FEF9C3":"#FEF3C7",color:"#92400E",borderRadius:4,padding:"1px 5px",fontSize:9,fontWeight:800}}>{ev.statusWK_by==="ajudan"?"diisi Ajudan":ev.statusWK_by==="admin_rk"?"diisi Admin RK":"diisi "+ev.statusWK_by}</span>}
+              {ev.statusWK_by&&ev.statusWK_by!=="walikota"&&<span style={{background:ev.statusWK_by==="ajudan"?"#FEF9C3":"#FEF3C7",color:"#92400E",borderRadius:4,padding:"1px 5px",fontSize:12,fontWeight:800}}>{ev.statusWK_by==="ajudan"?"diisi Ajudan":ev.statusWK_by==="admin_rk"?"diisi Admin RK":"diisi "+ev.statusWK_by}</span>}
             </div>
             <div style={{display:"flex",gap:8}}>
               <StatusBtn label="✓ Hadir" active={ev.statusWK==="hadir"} color={GREEN}
@@ -7239,11 +7239,11 @@ function AjudanDashboard({events, user, upd, showT, setDelegTarget, isMobile}){
                 onClick={()=>{upd(ev.id,{statusWK:"diwakilkan",delegasiKeWWK:true,perwakilanWK:"",statusWK_by:"ajudan"});showT("Delegasi ke WWK diinput");
                   sendPush({targetRole:"ajudan_wakilwalikota",title:"↩ Disposisi dari Wali Kota",body:ev.namaAcara+" — "+ev.jam+" WITA: Wali Kota mendelegasikan ke Wakil WK",url:"/",tag:"delegasi-wwk-"+ev.id});
                   loadUsers().filter(u=>u.role==="ajudan_wakilwalikota"&&u.noWA).forEach(u=>sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"delegasi_wwk"}));sendPush({targetRole:"kabag",title:"🔄 Delegasi ke WWK",body:ev.namaAcara+" didelegasikan ke Wakil Wali Kota",url:"/",tag:"delegasi-"+ev.id});sendPush({targetRole:"kasubbag_protokol",title:"🔄 Delegasi ke WWK",body:ev.namaAcara,url:"/",tag:"delegasi-"+ev.id});sendPush({targetRole:"kasubbag_komdokpim",title:"🔄 Delegasi ke WWK",body:ev.namaAcara,url:"/",tag:"delegasi-"+ev.id});}}/>
-              {ev.statusWK&&<button onClick={()=>{upd(ev.id,{statusWK:"",delegasiKeWWK:false,perwakilanWK:"",statusWK_by:""});showT("Kehadiran WK dibatalkan","warn");}} style={{width:"100%",marginTop:6,padding:"7px",borderRadius:9,border:"1.5px dashed #94a3b8",background:"#f8fafc",color:"#64748b",cursor:"pointer",fontSize:11,fontWeight:600}}>↩ Batalkan Input Kehadiran WK</button>}
+              {ev.statusWK&&<button onClick={()=>{upd(ev.id,{statusWK:"",delegasiKeWWK:false,perwakilanWK:"",statusWK_by:""});showT("Kehadiran WK dibatalkan","warn");}} style={{width:"100%",marginTop:6,padding:"7px",borderRadius:9,border:"1.5px dashed #94a3b8",background:"#f8fafc",color:"#64748b",cursor:"pointer",fontSize:13,fontWeight:600}}>↩ Batalkan Input Kehadiran WK</button>}
             </div>
             <button onClick={()=>setDelegTarget({id:ev.id,side:"wk"})}
               style={{marginTop:6,width:"100%",padding:"8px",borderRadius:9,border:"1.5px solid #CBD5E1",
-                background:"white",color:"#475569",cursor:"pointer",fontSize:11,fontWeight:600}}>
+                background:"white",color:"#475569",cursor:"pointer",fontSize:13,fontWeight:600}}>
               Wakilkan ke Pejabat Lain
             </button>
           </div>}
@@ -7253,17 +7253,17 @@ function AjudanDashboard({events, user, upd, showT, setDelegTarget, isMobile}){
             {(ev.statusWK||ev.delegasiKeWWK)&&<div style={{background:ev.delegasiKeWWK?"#EDE9FE":ev.statusWK==="hadir"?"#F0FDF4":ev.statusWK==="tidak_hadir"?"#FFF1F2":"#F8FAFC",border:"1.5px solid "+(ev.delegasiKeWWK?"#7c3aed":ev.statusWK==="hadir"?"#6ee7b7":ev.statusWK==="tidak_hadir"?"#fca5a5":"#e2e8f0"),borderRadius:9,padding:"8px 12px",marginBottom:10,display:"flex",alignItems:"center",gap:8}}>
               <span style={{fontSize:18,flexShrink:0}}>{ev.delegasiKeWWK?"↩":ev.statusWK==="hadir"?"✅":"❌"}</span>
               <div style={{flex:1}}>
-                <div style={{fontSize:10,fontWeight:800,color:"#475569",textTransform:"uppercase",letterSpacing:0.5,marginBottom:1}}>Info Kehadiran Wali Kota</div>
+                <div style={{fontSize:12,fontWeight:800,color:"#475569",textTransform:"uppercase",letterSpacing:0.5,marginBottom:1}}>Info Kehadiran Wali Kota</div>
                 <div style={{fontSize:12,fontWeight:700,color:ev.delegasiKeWWK?"#7c3aed":ev.statusWK==="hadir"?"#065f46":"#991b1b"}}>
                   {ev.delegasiKeWWK?"Didelegasikan ke Wakil Wali Kota":ev.statusWK==="hadir"?"Wali Kota Hadir":ev.statusWK==="tidak_hadir"?"Wali Kota Tidak Hadir":ev.perwakilanWK?"Diwakilkan ke "+ev.perwakilanWK:"—"}
                 </div>
-                {ev.statusWK_by&&<div style={{fontSize:9,color:"#94a3b8",marginTop:1}}>Diisi: {ev.statusWK_by==="ajudan"?"Ajudan WK":ev.statusWK_by==="walikota"?"Wali Kota langsung":ev.statusWK_by==="admin_rk"?"Admin RK":"—"}</div>}
+                {ev.statusWK_by&&<div style={{fontSize:12,color:"#94a3b8",marginTop:1}}>Diisi: {ev.statusWK_by==="ajudan"?"Ajudan WK":ev.statusWK_by==="walikota"?"Wali Kota langsung":ev.statusWK_by==="admin_rk"?"Admin RK":"—"}</div>}
               </div>
             </div>}
-            {ev.delegasiKeWWK&&<div style={{background:"#7c3aed",borderRadius:6,padding:"5px 10px",marginBottom:8,fontSize:10,fontWeight:800,color:"white",letterSpacing:0.5}}>↩ ANDA MENERIMA DISPOSISI DARI WALI KOTA</div>}
-            <div style={{fontSize:11,fontWeight:700,color:GREEN,textTransform:"uppercase",letterSpacing:0.5,marginBottom:5}}>
+            {ev.delegasiKeWWK&&<div style={{background:"#7c3aed",borderRadius:6,padding:"5px 10px",marginBottom:8,fontSize:12,fontWeight:800,color:"white",letterSpacing:0.5}}>↩ ANDA MENERIMA DISPOSISI DARI WALI KOTA</div>}
+            <div style={{fontSize:13,fontWeight:700,color:GREEN,textTransform:"uppercase",letterSpacing:0.5,marginBottom:5}}>
               Wakil Wali Kota &nbsp;
-              {ev.statusWWK_by&&ev.statusWWK_by!=="wakilwalikota"&&<span style={{background:ev.statusWWK_by==="ajudan"?"#FEF9C3":"#FEF3C7",color:"#92400E",borderRadius:4,padding:"1px 5px",fontSize:9,fontWeight:800}}>{ev.statusWWK_by==="ajudan"?"diisi Ajudan":ev.statusWWK_by==="admin_rk"?"diisi Admin RK":"diisi "+ev.statusWWK_by}</span>}
+              {ev.statusWWK_by&&ev.statusWWK_by!=="wakilwalikota"&&<span style={{background:ev.statusWWK_by==="ajudan"?"#FEF9C3":"#FEF3C7",color:"#92400E",borderRadius:4,padding:"1px 5px",fontSize:12,fontWeight:800}}>{ev.statusWWK_by==="ajudan"?"diisi Ajudan":ev.statusWWK_by==="admin_rk"?"diisi Admin RK":"diisi "+ev.statusWWK_by}</span>}
             </div>
             <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
               <StatusBtn label="✓ Hadir" active={ev.statusWWK==="hadir"} color={GREEN}
@@ -7276,9 +7276,9 @@ function AjudanDashboard({events, user, upd, showT, setDelegTarget, isMobile}){
             {ev.statusWWK==="diwakilkan"&&<div style={{marginTop:8}}>
               <input value={ev.perwakilanWWK||""} onChange={e=>upd(ev.id,{perwakilanWWK:e.target.value})}
                 placeholder="Nama pejabat yang mewakili WWK..." style={{width:"100%",padding:"8px 10px",borderRadius:8,border:"1.5px solid #CBD5E1",fontSize:12,boxSizing:"border-box",marginBottom:4}}/>
-              <button onClick={()=>setDelegTarget({id:ev.id,side:"wwk"})} style={{width:"100%",padding:"7px",borderRadius:8,border:"1.5px dashed #7c3aed",background:"#faf5ff",color:"#7c3aed",cursor:"pointer",fontSize:11,fontWeight:700}}>Pilih dari Daftar Pejabat</button>
+              <button onClick={()=>setDelegTarget({id:ev.id,side:"wwk"})} style={{width:"100%",padding:"7px",borderRadius:8,border:"1.5px dashed #7c3aed",background:"#faf5ff",color:"#7c3aed",cursor:"pointer",fontSize:13,fontWeight:700}}>Pilih dari Daftar Pejabat</button>
             </div>}
-            {ev.statusWWK&&<button onClick={()=>{upd(ev.id,{statusWWK:"",statusWWK_by:"",perwakilanWWK:"",delegasiWWKJajaran:false});showT("Kehadiran WWK dibatalkan","warn");}} style={{width:"100%",marginTop:6,padding:"7px",borderRadius:9,border:"1.5px dashed #94a3b8",background:"#f8fafc",color:"#64748b",cursor:"pointer",fontSize:11,fontWeight:600}}>↩ Batalkan Input Kehadiran WWK</button>}
+            {ev.statusWWK&&<button onClick={()=>{upd(ev.id,{statusWWK:"",statusWWK_by:"",perwakilanWWK:"",delegasiWWKJajaran:false});showT("Kehadiran WWK dibatalkan","warn");}} style={{width:"100%",marginTop:6,padding:"7px",borderRadius:9,border:"1.5px dashed #94a3b8",background:"#f8fafc",color:"#64748b",cursor:"pointer",fontSize:13,fontWeight:600}}>↩ Batalkan Input Kehadiran WWK</button>}
           </div>}
         </div>
       </div>
@@ -7299,7 +7299,7 @@ function AjudanDashboard({events, user, upd, showT, setDelegTarget, isMobile}){
         <div style={{display:"flex",gap:6,marginTop:12}}>
           {[{k:"semua",l:"Semua"},{k:"wk",l:"Wali Kota"},{k:"wwk",l:"Wakil WK"}].map(({k,l})=>(
             <button key={k} onClick={()=>setFilterPimpinan(k)} style={{
-              padding:"5px 14px",borderRadius:20,border:"1.5px solid",cursor:"pointer",fontSize:11,fontWeight:700,
+              padding:"5px 14px",borderRadius:20,border:"1.5px solid",cursor:"pointer",fontSize:13,fontWeight:700,
               background:filterPimpinan===k?"rgba(201,168,76,0.9)":"rgba(255,255,255,0.1)",
               color:filterPimpinan===k?NAVY:"rgba(255,255,255,0.75)",
               borderColor:filterPimpinan===k?GOLD:"rgba(255,255,255,0.2)"}}>
@@ -7325,7 +7325,7 @@ function AjudanDashboard({events, user, upd, showT, setDelegTarget, isMobile}){
 
         {/* Jadwal perlu konfirmasi */}
         {needsConfirm.length>0&&<>
-          <div style={{fontSize:11,fontWeight:800,color:"#B45309",letterSpacing:1.5,textTransform:"uppercase",marginBottom:10,display:"flex",alignItems:"center",gap:6}}>
+          <div style={{fontSize:13,fontWeight:800,color:"#B45309",letterSpacing:1.5,textTransform:"uppercase",marginBottom:10,display:"flex",alignItems:"center",gap:6}}>
             <span>📋</span> Perlu Konfirmasi Sekarang
           </div>
           {needsConfirm.map(ev=><AjudanCard key={ev.id} ev={ev}/>)}
@@ -7334,7 +7334,7 @@ function AjudanDashboard({events, user, upd, showT, setDelegTarget, isMobile}){
 
         {/* Jadwal hari ini */}
         {allToday.length>0&&<>
-          <div style={{fontSize:11,fontWeight:800,color:NAVY,letterSpacing:1.5,textTransform:"uppercase",marginBottom:10,display:"flex",alignItems:"center",gap:6}}>
+          <div style={{fontSize:13,fontWeight:800,color:NAVY,letterSpacing:1.5,textTransform:"uppercase",marginBottom:10,display:"flex",alignItems:"center",gap:6}}>
             <span>📅</span> Semua Jadwal Hari Ini ({allToday.length})
           </div>
           {allToday.filter(e=>!needsConfirm.includes(e)).map(ev=>{
@@ -7344,19 +7344,19 @@ function AjudanDashboard({events, user, upd, showT, setDelegTarget, isMobile}){
               <div style={{display:"flex",gap:12,alignItems:"flex-start"}}>
                 <div style={{width:44,textAlign:"center",background:"#F0F4FF",borderRadius:10,padding:"6px 4px",flexShrink:0}}>
                   <div style={{fontSize:18,fontWeight:900,color:NAVY}}>{ev.tanggal.slice(8)}</div>
-                  <div style={{fontSize:10,color:"#94A3B8"}}>{ev.jam}</div>
+                  <div style={{fontSize:12,color:"#94A3B8"}}>{ev.jam}</div>
                 </div>
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{fontSize:13,fontWeight:700,color:"#0F172A",marginBottom:2}}>{ev.namaAcara}</div>
-                  <div style={{fontSize:11,color:"#64748B",marginBottom:4}}>
+                  <div style={{fontSize:13,color:"#64748B",marginBottom:4}}>
                     {ev.statusWK==="hadir"?"✅ WK Hadir":ev.statusWK==="tidak_hadir"?"❌ WK Tidak Hadir":ev.delegasiKeWWK?"↩ WK Delegasi":"⏳ WK Belum"}
                     {(ev.untukPimpinan.includes("wakilwalikota")||ev.delegasiKeWWK)&&
                       " · "+(ev.statusWWK==="hadir"?"✅ WWK Hadir":ev.statusWWK==="tidak_hadir"?"❌ WWK Tidak Hadir":"⏳ WWK Belum")}
                   </div>
-                  {personilList.length>0&&<div style={{background:"#F0F9FF",borderRadius:7,padding:"5px 8px",fontSize:11,color:"#0369A1"}}>
+                  {personilList.length>0&&<div style={{background:"#F0F9FF",borderRadius:7,padding:"5px 8px",fontSize:13,color:"#0369A1"}}>
                     <span style={{fontWeight:700}}>👥 Personil: </span>{personilList.join(", ")}
                   </div>}
-                  {personilList.length===0&&<div style={{fontSize:11,color:"#D97706",fontWeight:600}}>⚠️ Belum ada personil ditugaskan</div>}
+                  {personilList.length===0&&<div style={{fontSize:13,color:"#D97706",fontWeight:600}}>⚠️ Belum ada personil ditugaskan</div>}
                 </div>
               </div>
             </div>
@@ -7366,7 +7366,7 @@ function AjudanDashboard({events, user, upd, showT, setDelegTarget, isMobile}){
 
         {/* Jadwal besok */}
         {allTmrw.filter(e=>!needsConfirm.includes(e)).length>0&&<>
-          <div style={{fontSize:11,fontWeight:800,color:"#64748B",letterSpacing:1.5,textTransform:"uppercase",marginBottom:10,display:"flex",alignItems:"center",gap:6}}>
+          <div style={{fontSize:13,fontWeight:800,color:"#64748B",letterSpacing:1.5,textTransform:"uppercase",marginBottom:10,display:"flex",alignItems:"center",gap:6}}>
             <span>🗓️</span> Jadwal Besok
           </div>
           {allTmrw.filter(e=>!needsConfirm.includes(e)).map(ev=>{
@@ -7376,12 +7376,12 @@ function AjudanDashboard({events, user, upd, showT, setDelegTarget, isMobile}){
               <div style={{display:"flex",gap:12,alignItems:"flex-start"}}>
                 <div style={{width:44,textAlign:"center",background:"#F8FAFF",borderRadius:10,padding:"6px 4px",flexShrink:0}}>
                   <div style={{fontSize:18,fontWeight:900,color:"#475569"}}>{ev.tanggal.slice(8)}</div>
-                  <div style={{fontSize:10,color:"#94A3B8"}}>{ev.jam}</div>
+                  <div style={{fontSize:12,color:"#94A3B8"}}>{ev.jam}</div>
                 </div>
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{fontSize:13,fontWeight:700,color:"#0F172A",marginBottom:2}}>{ev.namaAcara}</div>
-                  <div style={{fontSize:11,color:"#64748B",marginBottom:4}}>{ev.penyelenggara||ev.lokasi||""}</div>
-                  {personilList.length>0&&<div style={{background:"#F0F9FF",borderRadius:7,padding:"5px 8px",fontSize:11,color:"#0369A1"}}>
+                  <div style={{fontSize:13,color:"#64748B",marginBottom:4}}>{ev.penyelenggara||ev.lokasi||""}</div>
+                  {personilList.length>0&&<div style={{background:"#F0F9FF",borderRadius:7,padding:"5px 8px",fontSize:13,color:"#0369A1"}}>
                     <span style={{fontWeight:700}}>👥 </span>{personilList.join(", ")}
                   </div>}
                 </div>
@@ -7480,7 +7480,7 @@ function OnboardingModal({role, onClose}){
               boxShadow:"0 6px 20px rgba(10,22,40,0.3)"}}>
             Siap, Mulai! →
           </button>
-          <div style={{textAlign:"center",marginTop:10,fontSize:11,color:"#94A3B8"}}>
+          <div style={{textAlign:"center",marginTop:10,fontSize:13,color:"#94A3B8"}}>
             Panduan ini tidak akan muncul lagi
           </div>
         </div>
@@ -7577,7 +7577,7 @@ function NotifCenter({events, user, onClose, isMobile}){
         <div style={{background:"linear-gradient(135deg,"+NAVY+" 0%,#1B3360 100%)",padding:"16px 18px 14px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
           <div>
             <div style={{color:"white",fontSize:15,fontWeight:800}}>🔔 Pusat Notifikasi</div>
-            <div style={{color:"rgba(255,255,255,0.55)",fontSize:11,marginTop:2}}>{notifs.filter(n=>n.type!=="ok").length} notifikasi aktif</div>
+            <div style={{color:"rgba(255,255,255,0.55)",fontSize:13,marginTop:2}}>{notifs.filter(n=>n.type!=="ok").length} notifikasi aktif</div>
           </div>
           <button onClick={onClose} style={{background:"rgba(255,255,255,0.12)",border:"none",color:"white",borderRadius:8,width:30,height:30,cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
         </div>
@@ -7592,7 +7592,7 @@ function NotifCenter({events, user, onClose, isMobile}){
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontSize:13,fontWeight:800,color:c.title,marginBottom:3}}>{n.title}</div>
                     <div style={{fontSize:12,color:"#475569",lineHeight:1.5}}>{n.body}</div>
-                    {n.ev&&<div style={{marginTop:5,fontSize:11,color:"#64748B",fontWeight:600}}>📍 {n.ev.lokasi||n.ev.penyelenggara||"—"}</div>}
+                    {n.ev&&<div style={{marginTop:5,fontSize:13,color:"#64748B",fontWeight:600}}>📍 {n.ev.lokasi||n.ev.penyelenggara||"—"}</div>}
                   </div>
                 </div>
               </div>
@@ -7724,7 +7724,7 @@ function RekapEvaluasi({events,user,isMobile,allUsers}){
 
   // Ring chart
   const Ring=({value,size=52,stroke=7,color="#065F46"})=>{
-    if(!value&&value!==0)return<div style={{width:size,height:size,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,color:"#94A3B8"}}>—</div>;
+    if(!value&&value!==0)return<div style={{width:size,height:size,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,color:"#94A3B8"}}>—</div>;
     const r=(size-stroke)/2;
     const circ=2*Math.PI*r;
     const filled=circ*(value/100);
@@ -7766,18 +7766,18 @@ function RekapEvaluasi({events,user,isMobile,allUsers}){
       <div onClick={onClick} style={{flex:1,background:active?"white":"#F8FAFC",borderRadius:14,padding:"14px",border:`2px solid ${active?(cpi?.gradeColor||NAVY):"#E2E8F0"}`,cursor:"pointer",boxShadow:active?"0 4px 16px rgba(10,22,40,0.1)":"none",transition:"all 0.2s"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:hasData?10:0}}>
           <div>
-            <div style={{fontSize:10,color:"#94A3B8",fontWeight:700,textTransform:"uppercase",letterSpacing:1}}>{icon} {label}</div>
-            {hasData&&<div style={{fontSize:10,color:"#94A3B8",marginTop:1}}>{cpi.records.length} kegiatan dievaluasi</div>}
+            <div style={{fontSize:12,color:"#94A3B8",fontWeight:700,textTransform:"uppercase",letterSpacing:1}}>{icon} {label}</div>
+            {hasData&&<div style={{fontSize:12,color:"#94A3B8",marginTop:1}}>{cpi.records.length} kegiatan dievaluasi</div>}
           </div>
           {hasData?<Ring value={cpi.CPI} size={48} stroke={7} color={cpi.gradeColor}/>
-            :<div style={{fontSize:11,color:"#CBD5E1"}}>Belum ada data</div>}
+            :<div style={{fontSize:13,color:"#CBD5E1"}}>Belum ada data</div>}
         </div>
         {hasData&&<>
           <div style={{display:"flex",gap:6,marginTop:8}}>
             {[{l:"WPS",v:cpi.WPS},{l:"CS",v:cpi.CS},{l:"Tren",v:cpi.trendScore}].map(m=>(
               <div key={m.l} style={{flex:1,textAlign:"center",background:"#F1F5F9",borderRadius:7,padding:"5px 4px"}}>
                 <div style={{fontSize:13,fontWeight:900,color:NAVY}}>{m.v}</div>
-                <div style={{fontSize:9,color:"#94A3B8",fontWeight:700}}>{m.l}</div>
+                <div style={{fontSize:12,color:"#94A3B8",fontWeight:700}}>{m.l}</div>
               </div>
             ))}
           </div>
@@ -7785,9 +7785,9 @@ function RekapEvaluasi({events,user,isMobile,allUsers}){
             <div style={{flex:1,height:6,borderRadius:3,background:"#F1F5F9",overflow:"hidden"}}>
               <div style={{height:"100%",width:cpi.CPI+"%",background:cpi.gradeColor,borderRadius:3,transition:"width 0.6s ease"}}/>
             </div>
-            <span style={{padding:"2px 8px",borderRadius:5,background:cpi.gradeBg,color:cpi.gradeColor,fontSize:11,fontWeight:800}}>{cpi.grade}</span>
+            <span style={{padding:"2px 8px",borderRadius:5,background:cpi.gradeBg,color:cpi.gradeColor,fontSize:13,fontWeight:800}}>{cpi.grade}</span>
           </div>
-          <div style={{fontSize:10,color:"#94A3B8",marginTop:5}}>Tren: {cpi.trend==="naik"?"↑ Meningkat":cpi.trend==="turun"?"↓ Menurun":"→ Stabil"}</div>
+          <div style={{fontSize:12,color:"#94A3B8",marginTop:5}}>Tren: {cpi.trend==="naik"?"↑ Meningkat":cpi.trend==="turun"?"↓ Menurun":"→ Stabil"}</div>
         </>}
       </div>
     );
@@ -7809,9 +7809,9 @@ function RekapEvaluasi({events,user,isMobile,allUsers}){
       {/* Header */}
       <div style={{background:`linear-gradient(135deg,${NAVY},#1A2F50)`,borderRadius:16,padding:"20px",marginBottom:16,position:"relative",overflow:"hidden"}}>
         <div style={{position:"absolute",top:-20,right:-20,width:120,height:120,borderRadius:"50%",background:"rgba(201,168,76,0.08)"}}/>
-        <div style={{color:GOLD,fontSize:11,fontWeight:800,letterSpacing:1.5,textTransform:"uppercase",marginBottom:4}}>Rekap Kinerja Tim</div>
+        <div style={{color:GOLD,fontSize:13,fontWeight:800,letterSpacing:1.5,textTransform:"uppercase",marginBottom:4}}>Rekap Kinerja Tim</div>
         <div style={{color:"white",fontSize:isMobile?16:20,fontWeight:900,marginBottom:3}}>Evaluasi Kinerja Organisasi</div>
-        <div style={{color:"rgba(255,255,255,0.55)",fontSize:11}}>
+        <div style={{color:"rgba(255,255,255,0.55)",fontSize:13}}>
           Skor digabungkan dari seluruh personil · {evAll.length} kegiatan terevaluasi
         </div>
       </div>
@@ -7819,7 +7819,7 @@ function RekapEvaluasi({events,user,isMobile,allUsers}){
       {/* Filter Periode */}
       <div style={{display:"flex",gap:4,background:"white",padding:"4px",borderRadius:10,border:"1px solid #E2E8F0",marginBottom:14,width:"fit-content"}}>
         {[["semua","Semua"],["bulan","30 Hari"],["triwulan","3 Bulan"],["semester","6 Bulan"]].map(([v,l])=>(
-          <button key={v} onClick={()=>setFilterPeriod(v)} style={{padding:"5px 12px",borderRadius:8,border:"none",background:filterPeriod===v?NAVY:"transparent",color:filterPeriod===v?"white":"#64748B",cursor:"pointer",fontSize:11,fontWeight:700,transition:"all 0.15s"}}>{l}</button>
+          <button key={v} onClick={()=>setFilterPeriod(v)} style={{padding:"5px 12px",borderRadius:8,border:"none",background:filterPeriod===v?NAVY:"transparent",color:filterPeriod===v?"white":"#64748B",cursor:"pointer",fontSize:13,fontWeight:700,transition:"all 0.15s"}}>{l}</button>
         ))}
       </div>
 
@@ -7840,7 +7840,7 @@ function RekapEvaluasi({events,user,isMobile,allUsers}){
         {cpiActive&&<>
           {/* Per Kriteria */}
           <div style={{background:"white",borderRadius:14,padding:"16px",marginBottom:14,border:"1px solid #E2E8F0"}}>
-            <div style={{fontSize:11,fontWeight:800,color:NAVY,letterSpacing:1,textTransform:"uppercase",marginBottom:14}}>🎯 Skor Per Kriteria (Rata-rata Tertimbang Waktu)</div>
+            <div style={{fontSize:13,fontWeight:800,color:NAVY,letterSpacing:1,textTransform:"uppercase",marginBottom:14}}>🎯 Skor Per Kriteria (Rata-rata Tertimbang Waktu)</div>
             {(activeTeam==="Komdok"?EVAL_KOMDOK_KEYS:EVAL_PROTOKOL_KEYS).map((k,i)=>{
               const s=cpiActive.kriteriaScores[i];
               const barColor=s>=80?"#059669":s>=60?"#2563EB":s>=40?"#D97706":"#DC2626";
@@ -7862,7 +7862,7 @@ function RekapEvaluasi({events,user,isMobile,allUsers}){
           <div style={{background:"white",borderRadius:14,overflow:"hidden",border:"1px solid #E2E8F0",marginBottom:14}}>
             <div style={{padding:"12px 16px",borderBottom:"1px solid #F1F5F9",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div style={{fontSize:12,fontWeight:800,color:NAVY}}>📋 Riwayat Evaluasi Per Kegiatan</div>
-              <div style={{fontSize:10,color:"#94A3B8"}}>{cpiActive.records.length} kegiatan · skor = rata-rata semua evaluator</div>
+              <div style={{fontSize:12,color:"#94A3B8"}}>{cpiActive.records.length} kegiatan · skor = rata-rata semua evaluator</div>
             </div>
             {[...cpiActive.records].reverse().map((r,i)=>{
               const s=Math.round(cpiActive.eventScores[cpiActive.records.length-1-i]);
@@ -7872,18 +7872,18 @@ function RekapEvaluasi({events,user,isMobile,allUsers}){
                 <div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 16px",borderBottom:"1px solid #F8FAFC",background:i%2===0?"white":"#FAFBFF"}}>
                   <div style={{width:38,textAlign:"center",flexShrink:0,background:"#F8FAFC",borderRadius:9,padding:"5px 4px",border:"1px solid #E2E8F0"}}>
                     <div style={{fontSize:14,fontWeight:900,color:NAVY}}>{r.date.getDate()}</div>
-                    <div style={{fontSize:9,color:"#94A3B8"}}>{r.date.toLocaleDateString("id-ID",{month:"short"})}</div>
+                    <div style={{fontSize:12,color:"#94A3B8"}}>{r.date.toLocaleDateString("id-ID",{month:"short"})}</div>
                   </div>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontSize:12,fontWeight:700,color:"#1E293B",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.eventName}</div>
-                    <div style={{fontSize:10,color:"#94A3B8",marginTop:2}}>{r.tipe} · {r.evalCount} evaluator</div>
+                    <div style={{fontSize:12,color:"#94A3B8",marginTop:2}}>{r.tipe} · {r.evalCount} evaluator</div>
                   </div>
                   {!isMobile&&<div style={{width:64,flexShrink:0}}>
                     <Sparkline scores={[s]} color={c} w={50} h={20}/>
                   </div>}
                   <div style={{textAlign:"center",flexShrink:0}}>
                     <div style={{fontSize:17,fontWeight:900,color:c}}>{s}</div>
-                    <div style={{padding:"1px 6px",borderRadius:4,background:bg,color:c,fontSize:9,fontWeight:800}}>{"/ 100"}</div>
+                    <div style={{padding:"1px 6px",borderRadius:4,background:bg,color:c,fontSize:12,fontWeight:800}}>{"/ 100"}</div>
                   </div>
                 </div>
               );
@@ -7892,10 +7892,10 @@ function RekapEvaluasi({events,user,isMobile,allUsers}){
 
           {/* Metodologi */}
           <div style={{background:"white",borderRadius:12,padding:"14px 16px",border:"1px solid #E2E8F0"}}>
-            <div style={{fontSize:11,fontWeight:800,color:NAVY,letterSpacing:1,textTransform:"uppercase",marginBottom:10}}>📐 Metodologi Skoring CPI</div>
-            <div style={{fontSize:11,color:"#475569",lineHeight:1.8}}>
+            <div style={{fontSize:13,fontWeight:800,color:NAVY,letterSpacing:1,textTransform:"uppercase",marginBottom:10}}>📐 Metodologi Skoring CPI</div>
+            <div style={{fontSize:13,color:"#475569",lineHeight:1.8}}>
               <span style={{fontWeight:700,color:NAVY}}>CPI</span> = 0.60 × WPS + 0.25 × CS + 0.15 × Tren<br/>
-              <span style={{color:"#94A3B8",fontSize:10}}>
+              <span style={{color:"#94A3B8",fontSize:12}}>
                 · Setiap kegiatan: skor dirata-rata dari semua personil yang mengisi evaluasi<br/>
                 · <b>WPS</b>: Rata-rata tertimbang waktu (kegiatan terbaru bobot lebih tinggi, λ=0.08/bln)<br/>
                 · <b>CS</b>: Konsistensi antar kegiatan — 100×(1−CV) di mana CV=σ/μ<br/>
@@ -7904,7 +7904,7 @@ function RekapEvaluasi({events,user,isMobile,allUsers}){
             </div>
             <div style={{display:"flex",gap:6,marginTop:10,flexWrap:"wrap"}}>
               {[["A","≥85","#065F46","#D1FAE5"],["B","≥70","#1D4ED8","#DBEAFE"],["C","≥55","#D97706","#FEF3C7"],["D","≥40","#B45309","#FEF9C3"],["E","<40","#991B1B","#FEE2E2"]].map(([g,r,c,bg])=>(
-                <div key={g} style={{padding:"3px 10px",borderRadius:6,background:bg,color:c,fontSize:11,fontWeight:700,border:`1px solid ${c}22`}}>{g} {r}</div>
+                <div key={g} style={{padding:"3px 10px",borderRadius:6,background:bg,color:c,fontSize:13,fontWeight:700,border:`1px solid ${c}22`}}>{g} {r}</div>
               ))}
             </div>
           </div>
@@ -7966,7 +7966,7 @@ function KabagDashboard({events, user, upd, showT, askConfirm, deleteAndSync, is
   const StatusChip=({alur})=>{
     const map={disetujui:{bg:"#D1FAE5",c:"#065F46",l:"Disetujui"},menunggu_kabag:{bg:"#FEF9C3",c:"#92400E",l:"Menunggu Kabag"},menunggu_kasubbag:{bg:"#DBEAFE",c:"#1E40AF",l:"Menunggu Kasubbag"},ditolak:{bg:"#FEE2E2",c:"#991B1B",l:"Ditolak"},draft:{bg:"#F1F5F9",c:"#475569",l:"Draft"}};
     const s=map[alur]||{bg:"#F1F5F9",c:"#475569",l:alur};
-    return <span style={{background:s.bg,color:s.c,borderRadius:20,padding:"2px 9px",fontSize:10,fontWeight:800}}>{s.l}</span>;
+    return <span style={{background:s.bg,color:s.c,borderRadius:20,padding:"2px 9px",fontSize:12,fontWeight:800}}>{s.l}</span>;
   };
 
   const AntrianCard=({ev})=>{
@@ -7976,11 +7976,11 @@ function KabagDashboard({events, user, upd, showT, askConfirm, deleteAndSync, is
         <div style={{padding:"14px 16px",cursor:"pointer",display:"flex",gap:12,alignItems:"flex-start"}} onClick={()=>setExpanded(exp?null:ev.id)}>
           <div style={{width:46,textAlign:"center",background:"#EFF6FF",borderRadius:10,padding:"6px 4px",flexShrink:0}}>
             <div style={{fontSize:17,fontWeight:900,color:NAVY}}>{ev.tanggal.slice(8)}</div>
-            <div style={{fontSize:9,color:"#64748B"}}>{fmtShort(ev.tanggal).split(" ")[1]}</div>
+            <div style={{fontSize:12,color:"#64748B"}}>{fmtShort(ev.tanggal).split(" ")[1]}</div>
           </div>
           <div style={{flex:1,minWidth:0}}>
             <div style={{fontSize:13,fontWeight:800,color:"#0F172A",marginBottom:3}}>{ev.namaAcara}</div>
-            <div style={{fontSize:11,color:"#64748B"}}>🕐 {ev.jam} · {ev.penyelenggara||ev.lokasi||"—"}</div>
+            <div style={{fontSize:13,color:"#64748B"}}>🕐 {ev.jam} · {ev.penyelenggara||ev.lokasi||"—"}</div>
             <div style={{marginTop:3,marginBottom:4}}><TujuanBadge ev={ev}/></div>
           {/* Progress bar status workflow */}
           <div style={{display:"flex",alignItems:"center",marginTop:6,marginBottom:2}}>
@@ -7997,7 +7997,7 @@ function KabagDashboard({events, user, upd, showT, askConfirm, deleteAndSync, is
               </React.Fragment>;
             })}
           </div>
-            <div style={{fontSize:11,color:"#94A3B8",marginTop:2}}>Diajukan oleh: {getNamaByUsername(ev.submittedBy)}</div>
+            <div style={{fontSize:13,color:"#94A3B8",marginTop:2}}>Diajukan oleh: {getNamaByUsername(ev.submittedBy)}</div>
           </div>
           <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
             <StatusChip alur={ev.alur}/>
@@ -8008,14 +8008,14 @@ function KabagDashboard({events, user, upd, showT, askConfirm, deleteAndSync, is
           {/* Detail event */}
           {[{l:"Tanggal",v:fmt(ev.tanggal)},{l:"Jam",v:ev.jam+" WITA"},{l:"Penyelenggara",v:ev.penyelenggara},{l:"Lokasi",v:ev.lokasi},{l:"Pakaian",v:ev.pakaian},{l:"Catatan",v:ev.catatan}].filter(f=>f.v).map(f=>(
             <div key={f.l} style={{display:"flex",gap:8,marginBottom:5}}>
-              <span style={{minWidth:90,fontSize:11,color:"#94A3B8",fontWeight:600}}>{f.l}</span>
+              <span style={{minWidth:90,fontSize:13,color:"#94A3B8",fontWeight:600}}>{f.l}</span>
               <span style={{fontSize:12,color:"#1E293B",flex:1}}>{f.v}</span>
             </div>
           ))}
           {/* Keterangan beserta istri */}
           {(ev.besertaIstriWK||ev.besertaIstriWWK)&&<div style={{display:"flex",gap:6,marginTop:4,marginBottom:6,flexWrap:"wrap"}}>
-            {ev.besertaIstriWK&&<span style={{fontSize:11,padding:"2px 8px",borderRadius:10,background:"#fdf2f8",border:"1px solid #f9a8d4",color:"#be185d",fontWeight:600}}>💑 WK beserta Istri</span>}
-            {ev.besertaIstriWWK&&<span style={{fontSize:11,padding:"2px 8px",borderRadius:10,background:"#fdf2f8",border:"1px solid #f9a8d4",color:"#be185d",fontWeight:600}}>💑 WWK beserta Istri</span>}
+            {ev.besertaIstriWK&&<span style={{fontSize:13,padding:"2px 8px",borderRadius:10,background:"#fdf2f8",border:"1px solid #f9a8d4",color:"#be185d",fontWeight:600}}>💑 WK beserta Istri</span>}
+            {ev.besertaIstriWWK&&<span style={{fontSize:13,padding:"2px 8px",borderRadius:10,background:"#fdf2f8",border:"1px solid #f9a8d4",color:"#be185d",fontWeight:600}}>💑 WWK beserta Istri</span>}
           </div>}
           {/* Aksi */}
           <div style={{marginTop:12,display:"flex",flexDirection:"column",gap:8}}>
@@ -8047,13 +8047,13 @@ function KabagDashboard({events, user, upd, showT, askConfirm, deleteAndSync, is
         <div style={{padding:"13px 16px",cursor:"pointer",display:"flex",gap:12,alignItems:"flex-start"}} onClick={()=>setExpanded(exp?null:ev.id)}>
           <div style={{width:46,textAlign:"center",background:"#ECFDF5",borderRadius:10,padding:"6px 4px",flexShrink:0}}>
             <div style={{fontSize:17,fontWeight:900,color:GREEN}}>{ev.tanggal.slice(8)}</div>
-            <div style={{fontSize:9,color:"#64748B"}}>{fmtShort(ev.tanggal).split(" ")[1]}</div>
+            <div style={{fontSize:12,color:"#64748B"}}>{fmtShort(ev.tanggal).split(" ")[1]}</div>
           </div>
           <div style={{flex:1,minWidth:0}}>
             <div style={{fontSize:13,fontWeight:800,color:"#0F172A",marginBottom:3}}>{ev.namaAcara}</div>
-            <div style={{fontSize:11,color:"#64748B"}}>🕐 {ev.jam} · {ev.penyelenggara||"—"}</div>
+            <div style={{fontSize:13,color:"#64748B"}}>🕐 {ev.jam} · {ev.penyelenggara||"—"}</div>
             <div style={{marginTop:3}}><TujuanBadge ev={ev}/></div>
-            <div style={{fontSize:11,color:"#94A3B8",marginTop:2}}>
+            <div style={{fontSize:13,color:"#94A3B8",marginTop:2}}>
               👥 {personilList.length>0?personilList.map(p=>p.nama).join(", "):"Belum ada personil"}
             </div>
           </div>
@@ -8062,13 +8062,13 @@ function KabagDashboard({events, user, upd, showT, askConfirm, deleteAndSync, is
         {exp&&<div style={{borderTop:"1px solid #ECFDF5",padding:"12px 16px",background:"#FAFFFC"}}>
           {/* Penugasan detail */}
           {personilList.length>0&&<div style={{marginBottom:12}}>
-            <div style={{fontSize:11,fontWeight:800,color:"#475569",textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>Personil Bertugas</div>
+            <div style={{fontSize:13,fontWeight:800,color:"#475569",textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>Personil Bertugas</div>
             {personilList.map(p=>(
               <div key={p.un} style={{display:"flex",gap:8,alignItems:"center",padding:"7px 10px",background:"white",borderRadius:9,marginBottom:5,border:"1px solid #E2E8F0"}}>
                 <div style={{width:28,height:28,borderRadius:8,background:"#EFF6FF",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:NAVY,flexShrink:0}}>{p.nama.slice(0,1)}</div>
                 <div>
                   <div style={{fontSize:12,fontWeight:700,color:"#1E293B"}}>{p.nama}</div>
-                  <div style={{fontSize:10,color:"#94A3B8"}}>{loadUsers().find(u=>u.username===p.un)?.role?.replace("_"," ")||""}</div>
+                  <div style={{fontSize:12,color:"#94A3B8"}}>{loadUsers().find(u=>u.username===p.un)?.role?.replace("_"," ")||""}</div>
                 </div>
               </div>
             ))}
@@ -8080,11 +8080,11 @@ function KabagDashboard({events, user, upd, showT, askConfirm, deleteAndSync, is
           {ev.alur==="disetujui"&&!ev.alurHapus&&<>
             <div style={{display:"flex",alignItems:"center",gap:8,margin:"8px 0 6px"}}>
               <div style={{flex:1,height:1,background:"#E2E8F0"}}/>
-              <span style={{fontSize:10,color:"#94A3B8",fontWeight:600}}>tindakan koreksi</span>
+              <span style={{fontSize:12,color:"#94A3B8",fontWeight:600}}>tindakan koreksi</span>
               <div style={{flex:1,height:1,background:"#E2E8F0"}}/>
             </div>
             <div style={{borderRadius:10,overflow:"hidden",border:"1.5px solid #FCD34D",background:"#FFFBEB"}}>
-              <div style={{padding:"8px 11px",fontSize:11,color:"#92400E",fontWeight:600}}>
+              <div style={{padding:"8px 11px",fontSize:13,color:"#92400E",fontWeight:600}}>
                 ⚠️ Batalkan tayang & kembalikan ke Kasubbag untuk diperbaiki atau dihapus
               </div>
               <RejectTextarea evId={ev.id+"_recall"} placeholder="Alasan pembatalan tayang (wajib)..." rows={2}
@@ -8120,18 +8120,18 @@ function KabagDashboard({events, user, upd, showT, askConfirm, deleteAndSync, is
       {/* Header */}
       <div style={{background:"linear-gradient(135deg,"+NAVY+" 0%,#1B3360 100%)",padding:isMobile?"16px 16px 20px":"22px 28px 26px",position:"relative",overflow:"hidden"}}>
         <div style={{position:"absolute",top:-20,right:-20,width:100,height:100,borderRadius:"50%",background:"rgba(201,168,76,0.08)"}}/>
-        <div style={{color:"rgba(255,255,255,0.55)",fontSize:11,marginBottom:2}}>Dashboard</div>
+        <div style={{color:"rgba(255,255,255,0.55)",fontSize:13,marginBottom:2}}>Dashboard</div>
         <div style={{color:"white",fontSize:isMobile?17:21,fontWeight:900,marginBottom:3}}>{user?.nama||"Kepala Bagian"}</div>
-        <div style={{color:GOLD,fontSize:11,fontWeight:600}}>{antrian.length} menunggu persetujuan · {approved.length} jadwal aktif</div>
+        <div style={{color:GOLD,fontSize:13,fontWeight:600}}>{antrian.length} menunggu persetujuan · {approved.length} jadwal aktif</div>
       </div>
 
       {/* Sub-tab */}
       <div style={{background:"white",display:"flex",borderBottom:"1px solid #E2E8F0",padding:"0 12px",flexShrink:0}}>
         {tabs.map(t=>(
-          <button key={t.key} onClick={()=>setActiveTab(t.key)} style={{flex:1,padding:"12px 6px",border:"none",background:"none",borderBottom:"2.5px solid "+(activeTab===t.key?NAVY:"transparent"),color:activeTab===t.key?NAVY:"#94A3B8",cursor:"pointer",fontSize:11,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",gap:5,transition:"all 0.15s"}}>
+          <button key={t.key} onClick={()=>setActiveTab(t.key)} style={{flex:1,padding:"12px 6px",border:"none",background:"none",borderBottom:"2.5px solid "+(activeTab===t.key?NAVY:"transparent"),color:activeTab===t.key?NAVY:"#94A3B8",cursor:"pointer",fontSize:13,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",gap:5,transition:"all 0.15s"}}>
             <span>{t.icon}</span>
             <span>{t.label}</span>
-            {t.badge>0&&<span style={{background:"#EF4444",color:"white",borderRadius:"50%",width:17,height:17,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:900}}>{t.badge}</span>}
+            {t.badge>0&&<span style={{background:"#EF4444",color:"white",borderRadius:"50%",width:17,height:17,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:900}}>{t.badge}</span>}
           </button>
         ))}
       </div>
@@ -8157,11 +8157,11 @@ function KabagDashboard({events, user, upd, showT, askConfirm, deleteAndSync, is
                 <div style={{flex:1}}>
                   <div style={{fontSize:12,fontWeight:700,color:"#991B1B",marginBottom:5}}>{_pr.length} pasang agenda berdekatan</div>
                   {_pr.map((p,i)=>(
-                    <div key={i} style={{background:"white",borderRadius:7,padding:"6px 9px",marginBottom:4,border:"1px solid #FECACA",fontSize:11,color:"#374151"}}>
+                    <div key={i} style={{background:"white",borderRadius:7,padding:"6px 9px",marginBottom:4,border:"1px solid #FECACA",fontSize:13,color:"#374151"}}>
                       <span style={{fontWeight:800,color:"#991B1B"}}>{p.a.jam}</span> {p.a.namaAcara}
                       <span style={{color:"#9CA3AF",margin:"0 5px"}}>↔</span>
                       <span style={{fontWeight:800,color:"#991B1B"}}>{p.b.jam}</span> {p.b.namaAcara}
-                      <span style={{color:"#9CA3AF",marginLeft:6,fontSize:10}}>({p.diff} mnt)</span>
+                      <span style={{color:"#9CA3AF",marginLeft:6,fontSize:12}}>({p.diff} mnt)</span>
                     </div>
                   ))}
                 </div>
@@ -8170,11 +8170,11 @@ function KabagDashboard({events, user, upd, showT, askConfirm, deleteAndSync, is
 
           {/* ── BAGIAN 1: MENDATANG — semua ditampilkan, tombol batalkan langsung kelihatan ── */}
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
-            <div style={{fontSize:11,fontWeight:800,color:NAVY,letterSpacing:1.2,textTransform:"uppercase"}}>
+            <div style={{fontSize:13,fontWeight:800,color:NAVY,letterSpacing:1.2,textTransform:"uppercase"}}>
               📅 Mendatang ({upcoming.length})
             </div>
             <div style={{flex:1,height:1,background:"#E2E8F0"}}/>
-            <span style={{fontSize:10,color:"#94A3B8",fontWeight:600}}>Semua bisa dibatalkan</span>
+            <span style={{fontSize:12,color:"#94A3B8",fontWeight:600}}>Semua bisa dibatalkan</span>
           </div>
           {upcoming.length===0
             ?<div style={{background:"#F0FDF4",borderRadius:10,padding:"12px 14px",marginBottom:16,fontSize:12,color:"#065F46",fontWeight:600,textAlign:"center"}}>✅ Tidak ada agenda mendatang</div>
@@ -8188,13 +8188,13 @@ function KabagDashboard({events, user, upd, showT, askConfirm, deleteAndSync, is
                     <div style={{padding:"13px 16px",cursor:"pointer",display:"flex",gap:12,alignItems:"flex-start"}} onClick={()=>setExpanded(exp?null:ev.id)}>
                       <div style={{width:46,textAlign:"center",background:"#ECFDF5",borderRadius:10,padding:"6px 4px",flexShrink:0}}>
                         <div style={{fontSize:17,fontWeight:900,color:GREEN}}>{ev.tanggal.slice(8)}</div>
-                        <div style={{fontSize:9,color:"#64748B"}}>{fmtShort(ev.tanggal).split(" ")[1]}</div>
+                        <div style={{fontSize:12,color:"#64748B"}}>{fmtShort(ev.tanggal).split(" ")[1]}</div>
                       </div>
                       <div style={{flex:1,minWidth:0}}>
                         <div style={{fontSize:13,fontWeight:800,color:"#0F172A",marginBottom:3}}>{ev.namaAcara}</div>
-                        <div style={{fontSize:11,color:"#64748B"}}>🕐 {ev.jam} · {ev.penyelenggara||"—"}</div>
+                        <div style={{fontSize:13,color:"#64748B"}}>🕐 {ev.jam} · {ev.penyelenggara||"—"}</div>
                         <div style={{marginTop:3}}><TujuanBadge ev={ev}/></div>
-                        <div style={{fontSize:11,color:personilList.length>0?"#065F46":"#D97706",marginTop:2,fontWeight:600}}>
+                        <div style={{fontSize:13,color:personilList.length>0?"#065F46":"#D97706",marginTop:2,fontWeight:600}}>
                           {personilList.length>0?"👥 "+personilList.map(p=>p.nama).join(", "):"⚠️ Belum ada personil"}
                         </div>
                       </div>
@@ -8203,7 +8203,7 @@ function KabagDashboard({events, user, upd, showT, askConfirm, deleteAndSync, is
                     {/* Tombol batalkan — SELALU TERLIHAT tanpa perlu expand */}
                     {!ev.alurHapus&&<div style={{padding:"0 16px 12px",display:"flex",gap:8,alignItems:"flex-start",flexWrap:"wrap"}}>
                       <RejectTextarea evId={ev.id+"_recall"} placeholder="Alasan batalkan tayang (wajib)..." rows={1}
-                        style={{flex:1,minWidth:160,padding:"7px 10px",borderRadius:8,border:"1.5px solid #FCD34D",resize:"none",fontSize:11,boxSizing:"border-box",color:"#334155",background:"#FFFBEB"}}
+                        style={{flex:1,minWidth:160,padding:"7px 10px",borderRadius:8,border:"1.5px solid #FCD34D",resize:"none",fontSize:13,boxSizing:"border-box",color:"#334155",background:"#FFFBEB"}}
                         onCommit={(id,v)=>setRT(p=>({...p,[id]:v}))}/>
                       <button onClick={()=>{
                         if(!(rejectTexts[ev.id+"_recall"]||"").trim()){showT("Tulis alasan pembatalan dulu","warn");return;}
@@ -8217,21 +8217,21 @@ function KabagDashboard({events, user, upd, showT, askConfirm, deleteAndSync, is
                           if(_subU?.noWA)sendWA({to:_subU.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"recalled",submittedBy:getNamaByUsername(ev.submittedBy)});
                           setExpanded(null);
                         },"Batalkan Tayang","#D97706");
-                      }} style={{flexShrink:0,padding:"7px 12px",borderRadius:8,border:"none",background:"#F59E0B",color:"white",cursor:"pointer",fontSize:11,fontWeight:700,whiteSpace:"nowrap"}}>
+                      }} style={{flexShrink:0,padding:"7px 12px",borderRadius:8,border:"none",background:"#F59E0B",color:"white",cursor:"pointer",fontSize:13,fontWeight:700,whiteSpace:"nowrap"}}>
                         ↩ Batalkan Tayang
                       </button>
                     </div>}
-                    {ev.alurHapus&&<div style={{padding:"0 16px 12px",fontSize:11,color:"#B91C1C",fontWeight:600}}>🚫 Ada permintaan batal dari staf</div>}
+                    {ev.alurHapus&&<div style={{padding:"0 16px 12px",fontSize:13,color:"#B91C1C",fontWeight:600}}>🚫 Ada permintaan batal dari staf</div>}
                     {/* Detail expand */}
                     {exp&&<div style={{borderTop:"1px solid #ECFDF5",padding:"12px 16px",background:"#FAFFFC"}}>
                       {[{l:"Tanggal",v:fmt(ev.tanggal)},{l:"Penyelenggara",v:ev.penyelenggara},{l:"Lokasi",v:ev.lokasi},{l:"Pakaian",v:ev.pakaian},{l:"Catatan",v:ev.catatan}].filter(f=>f.v).map(f=>(
                         <div key={f.l} style={{display:"flex",gap:8,marginBottom:5}}>
-                          <span style={{minWidth:90,fontSize:11,color:"#94A3B8",fontWeight:600}}>{f.l}</span>
+                          <span style={{minWidth:90,fontSize:13,color:"#94A3B8",fontWeight:600}}>{f.l}</span>
                           <span style={{fontSize:12,color:"#1E293B",flex:1}}>{f.v}</span>
                         </div>
                       ))}
                       {personilList.length>0&&<div style={{marginTop:8}}>
-                        <div style={{fontSize:11,fontWeight:700,color:"#475569",marginBottom:6}}>Personil:</div>
+                        <div style={{fontSize:13,fontWeight:700,color:"#475569",marginBottom:6}}>Personil:</div>
                         {personilList.map(p=><div key={p.un} style={{fontSize:12,color:"#334155",padding:"4px 0"}}>• {p.nama}</div>)}
                       </div>}
                     </div>}
@@ -8243,7 +8243,7 @@ function KabagDashboard({events, user, upd, showT, askConfirm, deleteAndSync, is
 
           {/* ── BAGIAN 2: RIWAYAT — bisa dicari ── */}
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
-            <div style={{fontSize:11,fontWeight:800,color:"#64748B",letterSpacing:1.2,textTransform:"uppercase"}}>
+            <div style={{fontSize:13,fontWeight:800,color:"#64748B",letterSpacing:1.2,textTransform:"uppercase"}}>
               📁 Riwayat ({riwayat.length})
             </div>
             <div style={{flex:1,height:1,background:"#E2E8F0"}}/>
@@ -8260,7 +8260,7 @@ function KabagDashboard({events, user, upd, showT, askConfirm, deleteAndSync, is
             {searchQ&&<button onClick={()=>setSearchQ("")}
               style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:"#94A3B8",fontSize:14}}>✕</button>}
           </div>
-          {searchQ&&<div style={{fontSize:11,color:"#1D4ED8",fontWeight:600,marginBottom:8}}>
+          {searchQ&&<div style={{fontSize:13,color:"#1D4ED8",fontWeight:600,marginBottom:8}}>
             Menampilkan {riwayatFiltered.length} dari {riwayat.length} riwayat
           </div>}
           {riwayatFiltered.length===0
@@ -8284,8 +8284,8 @@ function KabagDashboard({events, user, upd, showT, askConfirm, deleteAndSync, is
               <div key={ev.id} style={{background:"white",borderRadius:14,marginBottom:10,border:"2px solid #FECDD3",overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,0.05)"}}>
                 <div style={{background:"#FFF1F2",padding:"10px 14px",borderBottom:"1px solid #FECDD3"}}>
                   <div style={{fontSize:13,fontWeight:800,color:"#B91C1C"}}>{ev.namaAcara}</div>
-                  <div style={{fontSize:11,color:"#64748B",marginTop:2}}>🕐 {ev.jam} · 📅 {fmt(ev.tanggal)}</div>
-                  <div style={{fontSize:11,color:"#94A3B8",marginTop:1}}>Diajukan oleh: {getNamaByUsername(ev.submittedBy)}</div>
+                  <div style={{fontSize:13,color:"#64748B",marginTop:2}}>🕐 {ev.jam} · 📅 {fmt(ev.tanggal)}</div>
+                  <div style={{fontSize:13,color:"#94A3B8",marginTop:1}}>Diajukan oleh: {getNamaByUsername(ev.submittedBy)}</div>
                 </div>
                 <div style={{padding:"12px 14px",display:"flex",gap:8}}>
                   <button onClick={()=>askConfirm("Hapus Jadwal Permanen?","Tindakan ini tidak dapat dibatalkan. Jadwal '"+ev.namaAcara+"' akan dihapus selamanya.",()=>{deleteAndSync(ev.id);showT("Jadwal dihapus");},"Hapus Permanen")}
@@ -8360,12 +8360,12 @@ function KasubbagDashboard({events, user, upd, showT, askConfirm, isMobile, onPe
         <div style={{padding:"13px 16px",cursor:"pointer",display:"flex",gap:12,alignItems:"flex-start"}} onClick={()=>setExpanded(exp?null:ev.id)}>
           <div style={{width:46,textAlign:"center",background:"#EFF6FF",borderRadius:10,padding:"6px 4px",flexShrink:0}}>
             <div style={{fontSize:17,fontWeight:900,color:NAVY}}>{ev.tanggal.slice(8)}</div>
-            <div style={{fontSize:9,color:"#64748B"}}>{fmtShort(ev.tanggal).split(" ")[1]}</div>
+            <div style={{fontSize:12,color:"#64748B"}}>{fmtShort(ev.tanggal).split(" ")[1]}</div>
           </div>
           <div style={{flex:1,minWidth:0}}>
             <div style={{fontSize:13,fontWeight:800,color:"#0F172A",marginBottom:3}}>{ev.namaAcara}</div>
-            <div style={{fontSize:11,color:"#64748B"}}>🕐 {ev.jam} · {ev.penyelenggara||ev.lokasi||"—"}</div>
-            <div style={{fontSize:11,color:"#94A3B8",marginTop:2}}>Diajukan: {getNamaByUsername(ev.submittedBy)}</div>
+            <div style={{fontSize:13,color:"#64748B"}}>🕐 {ev.jam} · {ev.penyelenggara||ev.lokasi||"—"}</div>
+            <div style={{fontSize:13,color:"#94A3B8",marginTop:2}}>Diajukan: {getNamaByUsername(ev.submittedBy)}</div>
           </div>
           <span style={{fontSize:14,color:"#94A3B8",flexShrink:0}}>{exp?"▲":"▼"}</span>
         </div>
@@ -8402,16 +8402,16 @@ function KasubbagDashboard({events, user, upd, showT, askConfirm, isMobile, onPe
         <div style={{padding:"13px 16px",cursor:"pointer",display:"flex",gap:12,alignItems:"flex-start"}} onClick={()=>setExpanded(exp?null:ev.id)}>
           <div style={{width:46,textAlign:"center",background:"#ECFDF5",borderRadius:10,padding:"6px 4px",flexShrink:0}}>
             <div style={{fontSize:17,fontWeight:900,color:GREEN}}>{ev.tanggal.slice(8)}</div>
-            <div style={{fontSize:9,color:"#64748B"}}>{fmtShort(ev.tanggal).split(" ")[1]}</div>
+            <div style={{fontSize:12,color:"#64748B"}}>{fmtShort(ev.tanggal).split(" ")[1]}</div>
           </div>
           <div style={{flex:1,minWidth:0}}>
             <div style={{fontSize:13,fontWeight:800,color:"#0F172A",marginBottom:3}}>{ev.namaAcara}</div>
-            <div style={{fontSize:11,color:"#64748B"}}>🕐 {ev.jam} · {ev.penyelenggara||"—"}</div>
+            <div style={{fontSize:13,color:"#64748B"}}>🕐 {ev.jam} · {ev.penyelenggara||"—"}</div>
             {personilList.length>0
-              ?<div style={{fontSize:11,color:"#065F46",marginTop:2,fontWeight:600}}>👥 {personilList.map(p=>p.nama).join(", ")}</div>
+              ?<div style={{fontSize:13,color:"#065F46",marginTop:2,fontWeight:600}}>👥 {personilList.map(p=>p.nama).join(", ")}</div>
               :<div style={{display:"flex",alignItems:"center",gap:5,marginTop:4,background:"#FEF3C7",borderRadius:6,padding:"3px 8px",width:"fit-content"}}>
-                <span style={{fontSize:11}}>⚠️</span>
-                <span style={{fontSize:10,fontWeight:800,color:"#92400E"}}>Belum ada personil — segera tugaskan!</span>
+                <span style={{fontSize:13}}>⚠️</span>
+                <span style={{fontSize:12,fontWeight:800,color:"#92400E"}}>Belum ada personil — segera tugaskan!</span>
               </div>
             }
           </div>
@@ -8419,7 +8419,7 @@ function KasubbagDashboard({events, user, upd, showT, askConfirm, isMobile, onPe
             <button onClick={e=>{e.stopPropagation();onPenugasan(ev);}}
               style={{padding:"5px 10px",borderRadius:8,border:"none",
                 background:personilList.length>0?NAVY:"#D97706",
-                color:"white",cursor:"pointer",fontSize:10,fontWeight:700,
+                color:"white",cursor:"pointer",fontSize:12,fontWeight:700,
                 boxShadow:personilList.length===0?"0 2px 6px rgba(217,119,6,0.35)":"none"}}>
               {personilList.length>0?"Edit Tugas":"⚠️ Tugaskan!"}
             </button>
@@ -8431,7 +8431,7 @@ function KasubbagDashboard({events, user, upd, showT, askConfirm, isMobile, onPe
             <a href={ev.undanganFile} target="_blank" rel="noopener noreferrer" style={{flex:1,padding:"7px",borderRadius:8,border:"1.5px solid #0284c7",background:"white",color:"#0284c7",textDecoration:"none",textAlign:"center",fontSize:12,fontWeight:700}}>👁 Lihat Undangan</a>
             <a href={ev.undanganFile} download={ev.undanganNama||"undangan"} style={{flex:1,padding:"7px",borderRadius:8,border:"none",background:"#0284c7",color:"white",textDecoration:"none",textAlign:"center",fontSize:12,fontWeight:700}}>⬇ Unduh</a>
           </div>}
-          {personilList.length>0&&<><div style={{fontSize:11,fontWeight:800,color:"#475569",textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>Personil Bertugas</div>
+          {personilList.length>0&&<><div style={{fontSize:13,fontWeight:800,color:"#475569",textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>Personil Bertugas</div>
           {personilList.map(p=>{
             const uObj=loadUsers().find(u=>u.username===p.un);
             const pRole=uObj?.role||"";
@@ -8441,10 +8441,10 @@ function KasubbagDashboard({events, user, upd, showT, askConfirm, isMobile, onPe
               <div style={{width:30,height:30,borderRadius:8,background:"#EFF6FF",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,color:NAVY,flexShrink:0}}>{p.nama.slice(0,1)}</div>
               <div style={{flex:1}}>
                 <div style={{fontSize:12,fontWeight:700,color:"#1E293B"}}>{p.nama}</div>
-                <div style={{fontSize:10,color:"#94A3B8",textTransform:"capitalize"}}>{pRole.replace(/_/g," ")}</div>
+                <div style={{fontSize:12,color:"#94A3B8",textTransform:"capitalize"}}>{pRole.replace(/_/g," ")}</div>
               </div>
               {bisaCabut&&<button onClick={e=>{e.stopPropagation();setCabutTarget({evId:ev.id,un:p.un,nama:p.nama});setAlasanCabut("");}}
-                style={{padding:"5px 10px",borderRadius:8,border:"1.5px solid #FCA5A5",background:"white",color:"#DC2626",fontSize:11,fontWeight:700,cursor:"pointer",flexShrink:0}}>Cabut</button>}
+                style={{padding:"5px 10px",borderRadius:8,border:"1.5px solid #FCA5A5",background:"white",color:"#DC2626",fontSize:13,fontWeight:700,cursor:"pointer",flexShrink:0}}>Cabut</button>}
             </div>;
           })}
           </>}
@@ -8458,11 +8458,11 @@ function KasubbagDashboard({events, user, upd, showT, askConfirm, isMobile, onPe
       {/* Header */}
       <div style={{background:"linear-gradient(135deg,"+NAVY+" 0%,#1B3360 100%)",padding:isMobile?"16px 16px 20px":"22px 28px 26px",position:"relative",overflow:"hidden"}}>
         <div style={{position:"absolute",top:-20,right:-20,width:100,height:100,borderRadius:"50%",background:"rgba(201,168,76,0.08)"}}/>
-        <div style={{color:"rgba(255,255,255,0.55)",fontSize:11,marginBottom:2}}>Dashboard</div>
+        <div style={{color:"rgba(255,255,255,0.55)",fontSize:13,marginBottom:2}}>Dashboard</div>
         <div style={{color:"white",fontSize:isMobile?16:20,fontWeight:900,marginBottom:3}}>
           {user?.nama||(isProto?"Kasubbag Protokol":"Kasubbag Komunikasi & Dokumentasi")}
         </div>
-        <div style={{color:GOLD,fontSize:11,fontWeight:600}}>
+        <div style={{color:GOLD,fontSize:13,fontWeight:600}}>
           {antrian.length} menunggu review · {stafBawahan.length} personil di bawah
         </div>
       </div>
@@ -8470,10 +8470,10 @@ function KasubbagDashboard({events, user, upd, showT, askConfirm, isMobile, onPe
       {/* Sub-tab */}
       <div style={{background:"white",display:"flex",borderBottom:"1px solid #E2E8F0",padding:"0 12px"}}>
         {tabs.map(t=>(
-          <button key={t.key} onClick={()=>setActiveTab(t.key)} style={{flex:1,padding:"12px 6px",border:"none",background:"none",borderBottom:"2.5px solid "+(activeTab===t.key?NAVY:"transparent"),color:activeTab===t.key?NAVY:"#94A3B8",cursor:"pointer",fontSize:11,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",gap:5}}>
+          <button key={t.key} onClick={()=>setActiveTab(t.key)} style={{flex:1,padding:"12px 6px",border:"none",background:"none",borderBottom:"2.5px solid "+(activeTab===t.key?NAVY:"transparent"),color:activeTab===t.key?NAVY:"#94A3B8",cursor:"pointer",fontSize:13,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",gap:5}}>
             <span>{t.icon}</span>
             <span>{t.label}</span>
-            {t.badge>0&&<span style={{background:"#EF4444",color:"white",borderRadius:"50%",width:17,height:17,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:900}}>{t.badge}</span>}
+            {t.badge>0&&<span style={{background:"#EF4444",color:"white",borderRadius:"50%",width:17,height:17,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:900}}>{t.badge}</span>}
           </button>
         ))}
       </div>
@@ -8507,23 +8507,23 @@ function KasubbagDashboard({events, user, upd, showT, askConfirm, isMobile, onPe
                   <span style={{fontSize:18}}>🚨</span>
                   <div>
                     <div style={{fontSize:13,fontWeight:800,color:"#92400E"}}>{belumAda.length} agenda belum ada personil yang ditugaskan</div>
-                    <div style={{fontSize:11,color:"#B45309",marginTop:1}}>Segera tugaskan agar tidak kosong saat hari H</div>
+                    <div style={{fontSize:13,color:"#B45309",marginTop:1}}>Segera tugaskan agar tidak kosong saat hari H</div>
                   </div>
                 </div>
                 <div style={{display:"flex",flexDirection:"column",gap:5}}>
                   {belumAda.slice(0,5).map(e=>(
                     <div key={e.id} style={{display:"flex",alignItems:"center",gap:8,background:"white",borderRadius:8,padding:"7px 10px",border:"1px solid #FECACA"}}>
-                      <span style={{fontSize:10,fontWeight:800,color:"#991B1B",background:"#FEE2E2",padding:"2px 7px",borderRadius:6,flexShrink:0}}>{e.tanggal.slice(8)} {["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"][parseInt(e.tanggal.slice(5,7))-1]}</span>
+                      <span style={{fontSize:12,fontWeight:800,color:"#991B1B",background:"#FEE2E2",padding:"2px 7px",borderRadius:6,flexShrink:0}}>{e.tanggal.slice(8)} {["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"][parseInt(e.tanggal.slice(5,7))-1]}</span>
                       <span style={{fontSize:12,fontWeight:600,color:"#1E293B",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{e.namaAcara}</span>
-                      <span style={{fontSize:10,color:"#92400E",fontWeight:700,flexShrink:0}}>{e.jam} WITA</span>
+                      <span style={{fontSize:12,color:"#92400E",fontWeight:700,flexShrink:0}}>{e.jam} WITA</span>
                     </div>
                   ))}
-                  {belumAda.length>5&&<div style={{fontSize:11,color:"#B45309",textAlign:"center",fontWeight:600}}>...dan {belumAda.length-5} agenda lainnya</div>}
+                  {belumAda.length>5&&<div style={{fontSize:13,color:"#B45309",textAlign:"center",fontWeight:600}}>...dan {belumAda.length-5} agenda lainnya</div>}
                 </div>
               </div>
             );
           })()}
-          <div style={{fontSize:11,fontWeight:800,color:"#64748B",letterSpacing:1.2,textTransform:"uppercase",marginBottom:12}}>{approved.length} Jadwal Disetujui</div>
+          <div style={{fontSize:13,fontWeight:800,color:"#64748B",letterSpacing:1.2,textTransform:"uppercase",marginBottom:12}}>{approved.length} Jadwal Disetujui</div>
           {approved.length===0
             ?<div style={{textAlign:"center",padding:"40px 20px",color:"#94A3B8"}}><div style={{fontSize:36,marginBottom:8}}>📭</div><div style={{fontSize:13,fontWeight:600}}>Belum ada jadwal</div></div>
             :approved.map(ev=><JadwalKasubbagCard key={ev.id} ev={ev}/>)}
@@ -8543,8 +8543,8 @@ function KasubbagDashboard({events, user, upd, showT, askConfirm, isMobile, onPe
                   <div style={{width:40,height:40,borderRadius:11,background:"linear-gradient(135deg,"+NAVY+",#1E3254)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,fontWeight:800,color:"white",flexShrink:0}}>{staf.nama.slice(0,1)}</div>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontSize:13,fontWeight:800,color:"#0F172A"}}>{staf.nama}</div>
-                    <div style={{fontSize:10,color:"#94A3B8",textTransform:"capitalize"}}>{staf.role?.replace(/_/g," ")||""}</div>
-                    <div style={{fontSize:11,color:tugasan.length>0?GREEN:"#94A3B8",fontWeight:600,marginTop:2}}>
+                    <div style={{fontSize:12,color:"#94A3B8",textTransform:"capitalize"}}>{staf.role?.replace(/_/g," ")||""}</div>
+                    <div style={{fontSize:13,color:tugasan.length>0?GREEN:"#94A3B8",fontWeight:600,marginTop:2}}>
                       {tugasan.length>0?tugasan.length+" jadwal ditugaskan":"Belum ada penugasan"}
                     </div>
                   </div>
@@ -8552,12 +8552,12 @@ function KasubbagDashboard({events, user, upd, showT, askConfirm, isMobile, onPe
                 {tugasan.length>0&&<div style={{borderTop:"1px solid #F1F5F9",padding:"8px 14px 12px"}}>
                   {tugasan.slice(0,3).map(ev=>(
                     <div key={ev.id} style={{display:"flex",gap:8,alignItems:"center",padding:"6px 8px",background:"#F8FAFF",borderRadius:8,marginBottom:4}}>
-                      <span style={{fontSize:10,fontWeight:700,color:NAVY,minWidth:40}}>{ev.tanggal.slice(5)}</span>
-                      <span style={{fontSize:11,color:"#334155",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ev.namaAcara}</span>
-                      <span style={{fontSize:10,color:"#64748B"}}>{ev.jam}</span>
+                      <span style={{fontSize:12,fontWeight:700,color:NAVY,minWidth:40}}>{ev.tanggal.slice(5)}</span>
+                      <span style={{fontSize:13,color:"#334155",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ev.namaAcara}</span>
+                      <span style={{fontSize:12,color:"#64748B"}}>{ev.jam}</span>
                     </div>
                   ))}
-                  {tugasan.length>3&&<div style={{fontSize:11,color:"#94A3B8",textAlign:"center",paddingTop:4}}>+{tugasan.length-3} lainnya</div>}
+                  {tugasan.length>3&&<div style={{fontSize:13,color:"#94A3B8",textAlign:"center",paddingTop:4}}>+{tugasan.length-3} lainnya</div>}
                 </div>}
               </div>
             );
@@ -8576,7 +8576,7 @@ function KasubbagDashboard({events, user, upd, showT, askConfirm, isMobile, onPe
             placeholder="Contoh: Berhalangan hadir, ditugaskan kegiatan lain..."
             rows={2} style={{width:"100%",padding:"9px 11px",borderRadius:9,border:"1.5px solid #E2E8F0",fontSize:12,resize:"none",boxSizing:"border-box"}}/>
         </div>
-        <div style={{background:"#EFF6FF",borderRadius:9,padding:"8px 11px",marginBottom:14,fontSize:11,color:"#1E40AF"}}>📱 Notifikasi WA akan dikirim ke <strong>{cabutTarget.nama}</strong> secara otomatis.</div>
+        <div style={{background:"#EFF6FF",borderRadius:9,padding:"8px 11px",marginBottom:14,fontSize:13,color:"#1E40AF"}}>📱 Notifikasi WA akan dikirim ke <strong>{cabutTarget.nama}</strong> secara otomatis.</div>
         <div style={{display:"flex",gap:8}}>
           <button onClick={()=>{setCabutTarget(null);setAlasanCabut("");}} style={{flex:1,padding:"12px",borderRadius:10,border:"1.5px solid #E2E8F0",background:"white",color:"#64748B",cursor:"pointer",fontWeight:700,fontSize:13}}>Batal</button>
           <button onClick={()=>{
@@ -8719,7 +8719,7 @@ function EKinerjaGenerator({ events, role, user, isMobile }) {
           <span style={{ fontSize:24 }}>📊</span>
           <div>
             <div style={{ fontSize:16, fontWeight:800, color:"white" }}>Generator Laporan E-Kinerja</div>
-            <div style={{ fontSize:11, color:"rgba(255,255,255,0.55)" }}>
+            <div style={{ fontSize:13, color:"rgba(255,255,255,0.55)" }}>
               Output siap salin untuk bot Chrome Extension
             </div>
           </div>
@@ -8735,17 +8735,17 @@ function EKinerjaGenerator({ events, role, user, isMobile }) {
 
       {/* Filter tanggal */}
       <div style={{ background:"white", borderRadius:14, padding:"16px 18px", marginBottom:14, border:"1.5px solid #E2E8F0", boxShadow:"0 2px 8px rgba(0,0,0,0.04)" }}>
-        <div style={{ fontSize:11, fontWeight:800, color:"#475569", textTransform:"uppercase", letterSpacing:0.8, marginBottom:12 }}>
+        <div style={{ fontSize:13, fontWeight:800, color:"#475569", textTransform:"uppercase", letterSpacing:0.8, marginBottom:12 }}>
           Rentang Tanggal
         </div>
         <div style={{ display:"flex", gap:10, alignItems:"flex-end", flexWrap:"wrap" }}>
           <div style={{ flex:1, minWidth:130 }}>
-            <label style={{ display:"block", fontSize:11, color:"#64748B", fontWeight:600, marginBottom:4 }}>Dari Tanggal</label>
+            <label style={{ display:"block", fontSize:13, color:"#64748B", fontWeight:600, marginBottom:4 }}>Dari Tanggal</label>
             <input type="date" value={startDate} onChange={e=>setStartDate(e.target.value)}
               style={{ width:"100%", padding:"9px 11px", borderRadius:8, border:"1.5px solid #E2E8F0", fontSize:13, color:NAVY, boxSizing:"border-box" }}/>
           </div>
           <div style={{ flex:1, minWidth:130 }}>
-            <label style={{ display:"block", fontSize:11, color:"#64748B", fontWeight:600, marginBottom:4 }}>Sampai Tanggal</label>
+            <label style={{ display:"block", fontSize:13, color:"#64748B", fontWeight:600, marginBottom:4 }}>Sampai Tanggal</label>
             <input type="date" value={endDate} onChange={e=>setEndDate(e.target.value)}
               style={{ width:"100%", padding:"9px 11px", borderRadius:8, border:"1.5px solid #E2E8F0", fontSize:13, color:NAVY, boxSizing:"border-box" }}/>
           </div>
@@ -8768,7 +8768,7 @@ function EKinerjaGenerator({ events, role, user, isMobile }) {
             ["7 Hari Lalu", () => { const t=new Date(Date.now()+8*3600000).toISOString().slice(0,10);const w=new Date(Date.now()+8*3600000-7*86400000).toISOString().slice(0,10);setStartDate(w);setEndDate(t); }],
           ].map(([label, fn]) => (
             <button key={label} onClick={fn}
-              style={{ padding:"4px 11px", borderRadius:20, border:"1.5px solid #E2E8F0", background:"white", color:"#475569", fontSize:11, fontWeight:600, cursor:"pointer" }}>
+              style={{ padding:"4px 11px", borderRadius:20, border:"1.5px solid #E2E8F0", background:"white", color:"#475569", fontSize:13, fontWeight:600, cursor:"pointer" }}>
               {label}
             </button>
           ))}
@@ -8783,7 +8783,7 @@ function EKinerjaGenerator({ events, role, user, isMobile }) {
               <span style={{ fontSize:13 }}>📋</span>
               <div style={{ fontSize:12, fontWeight:700, color:NAVY }}>Hasil Laporan</div>
               {lineCount > 0 && (
-                <span style={{ background:"#EFF6FF", color:"#1D4ED8", borderRadius:20, padding:"1px 8px", fontSize:10, fontWeight:700 }}>
+                <span style={{ background:"#EFF6FF", color:"#1D4ED8", borderRadius:20, padding:"1px 8px", fontSize:12, fontWeight:700 }}>
                   {lineCount} baris
                 </span>
               )}
@@ -8805,7 +8805,7 @@ function EKinerjaGenerator({ events, role, user, isMobile }) {
               background: output.startsWith("//")?"#F8FAFC":"white" }}/>
           {lineCount > 0 && (
             <div style={{ padding:"8px 16px", borderTop:"1px solid #F1F5F9", background:"#F8FAFC",
-              fontSize:11, color:"#64748B", display:"flex", alignItems:"center", gap:6 }}>
+              fontSize:13, color:"#64748B", display:"flex", alignItems:"center", gap:6 }}>
               <span>ℹ️</span>
               Format: <code style={{background:"#E2E8F0",padding:"1px 5px",borderRadius:3}}>YYYY-MM-DD | Deskripsi kegiatan</code>
               &nbsp;· Tempel ke bot Chrome Extension untuk submit e-Kinerja massal
@@ -8818,7 +8818,7 @@ function EKinerjaGenerator({ events, role, user, isMobile }) {
         <div style={{ textAlign:"center", padding:"32px 20px", background:"white", borderRadius:14, border:"1.5px solid #E2E8F0", color:"#94A3B8" }}>
           <div style={{ fontSize:36, marginBottom:10 }}>📅</div>
           <div style={{ fontSize:13, fontWeight:600, marginBottom:4 }}>Pilih rentang tanggal lalu klik Generate</div>
-          <div style={{ fontSize:11 }}>Laporan akan menggunakan template kalimat sesuai jabatan Anda</div>
+          <div style={{ fontSize:13 }}>Laporan akan menggunakan template kalimat sesuai jabatan Anda</div>
         </div>
       )}
     </div>
@@ -8851,7 +8851,7 @@ function SorotanKhususWWK({ events, upd, showT, setDelegTarget, setExpandedId })
     <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
       {/* Statistik ringkas */}
       <div style={{ background:"linear-gradient(135deg,#0A1628,#1B3360)", borderRadius:14, padding:"14px 16px" }}>
-        <div style={{ fontSize:10, fontWeight:800, color:"rgba(255,255,255,0.6)", textTransform:"uppercase", letterSpacing:1, marginBottom:10 }}>
+        <div style={{ fontSize:12, fontWeight:800, color:"rgba(255,255,255,0.6)", textTransform:"uppercase", letterSpacing:1, marginBottom:10 }}>
           Jadwal Saya
         </div>
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
@@ -8863,7 +8863,7 @@ function SorotanKhususWWK({ events, upd, showT, setDelegTarget, setExpandedId })
           ].map(s => (
             <div key={s.l} style={{ background:"rgba(255,255,255,0.08)", borderRadius:9, padding:"9px 10px" }}>
               <div style={{ fontSize:20, fontWeight:900, color:s.c }}>{s.v}</div>
-              <div style={{ fontSize:10, color:"rgba(255,255,255,0.55)", marginTop:1 }}>{s.l}</div>
+              <div style={{ fontSize:12, color:"rgba(255,255,255,0.55)", marginTop:1 }}>{s.l}</div>
             </div>
           ))}
         </div>
@@ -8872,7 +8872,7 @@ function SorotanKhususWWK({ events, upd, showT, setDelegTarget, setExpandedId })
       {/* Agenda belum dikonfirmasi */}
       {belumKonfirmasi.length > 0 && (
         <div style={{ background:"white", borderRadius:14, overflow:"hidden", border:"1.5px solid #FDE68A", boxShadow:"0 2px 8px rgba(0,0,0,0.06)" }}>
-          <div style={{ background:"#FFFBEB", padding:"10px 14px", borderBottom:"1px solid #FDE68A", fontSize:11, fontWeight:800, color:"#92400E", display:"flex", alignItems:"center", gap:6 }}>
+          <div style={{ background:"#FFFBEB", padding:"10px 14px", borderBottom:"1px solid #FDE68A", fontSize:13, fontWeight:800, color:"#92400E", display:"flex", alignItems:"center", gap:6 }}>
             <span>🔔</span> {belumKonfirmasi.length} Agenda Belum Dikonfirmasi
           </div>
           <div style={{ maxHeight:280, overflowY:"auto" }}>
@@ -8885,25 +8885,25 @@ function SorotanKhususWWK({ events, upd, showT, setDelegTarget, setExpandedId })
                   <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:8, marginBottom:6 }}>
                     <div style={{ flex:1, minWidth:0 }}>
                       <div style={{ fontSize:12, fontWeight:700, color:NAVY, lineHeight:1.3, marginBottom:2 }}>{ev.namaAcara}</div>
-                      <div style={{ fontSize:11, color:"#64748B" }}>{fmtDate(ev.tanggal)} · {ev.jam} WITA</div>
+                      <div style={{ fontSize:13, color:"#64748B" }}>{fmtDate(ev.tanggal)} · {ev.jam} WITA</div>
                     </div>
                     <div style={{ display:"flex", flexDirection:"column", gap:3, flexShrink:0 }}>
-                      {isHariIni && <span style={{ background:"#FEF3C7", color:"#92400E", borderRadius:20, padding:"1px 7px", fontSize:9, fontWeight:700 }}>Hari ini</span>}
-                      {isDelegasi && <span style={{ background:"#EDE9FE", color:"#5B21B6", borderRadius:20, padding:"1px 7px", fontSize:9, fontWeight:700 }}>↩ Disposisi WK</span>}
+                      {isHariIni && <span style={{ background:"#FEF3C7", color:"#92400E", borderRadius:20, padding:"1px 7px", fontSize:12, fontWeight:700 }}>Hari ini</span>}
+                      {isDelegasi && <span style={{ background:"#EDE9FE", color:"#5B21B6", borderRadius:20, padding:"1px 7px", fontSize:12, fontWeight:700 }}>↩ Disposisi WK</span>}
                     </div>
                   </div>
                   {/* Tombol konfirmasi inline */}
                   <div style={{ display:"flex", gap:6 }}>
                     <button onClick={e=>{e.stopPropagation();upd(ev.id,{statusWWK:"hadir",statusWWK_by:"wakilwalikota",delegasiWWKJajaran:false,perwakilanWWK:""});showT("✓ Hadir dikonfirmasi");}}
-                      style={{ flex:1, padding:"6px", borderRadius:7, border:"none", background:GREEN, color:"white", fontWeight:700, fontSize:11, cursor:"pointer" }}>
+                      style={{ flex:1, padding:"6px", borderRadius:7, border:"none", background:GREEN, color:"white", fontWeight:700, fontSize:13, cursor:"pointer" }}>
                       ✓ Hadir
                     </button>
                     <button onClick={e=>{e.stopPropagation();upd(ev.id,{statusWWK:"tidak_hadir",statusWWK_by:"wakilwalikota"});showT("Tidak hadir dicatat","warn");}}
-                      style={{ flex:1, padding:"6px", borderRadius:7, border:"1.5px solid #FCA5A5", background:"white", color:"#DC2626", fontWeight:700, fontSize:11, cursor:"pointer" }}>
+                      style={{ flex:1, padding:"6px", borderRadius:7, border:"1.5px solid #FCA5A5", background:"white", color:"#DC2626", fontWeight:700, fontSize:13, cursor:"pointer" }}>
                       ✗ Tidak
                     </button>
                     <button onClick={e=>{e.stopPropagation();setDelegTarget({id:ev.id,side:"wwk"});}}
-                      style={{ padding:"6px 8px", borderRadius:7, border:"1.5px solid #C4B5FD", background:"white", color:"#7C3AED", fontWeight:700, fontSize:11, cursor:"pointer" }}>
+                      style={{ padding:"6px 8px", borderRadius:7, border:"1.5px solid #C4B5FD", background:"white", color:"#7C3AED", fontWeight:700, fontSize:13, cursor:"pointer" }}>
                       →
                     </button>
                   </div>
@@ -8917,16 +8917,16 @@ function SorotanKhususWWK({ events, upd, showT, setDelegTarget, setExpandedId })
       {/* Agenda hari ini yang sudah dikonfirmasi */}
       {hariIni.filter(ev=>ev.statusWWK).length > 0 && (
         <div style={{ background:"white", borderRadius:14, overflow:"hidden", border:"1.5px solid #BBF7D0" }}>
-          <div style={{ background:"#F0FDF4", padding:"10px 14px", borderBottom:"1px solid #BBF7D0", fontSize:11, fontWeight:800, color:"#065F46", display:"flex", alignItems:"center", gap:6 }}>
+          <div style={{ background:"#F0FDF4", padding:"10px 14px", borderBottom:"1px solid #BBF7D0", fontSize:13, fontWeight:800, color:"#065F46", display:"flex", alignItems:"center", gap:6 }}>
             <span>✅</span> Sudah Dikonfirmasi Hari Ini
           </div>
           {hariIni.filter(ev=>ev.statusWWK).map(ev => (
             <div key={ev.id} style={{ padding:"10px 14px", borderBottom:"1px solid #F0FDF4", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
               <div>
                 <div style={{ fontSize:12, fontWeight:700, color:NAVY }}>{ev.namaAcara}</div>
-                <div style={{ fontSize:11, color:"#64748B" }}>{ev.jam} WITA · {ev.lokasi||"-"}</div>
+                <div style={{ fontSize:13, color:"#64748B" }}>{ev.jam} WITA · {ev.lokasi||"-"}</div>
               </div>
-              <span style={{ fontSize:11, fontWeight:700, padding:"2px 9px", borderRadius:20,
+              <span style={{ fontSize:13, fontWeight:700, padding:"2px 9px", borderRadius:20,
                 background: ev.statusWWK==="hadir"?"#D1FAE5":ev.statusWWK==="tidak_hadir"?"#FEE2E2":"#EDE9FE",
                 color: ev.statusWWK==="hadir"?"#065F46":ev.statusWWK==="tidak_hadir"?"#DC2626":"#5B21B6" }}>
                 {ev.statusWWK==="hadir"?"✓ Hadir":ev.statusWWK==="tidak_hadir"?"✗ Tidak Hadir":"→ Diwakilkan"}
@@ -8994,7 +8994,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
     const bg = by==="ajudan"?"#FFF8DC":by==="admin_rk"?"#FEF3C7":"#F1F5F9";
     const color = by==="ajudan"?"#B45309":by==="admin_rk"?"#92400E":"#64748B";
     const border = by==="ajudan"?"1px solid #FCD34D":by==="admin_rk"?"1px solid #FDE68A":"1px solid #E2E8F0";
-    return <span style={{background:bg,color,borderRadius:4,padding:"1px 5px",fontSize:9,fontWeight:800,border}}>✏️ {label}</span>;
+    return <span style={{background:bg,color,borderRadius:4,padding:"1px 5px",fontSize:12,fontWeight:800,border}}>✏️ {label}</span>;
   };
 
   const DisposisiBar = ({ev}) => {
@@ -9026,8 +9026,8 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
         <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:4}}>
           {items.map(it=>(
             <div key={it.label} style={{display:"flex",alignItems:"center",gap:4}}>
-              <span style={{fontSize:9,fontWeight:700,color:"#94A3B8",textTransform:"uppercase"}}>{it.label}:</span>
-              <span style={{background:it.bg,color:it.color,borderRadius:20,padding:"2px 8px",fontSize:11,fontWeight:700}}>{it.status}</span>
+              <span style={{fontSize:12,fontWeight:700,color:"#94A3B8",textTransform:"uppercase"}}>{it.label}:</span>
+              <span style={{background:it.bg,color:it.color,borderRadius:20,padding:"2px 8px",fontSize:13,fontWeight:700}}>{it.status}</span>
               <KonfirmasiByBadge by={it.byAdj}/>
             </div>
           ))}
@@ -9050,9 +9050,9 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
       <div style={{display:"flex",alignItems:"center",gap:8}}>
         <span style={{background:b.bg,color:b.color,borderRadius:20,padding:"4px 12px",fontSize:12,fontWeight:800}}>{b.icon} {b.text}</span>
         <KonfirmasiByBadge by={byAdj}/>
-        {ev.delegasiKeWWK&&role==="walikota"&&<span style={{fontSize:10,color:"#7C3AED",background:"#EDE9FE",borderRadius:4,padding:"2px 6px"}}>→ Wawali</span>}
-        {ev.perwakilanWK&&role==="walikota"&&<span style={{fontSize:10,color:"#92400E",background:"#FEF3C7",borderRadius:4,padding:"2px 6px"}}>→ {ev.perwakilanWK}</span>}
-        {ev.perwakilanWWK&&role==="wakilwalikota"&&<span style={{fontSize:10,color:"#92400E",background:"#FEF3C7",borderRadius:4,padding:"2px 6px"}}>→ {ev.perwakilanWWK}</span>}
+        {ev.delegasiKeWWK&&role==="walikota"&&<span style={{fontSize:12,color:"#7C3AED",background:"#EDE9FE",borderRadius:4,padding:"2px 6px"}}>→ Wawali</span>}
+        {ev.perwakilanWK&&role==="walikota"&&<span style={{fontSize:12,color:"#92400E",background:"#FEF3C7",borderRadius:4,padding:"2px 6px"}}>→ {ev.perwakilanWK}</span>}
+        {ev.perwakilanWWK&&role==="wakilwalikota"&&<span style={{fontSize:12,color:"#92400E",background:"#FEF3C7",borderRadius:4,padding:"2px 6px"}}>→ {ev.perwakilanWWK}</span>}
       </div>
     );
   };
@@ -9071,7 +9071,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
       <div style={{background:"white",borderRadius:18,marginBottom:10,overflow:"hidden",boxShadow:"0 2px 16px rgba(10,22,40,0.08)",border:"1.5px solid "+(isToday?"#C9A84C":isUrgent?"#FCA5A5":"#E8EDF4")}}>
         {/* Header strip */}
         {(isToday||isTomorrow||isUrgent)&&<div style={{background:isToday?"linear-gradient(90deg,"+NAVY+",#1B4080)":isUrgent?"#FEF2F2":"#F0F4FF",padding:"5px 16px",display:"flex",alignItems:"center",gap:6}}>
-          <span style={{fontSize:10,fontWeight:800,color:isToday?GOLD:isUrgent?"#DC2626":"#4F46E5",letterSpacing:1,textTransform:"uppercase"}}>
+          <span style={{fontSize:12,fontWeight:800,color:isToday?GOLD:isUrgent?"#DC2626":"#4F46E5",letterSpacing:1,textTransform:"uppercase"}}>
             {isToday?"● HARI INI":isUrgent?"⚠️ "+Math.round(hoursLeft)+" JAM LAGI":"BESOK"}
           </span>
         </div>}
@@ -9081,9 +9081,9 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
           <div style={{display:"flex",gap:14,alignItems:"flex-start"}}>
             {/* Date block */}
             <div style={{minWidth:52,textAlign:"center",background:isToday?"linear-gradient(135deg,"+NAVY+",#1B4080)":"#F8FAFF",borderRadius:12,padding:"8px 4px",flexShrink:0}}>
-              <div style={{fontSize:9,fontWeight:800,color:isToday?GOLD:"#94A3B8",textTransform:"uppercase",letterSpacing:0.5}}>{getHari(ev.tanggal).slice(0,3)}</div>
+              <div style={{fontSize:12,fontWeight:800,color:isToday?GOLD:"#94A3B8",textTransform:"uppercase",letterSpacing:0.5}}>{getHari(ev.tanggal).slice(0,3)}</div>
               <div style={{fontSize:22,fontWeight:900,color:isToday?"white":"#0F172A",lineHeight:1}}>{ev.tanggal.slice(8)}</div>
-              <div style={{fontSize:10,color:isToday?"rgba(255,255,255,0.7)":"#94A3B8",fontWeight:600}}>{ev.jam}</div>
+              <div style={{fontSize:12,color:isToday?"rgba(255,255,255,0.7)":"#94A3B8",fontWeight:600}}>{ev.jam}</div>
             </div>
             <div style={{flex:1,minWidth:0}}>
               <div style={{fontSize:15,fontWeight:800,color:"#0F172A",lineHeight:1.3,marginBottom:5}}>{ev.namaAcara}</div>
@@ -9093,13 +9093,13 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
               {["kabag","kasubbag_protokol","kasubbag_komdokpim"].includes(role)&&(
                 (ev.personil||[]).length===0
                   ?<div style={{display:"flex",alignItems:"center",gap:5,marginTop:6}}>
-                    <span style={{fontSize:10,color:"#CBD5E1"}}>○</span>
-                    <span style={{fontSize:11,color:"#CBD5E1",fontStyle:"italic"}}>Belum ada personil ditugaskan</span>
+                    <span style={{fontSize:12,color:"#CBD5E1"}}>○</span>
+                    <span style={{fontSize:13,color:"#CBD5E1",fontStyle:"italic"}}>Belum ada personil ditugaskan</span>
                   </div>
                   :<div style={{display:"flex",flexWrap:"wrap",gap:4,marginTop:7,alignItems:"center"}}>
-                    <span style={{fontSize:10,color:"#64748B",fontWeight:600,marginRight:2}}>👥</span>
+                    <span style={{fontSize:12,color:"#64748B",fontWeight:600,marginRight:2}}>👥</span>
                     {(ev.personil||[]).map((un,i)=>(
-                      <span key={i} style={{background:"#EFF6FF",color:"#1D4ED8",borderRadius:5,padding:"2px 7px",fontSize:10,fontWeight:700,border:"1px solid #BFDBFE"}}>
+                      <span key={i} style={{background:"#EFF6FF",color:"#1D4ED8",borderRadius:5,padding:"2px 7px",fontSize:12,fontWeight:700,border:"1px solid #BFDBFE"}}>
                         {loadUsers().find(u=>u.username===un)?.nama||un}
                       </span>
                     ))}
@@ -9124,7 +9124,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
               ev.catatan?{l:"Catatan",v:ev.catatan}:null,
             ].filter(Boolean).map(f=>(
               <div key={f.l} style={{gridColumn:f.l==="Tanggal"||f.l==="Catatan"||f.l==="Penyelenggara"?"span 2":"span 1"}}>
-                <div style={{fontSize:10,color:"#94A3B8",fontWeight:700,textTransform:"uppercase",letterSpacing:0.5,marginBottom:2}}>{f.l}</div>
+                <div style={{fontSize:12,color:"#94A3B8",fontWeight:700,textTransform:"uppercase",letterSpacing:0.5,marginBottom:2}}>{f.l}</div>
                 <div style={{fontSize:13,color:"#0F172A",fontWeight:600}}>{f.v}</div>
               </div>
             ))}
@@ -9132,7 +9132,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
 
           {/* Naskah sambutan untuk pimpinan */}
           {ev.sambutanFile&&<div style={{background:"#F0FDF4",border:"1.5px solid #6EE7B7",borderRadius:10,padding:"10px 12px",marginBottom:12}}>
-            <div style={{fontSize:11,fontWeight:800,color:"#065F46",marginBottom:7,display:"flex",alignItems:"center",gap:6}}>
+            <div style={{fontSize:13,fontWeight:800,color:"#065F46",marginBottom:7,display:"flex",alignItems:"center",gap:6}}>
               <span>📄</span> Naskah Sambutan Tersedia
             </div>
             <div style={{display:"flex",gap:7}}>
@@ -9156,7 +9156,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
               <div style={{background:"linear-gradient(135deg,#EFF6FF,#F0FDF4)",borderRadius:12,padding:"14px 16px",marginBottom:12,border:"1.5px solid #BFDBFE"}}>
                 <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
                   <span style={{fontSize:16}}>📱</span>
-                  <div style={{fontSize:11,fontWeight:800,color:"#1D4ED8",textTransform:"uppercase",letterSpacing:0.8}}>
+                  <div style={{fontSize:13,fontWeight:800,color:"#1D4ED8",textTransform:"uppercase",letterSpacing:0.8}}>
                     Caption Instagram Anda
                   </div>
                 </div>
@@ -9173,7 +9173,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
 
           {/* Aksi kehadiran — hanya untuk Wali Kota (WWK punya panel disposisi sendiri di bawah) */}
           {role==="walikota"&&!ev.delegasiKeWWK&&<div style={{marginBottom:10}}>
-            <div style={{fontSize:11,fontWeight:700,color:"#475569",textTransform:"uppercase",letterSpacing:0.5,marginBottom:8}}>Konfirmasi Kehadiran</div>
+            <div style={{fontSize:13,fontWeight:700,color:"#475569",textTransform:"uppercase",letterSpacing:0.5,marginBottom:8}}>Konfirmasi Kehadiran</div>
             {kehadiranLocked
               ?<KehadiranLockedBanner/>
               :<div style={{display:"flex",gap:8}}>
@@ -9189,7 +9189,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
 
           {/* Disposisi — hanya Wali Kota */}
           {role==="walikota"&&!kehadiranLocked&&<div style={{marginBottom:8}}>
-            <div style={{fontSize:11,fontWeight:700,color:"#475569",textTransform:"uppercase",letterSpacing:0.5,marginBottom:8}}>Disposisi Kehadiran</div>
+            <div style={{fontSize:13,fontWeight:700,color:"#475569",textTransform:"uppercase",letterSpacing:0.5,marginBottom:8}}>Disposisi Kehadiran</div>
             <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
               <button onClick={e=>{e.stopPropagation();upd(ev.id,{statusWK:"diwakilkan",delegasiKeWWK:true,perwakilanWK:"",statusWK_by:"walikota"});showT("Didelegasi ke Wakil Wali Kota");
                 sendPush({targetRole:"ajudan_wakilwalikota",title:"↩ Disposisi dari Wali Kota",body:ev.namaAcara+" — "+ev.jam+" WITA",url:"/",tag:"delegasi-wwk-"+ev.id});
@@ -9215,13 +9215,13 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
             <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:8}}>
               <span style={{fontSize:18}}>↩</span>
               <div>
-                <div style={{fontSize:10,fontWeight:800,color:"#5b21b6",textTransform:"uppercase",letterSpacing:0.5}}>Disposisi dari Wali Kota</div>
+                <div style={{fontSize:12,fontWeight:800,color:"#5b21b6",textTransform:"uppercase",letterSpacing:0.5}}>Disposisi dari Wali Kota</div>
                 <div style={{fontSize:12,fontWeight:700,color:"#7c3aed"}}>
                   {ev.statusWK_by==="walikota"?"Ditetapkan langsung oleh Wali Kota":"Diinput oleh Ajudan WK"}
                 </div>
               </div>
             </div>
-            <div style={{fontSize:11,fontWeight:700,color:"#475569",textTransform:"uppercase",letterSpacing:0.5,marginBottom:8}}>Konfirmasi Kehadiran Wakil Wali Kota</div>
+            <div style={{fontSize:13,fontWeight:700,color:"#475569",textTransform:"uppercase",letterSpacing:0.5,marginBottom:8}}>Konfirmasi Kehadiran Wakil Wali Kota</div>
             {kehadiranLocked
               ?<KehadiranLockedBanner/>
               :<><div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:8}}>
@@ -9242,7 +9242,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
           </div>}
           {/* Wakilwalikota tanpa disposisi WK — konfirmasi langsung */}
           {role==="wakilwalikota"&&!ev.delegasiKeWWK&&ev.untukPimpinan.includes("wakilwalikota")&&<div style={{marginBottom:10}}>
-            <div style={{fontSize:11,fontWeight:700,color:"#475569",textTransform:"uppercase",letterSpacing:0.5,marginBottom:8}}>Konfirmasi Kehadiran</div>
+            <div style={{fontSize:13,fontWeight:700,color:"#475569",textTransform:"uppercase",letterSpacing:0.5,marginBottom:8}}>Konfirmasi Kehadiran</div>
             {kehadiranLocked
               ?<KehadiranLockedBanner/>
               :<><div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:8}}>
@@ -9263,7 +9263,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
 
           {/* Catatan pimpinan — hanya pimpinan yang bisa edit */}
           {(role==="walikota"||role==="wakilwalikota")&&<div>
-            <div style={{fontSize:11,fontWeight:700,color:"#475569",textTransform:"uppercase",letterSpacing:0.5,marginBottom:6}}>Arahan / Catatan untuk Tim</div>
+            <div style={{fontSize:13,fontWeight:700,color:"#475569",textTransform:"uppercase",letterSpacing:0.5,marginBottom:6}}>Arahan / Catatan untuk Tim</div>
             <CatatanInput
               evId={ev.id}
               initial={ev.catatanPimpinan}
@@ -9374,7 +9374,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
                 <div key={s.label} style={{background:s.bg,border:"1.5px solid "+s.border,borderRadius:12,padding:"12px 10px",textAlign:"center"}}>
                   <div style={{fontSize:20,marginBottom:4}}>{s.icon}</div>
                   <div style={{fontSize:isMobile?22:28,fontWeight:900,color:s.color,lineHeight:1}}>{s.value}</div>
-                  <div style={{fontSize:10,color:s.color,fontWeight:600,marginTop:4,lineHeight:1.3}}>{s.label}</div>
+                  <div style={{fontSize:12,color:s.color,fontWeight:600,marginTop:4,lineHeight:1.3}}>{s.label}</div>
                 </div>
               ))}
             </div>
@@ -9404,12 +9404,12 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
                   </div>
                   {_pairs.map((p,i)=>(
                     <div key={i} style={{background:"white",borderRadius:8,padding:"7px 10px",marginBottom:i<_pairs.length-1?5:0,border:"1px solid #FECACA"}}>
-                      <div style={{fontSize:11,color:"#374151",fontWeight:600,lineHeight:1.4}}>
+                      <div style={{fontSize:13,color:"#374151",fontWeight:600,lineHeight:1.4}}>
                         <span style={{color:"#991B1B",fontWeight:800}}>{p.a.jam}</span> {p.a.namaAcara}
                         <span style={{color:"#9CA3AF",margin:"0 6px"}}>vs</span>
                         <span style={{color:"#991B1B",fontWeight:800}}>{p.b.jam}</span> {p.b.namaAcara}
                       </div>
-                      <div style={{fontSize:10,color:"#9CA3AF",marginTop:3}}>
+                      <div style={{fontSize:12,color:"#9CA3AF",marginTop:3}}>
                         Selisih {p.diff} menit · {new Date(p.a.tanggal).toLocaleDateString("id-ID",{weekday:"short",day:"numeric",month:"short"})}
                         {p.a.untukPimpinan.some(x=>p.b.untukPimpinan.includes(x))&&
                           <span style={{marginLeft:6,background:"#FEE2E2",color:"#991B1B",padding:"1px 5px",borderRadius:4,fontWeight:700}}>
@@ -9425,7 +9425,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
         );})()}
         {/* Antrian Approval untuk kasubbag_protokol/kabag */}
         {pendingApproval.length>0&&<>
-          <div style={{fontSize:11,fontWeight:800,color:"#7C3AED",letterSpacing:1.5,textTransform:"uppercase",marginBottom:10,display:"flex",alignItems:"center",gap:6}}>
+          <div style={{fontSize:13,fontWeight:800,color:"#7C3AED",letterSpacing:1.5,textTransform:"uppercase",marginBottom:10,display:"flex",alignItems:"center",gap:6}}>
             <span>⏳</span> Menunggu Persetujuan Anda ({pendingApproval.length})
           </div>
           {pendingApproval.map(ev=><EventBlock key={ev.id} ev={ev}/>)}
@@ -9433,7 +9433,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
         </>}
         {/* Agenda akan datang */}
         {upcoming.length>0&&<>
-          <div style={{fontSize:11,fontWeight:800,color:NAVY,letterSpacing:1.5,textTransform:"uppercase",marginBottom:10,display:"flex",alignItems:"center",gap:6}}>
+          <div style={{fontSize:13,fontWeight:800,color:NAVY,letterSpacing:1.5,textTransform:"uppercase",marginBottom:10,display:"flex",alignItems:"center",gap:6}}>
             <span>📅</span> Agenda Mendatang
           </div>
           {upcoming.map(ev=><EventBlock key={ev.id} ev={ev}/>)}
@@ -9449,7 +9449,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
 
         {/* Riwayat singkat */}
         {past.length>0&&<>
-          <div style={{fontSize:11,fontWeight:800,color:"#94A3B8",letterSpacing:1.5,textTransform:"uppercase",margin:"20px 0 8px",borderTop:"1px solid #E2E8F0",paddingTop:16,display:"flex",alignItems:"center",gap:6}}>
+          <div style={{fontSize:13,fontWeight:800,color:"#94A3B8",letterSpacing:1.5,textTransform:"uppercase",margin:"20px 0 8px",borderTop:"1px solid #E2E8F0",paddingTop:16,display:"flex",alignItems:"center",gap:6}}>
             <span>📁</span> Riwayat Terakhir
           </div>
           {past.slice(0,3).map(ev=><EventBlock key={ev.id} ev={ev}/>)}
@@ -9501,27 +9501,27 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
     if(!showMorningSummary)return null;
     return <div style={{background:"linear-gradient(135deg,#0A1628,#1B3360)",borderRadius:16,padding:"18px",marginBottom:14,position:"relative",overflow:"hidden",animation:"upSpring 0.4s ease both"}}>
       <div style={{position:"absolute",top:-20,right:-20,width:100,height:100,borderRadius:"50%",background:"rgba(201,168,76,0.08)"}}/>
-      <button onClick={()=>setMorningDismissed(true)} style={{position:"absolute",top:10,right:12,background:"rgba(255,255,255,0.15)",border:"none",borderRadius:6,color:"rgba(255,255,255,0.6)",cursor:"pointer",padding:"2px 8px",fontSize:11}}>✕</button>
-      <div style={{color:"#C9A84C",fontSize:10,fontWeight:800,letterSpacing:1.5,textTransform:"uppercase",marginBottom:8}}>Briefing Pagi</div>
+      <button onClick={()=>setMorningDismissed(true)} style={{position:"absolute",top:10,right:12,background:"rgba(255,255,255,0.15)",border:"none",borderRadius:6,color:"rgba(255,255,255,0.6)",cursor:"pointer",padding:"2px 8px",fontSize:13}}>✕</button>
+      <div style={{color:"#C9A84C",fontSize:12,fontWeight:800,letterSpacing:1.5,textTransform:"uppercase",marginBottom:8}}>Briefing Pagi</div>
       <div style={{color:"white",fontSize:15,fontWeight:800,lineHeight:1.4,marginBottom:12}}>{smartGreetText}</div>
       <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
         {todayEvents.length>0&&<div style={{background:"rgba(255,255,255,0.1)",borderRadius:10,padding:"8px 12px",flex:1,minWidth:100}}>
           <div style={{fontSize:20,fontWeight:900,color:"white"}}>{todayEvents.length}</div>
-          <div style={{fontSize:10,color:"rgba(255,255,255,0.6)",fontWeight:600}}>Jadwal hari ini</div>
+          <div style={{fontSize:12,color:"rgba(255,255,255,0.6)",fontWeight:600}}>Jadwal hari ini</div>
         </div>}
         {pendingMyAction.length>0&&<div style={{background:"rgba(245,158,11,0.15)",borderRadius:10,padding:"8px 12px",flex:1,minWidth:100,border:"1px solid rgba(245,158,11,0.3)"}}>
           <div style={{fontSize:20,fontWeight:900,color:"#FCD34D"}}>{pendingMyAction.length}</div>
-          <div style={{fontSize:10,color:"rgba(255,255,255,0.6)",fontWeight:600}}>Perlu tindakan</div>
+          <div style={{fontSize:12,color:"rgba(255,255,255,0.6)",fontWeight:600}}>Perlu tindakan</div>
         </div>}
         {myAssigned.length>0&&<div style={{background:"rgba(34,197,94,0.12)",borderRadius:10,padding:"8px 12px",flex:1,minWidth:100}}>
           <div style={{fontSize:20,fontWeight:900,color:"#86EFAC"}}>{myAssigned.length}</div>
-          <div style={{fontSize:10,color:"rgba(255,255,255,0.6)",fontWeight:600}}>Ditugaskan ke Anda</div>
+          <div style={{fontSize:12,color:"rgba(255,255,255,0.6)",fontWeight:600}}>Ditugaskan ke Anda</div>
         </div>}
         {nextEvent&&<div style={{width:"100%",background:"rgba(255,255,255,0.08)",borderRadius:10,padding:"10px 12px",display:"flex",alignItems:"center",gap:10,marginTop:2}}>
           <div style={{background:"#C9A84C",color:"#0A1628",borderRadius:8,padding:"4px 8px",fontSize:13,fontWeight:900,flexShrink:0}}>{nextEvent.jam}</div>
           <div style={{flex:1,minWidth:0}}>
             <div style={{fontSize:12,fontWeight:700,color:"white",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{nextEvent.namaAcara}</div>
-            <div style={{fontSize:10,color:"rgba(255,255,255,0.5)"}}>{nextEvent.penyelenggara} · {nextEvent.lokasi||"-"}</div>
+            <div style={{fontSize:12,color:"rgba(255,255,255,0.5)"}}>{nextEvent.penyelenggara} · {nextEvent.lokasi||"-"}</div>
           </div>
         </div>}
       </div>
@@ -9554,23 +9554,23 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
       <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
         <span style={{fontSize:16}}>📊</span>
         <div style={{fontSize:12,fontWeight:800,color:NAVY}}>Statistik Anda</div>
-        <div style={{marginLeft:"auto",fontSize:10,color:"#94A3B8"}}>{new Date().toLocaleDateString("id-ID",{month:"long",year:"numeric"})}</div>
+        <div style={{marginLeft:"auto",fontSize:12,color:"#94A3B8"}}>{new Date().toLocaleDateString("id-ID",{month:"long",year:"numeric"})}</div>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
         <div style={{textAlign:"center",padding:"10px 4px",background:"#F8FAFF",borderRadius:10}}>
           <div style={{fontSize:22,fontWeight:900,color:NAVY}}>{thisMonth.length}</div>
-          <div style={{fontSize:9,color:"#64748B",fontWeight:700,marginTop:2}}>Bulan Ini</div>
+          <div style={{fontSize:12,color:"#64748B",fontWeight:700,marginTop:2}}>Bulan Ini</div>
         </div>
         <div style={{textAlign:"center",padding:"10px 4px",background:successRate>=80?"#F0FDF4":"#FFFBEB",borderRadius:10}}>
           <div style={{fontSize:22,fontWeight:900,color:successRate>=80?GREEN:"#D97706"}}>{successRate}%</div>
-          <div style={{fontSize:9,color:"#64748B",fontWeight:700,marginTop:2}}>Approval Rate</div>
+          <div style={{fontSize:12,color:"#64748B",fontWeight:700,marginTop:2}}>Approval Rate</div>
         </div>
         <div style={{textAlign:"center",padding:"10px 4px",background:streak>0?"#EEF2FF":"#F8FAFF",borderRadius:10}}>
           <div style={{fontSize:22,fontWeight:900,color:streak>0?"#4F46E5":"#94A3B8"}}>{streak||"-"}</div>
-          <div style={{fontSize:9,color:"#64748B",fontWeight:700,marginTop:2}}>{streak>0?"Hari Streak":"Streak"}</div>
+          <div style={{fontSize:12,color:"#64748B",fontWeight:700,marginTop:2}}>{streak>0?"Hari Streak":"Streak"}</div>
         </div>
       </div>
-      {streak>=7&&<div style={{marginTop:10,background:"linear-gradient(90deg,#EEF2FF,#F5F3FF)",borderRadius:8,padding:"6px 10px",fontSize:11,color:"#4338CA",fontWeight:700,textAlign:"center"}}>🔥 {streak} hari berturut-turut jadwal disetujui!</div>}
+      {streak>=7&&<div style={{marginTop:10,background:"linear-gradient(90deg,#EEF2FF,#F5F3FF)",borderRadius:8,padding:"6px 10px",fontSize:13,color:"#4338CA",fontWeight:700,textAlign:"center"}}>🔥 {streak} hari berturut-turut jadwal disetujui!</div>}
     </div>;
   };
 
@@ -9593,15 +9593,15 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
     {!isMobile&&<div style={{background:"white",borderBottom:"1px solid #E4EAF2",padding:"14px 32px",display:"flex",alignItems:"center",gap:16,flexShrink:0,boxShadow:"0 1px 8px rgba(0,0,0,0.04)"}}>
       <div style={{flex:1}}>
         <div style={{fontSize:20,fontWeight:800,color:NAVY,letterSpacing:"-0.4px"}}>{pageTitle}</div>
-        <div style={{fontSize:11.5,color:"#64748B",marginTop:2,fontWeight:500}}>{smartGreetText}</div>
+        <div style={{fontSize:13.5,color:"#64748B",marginTop:2,fontWeight:500}}>{smartGreetText}</div>
       </div>
       {pendingList.length>0&&["kasubbag_protokol","kasubbag_komdokpim","kabag","walikota","wakilwalikota","admin_rk"].includes(role)&&<button onClick={goToPending} className="btn-ios" style={{padding:"9px 16px",borderRadius:10,border:"none",background:role==="walikota"||role==="wakilwalikota"?"linear-gradient(135deg,#0A1628,#1E3A5F)":"linear-gradient(135deg,#EF4444,#DC2626)",color:"white",cursor:"pointer",fontSize:12,fontWeight:700,display:"flex",alignItems:"center",gap:7,boxShadow:role==="walikota"||role==="wakilwalikota"?"0 4px 14px rgba(10,22,40,0.4)":"0 4px 14px rgba(220,38,38,0.35)"}}>
-        <span style={{background:"rgba(255,255,255,0.25)",borderRadius:"50%",width:20,height:20,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:900}}>{pendingList.length}</span>
+        <span style={{background:"rgba(255,255,255,0.25)",borderRadius:"50%",width:20,height:20,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:900}}>{pendingList.length}</span>
         {role==="walikota"||role==="wakilwalikota"?"Perlu Konfirmasi":role==="kasubbag_komdokpim"?"Caption Menunggu":"Pending Approval"}
       </button>}
       <button aria-label="Notifikasi" onClick={()=>setShowNotifCenter(true)} style={{position:"relative",width:38,height:38,borderRadius:10,border:"1.5px solid #E2E8F0",background:"white",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>
         🔔
-        {notifPenugasan.length>0&&<span style={{position:"absolute",top:-4,right:-4,background:"#EF4444",color:"white",borderRadius:"50%",width:16,height:16,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:900}}>{notifPenugasan.length}</span>}
+        {notifPenugasan.length>0&&<span style={{position:"absolute",top:-4,right:-4,background:"#EF4444",color:"white",borderRadius:"50%",width:16,height:16,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:900}}>{notifPenugasan.length}</span>}
       </button>
       {role==="admin_rk"&&tab==="jadwal"&&<button onClick={()=>{setTab("form");setForm(emptyForm);setEditId(null);}} className="btn-ios" style={{padding:"9px 18px",borderRadius:10,border:"none",background:"linear-gradient(135deg,"+NAVY+",#1E3254)",color:"white",cursor:"pointer",fontSize:13,fontWeight:700,boxShadow:"0 4px 14px rgba(10,22,40,0.3)"}}>+ Input Jadwal Baru</button>}
     </div>}
@@ -9631,39 +9631,39 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
           </button>
           {/* View toggle */}
           <div style={{display:"flex",gap:0,background:"#F1F5F9",borderRadius:8,padding:2,flexShrink:0}}>
-            <button onClick={()=>setViewMode("cards")} style={{padding:"5px 10px",borderRadius:6,border:"none",background:viewMode==="cards"?"white":"transparent",color:viewMode==="cards"?NAVY:"#94A3B8",cursor:"pointer",fontSize:11,fontWeight:700,boxShadow:viewMode==="cards"?"0 1px 3px rgba(0,0,0,0.1)":"none"}}>Kartu</button>
-            <button onClick={()=>setViewMode("timeline")} style={{padding:"5px 10px",borderRadius:6,border:"none",background:viewMode==="timeline"?"white":"transparent",color:viewMode==="timeline"?NAVY:"#94A3B8",cursor:"pointer",fontSize:11,fontWeight:700,boxShadow:viewMode==="timeline"?"0 1px 3px rgba(0,0,0,0.1)":"none"}}>Timeline</button>
+            <button onClick={()=>setViewMode("cards")} style={{padding:"5px 10px",borderRadius:6,border:"none",background:viewMode==="cards"?"white":"transparent",color:viewMode==="cards"?NAVY:"#94A3B8",cursor:"pointer",fontSize:13,fontWeight:700,boxShadow:viewMode==="cards"?"0 1px 3px rgba(0,0,0,0.1)":"none"}}>Kartu</button>
+            <button onClick={()=>setViewMode("timeline")} style={{padding:"5px 10px",borderRadius:6,border:"none",background:viewMode==="timeline"?"white":"transparent",color:viewMode==="timeline"?NAVY:"#94A3B8",cursor:"pointer",fontSize:13,fontWeight:700,boxShadow:viewMode==="timeline"?"0 1px 3px rgba(0,0,0,0.1)":"none"}}>Timeline</button>
           </div>
           <div style={{flex:1}}/>
-          <span style={{fontSize:11,color:"#94A3B8",fontWeight:500,flexShrink:0}}>{listEvents.length} agenda</span>
+          <span style={{fontSize:13,color:"#94A3B8",fontWeight:500,flexShrink:0}}>{listEvents.length} agenda</span>
         </>}
     </div>
     {searchQ.trim()&&<div style={{background:"#EFF6FF",padding:"5px "+(isMobile?"14px":"32px"),borderBottom:"1px solid #DBEAFE",display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
-      <span style={{fontSize:11,background:NAVY,color:"white",borderRadius:20,padding:"2px 10px",fontWeight:700,letterSpacing:0.5}}>CARI</span>
+      <span style={{fontSize:13,background:NAVY,color:"white",borderRadius:20,padding:"2px 10px",fontWeight:700,letterSpacing:0.5}}>CARI</span>
       <span style={{fontSize:12,color:"#1D4ED8",fontWeight:600}}>"{searchQ}" — {listEvents.length} hasil ditemukan</span>
-      <button onClick={()=>{setSearchQ("");setShowSearch(false);}} style={{marginLeft:"auto",padding:"3px 10px",borderRadius:8,border:"1.5px solid #BFDBFE",background:"white",color:"#1D4ED8",cursor:"pointer",fontSize:11,fontWeight:700}}>✕ Hapus</button>
+      <button onClick={()=>{setSearchQ("");setShowSearch(false);}} style={{marginLeft:"auto",padding:"3px 10px",borderRadius:8,border:"1.5px solid #BFDBFE",background:"white",color:"#1D4ED8",cursor:"pointer",fontSize:13,fontWeight:700}}>✕ Hapus</button>
     </div>}
     <div style={{background:"white",borderBottom:"1px solid #E4EAF2",padding:"10px "+(isMobile?"14px":"32px"),display:"flex",gap:6,overflowX:"auto",flexShrink:0,alignItems:"center",scrollbarWidth:"none"}}>
       <style>{"div::-webkit-scrollbar{display:none;}"}</style>
       {[{l:"Hari Ini",v:todayStr()},{l:"Besok",v:tomorrowStr()},{l:"Minggu Ini",v:"week"},{l:"Semua",v:""}].map(q=>{
         const active=(q.v==="week"?filterDate==="week":filterDate===q.v)&&(q.v!==""||filterDate==="");
-        return <button key={q.l} onClick={()=>setFDate(q.v==="week"?"week":q.v)} className="btn-ios" style={{padding:"6px 14px",borderRadius:20,border:"1.5px solid "+(active?NAVY:"#E4EAF2"),background:active?"linear-gradient(135deg,"+NAVY+",#1E3254)":"white",color:active?"white":"#64748B",cursor:"pointer",fontSize:11,fontWeight:700,whiteSpace:"nowrap",flexShrink:0,boxShadow:active?"0 2px 8px rgba(10,22,40,0.2)":"none"}}>{q.l}</button>;
+        return <button key={q.l} onClick={()=>setFDate(q.v==="week"?"week":q.v)} className="btn-ios" style={{padding:"6px 14px",borderRadius:20,border:"1.5px solid "+(active?NAVY:"#E4EAF2"),background:active?"linear-gradient(135deg,"+NAVY+",#1E3254)":"white",color:active?"white":"#64748B",cursor:"pointer",fontSize:13,fontWeight:700,whiteSpace:"nowrap",flexShrink:0,boxShadow:active?"0 2px 8px rgba(10,22,40,0.2)":"none"}}>{q.l}</button>;
       })}
-      <input type="date" value={filterDate==="week"||filterDate==="range"?"":filterDate} onChange={e=>setFDate(e.target.value)} style={{padding:"5px 12px",borderRadius:20,border:"1.5px solid #E4EAF2",fontSize:11,color:"#64748B",background:"white",flexShrink:0}}/>
-      <button onClick={()=>{setFDate("range");setShowRangeFilter(p=>!p);}} className="btn-ios" style={{padding:"6px 14px",borderRadius:20,border:"1.5px solid "+(filterDate==="range"?NAVY:"#E4EAF2"),background:filterDate==="range"?"linear-gradient(135deg,"+NAVY+",#1E3254)":"white",color:filterDate==="range"?"white":"#64748B",cursor:"pointer",fontSize:11,fontWeight:700,whiteSpace:"nowrap",flexShrink:0}}>📆 Rentang</button>
-      {filterDate&&<button onClick={()=>{setFDate("");setFilterFrom("");setFilterTo("");setShowRangeFilter(false);}} className="btn-ios" style={{padding:"6px 11px",borderRadius:20,border:"none",background:"#FEF2F2",color:"#DC2626",cursor:"pointer",fontSize:11,fontWeight:700,flexShrink:0}}>✕ Reset</button>}
+      <input type="date" value={filterDate==="week"||filterDate==="range"?"":filterDate} onChange={e=>setFDate(e.target.value)} style={{padding:"5px 12px",borderRadius:20,border:"1.5px solid #E4EAF2",fontSize:13,color:"#64748B",background:"white",flexShrink:0}}/>
+      <button onClick={()=>{setFDate("range");setShowRangeFilter(p=>!p);}} className="btn-ios" style={{padding:"6px 14px",borderRadius:20,border:"1.5px solid "+(filterDate==="range"?NAVY:"#E4EAF2"),background:filterDate==="range"?"linear-gradient(135deg,"+NAVY+",#1E3254)":"white",color:filterDate==="range"?"white":"#64748B",cursor:"pointer",fontSize:13,fontWeight:700,whiteSpace:"nowrap",flexShrink:0}}>📆 Rentang</button>
+      {filterDate&&<button onClick={()=>{setFDate("");setFilterFrom("");setFilterTo("");setShowRangeFilter(false);}} className="btn-ios" style={{padding:"6px 11px",borderRadius:20,border:"none",background:"#FEF2F2",color:"#DC2626",cursor:"pointer",fontSize:13,fontWeight:700,flexShrink:0}}>✕ Reset</button>}
     </div>
     {(filterDate&&filterDate!=="all")&&<div style={{background:"#EFF6FF",padding:"6px "+(isMobile?"14px":"32px"),borderBottom:"1px solid #DBEAFE",display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
-      <span style={{fontSize:11,background:"#0A1628",color:"white",borderRadius:20,padding:"2px 10px",fontWeight:700,letterSpacing:0.5}}>FILTER AKTIF</span>
+      <span style={{fontSize:13,background:"#0A1628",color:"white",borderRadius:20,padding:"2px 10px",fontWeight:700,letterSpacing:0.5}}>FILTER AKTIF</span>
       <span style={{fontSize:12,color:"#1D4ED8",fontWeight:600}}>{filterDate==="today"?"Hari Ini":filterDate==="week"?"Minggu Ini":"Rentang: "+filterFrom+" — "+filterTo}</span>
-      <button onClick={()=>{setFDate("");setFilterFrom("");setFilterTo("");setShowRangeFilter(false);}} style={{marginLeft:"auto",padding:"3px 10px",borderRadius:8,border:"1.5px solid #BFDBFE",background:"white",color:"#1D4ED8",cursor:"pointer",fontSize:11,fontWeight:700}}>✕ Hapus</button>
+      <button onClick={()=>{setFDate("");setFilterFrom("");setFilterTo("");setShowRangeFilter(false);}} style={{marginLeft:"auto",padding:"3px 10px",borderRadius:8,border:"1.5px solid #BFDBFE",background:"white",color:"#1D4ED8",cursor:"pointer",fontSize:13,fontWeight:700}}>✕ Hapus</button>
     </div>}
     {showRangeFilter&&filterDate==="range"&&<div style={{background:"#F0F4FF",padding:"10px "+(isMobile?"14px":"32px"),borderBottom:"1px solid #E4EAF2",display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
-      <span style={{fontSize:11,color:"#475569",fontWeight:700}}>Dari</span>
+      <span style={{fontSize:13,color:"#475569",fontWeight:700}}>Dari</span>
       <input type="date" value={filterFrom} onChange={e=>setFilterFrom(e.target.value)} style={{padding:"5px 12px",borderRadius:9,border:"1.5px solid #CBD5E1",fontSize:12,color:"#334155",background:"white"}}/>
-      <span style={{fontSize:11,color:"#475569",fontWeight:700}}>Sampai</span>
+      <span style={{fontSize:13,color:"#475569",fontWeight:700}}>Sampai</span>
       <input type="date" value={filterTo} onChange={e=>setFilterTo(e.target.value)} style={{padding:"5px 12px",borderRadius:9,border:"1.5px solid #CBD5E1",fontSize:12,color:"#334155",background:"white"}}/>
-      {filterFrom&&filterTo&&<span style={{fontSize:11,color:"#0A1628",fontWeight:700,background:"#C9A84C22",padding:"4px 10px",borderRadius:6,border:"1px solid #C9A84C44"}}>{filterFrom} — {filterTo}</span>}
+      {filterFrom&&filterTo&&<span style={{fontSize:13,color:"#0A1628",fontWeight:700,background:"#C9A84C22",padding:"4px 10px",borderRadius:6,border:"1px solid #C9A84C44"}}>{filterFrom} — {filterTo}</span>}
     </div>}
     </>}
 
@@ -9674,7 +9674,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
         <div style={{display:"flex",gap:3,background:"#F1F5F9",borderRadius:12,padding:3}}>
           {[{v:"semua",l:"📋 Semua"},{v:"terkonfirmasi",l:"✅ Terkonfirmasi"},{v:"menunggu",l:"⏳ Menunggu"}].map(f=>(
             <button key={f.v} onClick={()=>setAgendaFilter(f.v)}
-              style={{flex:1,padding:"8px 4px",borderRadius:9,border:"none",cursor:"pointer",fontWeight:700,fontSize:11,
+              style={{flex:1,padding:"8px 4px",borderRadius:9,border:"none",cursor:"pointer",fontWeight:700,fontSize:13,
                 background:agendaFilter===f.v?"#0A1628":"transparent",
                 color:agendaFilter===f.v?"white":"#64748B",transition:"all 0.15s",
                 boxShadow:agendaFilter===f.v?"0 2px 8px rgba(10,22,40,0.25)":"none"}}>
@@ -9682,7 +9682,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
             </button>
           ))}
         </div>
-        <div style={{fontSize:10,color:"#94A3B8",textAlign:"center",marginTop:5}}>
+        <div style={{fontSize:12,color:"#94A3B8",textAlign:"center",marginTop:5}}>
           {agendaFilter==="semua"?"Semua agenda yang sudah disetujui Kabag":agendaFilter==="terkonfirmasi"?"Kehadiran WK/WWK sudah dikonfirmasi":"Kehadiran WK/WWK belum dikonfirmasi"}
         </div>
       </div>}
@@ -9702,20 +9702,20 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
               <span style={{fontSize:18}}>⚠️</span>
               <div>
                 <div style={{fontSize:13,fontWeight:800,color:"#92400E"}}>{belumAda.length} agenda belum ada personil yang ditugaskan</div>
-                <div style={{fontSize:11,color:"#B91C1C",marginTop:1}}>Segera tugaskan agar tidak kosong saat hari H</div>
+                <div style={{fontSize:13,color:"#B91C1C",marginTop:1}}>Segera tugaskan agar tidak kosong saat hari H</div>
               </div>
             </div>
             <div style={{display:"flex",flexDirection:"column",gap:5}}>
               {belumAda.slice(0,5).map(e=>(
                 <div key={e.id} style={{display:"flex",alignItems:"center",gap:8,background:"white",borderRadius:8,padding:"7px 10px",border:"1px solid #FDE68A"}}>
-                  <span style={{fontSize:10,fontWeight:800,color:"#92400E",background:"#FEF3C7",padding:"2px 7px",borderRadius:6,flexShrink:0}}>
+                  <span style={{fontSize:12,fontWeight:800,color:"#92400E",background:"#FEF3C7",padding:"2px 7px",borderRadius:6,flexShrink:0}}>
                     {e.tanggal.slice(8)} {["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"][parseInt(e.tanggal.slice(5,7))-1]}
                   </span>
                   <span style={{fontSize:12,fontWeight:600,color:"#1E293B",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{e.namaAcara}</span>
-                  <span style={{fontSize:10,color:"#92400E",fontWeight:700,flexShrink:0}}>{e.jam} WITA</span>
+                  <span style={{fontSize:12,color:"#92400E",fontWeight:700,flexShrink:0}}>{e.jam} WITA</span>
                 </div>
               ))}
-              {belumAda.length>5&&<div style={{fontSize:11,color:"#B45309",textAlign:"center",fontWeight:600}}>...dan {belumAda.length-5} agenda lainnya</div>}
+              {belumAda.length>5&&<div style={{fontSize:13,color:"#B45309",textAlign:"center",fontWeight:600}}>...dan {belumAda.length-5} agenda lainnya</div>}
             </div>
           </div>
         );
@@ -9749,7 +9749,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
                 <div style={{fontSize:13,fontWeight:800,color:"white"}}>
                   {perluKonfirmasi.length===1?"Perlu konfirmasi kehadiran":perluKonfirmasi.length+" agenda perlu konfirmasi kehadiran"}
                 </div>
-                <div style={{fontSize:11,color:"rgba(255,255,255,0.5)",marginTop:2}}>Konfirmasi langsung di bawah — tanpa perlu buka detail</div>
+                <div style={{fontSize:13,color:"rgba(255,255,255,0.5)",marginTop:2}}>Konfirmasi langsung di bawah — tanpa perlu buka detail</div>
               </div>
             </div>
             <div style={{display:"flex",flexDirection:"column",gap:10}}>
@@ -9760,14 +9760,14 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
                     <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:8,marginBottom:10}}>
                       <div style={{flex:1,minWidth:0}}>
                         <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}>
-                          <span style={{fontSize:10,fontWeight:800,padding:"2px 8px",borderRadius:20,
+                          <span style={{fontSize:12,fontWeight:800,padding:"2px 8px",borderRadius:20,
                             background:isHariIni?"rgba(249,115,22,0.25)":"rgba(255,255,255,0.1)",
                             color:isHariIni?"#FDBA74":"rgba(255,255,255,0.6)"}}>
                             {isHariIni?"Hari ini":"Besok"} · {ev.jam} WITA
                           </span>
                         </div>
                         <div style={{fontSize:14,fontWeight:800,color:"white",lineHeight:1.3,marginBottom:2}}>{ev.namaAcara}</div>
-                        {ev.lokasi&&<div style={{fontSize:11,color:"rgba(255,255,255,0.5)"}}>📍 {ev.lokasi}</div>}
+                        {ev.lokasi&&<div style={{fontSize:13,color:"rgba(255,255,255,0.5)"}}>📍 {ev.lokasi}</div>}
                       </div>
                     </div>
                     <div style={{display:"flex",gap:8}}>
@@ -9882,7 +9882,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
             <span style={{fontSize:18,flexShrink:0}}>ℹ️</span>
             <div style={{flex:1}}>
               <div style={{fontSize:12,fontWeight:700,color:"#1D4ED8"}}>Anda masuk sebagai Mitra Kerja Pemkot</div>
-              <div style={{fontSize:11,color:"#3B82F6",marginTop:1}}>Hanya dapat melihat jadwal kegiatan yang telah dipublikasikan. Untuk kebutuhan lain, hubungi Bagian Prokopim.</div>
+              <div style={{fontSize:13,color:"#3B82F6",marginTop:1}}>Hanya dapat melihat jadwal kegiatan yang telah dipublikasikan. Untuk kebutuhan lain, hubungi Bagian Prokopim.</div>
             </div>
           </div>
           <MitraView events={events} isMobile={isMobile}/>
@@ -9983,7 +9983,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
         <span style={{fontSize:18}}>⚠️</span>
         <div>
           <div>{notifPenugasan.length} jadwal belum ditugaskan personil</div>
-          <div style={{fontSize:11,opacity:0.8,fontWeight:500}}>Kurang dari 12 jam sebelum acara dimulai</div>
+          <div style={{fontSize:13,opacity:0.8,fontWeight:500}}>Kurang dari 12 jam sebelum acara dimulai</div>
         </div>
         <button onClick={e=>{e.stopPropagation();setNotifPenugasan([]);}} style={{marginLeft:"auto",background:"rgba(255,255,255,0.2)",border:"none",color:"white",borderRadius:6,padding:"2px 8px",cursor:"pointer",fontSize:12}}>✕</button>
       </div>
@@ -10029,7 +10029,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
             <span style={{fontSize:22}}>📋</span>
             <div>
               <div style={{color:"white",fontSize:15,fontWeight:800,letterSpacing:"-0.2px"}}>Generator Undangan Resmi</div>
-              <div style={{color:"rgba(255,255,255,0.5)",fontSize:11}}>Tools Protokol &amp; Komunikasi Pimpinan</div>
+              <div style={{color:"rgba(255,255,255,0.5)",fontSize:13}}>Tools Protokol &amp; Komunikasi Pimpinan</div>
             </div>
           </div>
           <button onClick={()=>setShowUndanganTool(false)} style={{width:36,height:36,borderRadius:10,border:"1.5px solid rgba(255,255,255,0.2)",background:"rgba(255,255,255,0.08)",color:"white",cursor:"pointer",fontSize:18,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
