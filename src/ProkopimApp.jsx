@@ -4315,186 +4315,6 @@ function KartuSorotanHariIni({ events, filterForRole, filterPimpinan, isMobile, 
           {agendaHariIni.map(ev => {
             const j = jarakMap[ev.lokasi];
 
-            // ── Fungsi generate kartu agenda lengkap sebagai gambar ──
-            const handleShareKartu = async () => {
-              const canvas = document.createElement("canvas");
-              const W = 1080, PADDING = 56;
-              const lineH = 30, titleLineH = 36, smallLineH = 26;
-
-              // ── Hitung pimpinan hadir ──
-              const fWK  = (ev.untukPimpinan||[]).includes("walikota");
-              const fWWK = (ev.untukPimpinan||[]).includes("wakilwalikota") || ev.delegasiKeWWK;
-              const pimpinanLines = [];
-              if (fWK) {
-                if (ev.statusWK === "hadir") pimpinanLines.push("Wali Kota" + (ev.besertaIstriWK ? " (beserta Istri)" : ""));
-                else if (ev.statusWK === "diwakilkan") pimpinanLines.push("Diwakilkan: " + (ev.perwakilanWK || "Perwakilan WK"));
-              }
-              if (fWWK) {
-                if (ev.statusWWK === "hadir") pimpinanLines.push("Wakil Wali Kota" + (ev.besertaIstriWWK ? " (beserta Istri)" : ""));
-                else if (ev.statusWWK === "diwakilkan") pimpinanLines.push("Diwakilkan: " + (ev.perwakilanWWK || "Perwakilan WWK"));
-              }
-
-              // ── Kumpulkan baris info untuk hitung tinggi ──
-              const infoRows = [
-                { label: "Waktu",        value: ev.jam + " WITA" },
-                ev.lokasi       ? { label: "Lokasi",       value: ev.lokasi } : null,
-                j               ? { label: "Estimasi",     value: `±${j.durasi}  (${j.jarak} dari Kantor Wali Kota)` } : null,
-                ev.penyelenggara? { label: "Penyelenggara",value: ev.penyelenggara } : null,
-                ev.pakaian      ? { label: "Pakaian",      value: ev.pakaian } : null,
-                ...pimpinanLines.map(p => ({ label: "Pimpinan", value: p })),
-                ev.catatan      ? { label: "Catatan",      value: ev.catatan } : null,
-              ].filter(Boolean);
-
-              // ── Hitung tinggi canvas secara dinamis ──
-              const namaCharsPerLine = Math.floor((W - PADDING*2) / 17);
-              const namaLines = Math.ceil((ev.namaAcara||"").length / namaCharsPerLine);
-              const H = PADDING           // top margin
-                + 36                      // header pill
-                + 24                      // gap
-                + 20                      // tanggal
-                + 20                      // gap
-                + namaLines * titleLineH  // nama acara
-                + 24                      // gap sebelum divider
-                + 1                       // divider
-                + 20                      // gap setelah divider
-                + infoRows.length * lineH // baris info
-                + 20                      // gap sebelum footer
-                + 48                      // footer
-                + PADDING;                // bottom margin
-
-              canvas.width = W;
-              canvas.height = H;
-              const ctx = canvas.getContext("2d");
-
-              // ── Background gradasi ──
-              const grad = ctx.createLinearGradient(0, 0, W, H);
-              if (isHujan)        { grad.addColorStop(0,"#1e293b"); grad.addColorStop(1,"#0f172a"); }
-              else if (isBerawan) { grad.addColorStop(0,"#1e3a5f"); grad.addColorStop(1,"#0c4a6e"); }
-              else                { grad.addColorStop(0,"#1a3a5c"); grad.addColorStop(1,"#0A1628"); }
-              ctx.fillStyle = grad;
-              ctx.roundRect(0, 0, W, H, 32);
-              ctx.fill();
-
-              // ── Garis dekorasi kiri ──
-              const accentGrad = ctx.createLinearGradient(0, 0, 0, H);
-              accentGrad.addColorStop(0, "rgba(201,168,76,0.9)");
-              accentGrad.addColorStop(1, "rgba(201,168,76,0.1)");
-              ctx.fillStyle = accentGrad;
-              ctx.roundRect(PADDING, PADDING + 36 + 24, 4, namaLines * titleLineH + 20, 2);
-              ctx.fill();
-
-              let y = PADDING;
-
-              // ── Header pill ──
-              ctx.fillStyle = "rgba(255,255,255,0.08)";
-              ctx.roundRect(PADDING, y, W - PADDING*2, 36, 18);
-              ctx.fill();
-              ctx.fillStyle = "rgba(255,255,255,0.45)";
-              ctx.font = "700 12px system-ui,sans-serif";
-              ctx.fillText("AGENDA KEGIATAN PIMPINAN  ·  PEMERINTAH KOTA TARAKAN", PADDING + 16, y + 23);
-              if (weather) {
-                const wLabel = `${iconEmoji(weather.icon)} ${weather.suhu}°C  ${weather.deskripsi}`;
-                ctx.textAlign = "right";
-                ctx.fillText(wLabel, W - PADDING - 16, y + 23);
-                ctx.textAlign = "left";
-              }
-              y += 36 + 24;
-
-              // ── Tanggal ──
-              const BULAN2 = ["","Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
-              const HARI2  = ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
-              const [ty,tm,td] = (ev.tanggal||"").split("-");
-              const tglObj = ev.tanggal ? new Date(ev.tanggal+"T00:00:00") : new Date();
-              const tglStr = `${HARI2[tglObj.getDay()]}, ${parseInt(td)} ${BULAN2[+tm]} ${ty}`;
-              ctx.fillStyle = "rgba(201,168,76,0.85)";
-              ctx.font = "600 14px system-ui,sans-serif";
-              ctx.fillText(tglStr.toUpperCase(), PADDING + 12, y + 14);
-              y += 20 + 20;
-
-              // ── Nama acara (word-wrap) ──
-              ctx.fillStyle = "white";
-              ctx.font = `800 ${isMobile?26:30}px system-ui,sans-serif`;
-              const maxTxtW = W - PADDING*2 - 12;
-              const wds = (ev.namaAcara||"").split(" ");
-              let curLine = "", lineY = y;
-              for (const wd of wds) {
-                const test = curLine + wd + " ";
-                if (ctx.measureText(test).width > maxTxtW && curLine) {
-                  ctx.fillText(curLine.trim(), PADDING + 12, lineY); lineY += titleLineH; curLine = wd + " ";
-                } else { curLine = test; }
-              }
-              if (curLine) ctx.fillText(curLine.trim(), PADDING + 12, lineY);
-              y = lineY + titleLineH + 24;
-
-              // ── Divider ──
-              ctx.strokeStyle = "rgba(255,255,255,0.12)";
-              ctx.lineWidth = 1;
-              ctx.beginPath(); ctx.moveTo(PADDING, y); ctx.lineTo(W - PADDING, y); ctx.stroke();
-              y += 20;
-
-              // ── Baris info ──
-              for (const row of infoRows) {
-                // Label kolom kiri
-                ctx.fillStyle = "rgba(255,255,255,0.35)";
-                ctx.font = "600 12px system-ui,sans-serif";
-                ctx.fillText(row.label.toUpperCase(), PADDING + 12, y + 14);
-                // Nilai kolom kanan
-                ctx.fillStyle = "rgba(255,255,255,0.85)";
-                ctx.font = "600 14px system-ui,sans-serif";
-                // word-wrap nilai jika panjang
-                const valMaxW = W - PADDING - 180;
-                const valX = PADDING + 180;
-                const valWds = (row.value||"").split(" ");
-                let vLine = "", vY = y;
-                for (const vw of valWds) {
-                  const vTest = vLine + vw + " ";
-                  if (ctx.measureText(vTest).width > valMaxW && vLine) {
-                    ctx.fillText(vLine.trim(), valX, vY + 14); vY += smallLineH; vLine = vw + " ";
-                  } else { vLine = vTest; }
-                }
-                if (vLine) ctx.fillText(vLine.trim(), valX, vY + 14);
-                y += lineH;
-              }
-
-              // ── Footer ──
-              y += 20;
-              ctx.fillStyle = "rgba(255,255,255,0.06)";
-              ctx.roundRect(PADDING, y, W - PADDING*2, 48, 12);
-              ctx.fill();
-              // Logo teks kiri
-              ctx.fillStyle = "rgba(201,168,76,0.7)";
-              ctx.font = "700 12px system-ui,sans-serif";
-              ctx.fillText("PROKOPIM", PADDING + 16, y + 20);
-              ctx.fillStyle = "rgba(255,255,255,0.35)";
-              ctx.font = "500 11px system-ui,sans-serif";
-              ctx.fillText("Protokol & Komunikasi Pimpinan · Setda Kota Tarakan", PADDING + 16, y + 36);
-              // Tanggal dibuat — kanan
-              const now2 = new Date();
-              const jamStr = `${String(now2.getHours()).padStart(2,"0")}.${String(now2.getMinutes()).padStart(2,"0")} WITA`;
-              ctx.textAlign = "right";
-              ctx.fillStyle = "rgba(255,255,255,0.25)";
-              ctx.font = "500 10px system-ui,sans-serif";
-              ctx.fillText("Dibagikan " + jamStr, W - PADDING - 16, y + 30);
-              ctx.textAlign = "left";
-
-              // ── Trigger share / download ──
-              canvas.toBlob(blob => {
-                if (!blob) return;
-                const file = new File([blob], `Agenda_${(ev.namaAcara||"").slice(0,30).replace(/\s+/g,"_")}.png`, { type:"image/png" });
-                const url  = URL.createObjectURL(blob);
-                if (navigator.share && navigator.canShare?.({ files:[file] })) {
-                  navigator.share({ files:[file], title: ev.namaAcara, text: `${tglStr} · ${ev.jam} WITA` })
-                    .catch(()=>{});
-                } else {
-                  const a = document.createElement("a");
-                  a.href = url;
-                  a.download = file.name;
-                  a.click();
-                }
-                setTimeout(() => URL.revokeObjectURL(url), 5000);
-              }, "image/png");
-            };
-
             // ── Ikon share SVG standar (iOS/Android style) ──
             const ShareIcon = () => (
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -4542,16 +4362,25 @@ function KartuSorotanHariIni({ events, filterForRole, filterPimpinan, isMobile, 
                   </div>
                 </div>
 
+                {/* Baris bawah: tombol bagikan */}
+                <div style={{ marginTop: 10, display: "flex", justifyContent: "flex-end" }}>
+                  <button
+                    onClick={()=>generateAndShareAgendaCard(ev)}
+                    title="Bagikan kartu agenda"
+                    style={{
+                      display:"flex",alignItems:"center",gap:5,
+                      padding:"5px 12px",borderRadius:20,
+                      border:"1px solid rgba(255,255,255,0.22)",
+                      background:"rgba(255,255,255,0.1)",
+                      color:"rgba(255,255,255,0.8)",
+                      cursor:"pointer",fontSize:11,fontWeight:600,
+                    }}
+                  >
+                    <ShareIcon /> Bagikan
+                  </button>
+                </div>
               </div>
             );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ==================== SHARE KARTU AGENDA ====================
 // Fungsi standalone — fetch cuaca & jarak sendiri, output portrait mobile-friendly
 async function generateAndShareAgendaCard(ev) {
   // ── 1. Fetch cuaca & jarak secara paralel ──
@@ -4591,18 +4420,42 @@ async function generateAndShareAgendaCard(ev) {
   const fWK  = (ev.untukPimpinan||[]).includes("walikota");
   const fWWK = (ev.untukPimpinan||[]).includes("wakilwalikota") || ev.delegasiKeWWK;
   const pimpinanParts = [];
+
   if (fWK) {
-    if (ev.statusWK === "diwakilkan")
-      pimpinanParts.push("Wali Kota (diwakili oleh " + (ev.perwakilanWK || "Perwakilan WK") + ")");
-    else
+    const namaWakil = ev.perwakilanWK && !["Perwakilan WK",""].includes(ev.perwakilanWK.trim())
+      ? ev.perwakilanWK.trim() : null;
+    if (ev.delegasiKeWWK) {
+      // Didelegasi ke WWK — cukup sebut di baris WWK, tidak perlu sebut WK
+    } else if (ev.statusWK === "diwakilkan") {
+      pimpinanParts.push(namaWakil
+        ? `Wali Kota · diwakilkan: ${namaWakil}`
+        : "Wali Kota · diwakilkan");
+    } else {
       pimpinanParts.push("Wali Kota" + (ev.besertaIstriWK ? " (beserta Istri)" : ""));
+    }
   }
+
   if (fWWK) {
-    if (ev.statusWWK === "diwakilkan")
-      pimpinanParts.push("Wakil Wali Kota (diwakili oleh " + (ev.perwakilanWWK || "Perwakilan WWK") + ")");
-    else
+    const namaWakilWWK = ev.perwakilanWWK && !["Perwakilan WWK",""].includes(ev.perwakilanWWK.trim())
+      ? ev.perwakilanWWK.trim() : null;
+    if (ev.delegasiKeWWK) {
+      // WK mendelegasikan ke WWK — tampilkan sebagai satu entri terpadu
+      if (ev.statusWWK === "diwakilkan") {
+        pimpinanParts.push(namaWakilWWK
+          ? `Wakil Wali Kota · diwakilkan: ${namaWakilWWK}`
+          : "Wakil Wali Kota · diwakilkan");
+      } else {
+        pimpinanParts.push("Wakil Wali Kota" + (ev.besertaIstriWWK ? " (beserta Istri)" : ""));
+      }
+    } else if (ev.statusWWK === "diwakilkan") {
+      pimpinanParts.push(namaWakilWWK
+        ? `Wakil Wali Kota · diwakilkan: ${namaWakilWWK}`
+        : "Wakil Wali Kota · diwakilkan");
+    } else {
       pimpinanParts.push("Wakil Wali Kota" + (ev.besertaIstriWWK ? " (beserta Istri)" : ""));
+    }
   }
+
   if (pimpinanParts.length)
     pimpinanLines.push(pimpinanParts.join(" dan "));
 
@@ -4636,8 +4489,8 @@ async function generateAndShareAgendaCard(ev) {
   }
   const NAMA_H = nLines * NAMA_LEAD + 32;
 
-  // Zona badge (cuaca + jarak)
-  const BADGE_H = (weather || jarakInfo) ? 88 : 0;
+  // Zona info cuaca+jarak (sekarang hanya satu baris teks tipis)
+  const BADGE_H = (weather || jarakInfo) ? 44 : 0;
   const FOOTER_H = 96;
   const CARD_PAD = 40;
 
@@ -4804,39 +4657,20 @@ async function generateAndShareAgendaCard(ev) {
 
   y += 16;
 
-  // ── 11. Badge cuaca + jarak ──
+  // ── 11. Info cuaca + jarak — subtle, tidak mencolok ──
   if (weather || jarakInfo) {
-    const badges = [];
+    const parts = [];
     if (weather) {
       const isHj = ["Rain","Drizzle","Thunderstorm"].includes(weather.main);
-      badges.push({
-        text: isHj ? "⚠️ Siapkan Jas Hujan" : `${weather.emoji} ${weather.suhu}°C · ${weather.deskripsi}`,
-        bg: isHj ? "rgba(239,68,68,0.22)" : "rgba(255,255,255,0.08)",
-        border: isHj ? "rgba(239,68,68,0.5)" : "rgba(201,168,76,0.3)",
-        color: isHj ? "#FCA5A5" : "rgba(255,255,255,0.75)",
-      });
+      parts.push(isHj ? "⚠️ Siapkan Jas Hujan" : `${weather.emoji} ${weather.suhu}°C · ${weather.deskripsi}`);
     }
-    if (jarakInfo) badges.push({
-      text: `🚗 ±${jarakInfo.durasi}  ·  ${jarakInfo.jarak} dari Kantor`,
-      bg: "rgba(255,255,255,0.08)",
-      border: "rgba(255,255,255,0.18)",
-      color: "rgba(255,255,255,0.7)",
-    });
+    if (jarakInfo) parts.push(`🚗 ±${jarakInfo.durasi} · ${jarakInfo.jarak} dari Kantor`);
 
-    let bx = P;
-    for (const b of badges) {
-      ctx.font = "500 20px system-ui,sans-serif";
-      const bw = Math.min(ctx.measureText(b.text).width + 40, W - P*2);
-      ctx.fillStyle = b.bg;
-      ctx.roundRect(bx, y, bw, 52, 26); ctx.fill();
-      ctx.strokeStyle = b.border; ctx.lineWidth=1;
-      ctx.roundRect(bx, y, bw, 52, 26); ctx.stroke();
-      ctx.fillStyle = b.color;
-      ctx.fillText(b.text, bx+20, y+33);
-      bx += bw + 16;
-      if (bx > W - P) break;
-    }
-    y += 68;
+    const infoText = parts.join("    ");
+    ctx.font = "400 17px system-ui,sans-serif";
+    ctx.fillStyle = "rgba(255,255,255,0.32)";
+    ctx.fillText(infoText, P, y + 18);
+    y += 40;
   }
 
   // ── 12. FOOTER ──
