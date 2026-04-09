@@ -752,21 +752,22 @@ function UndanganBlock({ev,canEdit,onUpload,onRemove}){
     setL(true);onUpload(f,f.name).finally(()=>setL(false));
   };
   const isImg=ev.undanganNama?.match(/\.(jpg|jpeg|png|webp)$/i);
-  if(ev.undanganFile)return <>
-    {view&&<FileViewModal file={ev.undanganFile} nama={ev.undanganNama||"Berkas Undangan"} onClose={()=>setV(false)}/>}
-    <div style={{background:"#f0f9ff",borderRadius:10,padding:11,border:"1.5px solid #bae6fd"}}>
-      <div style={{fontSize:12,color:"#0284c7",fontWeight:700,marginBottom:7}}>Berkas Undangan</div>
-      <div style={{display:"flex",alignItems:"center",gap:8,background:"white",borderRadius:8,padding:"8px 10px",border:"1px solid #bae6fd",marginBottom:7}}>
-        <span style={{fontSize:16}}>{isImg?"IMG":"PDF"}</span>
-        <div style={{flex:1,minWidth:0,fontSize:12,fontWeight:600,color:"#1e293b",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ev.undanganNama||"Berkas Undangan"}</div>
+  if(ev.undanganFile){
+    // Jika hanya menampilkan (bukan edit) → tidak perlu tampil, tombol sudah di baris aksi bawah
+    if(!canEdit) return null;
+    // Admin RK mode edit — tampilkan ringkas: nama file + Ganti + Hapus
+    return <>
+      {view&&<FileViewModal file={ev.undanganFile} nama={ev.undanganNama||"Berkas Undangan"} onClose={()=>setV(false)}/>}
+      <div style={{background:"#f0f9ff",borderRadius:10,padding:"9px 11px",border:"1.5px solid #bae6fd",display:"flex",alignItems:"center",gap:8}}>
+        <span style={{fontSize:15}}>{isImg?"🖼️":"📄"}</span>
+        <div style={{flex:1,minWidth:0,fontSize:12,fontWeight:600,color:"#0c4a6e",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ev.undanganNama||"Berkas Undangan"}</div>
+        <button onClick={()=>setV(true)} style={{padding:"5px 9px",borderRadius:7,border:"1.5px solid #0284c7",background:"white",color:"#0284c7",cursor:"pointer",fontSize:11,fontWeight:700,flexShrink:0}}>Lihat</button>
+        <input ref={ref} type="file" accept="application/pdf,image/*" onChange={e=>{handleFile(e.target.files[0]);e.target.value="";}} style={{display:"none"}}/>
+        <button onClick={()=>ref.current.click()} disabled={load} style={{padding:"5px 9px",borderRadius:7,border:"1.5px solid #94a3b8",background:"white",color:"#64748b",cursor:load?"default":"pointer",fontSize:11,fontWeight:700,flexShrink:0}}>{load?"...":"Ganti"}</button>
+        <button onClick={onRemove} style={{padding:"5px 9px",borderRadius:7,border:"1.5px solid #fca5a5",background:"white",color:"#ef4444",cursor:"pointer",fontSize:11,fontWeight:700,flexShrink:0}}>Hapus</button>
       </div>
-      <div style={{display:"flex",gap:7}}>
-        <button onClick={()=>setV(true)} style={{flex:1,padding:"8px",borderRadius:8,border:"1.5px solid #0284c7",background:"white",color:"#0284c7",cursor:"pointer",fontSize:12,fontWeight:700}}>Lihat</button>
-        <a href={ev.undanganFile} download={ev.undanganNama} style={{flex:1,padding:"8px",borderRadius:8,border:"none",background:"#0284c7",color:"white",textDecoration:"none",textAlign:"center",fontSize:12,fontWeight:700,display:"block"}}>Unduh</a>
-        {canEdit&&<><input ref={ref} type="file" accept="application/pdf,image/*" onChange={e=>{handleFile(e.target.files[0]);e.target.value="";}} style={{display:"none"}}/><button onClick={()=>ref.current.click()} disabled={load} style={{padding:"8px 10px",borderRadius:8,border:"1.5px solid #94a3b8",background:"white",color:"#64748b",cursor:load?"default":"pointer",fontSize:11,fontWeight:700}}>{load?"...":"Ganti"}</button><button onClick={onRemove} style={{padding:"8px 10px",borderRadius:8,border:"1.5px solid #fca5a5",background:"white",color:"#ef4444",cursor:"pointer",fontSize:11,fontWeight:700}}>Hapus</button></>}
-      </div>
-    </div>
-  </>;
+    </>;
+  }
   if(!canEdit)return <div style={{padding:"8px 10px",background:"#fef9c3",borderRadius:8,fontSize:12,color:"#92400e",fontWeight:600}}>Berkas undangan belum diupload</div>;
   return <div style={{background:"#fafafa",borderRadius:10,padding:11,border:"1.5px dashed #7dd3fc"}}>
     <div style={{fontSize:12,color:"#64748b",fontWeight:700,marginBottom:6}}>Upload Berkas Undangan (Opsional)</div>
@@ -2358,13 +2359,13 @@ function MitraKerjaView({events,isMobile}){
               </div>
             ))}
             {timList.length===0&&hadirList.length===0&&<div style={{fontSize:11,color:"#CBD5E1",fontStyle:"italic",marginBottom:8}}>Belum ada data kehadiran & penugasan</div>}
-            {(ev.undanganFile||ev.sambutanFile)&&<div style={{display:"flex",gap:7,marginTop:10,flexWrap:"wrap"}}>
+            {(ev.undanganFile||ev.sambutanFile)&&<div style={{display:"flex",gap:6,marginTop:10,flexWrap:"wrap"}}>
               {ev.undanganFile&&<a href={ev.undanganFile} target="_blank" rel="noopener noreferrer"
-                style={{display:"flex",alignItems:"center",gap:6,padding:"8px 14px",borderRadius:9,background:"#EFF6FF",border:"1.5px solid #BFDBFE",color:"#1D4ED8",textDecoration:"none",fontSize:12,fontWeight:700}}>
-                📄 Lihat Undangan</a>}
+                style={{display:"flex",alignItems:"center",gap:5,padding:"7px 12px",borderRadius:8,background:"#EFF6FF",border:"1.5px solid #BFDBFE",color:"#1D4ED8",textDecoration:"none",fontSize:12,fontWeight:700}}>
+                📄 Undangan</a>}
               {ev.sambutanFile&&<a href={ev.sambutanFile} target="_blank" rel="noopener noreferrer"
-                style={{display:"flex",alignItems:"center",gap:6,padding:"8px 14px",borderRadius:9,background:"#F5F3FF",border:"1.5px solid #C4B5FD",color:"#6D28D9",textDecoration:"none",fontSize:12,fontWeight:700}}>
-                🎤 Baca Sambutan</a>}
+                style={{display:"flex",alignItems:"center",gap:5,padding:"7px 12px",borderRadius:8,background:"#F5F3FF",border:"1.5px solid #C4B5FD",color:"#6D28D9",textDecoration:"none",fontSize:12,fontWeight:700}}>
+                🎤 Sambutan</a>}
             </div>}
           </div>}
         </div>;
@@ -4904,18 +4905,32 @@ function ExpandedDetail({ev,hariEv}){
             <UndanganBlock ev={ev} canEdit={role==="admin_rk"&&ev.alur!=="disetujui"} onUpload={(file,name)=>handleUndanganUpload(ev.id,file,name).then(()=>showT("Berkas undangan diupload"))} onRemove={()=>{if(ev.undanganFile&&!ev.undanganFile.startsWith("data:"))storageDelete("undangan",ev.undanganFile).catch(e=>console.warn("Sync:",e?.message||e));updAndSync(ev.id,{undanganFile:null,undanganNama:""}); }}/>
           </div>
         </div>
-        <div style={{display:"flex",gap:7,marginTop:8}}>
-          <a href={makeICS(ev)} download={(ev.namaAcara||"jadwal")+".ics"} style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:6,padding:"9px",borderRadius:9,border:"1.5px solid #e2e8f0",background:"white",color:"#334155",textDecoration:"none",fontSize:12,fontWeight:700}}>
+        <div style={{display:"flex",gap:7,marginTop:8,flexWrap:"wrap"}}>
+          <a href={makeICS(ev)} download={(ev.namaAcara||"jadwal")+".ics"} style={{flex:1,minWidth:120,display:"flex",alignItems:"center",justifyContent:"center",gap:6,padding:"9px",borderRadius:9,border:"1.5px solid #e2e8f0",background:"white",color:"#334155",textDecoration:"none",fontSize:12,fontWeight:700}}>
             <span style={{fontSize:14}}>📅</span>Tambah ke Kalender
           </a>
-          <a href={"https://calendar.google.com/calendar/render?action=TEMPLATE&text="+encodeURIComponent(ev.namaAcara||"")+"&dates="+((ev.tanggal||"").replace(/-/g,"")+"T"+(ev.jam||"0800").replace(":","")+"00")+"/"+((ev.tanggal||"").replace(/-/g,"")+"T"+String(parseInt((ev.jam||"08:00").split(":")[0])+2).padStart(2,"0")+(ev.jam||"08:00").split(":")[1]+"00")+"&location="+encodeURIComponent(ev.lokasi||"")+"&details="+encodeURIComponent("Penyelenggara: "+(ev.penyelenggara||"")+"%0APakaian: "+(ev.pakaian||""))} target="_blank" rel="noopener noreferrer" style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:6,padding:"9px",borderRadius:9,border:"none",background:"#1a73e8",color:"white",textDecoration:"none",fontSize:12,fontWeight:700}}>
+          <a href={"https://calendar.google.com/calendar/render?action=TEMPLATE&text="+encodeURIComponent(ev.namaAcara||"")+"&dates="+((ev.tanggal||"").replace(/-/g,"")+"T"+(ev.jam||"0800").replace(":","")+"00")+"/"+((ev.tanggal||"").replace(/-/g,"")+"T"+String(parseInt((ev.jam||"08:00").split(":")[0])+2).padStart(2,"0")+(ev.jam||"08:00").split(":")[1]+"00")+"&location="+encodeURIComponent(ev.lokasi||"")+"&details="+encodeURIComponent("Penyelenggara: "+(ev.penyelenggara||"")+"%0APakaian: "+(ev.pakaian||""))} target="_blank" rel="noopener noreferrer" style={{flex:1,minWidth:100,display:"flex",alignItems:"center",justifyContent:"center",gap:6,padding:"9px",borderRadius:9,border:"none",background:"#1a73e8",color:"white",textDecoration:"none",fontSize:12,fontWeight:700}}>
             <span style={{fontSize:14}}>&#x1F4C6;</span>Google Cal
           </a>
+          {/* Tombol Undangan — muncul jika file tersedia */}
+          {ev.undanganFile&&<a href={ev.undanganFile} target="_blank" rel="noopener noreferrer"
+            style={{display:"flex",alignItems:"center",justifyContent:"center",gap:5,padding:"9px 13px",borderRadius:9,
+              border:"1.5px solid #BFDBFE",background:"#EFF6FF",color:"#1D4ED8",
+              textDecoration:"none",fontSize:12,fontWeight:700,flexShrink:0}}>
+            📄 Undangan
+          </a>}
+          {/* Tombol Sambutan — muncul jika file tersedia */}
+          {ev.sambutanFile&&<a href={ev.sambutanFile} target="_blank" rel="noopener noreferrer"
+            style={{display:"flex",alignItems:"center",justifyContent:"center",gap:5,padding:"9px 13px",borderRadius:9,
+              border:"1.5px solid #C4B5FD",background:"#F5F3FF",color:"#6D28D9",
+              textDecoration:"none",fontSize:12,fontWeight:700,flexShrink:0}}>
+            🎤 Sambutan
+          </a>}
           {/* Tombol Share Kartu Agenda */}
           <button
             onClick={()=>generateAndShareAgendaCard(ev)}
             title="Bagikan kartu agenda sebagai gambar"
-            style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6,padding:"9px 14px",borderRadius:9,border:"1.5px solid #e2e8f0",background:"white",color:"#334155",cursor:"pointer",fontSize:12,fontWeight:700,flexShrink:0}}
+            style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6,padding:"9px 13px",borderRadius:9,border:"1.5px solid #e2e8f0",background:"white",color:"#334155",cursor:"pointer",fontSize:12,fontWeight:700,flexShrink:0}}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
@@ -4925,19 +4940,6 @@ function ExpandedDetail({ev,hariEv}){
             Bagikan
           </button>
         </div>
-        {/* Akses dokumen — tombol pill, hanya muncul jika file tersedia */}
-        {(ev.undanganFile||ev.sambutanFile)&&<div style={{display:"flex",gap:7,marginTop:10,flexWrap:"wrap"}}>
-          {ev.undanganFile&&<a href={ev.undanganFile} target="_blank" rel="noopener noreferrer"
-            style={{display:"flex",alignItems:"center",gap:6,padding:"9px 16px",borderRadius:10,
-              background:"#EFF6FF",border:"1.5px solid #BFDBFE",color:"#1D4ED8",
-              textDecoration:"none",fontSize:12,fontWeight:700}}>
-            📄 Lihat Undangan</a>}
-          {ev.sambutanFile&&<a href={ev.sambutanFile} target="_blank" rel="noopener noreferrer"
-            style={{display:"flex",alignItems:"center",gap:6,padding:"9px 16px",borderRadius:10,
-              background:"#F5F3FF",border:"1.5px solid #C4B5FD",color:"#6D28D9",
-              textDecoration:"none",fontSize:12,fontWeight:700}}>
-            🎤 Baca Sambutan</a>}
-        </div>}
       </div>
       {ev.jenisKegiatan==="Sambutan"&&<div>
         <SambutanBlock ev={ev} canUpload={role==="timkom"||role==="kasubbag_komdokpim"} onUploadDocx={(f)=>handleSambutanDocx(ev.id,f,ev)} onUploadPdf={(f,name)=>handleSambutanUpload(ev.id,f,name).then(()=>showT("Naskah sambutan (PDF) diupload"))} onRemove={()=>{if(ev.sambutanFile&&!ev.sambutanFile.startsWith("data:"))storageDelete("sambutan",ev.sambutanFile).catch(e=>console.warn("Sync:",e?.message||e));if(ev.sambutanDocx&&!ev.sambutanDocx.startsWith("data:")&&!ev.sambutanDocx.startsWith("blob:"))storageDelete("sambutan",ev.sambutanDocx).catch(e=>console.warn("Sync:",e?.message||e));updAndSync(ev.id,{sambutanFile:null,sambutanNama:"",sambutanDocx:null,sambutanDocxNama:""});showT("Naskah sambutan dihapus","warn");}}/>
