@@ -6019,51 +6019,13 @@ export default function App(){
     upd(evId,{personil:personilArr,catatanPenugasan});
     setPenugasanEv(null);
     showT("Penugasan disimpan untuk "+personilArr.length+" personil ✓");
-    // Kirim notifikasi push + WA ke masing-masing personil
+    // Kirim notifikasi push ke masing-masing personil (WA penugasan dinonaktifkan)
     const ev=events.find(e=>e.id===evId);
     for(const un of personilArr){
       const u=loadUsers().find(x=>x.username===un);
       if(u){
         await sendPush({targetRole:u.role,title:"📋 Anda Ditugaskan",body:ev?.namaAcara+" · "+ev?.tanggal+" "+ev?.jam+" WITA"+(catatanPenugasan?" · "+catatanPenugasan:""),url:"/",tag:"penugasan-"+evId+"-"+un});
-        // WA langsung ke personil (selalu, bukan hanya darurat)
-        if(u.noWA){
-          // Kirim WA penugasan langsung hanya jika:
-          // - Event BUKAN besok (jadwal hari ini/lusa → langsung), ATAU
-          // - Event besok tapi sudah lewat 16:10 WITA (batch sudah jalan)
-          const _nowWITA=new Date(Date.now()+8*60*60*1000);
-          const _h=_nowWITA.getUTCHours(),_m=_nowWITA.getUTCMinutes();
-          const _totalMin=_h*60+_m;
-          const _tmrw=new Date(Date.now()+8*60*60*1000+24*60*60*1000).toISOString().slice(0,10);
-          const _isBatchWindow=_totalMin>=7*60+25&&_totalMin<16*60+10;
-          const _skipWA=ev?.tanggal===_tmrw&&_isBatchWindow;
-          if(!_skipWA){
-            const _rekan=(ev?.personil||[]).filter(x=>x!==un).map(x=>{const _xu=loadUsers().find(lu=>lu.username===x);return _xu?.nama||x;});
-            sendWA({to:u.noWA,namaAcara:ev?.namaAcara,tanggal:ev?.tanggal,jam:ev?.jam,penyelenggara:ev?.penyelenggara,lokasi:ev?.lokasi,event:"penugasan",namaPersonil:u.nama,catatanPenugasan:catatanPenugasan||"",rekanBertugas:_rekan});
-          }
-        }
       }
-    }
-    // ── WA darurat ke staf jika acara < 6 jam lagi ──────────────────────
-    if(ev&&personilArr.length>0){
-      try{
-        await fetch("/api/notif-penugasan",{
-          method:"POST",
-          headers:{"Content-Type":"application/json","Authorization":"Bearer "+(window.__CRON_SECRET||"")},
-          body:JSON.stringify({
-            evId,
-            namaAcara:ev.namaAcara,
-            tanggal:ev.tanggal,
-            jam:ev.jam,
-            lokasi:ev.lokasi||"",
-            pakaian:ev.pakaian||"",
-            penyelenggara:ev.penyelenggara||"",
-            catatanPenugasan:catatanPenugasan||"",
-            personil:personilArr,
-            pimpinan:ev.untukPimpinan||[],
-            delegasiKeWWK:ev.delegasiKeWWK||false,
-          })
-        });
-      }catch(e){console.warn("notif-penugasan API error:",e);}
     }
     setGlobalLoading(false);
   };

@@ -215,7 +215,7 @@ async function notifReminder(jadwal, users) {
 
   const msg =
     `⚠️ *Reminder: Personil Belum Ditugaskan*\n` +
-    `Agenda besok (${fmtTgl(tomorrow)}) yang belum ada personilnya:\n\n` +
+    `Agenda ${fmtTgl(tomorrow)} yang belum ada personilnya:\n\n` +
     daftar +
     `\n\nSilakan segera tugaskan via aplikasi Prokopim.\n_Prokopim Kota Tarakan_`;
 
@@ -256,7 +256,7 @@ async function notifAjudan(jadwal, users) {
     ).join("\n\n");
 
     const msg =
-      `📅 *Agenda ${label} Besok*\n` +
+      `📅 *Agenda ${label}*\n` +
       `${fmtTgl(tomorrow)} | ${myEvs.length} kegiatan\n\n` +
       daftar +
       `\n\nMohon konfirmasi kehadiran ${label} melalui aplikasi Prokopim.\n_Prokopim Kota Tarakan_`;
@@ -287,7 +287,7 @@ async function notifPersonil(jadwal, users) {
     ).join("\n\n");
 
     const msg =
-      `📋 *Penugasan Anda Besok*\n` +
+      `📋 *Penugasan Anda*\n` +
       `${fmtTgl(tomorrow)}\n\n` +
       detail +
       `\n\nHarap konfirmasi kesiapan Anda. Prokopim Tarakan 🙏`;

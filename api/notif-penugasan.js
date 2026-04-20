@@ -125,7 +125,7 @@ function pesanHarian(ev, namaStaf, jabatanStaf, rekan) {
 
   return `🏛️ *Prokopim Kota Tarakan*\n` +
     sapaan +
-    `📋 *Pengingat Penugasan — Besok*\n\n` +
+    `📋 *Pengingat Penugasan*\n\n` +
     `📅 *${fmtTgl(ev.tanggal)}*\n` +
     `🕐 *${ev.jam} WITA*\n` +
     `📌 *${ev.namaAcara}*\n` +
@@ -140,7 +140,12 @@ function pesanHarian(ev, namaStaf, jabatanStaf, rekan) {
 }
 
 // ── Handler utama ─────────────────────────────────────────────
+// WA penugasan dinonaktifkan — endpoint tetap hidup agar cron tidak error,
+// tapi tidak mengirim WA ke personil yang bertugas.
 module.exports = async function handler(req, res) {
+  return res.status(200).json({ ok: true, disabled: true, message: "Notifikasi WA penugasan dinonaktifkan." });
+
+  // eslint-disable-next-line no-unreachable
   const mode = req.query?.mode || req.body?.mode || (req.method === "GET" ? "harian" : "darurat");
 
   // Validasi secret untuk POST
