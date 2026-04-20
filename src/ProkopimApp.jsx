@@ -307,6 +307,7 @@ const ALL_ROLE_DEFS=[
   {key:"kasubbag_komdokpim", label:"Kasubbag Komdokpim",            icon:"search"},
   {key:"kabag",              label:"Kabag Prokopim",                icon:"check"},
   {key:"mitra_kerja",        label:"Mitra Kerja Pemkot",            icon:"eye"},
+  {key:"walpri",             label:"Walpri",                        icon:"eye"},
 ];
 const WF={
   draft:             {label:"Draft",             color:"#64748b",bg:"#f1f5f9"},
@@ -324,6 +325,7 @@ const ROLE_LABEL={
   staf:"Staf Protokol",admin_rk:"Admin Rencana Kegiatan",
   timkom:"Staf Komunikasi & Dokumentasi",
   mitra_kerja:"Mitra Kerja Pemkot",
+  walpri:"Walpri",
 };
 // Role hierarchy untuk penugasan: siapa bisa menugaskan siapa
 const ASSIGN_ROLES={
@@ -393,6 +395,7 @@ const DEFAULT_USERS=[
   {username:"kabag",         password:"Kabag@2025",   role:"kabag",         nama:"Kabag Protokol & Komunikasi",      jabatan:"Kepala Bagian Protokol & Komunikasi Pimpinan"},
   {username:"admin_rk",      password:"AdminRK@2025", role:"admin_rk",      nama:"Admin Rencana Kegiatan",           jabatan:"Admin Rencana Kegiatan Pimpinan"},
   {username:"admin_undangan",password:"AdminUnd@2025",role:"admin_undangan",nama:"Admin Generator Undangan",          jabatan:"Admin Surat dan Undangan Pimpinan"},
+  {username:"walpri",        password:"Walpri@2025",  role:"walpri",        nama:"Walpri",                           jabatan:"Pengawal Pribadi Pimpinan"},
 ];
 function loadUsers(){
   // Pakai cache jika sudah diisi oleh initUsers()
@@ -2182,7 +2185,7 @@ function ImportUsersTab({users,save,showT}){
   const[preview,setPreview]=React.useState([]);
   const[loading,setLoading]=React.useState(false);
   const[done,setDone]=React.useState(false);
-  const ROLES=["staf","admin_rk","kasubbag_protokol","kasubbag_komdokpim","kabag","ajudan_walikota","ajudan_wakilwalikota","timkom","walikota","wakilwalikota","mitra_kerja"];
+  const ROLES=["staf","admin_rk","kasubbag_protokol","kasubbag_komdokpim","kabag","ajudan_walikota","ajudan_wakilwalikota","timkom","walikota","wakilwalikota","mitra_kerja","walpri"];
   const parseCSV=(text)=>{
     const lines=text.trim().split('\n').filter(Boolean);
     if(lines.length<2)return[];
@@ -3790,7 +3793,7 @@ function EventCard({ev}){
       <span style={{fontSize:12}}>💬</span>{ev.catatanPimpinan}
     </div>}
     {/* Banner penugasan — semua role yang terlibat penugasan */}
-    {["kabag","ajudan_walikota","ajudan_wakilwalikota","kasubbag_protokol","kasubbag_komdokpim","timkom","staf","admin_rk"].includes(role)&&ev.alur==="disetujui"&&<PersonilBanner ev={ev} role={role} user={user} setPenugasanEv={setPenugasanEv} setEvaluasiEv={setEvaluasiEv} onCabutPersonil={cabutPersonilSatu}/>}
+    {["kabag","ajudan_walikota","ajudan_wakilwalikota","kasubbag_protokol","kasubbag_komdokpim","timkom","staf","admin_rk","walpri"].includes(role)&&ev.alur==="disetujui"&&<PersonilBanner ev={ev} role={role} user={user} setPenugasanEv={setPenugasanEv} setEvaluasiEv={setEvaluasiEv} onCabutPersonil={cabutPersonilSatu}/>}
     <div onClick={()=>setExp(exp?null:ev.id)} style={{padding:"14px",cursor:"pointer",userSelect:"none"}}>
       <div style={{display:"flex",alignItems:"flex-start",gap:11}}>
         {/* Date badge */}
@@ -5777,7 +5780,7 @@ export default function App(){
     setLoginPhase("Menyiapkan dashboard...");
     await new Promise(r=>setTimeout(r,500));
     setLoginLoading(false);
-    setUser(candidate);setTab(["ajudan_walikota","ajudan_wakilwalikota"].includes(candidate.role)?"ajudan":["kabag","kasubbag_protokol"].includes(candidate.role)?"dashboard":candidate.role==="admin_rk"?"pantau":candidate.role==="admin_undangan"?"undangan":candidate.role==="mitra_kerja"?"mitra":"tayang");
+    setUser(candidate);setTab(["ajudan_walikota","ajudan_wakilwalikota"].includes(candidate.role)?"ajudan":["kabag","kasubbag_protokol"].includes(candidate.role)?"dashboard":candidate.role==="admin_rk"?"pantau":candidate.role==="admin_undangan"?"undangan":candidate.role==="mitra_kerja"?"mitra":candidate.role==="walpri"?"tayang":"tayang");
     try{const seen=JSON.parse(localStorage.getItem("jp_seen_onboarding")||"{}");if(!seen[candidate.username]){setShowOnboarding(true);}}catch{}
     try{localStorage.setItem("jp_session",JSON.stringify({username:candidate.username}));}catch{}
     registerPush(candidate.username,candidate.role);
@@ -6090,6 +6093,7 @@ export default function App(){
     else if(role==="ajudan_walikota"||role==="ajudan_wakilwalikota")base=events.filter(e=>e.alur==="disetujui");
     else if(role==="timkom")base=events.filter(e=>e.alur!=="ditolak");
     else if(role==="mitra_kerja")base=events.filter(e=>e.alur==="disetujui");
+    else if(role==="walpri")base=events.filter(e=>e.alur==="disetujui");
     else if(role==="kasubbag_protokol")
       base=tab==="jadwal"?events.filter(e=>e.alur==="menunggu_kasubbag"||(e.alurHapus&&e.alur==="disetujui")):events.filter(e=>e.alur==="disetujui");
     else if(role==="kasubbag_komdokpim")
@@ -6653,6 +6657,10 @@ const TH={
     ...(role==="mitra_kerja"?[
       {key:"mitra",icon:"📅", label:"Agenda"},
     ]:[]),
+    // ── Walpri ──
+    ...(role==="walpri"?[
+      {key:"tayang",icon:"📅", label:"Agenda"},
+    ]:[]),
     // ── Wali Kota ──
     ...(role==="walikota"?[
       {key:"tayang", icon:"📅", label:"Agenda Saya"},
@@ -6770,6 +6778,10 @@ const TH={
   // ── Mitra Kerja ──
   ...(role==="mitra_kerja"?[
     {key:"mitra",label:"Agenda",icon:"📅"},
+  ]:[]),
+  // ── Walpri ──
+  ...(role==="walpri"?[
+    {key:"tayang",label:"Agenda",icon:"📅"},
   ]:[]),
   // ── Wali Kota ──
   ...(role==="walikota"?[
@@ -9850,7 +9862,29 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
           <MitraView events={events} isMobile={isMobile}/>
         </>
 
-      /* 10. Pimpinan View — ZenDashboard handles all roles */
+      /* 10. Walpri — hanya lihat agenda & personil bertugas */
+      :role==="walpri"&&(tab==="tayang"||tab==="jadwal")
+        ?<>
+          <div style={{margin:"12px 14px 0",background:"#F0FDF4",border:"1.5px solid #86EFAC",borderRadius:12,padding:"10px 14px",display:"flex",alignItems:"center",gap:10}}>
+            <span style={{fontSize:18,flexShrink:0}}>👁️</span>
+            <div style={{flex:1}}>
+              <div style={{fontSize:12,fontWeight:700,color:"#065F46"}}>Anda masuk sebagai Walpri</div>
+              <div style={{fontSize:13,color:"#16A34A",marginTop:1}}>Hanya dapat melihat agenda dan personil yang bertugas.</div>
+            </div>
+          </div>
+          {listEvents.length===0
+            ?<EmptyState icon="📭" message="Belum ada agenda" sub="Jadwal akan muncul setelah disetujui Kabag."/>
+            :(!filterDate||filterDate===""||filterDate==="week")&&!searchQ.trim()
+              ?<GroupedEventList evList={listEvents} isMobile={isMobile} viewMode={viewMode}/>
+              :viewMode==="timeline"
+              ?<TimelineView evList={listEvents}/>
+              :isMobile
+                ?<div>{listEvents.map(ev=><EventCard key={ev.id} ev={ev}/>)}</div>
+                :<TableView evList={listEvents}/>
+          }
+        </>
+
+      /* 11. Pimpinan View — ZenDashboard handles all roles */
       :tab==="jadwal"
         ?<ZenDashboard
             events={events} role={role} user={user}
