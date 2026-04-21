@@ -8627,11 +8627,12 @@ function EKinerjaGenerator({ events, role, user, isMobile }) {
   const today = new Date(Date.now() + 8*3600000).toISOString().slice(0,10);
   const weekAgo = new Date(Date.now() + 8*3600000 - 7*86400000).toISOString().slice(0,10);
 
-  const [startDate, setStartDate] = React.useState(weekAgo);
-  const [endDate,   setEndDate]   = React.useState(today);
-  const [output,    setOutput]    = React.useState("");
-  const [copied,    setCopied]    = React.useState(false);
-  const [loading,   setLoading]   = React.useState(false);
+  const [startDate,      setStartDate]      = React.useState(weekAgo);
+  const [endDate,        setEndDate]        = React.useState(today);
+  const [nomorIndikator, setNomorIndikator] = React.useState("");
+  const [output,         setOutput]         = React.useState("");
+  const [copied,         setCopied]         = React.useState(false);
+  const [loading,        setLoading]        = React.useState(false);
 
   const generate = () => {
     setLoading(true);
@@ -8653,9 +8654,10 @@ function EKinerjaGenerator({ events, role, user, isMobile }) {
         return;
       }
 
+      const noInd = nomorIndikator.trim();
       const lines = filtered.map(ev => {
         const deskripsi = getTemplate(ev.namaAcara);
-        return ev.tanggal + " | " + deskripsi;
+        return ev.tanggal + " | " + (noInd ? noInd + " | " : "") + deskripsi;
       });
 
       setOutput(lines.join("\n"));
@@ -8723,6 +8725,12 @@ function EKinerjaGenerator({ events, role, user, isMobile }) {
             <input type="date" value={endDate} onChange={e=>setEndDate(e.target.value)}
               style={{ width:"100%", padding:"9px 11px", borderRadius:8, border:"1.5px solid #E2E8F0", fontSize:13, color:NAVY, boxSizing:"border-box" }}/>
           </div>
+          <div style={{ flex:1, minWidth:120 }}>
+            <label style={{ display:"block", fontSize:13, color:"#64748B", fontWeight:600, marginBottom:4 }}>Nomor Indikator</label>
+            <input type="number" min="1" step="1" value={nomorIndikator} onChange={e=>setNomorIndikator(e.target.value)}
+              placeholder="cth: 1"
+              style={{ width:"100%", padding:"9px 11px", borderRadius:8, border:"1.5px solid #E2E8F0", fontSize:13, color:NAVY, boxSizing:"border-box" }}/>
+          </div>
           <button onClick={generate} disabled={loading}
             style={{ padding:"10px 20px", borderRadius:9, border:"none",
               background:loading?"#94A3B8":"linear-gradient(135deg,"+NAVY+",#1A2F50)",
@@ -8781,7 +8789,7 @@ function EKinerjaGenerator({ events, role, user, isMobile }) {
             <div style={{ padding:"8px 16px", borderTop:"1px solid #F1F5F9", background:"#F8FAFC",
               fontSize:13, color:"#64748B", display:"flex", alignItems:"center", gap:6 }}>
               <span>ℹ️</span>
-              Format: <code style={{background:"#E2E8F0",padding:"1px 5px",borderRadius:3}}>YYYY-MM-DD | Deskripsi kegiatan</code>
+              Format: <code style={{background:"#E2E8F0",padding:"1px 5px",borderRadius:3}}>YYYY-MM-DD | nomor_indikator | Teks Laporan</code>
               &nbsp;· Tempel ke bot Chrome Extension untuk submit e-Kinerja massal
             </div>
           )}
