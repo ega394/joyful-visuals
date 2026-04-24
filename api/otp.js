@@ -17,11 +17,17 @@ function supaHeaders() {
   };
 }
 
+// Pesan error generik untuk frontend (tidak membocorkan info teknis)
+const MSG_SERVER_BUSY = "Layanan sedang sibuk. Coba lagi beberapa menit.";
+
 async function getUser(username) {
   const url = SUPA_URL + "/rest/v1/users?username=eq."
     + encodeURIComponent(username) + "&select=*";
   const r = await fetch(url, { headers: supaHeaders() });
-  if (!r.ok) throw new Error("Gagal membaca data user (status " + r.status + ")");
+  if (!r.ok) {
+    console.error("[OTP] getUser gagal, status:", r.status);
+    throw new Error(MSG_SERVER_BUSY);
+  }
   const rows = await r.json();
   return rows[0] || null;
 }
@@ -33,7 +39,10 @@ async function updateUser(username, fields) {
     headers: Object.assign({}, supaHeaders(), { Prefer: "return=minimal" }),
     body:    JSON.stringify(fields),
   });
-  if (!r.ok) throw new Error("Gagal update data user (status " + r.status + ")");
+  if (!r.ok) {
+    console.error("[OTP] updateUser gagal, status:", r.status);
+    throw new Error(MSG_SERVER_BUSY);
+  }
 }
 
 async function hashPassword(plain) {
@@ -67,14 +76,22 @@ async function sendOTPviaWA(noWA, otp, nama) {
   console.log("[OTP] Mengirim ke nomor:", nomor, "| nama:", nama);
 
   const pesan = [
-    "\uD83D\uDD10 *Reset Password - Sistem Jadwal Pimpinan Kota Tarakan*",
+    "Reset Password - Prokopim Hibot Kota Tarakan",
     "",
-    "Halo *" + nama + "*,",
+    "Halo " + nama + ",",
     "",
-    "Kode OTP Anda:",
-    "*" + otp + "*",
+    "Kode verifikasi Anda:",
     "",
-    "Berlaku *10 menit*. Jangan bagikan kode ini.",
+    "    " + otp,
+    "",
+    "Cara pakai:",
+    "1. Buka aplikasi Prokopim Hibot",
+    "2. Masuk ke halaman \"Lupa Password\"",
+    "3. Masukkan kode di atas",
+    "4. Buat password baru (min. 6 karakter)",
+    "",
+    "Kode berlaku 10 menit. Jangan berikan kepada siapa pun.",
+    "Abaikan pesan ini bila Anda tidak meminta reset password.",
   ].join("\n");
 
   try {

@@ -9,6 +9,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { TAMU_STATUS, PRIORITY_COLORS } from "./lib/statusColors.js";
 
 // ── Design Tokens ─────────────────────────────────────────────
 var NAVY     = "#0A1628";
@@ -24,21 +25,10 @@ var SUPA_KEY = typeof import.meta !== "undefined" && import.meta.env
   ? (import.meta.env.VITE_SUPABASE_ANON_KEY || "") : "";
 
 // ── Konfigurasi Status ────────────────────────────────────────
-var STATUS_CFG = {
-  pending_rk:       { label:"Baru Masuk",          bg:"#F1F5F9", color:"#475569", bar:"#94A3B8" },
-  pending_kasubbag: { label:"Di Kasubbag",          bg:"#EFF6FF", color:"#1D4ED8", bar:"#3B82F6" },
-  pending_kabag:    { label:"Di Kabag",             bg:"#FEF3C7", color:"#92400E", bar:"#F59E0B" },
-  pending_pimpinan: { label:"Di Pimpinan",          bg:"#EDE9FE", color:"#5B21B6", bar:"#7C3AED" },
-  approved:         { label:"Disetujui ✓",          bg:"#D1FAE5", color:"#065F46", bar:"#10B981" },
-  rejected:         { label:"Ditolak",              bg:"#FEE2E2", color:"#991B1B", bar:"#EF4444" },
-  disposed:         { label:"Didisposisi",          bg:"#F1F5F9", color:"#475569", bar:"#94A3B8" },
-};
-
-var PRIORITY_CFG = {
-  mendesak: { label:"Mendesak",  dot:"#EF4444", bg:"#FEF2F2", color:"#991B1B" },
-  penting:  { label:"Penting",   dot:"#F59E0B", bg:"#FEF3C7", color:"#92400E" },
-  biasa:    { label:"Biasa",     dot:"#10B981", bg:"#D1FAE5", color:"#065F46" },
-};
+// Diimpor dari src/lib/statusColors.js agar warna status konsisten
+// dengan dashboard jadwal & komponen lainnya.
+var STATUS_CFG   = TAMU_STATUS;
+var PRIORITY_CFG = PRIORITY_COLORS;
 
 // ── Helpers ───────────────────────────────────────────────────
 function todayStr() { return new Date(Date.now()+8*3600000).toISOString().slice(0,10); }

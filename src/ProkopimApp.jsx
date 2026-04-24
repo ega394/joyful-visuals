@@ -7,6 +7,7 @@ import GuestDashboard from "./GuestDashboard.jsx"
 import RekapPenugasanBulanan from "./RekapPenugasanBulanan.jsx"
 import WaliKotaAudiensiDashboard from "./WaliKotaAudiensiDashboard.jsx"
 import NewsroomDashboard from "./NewsroomDashboard.jsx";
+import { JADWAL_STATUS } from "./lib/statusColors.js";
 
 // ═══════════════════════════════════════════════════════
 // PENDAFTARAN AKUN (Register → Menunggu Persetujuan Kabag)
@@ -297,8 +298,8 @@ const C={
 const ALL_ROLE_DEFS=[
   {key:"walikota",           label:"Wali Kota",                     icon:"circle"},
   {key:"wakilwalikota",      label:"Wakil Wali Kota",               icon:"circle2"},
-  {key:"ajudan_walikota",    label:"Ajudan WK",                     icon:"clip"},
-  {key:"ajudan_wakilwalikota",label:"Ajudan WWK",                   icon:"clip"},
+  {key:"ajudan_walikota",    label:"Ajudan Wali Kota",              icon:"clip"},
+  {key:"ajudan_wakilwalikota",label:"Ajudan Wakil Wali Kota",       icon:"clip"},
   {key:"timkom",             label:"Tim Komunikasi & Dokumentasi",  icon:"attach"},
   {key:"staf",               label:"Staf Protokol",                 icon:"pencil"},
   {key:"admin_rk",           label:"Admin Rencana Kegiatan",        icon:"pencil"},
@@ -309,13 +310,9 @@ const ALL_ROLE_DEFS=[
   {key:"mitra_kerja",        label:"Mitra Kerja Pemkot",            icon:"eye"},
   {key:"walpri",             label:"Walpri",                        icon:"eye"},
 ];
-const WF={
-  draft:             {label:"Draft",             color:"#64748b",bg:"#f1f5f9"},
-  menunggu_kasubbag: {label:"Menunggu Kasubbag", color:"#d97706",bg:"#fef3c7"},
-  menunggu_kabag:    {label:"Menunggu Kabag",    color:"#7c3aed",bg:"#ede9fe"},
-  disetujui:         {label:"Disetujui",         color:"#065f46",bg:"#d1fae5"},
-  ditolak:           {label:"Ditolak",           color:"#991b1b",bg:"#fee2e2"},
-};
+// Workflow status jadwal — warna & label diambil dari sumber tunggal
+// di src/lib/statusColors.js agar selaras dengan GuestDashboard.
+const WF = JADWAL_STATUS;
 // Label display per role
 const ROLE_LABEL={
   walikota:"Wali Kota",wakilwalikota:"Wakil Wali Kota",
@@ -1975,6 +1972,8 @@ function BiometricTab({user,showT}){
 // ==================== INPUT & DRAFT PROGRESS VIEW (Admin RK / Staf) ====================
 function DraftProgressView({events,user,upd,showT,askConfirm,setTab,isMobile,setForm,setEditId,deleteAndSync,onAddNew}){
   const NAVY="#0A1628",GOLD="#C9A84C";
+  // sendingId: id event yang sedang di-"Kirim ke Kasubbag" (cegah dobel klik)
+  const[sendingId,setSendingId]=React.useState(null);
   const mine=events.filter(e=>e.submittedBy===user?.username);
   const steps=[
     {key:"draft",label:"Draft",color:"#64748b"},
@@ -2025,9 +2024,9 @@ function DraftProgressView({events,user,upd,showT,askConfirm,setTab,isMobile,set
             </div>}
 
             {isDraft&&!ev.catatanKasubbag&&!ev.catatanKabag&&<div style={{background:"#f1f5f9",borderRadius:8,padding:"8px 12px",fontSize:12,color:"#64748b",marginBottom:10}}>Status: Draft — belum dikirim</div>}
-            {isDitolak&&<div style={{background:"#fff1f2",borderRadius:8,padding:"8px 12px",fontSize:12,color:"#dc2626",marginBottom:10}}><div style={{fontWeight:700}}>❌ Ditolak:</div>{ev.catatanTolak}</div>}
-            {ev.catatanKasubbag&&<div style={{background:"#fffbeb",borderRadius:8,padding:"8px 12px",fontSize:12,color:"#92400e",marginBottom:8}}><span style={{fontWeight:700}}>📝 Catatan Kasubbag:</span> {ev.catatanKasubbag}</div>}
-            {ev.catatanKabag&&<div style={{background:"#faf5ff",borderRadius:8,padding:"8px 12px",fontSize:12,color:"#6d28d9",marginBottom:8}}><span style={{fontWeight:700}}>📝 Catatan Kabag:</span> {ev.catatanKabag}</div>}
+            {isDitolak&&<div style={{background:"#fff1f2",borderRadius:8,padding:"8px 12px",fontSize:12,color:"#dc2626",marginBottom:10}}><div style={{fontWeight:700,marginBottom:2}}>❌ Alasan Ditolak (perlu Anda perbaiki):</div>{ev.catatanTolak||"(tidak ada catatan)"}</div>}
+            {ev.catatanKasubbag&&<div style={{background:"#fffbeb",borderRadius:8,padding:"8px 12px",fontSize:12,color:"#92400e",marginBottom:8}}><div style={{fontWeight:700,marginBottom:2}}>📝 Catatan dari Kasubbag (untuk Anda perbaiki):</div>{ev.catatanKasubbag}</div>}
+            {ev.catatanKabag&&<div style={{background:"#faf5ff",borderRadius:8,padding:"8px 12px",fontSize:12,color:"#6d28d9",marginBottom:8}}><div style={{fontWeight:700,marginBottom:2}}>📝 Catatan dari Kabag (untuk Anda perbaiki):</div>{ev.catatanKabag}</div>}
             {isDisetujui&&<>
               <div style={{background:"#f0fdf4",borderRadius:8,padding:"8px 12px",fontSize:12,color:"#16a34a",fontWeight:700,marginBottom:10}}>✅ Disetujui & Tayang</div>
               {/* Konfirmasi kehadiran manual oleh Admin RK */}
@@ -2045,13 +2044,15 @@ function DraftProgressView({events,user,upd,showT,askConfirm,setTab,isMobile,set
                 askConfirm("Hapus Draft?","Jadwal akan dihapus permanen.",() => {deleteAndSync(ev.id); showT("Draft dihapus", "warn");},"Hapus","#DC2626");
               }} style={{padding:"7px 14px",borderRadius:8,border:"1.5px solid #FCA5A5",background:"white",color:"#EF4444",cursor:"pointer",fontSize:12,fontWeight:600}}>🗑️ Hapus</button>}
 
-              {isDraft&&<button onClick={()=>{
+              {isDraft&&<button disabled={sendingId===ev.id} title="Kirim ke Kasubbag untuk diverifikasi" onClick={()=>{
+  if(sendingId===ev.id)return;setSendingId(ev.id);
   upd(ev.id,{alur:"menunggu_kasubbag"});
-  showT("Dikirim ke Kasubbag","ok");
+  showT("Dikirim ke Kasubbag — menunggu verifikasi","ok");
   loadUsers().filter(u=>(u.role==="kasubbag_protokol")&&u.noWA).forEach(u=>sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"submit",submittedBy:user?.nama}));
   sendPush({targetRole:"kasubbag_protokol",title:"📋 Jadwal Baru Masuk",body:ev.namaAcara+" — "+ev.jam+" WITA",url:"/",tag:"submit-"+ev.id});
   sendPush({targetRole:"kasubbag_komdokpim",title:"📋 Jadwal Baru Masuk",body:ev.namaAcara+" — "+ev.jam+" WITA",url:"/",tag:"submit-"+ev.id});
-}} style={{padding:"7px 14px",borderRadius:8,border:"none",background:NAVY,color:"white",cursor:"pointer",fontSize:12,fontWeight:700}}>Kirim →</button>}
+  setTimeout(()=>setSendingId(null),1500);
+}} style={{padding:"7px 14px",borderRadius:8,border:"none",background:sendingId===ev.id?"#94A3B8":NAVY,color:"white",cursor:sendingId===ev.id?"default":"pointer",fontSize:12,fontWeight:700,opacity:sendingId===ev.id?0.7:1}}>{sendingId===ev.id?"Mengirim…":"Kirim ke Kasubbag →"}</button>}
             </div>
           </div>
         );
@@ -2064,6 +2065,8 @@ function DraftProgressView({events,user,upd,showT,askConfirm,setTab,isMobile,set
 function ApprovalQueueView({events,role,upd,showT,askConfirm,isMobile}){
   const NAVY="#0A1628",GOLD="#C9A84C";
   const[rejectTexts,setRT]=React.useState({});
+  // busyId: id event yang sedang diproses (anti dobel-klik untuk Verifikasi/Publikasi)
+  const[busyId,setBusy]=React.useState(null);
   // LocalTextarea: simpan state lokal agar tidak re-render list saat mengetik
   function LocalTextarea({evId,placeholder,rows,onCommit}){
     const[v,setV]=React.useState(rejectTexts[evId]||"");
@@ -2136,7 +2139,7 @@ function ApprovalQueueView({events,role,upd,showT,askConfirm,isMobile}){
           {ev._kabagRecall&&<div style={{background:"#FEF2F2",border:"1.5px solid #FECACA",borderRadius:9,padding:"9px 12px",marginBottom:10,fontSize:12,color:"#991B1B",fontWeight:600}}>
   ↩ Jadwal ini ditarik Kabag — periksa, edit, atau ajukan ulang
   {ev.catatanKabag&&<div style={{marginTop:6,padding:"6px 10px",background:"white",borderRadius:7,border:"1px solid #FECACA",fontSize:12,color:"#7C2D12",fontWeight:500,lineHeight:1.5}}>
-    <span style={{fontWeight:700}}>📝 Catatan Kabag:</span> {ev.catatanKabag}
+    <div style={{fontWeight:700,marginBottom:2}}>📝 Alasan Kabag menarik (perlu ditindaklanjuti):</div>{ev.catatanKabag}
   </div>}
 </div>}
         </div>
@@ -2149,13 +2152,32 @@ function ApprovalQueueView({events,role,upd,showT,askConfirm,isMobile}){
               style={{flex:1,padding:"10px 14px",borderRadius:10,border:"1.5px solid #D97706",background:"#FFFBEB",color:"#92400E",cursor:"pointer",fontSize:12,fontWeight:700}}>
               ↩ Kembalikan ke Admin RK
             </button>
-            {isKasubbag&&<button onClick={()=>{upd(ev.id,{alur:"menunggu_kabag",_kabagRecall:false});showT("Diteruskan ke Kabag ✓","ok");loadUsers().filter(u=>u.role==="kabag"&&u.noWA).forEach(u=>sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"kasubbag_approve"}));sendPush({targetRole:"kabag",title:"✅ Menunggu Persetujuan Anda",body:ev.namaAcara+" — "+ev.jam+" WITA",url:"/",tag:"approve-"+ev.id});}}
-              style={{flex:2,padding:"10px 14px",borderRadius:10,border:"none",background:"#0A1628",color:"white",cursor:"pointer",fontSize:12,fontWeight:800}}>
-              ✅ Verifikasi & Teruskan ke Kabag →
+            {isKasubbag&&<button disabled={busyId===ev.id} onClick={()=>{
+              if(busyId===ev.id)return;setBusy(ev.id);
+              upd(ev.id,{alur:"menunggu_kabag",_kabagRecall:false});showT("Diteruskan ke Kabag ✓","ok");
+              loadUsers().filter(u=>u.role==="kabag"&&u.noWA).forEach(u=>sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"kasubbag_approve"}));
+              sendPush({targetRole:"kabag",title:"✅ Menunggu Persetujuan Anda",body:ev.namaAcara+" — "+ev.jam+" WITA",url:"/",tag:"approve-"+ev.id});
+              setTimeout(()=>setBusy(null),1500);
+            }}
+              style={{flex:2,padding:"10px 14px",borderRadius:10,border:"none",background:busyId===ev.id?"#94A3B8":"#0A1628",color:"white",cursor:busyId===ev.id?"default":"pointer",fontSize:12,fontWeight:800,opacity:busyId===ev.id?0.7:1}}>
+              {busyId===ev.id?"Memproses…":"✅ Verifikasi & Teruskan ke Kabag →"}
             </button>}
-            {!isKasubbag&&<button onClick={()=>{upd(ev.id,{alur:"disetujui"});showT("Jadwal disetujui & tayang!","ok");const _u=loadUsers().find(u=>u.username===ev.submittedBy);if(_u?.noWA)sendWA({to:_u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"approved",submittedBy:getNamaByUsername(ev.submittedBy)});sendPush({targetRole:"admin_rk",title:"✅ Jadwal Disetujui",body:ev.namaAcara+" sudah dipublikasi",url:"/",tag:"approved-"+ev.id});loadUsers().filter(u=>(u.role==="ajudan_walikota"||u.role==="ajudan_wakilwalikota")&&u.noWA).forEach(u=>{const isWK=u.role==="ajudan_walikota"&&(ev.untukPimpinan||[]).includes("walikota");const isWWK=u.role==="ajudan_wakilwalikota"&&((ev.untukPimpinan||[]).includes("wakilwalikota")||ev.delegasiKeWWK);if(isWK||isWWK)sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"approved"});});}}
-              style={{flex:2,padding:"10px 14px",borderRadius:10,border:"none",background:"#059669",color:"white",cursor:"pointer",fontSize:13,fontWeight:800}}>
-              ✅ Setujui & Publikasi
+            {!isKasubbag&&<button disabled={busyId===ev.id} onClick={()=>askConfirm(
+              "Setujui & Tayangkan ke Pimpinan?",
+              "Jadwal '"+ev.namaAcara+"' akan langsung TAYANG di dashboard Wali Kota / Wakil dan notifikasi WhatsApp dikirim ke Ajudan. Pastikan data sudah benar — Anda masih bisa menarik kembali dari menu 'Riwayat Terkini'.",
+              ()=>{
+                if(busyId===ev.id)return;setBusy(ev.id);
+                upd(ev.id,{alur:"disetujui"});showT("Jadwal disetujui & tayang!","ok");
+                const _u=loadUsers().find(u=>u.username===ev.submittedBy);
+                if(_u?.noWA)sendWA({to:_u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"approved",submittedBy:getNamaByUsername(ev.submittedBy)});
+                sendPush({targetRole:"admin_rk",title:"✅ Jadwal Disetujui",body:ev.namaAcara+" sudah dipublikasi",url:"/",tag:"approved-"+ev.id});
+                loadUsers().filter(u=>(u.role==="ajudan_walikota"||u.role==="ajudan_wakilwalikota")&&u.noWA).forEach(u=>{const isWK=u.role==="ajudan_walikota"&&(ev.untukPimpinan||[]).includes("walikota");const isWWK=u.role==="ajudan_wakilwalikota"&&((ev.untukPimpinan||[]).includes("wakilwalikota")||ev.delegasiKeWWK);if(isWK||isWWK)sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"approved"});});
+                setTimeout(()=>setBusy(null),1500);
+              },
+              "Ya, Tayangkan Sekarang","#059669"
+            )}
+              style={{flex:2,padding:"10px 14px",borderRadius:10,border:"none",background:busyId===ev.id?"#94A3B8":"#059669",color:"white",cursor:busyId===ev.id?"default":"pointer",fontSize:13,fontWeight:800,opacity:busyId===ev.id?0.7:1}}>
+              {busyId===ev.id?"Memproses…":"✅ Setujui & Publikasi"}
             </button>}
           </div>
         </div>
@@ -2174,7 +2196,7 @@ function ApprovalQueueView({events,role,upd,showT,askConfirm,isMobile}){
         <textarea placeholder="Catatan perbaikan..." value={rejectTexts[ev.id+"_recall"]||""} onChange={e=>setRT(p=>({...p,[ev.id+"_recall"]:e.target.value}))} rows={1} style={{flex:1,padding:"6px 10px",borderRadius:7,border:"1.5px solid #fde68a",fontSize:13,resize:"none",boxSizing:"border-box"}}/>
         <button onClick={()=>askConfirm("Batalkan Tayang?","Jadwal ini akan ditarik dan dikembalikan ke Kasubbag untuk perbaikan.",()=>{upd(ev.id,{alur:"menunggu_kasubbag",catatanKabag:rejectTexts[ev.id+"_recall"]||"Perlu perbaikan",_kabagRecall:true});showT("Jadwal ditarik & dikembalikan","warn");loadUsers().filter(u=>(u.role==="kasubbag_protokol")&&u.noWA).forEach(u=>sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"recalled"}));const _subU=loadUsers().find(u=>u.username===ev.submittedBy);if(_subU?.noWA)sendWA({to:_subU.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"recalled",submittedBy:getNamaByUsername(ev.submittedBy)});},"Tarik","#f59e0b")} style={{padding:"6px 12px",borderRadius:7,border:"1.5px solid #f59e0b",background:"white",color:"#b45309",cursor:"pointer",fontSize:13,fontWeight:700,whiteSpace:"nowrap"}}>↩ Batalkan Tayang</button>
       </div>}
-      {isKasubbag&&ev.alur==="menunggu_kasubbag"&&ev.catatanKabag&&<div style={{marginTop:6,padding:"5px 10px",background:ev._kabagRecall?"#FEF2F2":"#fffbeb",borderRadius:7,fontSize:13,color:ev._kabagRecall?"#991B1B":"#b45309",border:"1px solid "+(ev._kabagRecall?"#FECACA":"#fde68a"),fontWeight:600}}>{ev._kabagRecall?"↩ Ditarik Kabag: ":"📝 Catatan Kabag: "}{ev.catatanKabag}</div>}
+      {isKasubbag&&ev.alur==="menunggu_kasubbag"&&ev.catatanKabag&&<div style={{marginTop:6,padding:"5px 10px",background:ev._kabagRecall?"#FEF2F2":"#fffbeb",borderRadius:7,fontSize:13,color:ev._kabagRecall?"#991B1B":"#b45309",border:"1px solid "+(ev._kabagRecall?"#FECACA":"#fde68a"),fontWeight:600}}>{ev._kabagRecall?"↩ Alasan Kabag menarik (perlu ditindaklanjuti): ":"📝 Catatan Kabag (perlu ditindaklanjuti): "}{ev.catatanKabag}</div>}
     </div>)}</>}
   </div>;
 }
@@ -3333,6 +3355,15 @@ function ForgotPasswordModal({onClose}){
   const[channel,setChannel]=useState("wa");
   const[screenCode,setScreenCode]=useState("");
 
+  // Map status HTTP + pesan server → teks ramah user (tanpa bocor detail teknis)
+  const friendlyOtpError=(status,serverMsg)=>{
+    if(status===404) return "Username tidak ditemukan. Periksa ejaan atau hubungi admin Prokopim.";
+    if(status===400 && /OTP/i.test(serverMsg||"")) return serverMsg; // "OTP salah"/"kedaluwarsa"/dll
+    if(status===400) return serverMsg || "Data yang Anda masukkan belum lengkap.";
+    if(status>=500) return "Layanan sedang sibuk. Coba lagi dalam beberapa menit.";
+    return serverMsg || "Terjadi kesalahan. Coba lagi.";
+  };
+
   const requestOTP=async()=>{
     setErr("");
     if(!captchaOK)return setErr("Selesaikan verifikasi anti-bot terlebih dahulu.");
@@ -3341,19 +3372,19 @@ function ForgotPasswordModal({onClose}){
     try{
       const r=await fetch("/api/otp",{method:"POST",headers:{"Content-Type":"application/json"},
         body:JSON.stringify({action:"request",username:un.toLowerCase().trim()})});
-      const d=await r.json();
-      if(!r.ok){setErr(d.error||"Gagal mengirim OTP.");setLoading(false);return;}
+      const d=await r.json().catch(()=>({}));
+      if(!r.ok){setErr(friendlyOtpError(r.status,d.error));setLoading(false);return;}
       setNama(d.nama);setChannel(d.channel);
       if(d.channel==="screen"){setScreenCode(d.code);setOtp(d.code);}
       else{setMasked(d.masked);}
       setStep("otp");
-    }catch{setErr("Koneksi gagal.");}
+    }catch{setErr("Tidak bisa terhubung ke server. Periksa koneksi internet Anda.");}
     setLoading(false);
   };
 
   const verifyOTP=async()=>{
     setErr("");
-    if(!otp.trim())return setErr("Masukkan kode OTP.");
+    if(!otp.trim())return setErr("Masukkan kode OTP 6 digit dari WhatsApp.");
     if(!pw1)return setErr("Masukkan password baru.");
     if(pw1.length<6)return setErr("Password minimal 6 karakter.");
     if(pw1!==pw2)return setErr("Konfirmasi password tidak cocok.");
@@ -3361,10 +3392,10 @@ function ForgotPasswordModal({onClose}){
     try{
       const r=await fetch("/api/otp",{method:"POST",headers:{"Content-Type":"application/json"},
         body:JSON.stringify({action:"verify",username:un.toLowerCase().trim(),otp,newPassword:pw1})});
-      const d=await r.json();
-      if(!r.ok)return setErr(d.error||"Verifikasi gagal.");
+      const d=await r.json().catch(()=>({}));
+      if(!r.ok){setErr(friendlyOtpError(r.status,d.error));setLoading(false);return;}
       setStep("success");
-    }catch{setErr("Koneksi gagal.");}
+    }catch{setErr("Tidak bisa terhubung ke server. Periksa koneksi internet Anda.");}
     setLoading(false);
   };
 
@@ -7231,7 +7262,7 @@ function AjudanDashboard({events, user, upd, showT, setDelegTarget, isMobile}){
                 <div style={{fontSize:12,fontWeight:700,color:ev.delegasiKeWWK?"#7c3aed":ev.statusWK==="hadir"?"#065f46":"#991b1b"}}>
                   {ev.delegasiKeWWK?"Didelegasikan ke Wakil Wali Kota":ev.statusWK==="hadir"?"Wali Kota Hadir":ev.statusWK==="tidak_hadir"?"Wali Kota Tidak Hadir":ev.perwakilanWK?"Diwakilkan ke "+ev.perwakilanWK:"—"}
                 </div>
-                {ev.statusWK_by&&<div style={{fontSize:12,color:"#94a3b8",marginTop:1}}>Diisi: {ev.statusWK_by==="ajudan"?"Ajudan WK":ev.statusWK_by==="walikota"?"Wali Kota langsung":ev.statusWK_by==="admin_rk"?"Admin RK":"—"}</div>}
+                {ev.statusWK_by&&<div style={{fontSize:12,color:"#94a3b8",marginTop:1}}>Diisi: {ev.statusWK_by==="ajudan"?"Ajudan Wali Kota":ev.statusWK_by==="walikota"?"Wali Kota langsung":ev.statusWK_by==="admin_rk"?"Admin Rencana Kegiatan":"—"}</div>}
               </div>
             </div>}
             {ev.delegasiKeWWK&&<div style={{background:"#7c3aed",borderRadius:6,padding:"5px 10px",marginBottom:8,fontSize:12,fontWeight:800,color:"white",letterSpacing:0.5}}>↩ ANDA MENERIMA DISPOSISI DARI WALI KOTA</div>}
@@ -7913,6 +7944,8 @@ function KabagDashboard({events, user, upd, showT, askConfirm, deleteAndSync, is
   const [expandedId, setExpanded] = useState(null);
   const [rejectTexts, setRT] = useState({});
   const [searchQ, setSearchQ] = useState("");
+  // busyId: id event yang sedang diproses (cegah dobel klik Setujui & Publikasi)
+  const [busyId, setBusyId] = useState(null);
   const now=new Date();
   const nowStr=now.toISOString().slice(0,16).replace("T"," ");
   const fmt=t=>new Date(t).toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long"});
@@ -7988,14 +8021,28 @@ function KabagDashboard({events, user, upd, showT, askConfirm, deleteAndSync, is
           ))}
           {/* Keterangan beserta istri */}
           {(ev.besertaIstriWK||ev.besertaIstriWWK)&&<div style={{display:"flex",gap:6,marginTop:4,marginBottom:6,flexWrap:"wrap"}}>
-            {ev.besertaIstriWK&&<span style={{fontSize:13,padding:"2px 8px",borderRadius:10,background:"#fdf2f8",border:"1px solid #f9a8d4",color:"#be185d",fontWeight:600}}>💑 WK beserta Istri</span>}
-            {ev.besertaIstriWWK&&<span style={{fontSize:13,padding:"2px 8px",borderRadius:10,background:"#fdf2f8",border:"1px solid #f9a8d4",color:"#be185d",fontWeight:600}}>💑 WWK beserta Istri</span>}
+            {ev.besertaIstriWK&&<span title="Wali Kota hadir bersama istri" style={{fontSize:13,padding:"2px 8px",borderRadius:10,background:"#fdf2f8",border:"1px solid #f9a8d4",color:"#be185d",fontWeight:600}}>💑 Wali Kota beserta Istri</span>}
+            {ev.besertaIstriWWK&&<span title="Wakil Wali Kota hadir bersama istri" style={{fontSize:13,padding:"2px 8px",borderRadius:10,background:"#fdf2f8",border:"1px solid #f9a8d4",color:"#be185d",fontWeight:600}}>💑 Wakil Wali Kota beserta Istri</span>}
           </div>}
           {/* Aksi */}
           <div style={{marginTop:12,display:"flex",flexDirection:"column",gap:8}}>
-            <button onClick={()=>{upd(ev.id,{alur:"disetujui"});showT("Jadwal disetujui & dipublikasi");const u=loadUsers().find(x=>x.username===ev.submittedBy);if(u?.noWA)sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"approved",submittedBy:getNamaByUsername(ev.submittedBy)});sendPush({targetRole:"admin_rk",title:"✅ Jadwal Disetujui",body:ev.namaAcara+" sudah dipublikasi",url:"/",tag:"approved-"+ev.id});loadUsers().filter(u=>(u.role==="ajudan_walikota"||u.role==="ajudan_wakilwalikota")&&u.noWA).forEach(u=>{const isWK=u.role==="ajudan_walikota"&&(ev.untukPimpinan||[]).includes("walikota");const isWWK=u.role==="ajudan_wakilwalikota"&&((ev.untukPimpinan||[]).includes("wakilwalikota")||ev.delegasiKeWWK);if(isWK||isWWK)sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"approved"});});setExpanded(null);}}
-              style={{width:"100%",padding:"12px",borderRadius:10,border:"none",background:NAVY,color:"white",cursor:"pointer",fontSize:13,fontWeight:800}}>
-              ✅ Setujui & Publikasi
+            <button disabled={busyId===ev.id} onClick={()=>askConfirm(
+              "Setujui & Tayangkan ke Pimpinan?",
+              "Jadwal '"+ev.namaAcara+"' akan langsung TAYANG di dashboard Wali Kota / Wakil dan notifikasi WhatsApp dikirim ke Ajudan. Pastikan data sudah benar — Anda masih bisa menarik kembali dari tab 'Jadwal & Penugasan'.",
+              ()=>{
+                if(busyId===ev.id)return;setBusyId(ev.id);
+                upd(ev.id,{alur:"disetujui"});showT("Jadwal disetujui & dipublikasi");
+                const u=loadUsers().find(x=>x.username===ev.submittedBy);
+                if(u?.noWA)sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"approved",submittedBy:getNamaByUsername(ev.submittedBy)});
+                sendPush({targetRole:"admin_rk",title:"✅ Jadwal Disetujui",body:ev.namaAcara+" sudah dipublikasi",url:"/",tag:"approved-"+ev.id});
+                loadUsers().filter(u=>(u.role==="ajudan_walikota"||u.role==="ajudan_wakilwalikota")&&u.noWA).forEach(u=>{const isWK=u.role==="ajudan_walikota"&&(ev.untukPimpinan||[]).includes("walikota");const isWWK=u.role==="ajudan_wakilwalikota"&&((ev.untukPimpinan||[]).includes("wakilwalikota")||ev.delegasiKeWWK);if(isWK||isWWK)sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"approved"});});
+                setExpanded(null);
+                setTimeout(()=>setBusyId(null),1500);
+              },
+              "Ya, Tayangkan Sekarang","#0D6B4F"
+            )}
+              style={{width:"100%",padding:"12px",borderRadius:10,border:"none",background:busyId===ev.id?"#94A3B8":NAVY,color:"white",cursor:busyId===ev.id?"default":"pointer",fontSize:13,fontWeight:800,opacity:busyId===ev.id?0.7:1}}>
+              {busyId===ev.id?"Memproses…":"✅ Setujui & Publikasi"}
             </button>
             <div style={{borderRadius:10,overflow:"hidden",border:"1.5px solid #FECACA"}}>
               <RejectTextarea evId={ev.id} placeholder="Catatan penolakan..." rows={2}
@@ -8347,7 +8394,7 @@ function KasubbagDashboard({events, user, upd, showT, askConfirm, isMobile, onPe
           {ev._kabagRecall&&<div style={{background:"#FEF2F2",border:"1.5px solid #FECACA",borderRadius:9,padding:"9px 12px",marginBottom:10,fontSize:12,color:"#991B1B",fontWeight:600}}>
   ↩ Jadwal ini ditarik Kabag — periksa, edit, atau ajukan ulang
   {ev.catatanKabag&&<div style={{marginTop:6,padding:"6px 10px",background:"white",borderRadius:7,border:"1px solid #FECACA",fontSize:12,color:"#7C2D12",fontWeight:500,lineHeight:1.5}}>
-    <span style={{fontWeight:700}}>📝 Catatan Kabag:</span> {ev.catatanKabag}
+    <div style={{fontWeight:700,marginBottom:2}}>📝 Alasan Kabag menarik (perlu ditindaklanjuti):</div>{ev.catatanKabag}
   </div>}
 </div>}
           <div style={{display:"flex",flexDirection:"column",gap:8}}>
@@ -8684,7 +8731,7 @@ function EKinerjaGenerator({ events, role, user, isMobile }) {
     kabag:"Kepala Bagian",kasubbag_protokol:"Kasubbag Protokol",
     kasubbag_komdokpim:"Kasubbag Komdokpim",admin_rk:"Admin RK",
     staf:"Staf Protokol",timkom:"Tim Komdokpim",
-    ajudan_walikota:"Ajudan WK",ajudan_wakilwalikota:"Ajudan WWK",
+    ajudan_walikota:"Ajudan Wali Kota",ajudan_wakilwalikota:"Ajudan Wakil Wali Kota",
   };
 
   return (
@@ -8703,7 +8750,7 @@ function EKinerjaGenerator({ events, role, user, isMobile }) {
         <div style={{ background:"rgba(255,255,255,0.1)", borderRadius:9, padding:"8px 12px", display:"flex", alignItems:"center", gap:8 }}>
           <span style={{ fontSize:13 }}>👤</span>
           <div style={{ fontSize:12, color:"rgba(255,255,255,0.8)" }}>
-            Role aktif: <span style={{ fontWeight:700, color:GOLD }}>{ROLE_LABEL[role]||role}</span>
+            Role aktif: <span title={"Role sistem: "+(ROLE_LABEL[role]||role)} style={{ fontWeight:700, color:GOLD, cursor:"help" }}>{ROLE_LABEL[role]||role}</span>
             &nbsp;·&nbsp;Template kalimat sudah sesuai jabatan
           </div>
         </div>
@@ -9008,7 +9055,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
         <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:4}}>
           {items.map(it=>(
             <div key={it.label} style={{display:"flex",alignItems:"center",gap:4}}>
-              <span style={{fontSize:12,fontWeight:700,color:"#94A3B8",textTransform:"uppercase"}}>{it.label}:</span>
+              <span title={it.label==="WK"?"Wali Kota":it.label.startsWith("WWK")?"Wakil Wali Kota":it.label} style={{fontSize:12,fontWeight:700,color:"#94A3B8",textTransform:"uppercase",cursor:"help"}}>{it.label}:</span>
               <span style={{background:it.bg,color:it.color,borderRadius:20,padding:"2px 8px",fontSize:13,fontWeight:700}}>{it.status}</span>
               <KonfirmasiByBadge by={it.byAdj}/>
             </div>
@@ -9199,7 +9246,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
               <div>
                 <div style={{fontSize:12,fontWeight:800,color:"#5b21b6",textTransform:"uppercase",letterSpacing:0.5}}>Disposisi dari Wali Kota</div>
                 <div style={{fontSize:12,fontWeight:700,color:"#7c3aed"}}>
-                  {ev.statusWK_by==="walikota"?"Ditetapkan langsung oleh Wali Kota":"Diinput oleh Ajudan WK"}
+                  {ev.statusWK_by==="walikota"?"Ditetapkan langsung oleh Wali Kota":"Diinput oleh Ajudan Wali Kota"}
                 </div>
               </div>
             </div>
@@ -9395,7 +9442,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
                         Selisih {p.diff} menit · {new Date(p.a.tanggal).toLocaleDateString("id-ID",{weekday:"short",day:"numeric",month:"short"})}
                         {p.a.untukPimpinan.some(x=>p.b.untukPimpinan.includes(x))&&
                           <span style={{marginLeft:6,background:"#FEE2E2",color:"#991B1B",padding:"1px 5px",borderRadius:4,fontWeight:700}}>
-                            {p.a.untukPimpinan.filter(x=>p.b.untukPimpinan.includes(x)).map(x=>x==="walikota"?"WK":"WWK").join(" & ")}
+                            {p.a.untukPimpinan.filter(x=>p.b.untukPimpinan.includes(x)).map(x=>x==="walikota"?<abbr key={x} title="Wali Kota" style={{textDecoration:"none"}}>WK</abbr>:<abbr key={x} title="Wakil Wali Kota" style={{textDecoration:"none"}}>WWK</abbr>).reduce((acc,cur,i)=>i===0?[cur]:[...acc," & ",cur],[])}
                           </span>
                         }
                       </div>
