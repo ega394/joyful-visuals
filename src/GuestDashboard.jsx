@@ -405,19 +405,24 @@ function KasubbagDetail({ guest, user, showT, isMobile, onBack }) {
       {/* Prioritas */}
       {guest.status==="pending_kasubbag" && (
         <CardSection title="🏷 Tetapkan Prioritas" accent="#F59E0B">
+          <div style={{fontSize:13,color:"#64748B",marginBottom:8,lineHeight:1.5}}>
+            ⚡ <b>Mendesak</b>: perlu respons hari ini &nbsp;·&nbsp;
+            ⭐ <b>Penting</b>: respons 1–2 hari &nbsp;·&nbsp;
+            📌 <b>Biasa</b>: antrian normal
+          </div>
           <div style={{display:"flex",gap:8}}>
             {Object.entries(PRIORITY_CFG).map(function(e){
               var k=e[0]; var c=e[1];
               var active=priority===k;
               return (
-                <button key={k} onClick={function(){setPriority(k);}} style={{
+                <button key={k} onClick={function(){setPriority(k);}} title={c.label} style={{
                   flex:1,padding:"10px 6px",borderRadius:12,
                   border:"2px solid "+(active?c.color:"#E2E8F0"),
                   background:active?c.bg:"white",color:active?c.color:"#64748B",
                   fontSize:11,fontWeight:700,cursor:"pointer",
                   display:"flex",flexDirection:"column",alignItems:"center",gap:5,
                 }}>
-                  <span style={{width:10,height:10,borderRadius:"50%",background:c.dot}}/>
+                  <span style={{fontSize:18,lineHeight:1}} aria-hidden="true">{c.icon}</span>
                   {c.label}
                   {active&&<span style={{fontSize:9}}>✓ Dipilih</span>}
                 </button>
@@ -605,18 +610,23 @@ function KabagDetail({ guest, user, showT, isMobile, onBack }) {
         <>
           {/* Koreksi Prioritas */}
           <CardSection title="🏷 Koreksi Prioritas" accent="#F59E0B">
+            <div style={{fontSize:13,color:"#64748B",marginBottom:8,lineHeight:1.5}}>
+              ⚡ <b>Mendesak</b>: respons hari ini &nbsp;·&nbsp;
+              ⭐ <b>Penting</b>: 1–2 hari &nbsp;·&nbsp;
+              📌 <b>Biasa</b>: antrian normal
+            </div>
             <div style={{display:"flex",gap:8}}>
               {Object.entries(PRIORITY_CFG).map(function(e){
                 var k=e[0]; var c=e[1]; var active=priority===k;
                 return (
-                  <button key={k} onClick={function(){setPriority(k);}} style={{
+                  <button key={k} onClick={function(){setPriority(k);}} title={c.label} style={{
                     flex:1,padding:"10px 6px",borderRadius:12,
                     border:"2px solid "+(active?c.color:"#E2E8F0"),
                     background:active?c.bg:"white",color:active?c.color:"#64748B",
                     fontSize:11,fontWeight:700,cursor:"pointer",
                     display:"flex",flexDirection:"column",alignItems:"center",gap:5,
                   }}>
-                    <span style={{width:10,height:10,borderRadius:"50%",background:c.dot}}/>
+                    <span style={{fontSize:18,lineHeight:1}} aria-hidden="true">{c.icon}</span>
                     {c.label}
                     {active&&<span style={{fontSize:9}}>✓</span>}
                   </button>
@@ -869,7 +879,7 @@ function PimpinanDetail({ guest, role, user, events, showT, isMobile, onBack }) 
         borderRadius:14, padding:"12px 16px", marginBottom:14,
         display:"flex",alignItems:"center",gap:10,
       }}>
-        <span style={{width:12,height:12,borderRadius:"50%",background:pc.dot,flexShrink:0}}/>
+        <span aria-hidden="true" style={{fontSize:16,lineHeight:1}}>{pc.icon}</span>
         <span style={{fontSize:13,fontWeight:700,color:pc.color}}>Prioritas: {pc.label}</span>
       </div>
 
@@ -1098,7 +1108,7 @@ function AjudanCard({ guest }) {
         <div style={{color:GOLD,fontSize:15,fontWeight:900}}>
           {guest.jadwal_jam ? guest.jadwal_jam+" WITA" : "Jam belum ditentukan"}
         </div>
-        <span style={{background:pc.bg,color:pc.color,borderRadius:20,padding:"2px 10px",fontSize:10,fontWeight:700}}>{pc.label}</span>
+        <span title={"Prioritas: "+pc.label} style={{background:pc.bg,color:pc.color,borderRadius:20,padding:"2px 10px",fontSize:10,fontWeight:700,display:"inline-flex",alignItems:"center",gap:4}}><span aria-hidden="true">{pc.icon}</span>{pc.label}</span>
       </div>
       <div style={{padding:"14px 16px"}}>
         <div style={{fontSize:16,fontWeight:800,color:NAVY,marginBottom:3}}>{gName(guest)}</div>
@@ -1280,8 +1290,8 @@ function GuestCard({ guest, onClick, showChain, premium, readonly }) {
               {sc.label}
             </span>
             {gPrioritas(guest)!=="biasa" && (
-              <span style={{background:pc.bg,color:pc.color,borderRadius:20,padding:"2px 10px",fontSize:10,fontWeight:700,display:"flex",alignItems:"center",gap:4}}>
-                <span style={{width:6,height:6,borderRadius:"50%",background:pc.dot}}/>
+              <span title={"Prioritas: "+pc.label} style={{background:pc.bg,color:pc.color,borderRadius:20,padding:"2px 10px",fontSize:10,fontWeight:700,display:"flex",alignItems:"center",gap:4}}>
+                <span aria-hidden="true">{pc.icon}</span>
                 {pc.label}
               </span>
             )}
