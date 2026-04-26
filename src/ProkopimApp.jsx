@@ -4006,6 +4006,14 @@ function TableView({evList}){
             <div style={{display:"flex",gap:4,marginTop:3,flexWrap:"wrap"}}>
               <span style={{fontSize:12,padding:"1px 5px",borderRadius:10,background:"#EFF6FF",color:"#1E40AF",fontWeight:700,border:"1px solid #BFDBFE"}}>🎯 {tujuanPimpinanLabel(ev)}</span>
             </div>
+            {ev.alur==="disetujui"&&["kabag","kasubbag_protokol","kasubbag_komdokpim","admin_rk","timkom","staf"].includes(role)&&(
+              (ev.personil||[]).length>0
+                ? <div style={{fontSize:12,color:"#065F46",marginTop:4,fontWeight:600,lineHeight:1.4,display:"flex",gap:4,flexWrap:"wrap",alignItems:"flex-start"}}>
+                    <span style={{flexShrink:0}}>👥</span>
+                    <span>{(ev.personil||[]).map(un=>(loadUsers().find(u=>u.username===un)?.nama||un)).join(", ")}</span>
+                  </div>
+                : <div style={{fontSize:12,color:"#92400E",marginTop:4,fontWeight:600}}>⚠️ Belum ada personil</div>
+            )}
           </td>
           <td><JenisBadge j={ev.jenisKegiatan}/></td>
           <td style={{fontSize:12,color:"#475569",maxWidth:140,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ev.penyelenggara}</td>
