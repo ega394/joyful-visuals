@@ -1081,34 +1081,41 @@ function SummaryModal({events,onToggleHide,onClose}){
   const shareLines=["*AGENDA KEGIATAN PIMPINAN*","*"+modeLabel+"*",""];
   pub.forEach((ev,i)=>{
     shareLines.push("*"+(i+1)+". "+ev.namaAcara+"*");
-    const tglStr=mode==="range"?(getHari(ev.tanggal)||"")+", "+(fmt(ev.tanggal)||"")+" | ":"";
-    shareLines.push(tglStr+ev.jam+" WITA");
+    // Baris jam · lokasi (gabung satu baris untuk ringkas)
+    const tglPrefix = mode==="range" ? (getHari(ev.tanggal)||"")+", "+(fmt(ev.tanggal)||"")+" · " : "";
+    const lokasiSuffix = ev.lokasi ? " · "+ev.lokasi : "";
+    shareLines.push(tglPrefix + ev.jam + " WITA" + lokasiSuffix);
     if(ev.penyelenggara)shareLines.push("Penyelenggara: "+ev.penyelenggara);
-    if(ev.lokasi)shareLines.push("Lokasi: "+ev.lokasi);
-    // Keterangan kehadiran pimpinan — tampilkan per baris jika berdua
+    // Baris kehadiran — kumpulkan yang konfirm hadir vs yang belum konfirmasi
     const forWK=(ev.untukPimpinan||[]).includes("walikota");
     const forWWK=(ev.untukPimpinan||[]).includes("wakilwalikota")||ev.delegasiKeWWK;
-    const statusWKStr=()=>{
-      if(ev.statusWK==="hadir")return "Wali Kota"+(ev.besertaIstriWK?" (beserta Istri)":"")+" ✅";
-      if(ev.statusWK==="tidak_hadir")return "Wali Kota ❌ (Tidak Hadir)";
-      if(ev.delegasiKeWWK)return "Wali Kota → Didelegasikan ke Wakil";
-      if(ev.statusWK==="diwakilkan"&&ev.perwakilanWK)return "Wali Kota → Diwakilkan "+ev.perwakilanWK;
-      return "Wali Kota (belum konfirmasi)";
-    };
-    const statusWWKStr=()=>{
-      if(ev.statusWWK==="hadir")return "Wakil Wali Kota"+(ev.besertaIstriWWK?" (beserta Istri)":"")+" ✅";
-      if(ev.statusWWK==="tidak_hadir")return "Wakil Wali Kota ❌ (Tidak Hadir)";
-      if(ev.statusWWK==="diwakilkan"&&ev.perwakilanWWK)return "Wakil Wali Kota → Diwakilkan "+ev.perwakilanWWK;
-      return "Wakil Wali Kota (belum konfirmasi)";
-    };
-    if(forWK&&forWWK){
-      // Keduanya — tampilkan berdampingan per baris
-      shareLines.push("👤 "+statusWKStr());
-      shareLines.push("👤 "+statusWWKStr());
-    } else if(forWK){
-      shareLines.push("👤 "+statusWKStr());
-    } else if(forWWK){
-      shareLines.push("👤 "+statusWWKStr());
+    const attendees=[];
+    const pending=[];
+    if(forWK){
+      if(ev.statusWK==="hadir"){
+        attendees.push("Wali Kota"+(ev.besertaIstriWK?" _beserta Istri_":""));
+      } else if(ev.delegasiKeWWK){
+        // Delegasi internal ke WWK — biarkan WWK side yang menentukan tampilan
+      } else if(ev.statusWK==="diwakilkan"&&ev.perwakilanWK){
+        attendees.push("Wali Kota _diwakili oleh "+ev.perwakilanWK+"_");
+      } else if(ev.statusWK!=="tidak_hadir"){
+        pending.push("Wali Kota _(belum konfirmasi)_");
+      }
+    }
+    if(forWWK){
+      if(ev.statusWWK==="hadir"){
+        attendees.push("Wakil Wali Kota"+(ev.besertaIstriWWK?" _beserta Istri_":""));
+      } else if(ev.statusWWK==="diwakilkan"&&ev.perwakilanWWK){
+        attendees.push("Wakil Wali Kota _diwakili oleh "+ev.perwakilanWWK+"_");
+      } else if(ev.statusWWK!=="tidak_hadir"){
+        pending.push("Wakil Wali Kota _(belum konfirmasi)_");
+      }
+    }
+    if(attendees.length===0&&pending.length===0){
+      shareLines.push("⚠️ Tidak ada perwakilan Pimpinan");
+    } else {
+      if(attendees.length)shareLines.push("✅ "+attendees.join(" & "));
+      pending.forEach(p=>shareLines.push(p));
     }
     shareLines.push("");
   });
