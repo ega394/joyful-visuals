@@ -2129,18 +2129,23 @@ function ApprovalQueueView({events,role,upd,showT,askConfirm,isMobile}){
             {ev.lokasi&&<div style={{fontSize:13,color:"#475569",display:"flex",gap:4,alignItems:"flex-start",gridColumn:"1/-1"}}>
               <span style={{flexShrink:0}}>📍</span><span>{ev.lokasi}</span>
             </div>}
+            {ev.jenisKegiatan&&<div style={{fontSize:13,color:"#475569"}}><span style={{color:"#94A3B8",fontWeight:600}}>Jenis: </span>{ev.jenisKegiatan}</div>}
             {ev.pakaian&&<div style={{fontSize:13,color:"#475569"}}><span style={{color:"#94A3B8",fontWeight:600}}>Pakaian: </span>{ev.pakaian}</div>}
             {ev.kontak&&<div style={{fontSize:13,color:"#475569"}}><span style={{color:"#94A3B8",fontWeight:600}}>Kontak: </span>{ev.kontak}</div>}
+            {ev.buktiUndangan&&<div style={{fontSize:13,color:"#475569"}}><span style={{color:"#94A3B8",fontWeight:600}}>No. Surat: </span>{ev.buktiUndangan}</div>}
             {ev.catatan&&<div style={{fontSize:13,color:"#475569",gridColumn:"1/-1"}}><span style={{color:"#94A3B8",fontWeight:600}}>Catatan: </span>{ev.catatan}</div>}
           </div>
           {/* Pimpinan & pengaju */}
           <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:10,alignItems:"center"}}>
             <TujuanBadge ev={ev}/>
+            {ev.besertaIstriWK&&<span title="Wali Kota hadir bersama istri" style={{fontSize:12,padding:"2px 8px",borderRadius:10,background:"#F1F5F9",border:"1px solid #CBD5E1",color:"#334155",fontWeight:600}}>Wali Kota beserta Istri</span>}
+            {ev.besertaIstriWWK&&<span title="Wakil Wali Kota hadir bersama istri" style={{fontSize:12,padding:"2px 8px",borderRadius:10,background:"#F1F5F9",border:"1px solid #CBD5E1",color:"#334155",fontWeight:600}}>Wakil Wali Kota beserta Istri</span>}
             {ev.submittedBy&&<span style={{fontSize:12,color:"#94A3B8"}}>· Diajukan: {getNamaByUsername(ev.submittedBy)}</span>}
           </div>
-          {/* Undangan — satu tombol saja */}
-          {ev.undanganFile&&<div style={{display:"flex",gap:7,marginBottom:12}}>
-            <a href={ev.undanganFile} target="_blank" rel="noopener noreferrer" style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:6,padding:"9px",borderRadius:8,border:"none",background:"#0284c7",color:"white",textDecoration:"none",textAlign:"center",fontSize:12,fontWeight:700}}>📄 Lihat Undangan</a>
+          {/* Berkas — Undangan & Sambutan */}
+          {(ev.undanganFile||ev.sambutanFile)&&<div style={{display:"flex",gap:7,marginBottom:12,flexWrap:"wrap"}}>
+            {ev.undanganFile&&<a href={ev.undanganFile} target="_blank" rel="noopener noreferrer" style={{flex:1,minWidth:140,display:"flex",alignItems:"center",justifyContent:"center",gap:6,padding:"9px",borderRadius:8,border:"none",background:"#0284c7",color:"white",textDecoration:"none",textAlign:"center",fontSize:12,fontWeight:700}}>📄 Lihat Undangan</a>}
+            {ev.sambutanFile&&<a href={ev.sambutanFile} target="_blank" rel="noopener noreferrer" style={{flex:1,minWidth:140,display:"flex",alignItems:"center",justifyContent:"center",gap:6,padding:"9px",borderRadius:8,border:"none",background:"#0D6B4F",color:"white",textDecoration:"none",textAlign:"center",fontSize:12,fontWeight:700}}>📝 Lihat Sambutan</a>}
           </div>}
           {/* Catatan recall */}
           {ev._kabagRecall&&<div style={{background:"#FEF2F2",border:"1.5px solid #FECACA",borderRadius:9,padding:"9px 12px",marginBottom:10,fontSize:12,color:"#991B1B",fontWeight:600}}>
@@ -2159,13 +2164,18 @@ function ApprovalQueueView({events,role,upd,showT,askConfirm,isMobile}){
               style={{flex:1,padding:"10px 14px",borderRadius:10,border:"1.5px solid #D97706",background:"#FFFBEB",color:"#92400E",cursor:"pointer",fontSize:12,fontWeight:700}}>
               ↩ Kembalikan untuk Diperbaiki
             </button>
-            {isKasubbag&&<button disabled={busyId===ev.id} onClick={()=>{
-              if(busyId===ev.id)return;setBusy(ev.id);
-              upd(ev.id,{alur:"menunggu_kabag",_kabagRecall:false});showT("Diteruskan ke Kabag ✓","ok");
-              loadUsers().filter(u=>u.role==="kabag"&&u.noWA).forEach(u=>sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"kasubbag_approve"}));
-              sendPush({targetRole:"kabag",title:"✅ Menunggu Persetujuan Anda",body:ev.namaAcara+" — "+ev.jam+" WITA",url:"/",tag:"approve-"+ev.id});
-              setTimeout(()=>setBusy(null),1500);
-            }}
+            {isKasubbag&&<button disabled={busyId===ev.id} onClick={()=>askConfirm(
+              "Verifikasi & Teruskan ke Kabag?",
+              "Jadwal '"+ev.namaAcara+"' akan diteruskan ke Kabag Prokopim untuk persetujuan akhir. Pastikan dokumen undangan, lokasi, dan pakaian sudah benar — Anda tetap bisa menarik kembali sebelum Kabag memproses.",
+              ()=>{
+                if(busyId===ev.id)return;setBusy(ev.id);
+                upd(ev.id,{alur:"menunggu_kabag",_kabagRecall:false});showT("Diteruskan ke Kabag ✓","ok");
+                loadUsers().filter(u=>u.role==="kabag"&&u.noWA).forEach(u=>sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"kasubbag_approve"}));
+                sendPush({targetRole:"kabag",title:"✅ Menunggu Persetujuan Anda",body:ev.namaAcara+" — "+ev.jam+" WITA",url:"/",tag:"approve-"+ev.id});
+                setTimeout(()=>setBusy(null),1500);
+              },
+              "Ya, Teruskan","#0A1628"
+            )}
               style={{flex:2,padding:"10px 14px",borderRadius:10,border:"none",background:busyId===ev.id?"#94A3B8":"#0A1628",color:"white",cursor:busyId===ev.id?"default":"pointer",fontSize:12,fontWeight:800,opacity:busyId===ev.id?0.7:1}}>
               {busyId===ev.id?"Memproses…":"✅ Verifikasi & Teruskan ke Kabag →"}
             </button>}
@@ -4872,8 +4882,16 @@ function ExpandedDetail({ev,hariEv}){
     {(role==="kasubbag_protokol"||role==="kasubbag_komdokpim")&&<div style={{display:"flex",flexDirection:"column",gap:8}}>
       {ev.alur==="menunggu_kasubbag"&&!ev.alurHapus&&<>
         {/* PRIMARY */}
-        <button onClick={()=>{upd(ev.id,{alur:"menunggu_kabag"});showT("Diteruskan ke Kabag");
-          loadUsers().filter(u=>u.role==="kabag"&&u.noWA).forEach(u=>sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"kasubbag_approve"}));sendPush({targetRole:"kabag",title:"✅ Menunggu Persetujuan Anda",body:ev.namaAcara+" — "+ev.jam+" WITA",url:"/",tag:"approve-"+ev.id});}}
+        <button onClick={()=>askConfirm(
+          "Verifikasi & Teruskan ke Kabag?",
+          "Jadwal '"+ev.namaAcara+"' akan diteruskan ke Kabag Prokopim untuk persetujuan akhir. Pastikan dokumen undangan, lokasi, dan pakaian sudah benar.",
+          ()=>{
+            upd(ev.id,{alur:"menunggu_kabag"});showT("Diteruskan ke Kabag ✓","ok");
+            loadUsers().filter(u=>u.role==="kabag"&&u.noWA).forEach(u=>sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"kasubbag_approve"}));
+            sendPush({targetRole:"kabag",title:"✅ Menunggu Persetujuan Anda",body:ev.namaAcara+" — "+ev.jam+" WITA",url:"/",tag:"approve-"+ev.id});
+          },
+          "Ya, Teruskan","#10B981"
+        )}
           style={{width:"100%",padding:"13px",borderRadius:10,border:"none",background:"#10B981",color:"white",cursor:"pointer",fontSize:13,fontWeight:800,boxShadow:"0 4px 12px rgba(16,185,129,0.3)"}}>
           ✅ Verifikasi & Teruskan ke Kabag
         </button>
@@ -8041,8 +8059,8 @@ function KabagDashboard({events, user, upd, showT, askConfirm, deleteAndSync, is
           ))}
           {/* Keterangan beserta istri */}
           {(ev.besertaIstriWK||ev.besertaIstriWWK)&&<div style={{display:"flex",gap:6,marginTop:4,marginBottom:6,flexWrap:"wrap"}}>
-            {ev.besertaIstriWK&&<span title="Wali Kota hadir bersama istri" style={{fontSize:13,padding:"2px 8px",borderRadius:10,background:"#fdf2f8",border:"1px solid #f9a8d4",color:"#be185d",fontWeight:600}}>💑 Wali Kota beserta Istri</span>}
-            {ev.besertaIstriWWK&&<span title="Wakil Wali Kota hadir bersama istri" style={{fontSize:13,padding:"2px 8px",borderRadius:10,background:"#fdf2f8",border:"1px solid #f9a8d4",color:"#be185d",fontWeight:600}}>💑 Wakil Wali Kota beserta Istri</span>}
+            {ev.besertaIstriWK&&<span title="Wali Kota hadir bersama istri" style={{fontSize:13,padding:"2px 8px",borderRadius:10,background:"#F1F5F9",border:"1px solid #CBD5E1",color:"#334155",fontWeight:600}}>Wali Kota beserta Istri</span>}
+            {ev.besertaIstriWWK&&<span title="Wakil Wali Kota hadir bersama istri" style={{fontSize:13,padding:"2px 8px",borderRadius:10,background:"#F1F5F9",border:"1px solid #CBD5E1",color:"#334155",fontWeight:600}}>Wakil Wali Kota beserta Istri</span>}
           </div>}
           {/* Aksi */}
           <div style={{marginTop:12,display:"flex",flexDirection:"column",gap:8}}>
@@ -8418,7 +8436,17 @@ function KasubbagDashboard({events, user, upd, showT, askConfirm, isMobile, onPe
   </div>}
 </div>}
           <div style={{display:"flex",flexDirection:"column",gap:8}}>
-            <button onClick={()=>{upd(ev.id,{alur:"menunggu_kabag",_kabagRecall:false});showT("Diteruskan ke Kabag");loadUsers().filter(u=>u.role==="kabag"&&u.noWA).forEach(u=>sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"kasubbag_approve"}));sendPush({targetRole:"kabag",title:"✅ Menunggu Persetujuan Anda",body:ev.namaAcara+" — "+ev.jam+" WITA",url:"/",tag:"approve-"+ev.id});setExpanded(null);}}
+            <button onClick={()=>askConfirm(
+              "Verifikasi & Teruskan ke Kabag?",
+              "Jadwal '"+ev.namaAcara+"' akan diteruskan ke Kabag Prokopim untuk persetujuan akhir. Pastikan dokumen undangan, lokasi, dan pakaian sudah benar.",
+              ()=>{
+                upd(ev.id,{alur:"menunggu_kabag",_kabagRecall:false});showT("Diteruskan ke Kabag ✓","ok");
+                loadUsers().filter(u=>u.role==="kabag"&&u.noWA).forEach(u=>sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"kasubbag_approve"}));
+                sendPush({targetRole:"kabag",title:"✅ Menunggu Persetujuan Anda",body:ev.namaAcara+" — "+ev.jam+" WITA",url:"/",tag:"approve-"+ev.id});
+                setExpanded(null);
+              },
+              "Ya, Teruskan",GREEN
+            )}
               style={{width:"100%",padding:"12px",borderRadius:10,border:"none",background:GREEN,color:"white",cursor:"pointer",fontSize:13,fontWeight:800}}>
               ✅ Verifikasi & Teruskan ke Kabag
             </button>
