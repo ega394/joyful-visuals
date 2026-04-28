@@ -2138,8 +2138,8 @@ function ApprovalQueueView({events,role,upd,showT,askConfirm,isMobile}){
           {/* Pimpinan & pengaju */}
           <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:10,alignItems:"center"}}>
             <TujuanBadge ev={ev}/>
-            {ev.besertaIstriWK&&<span title="Wali Kota hadir bersama istri" style={{fontSize:12,padding:"2px 8px",borderRadius:10,background:"#fdf2f8",border:"1px solid #f9a8d4",color:"#be185d",fontWeight:600}}>💑 WK + Istri</span>}
-            {ev.besertaIstriWWK&&<span title="Wakil Wali Kota hadir bersama istri" style={{fontSize:12,padding:"2px 8px",borderRadius:10,background:"#fdf2f8",border:"1px solid #f9a8d4",color:"#be185d",fontWeight:600}}>💑 WWK + Istri</span>}
+            {ev.besertaIstriWK&&<span title="Wali Kota hadir bersama istri" style={{fontSize:12,padding:"2px 8px",borderRadius:10,background:"#F1F5F9",border:"1px solid #CBD5E1",color:"#334155",fontWeight:600}}>Wali Kota beserta Istri</span>}
+            {ev.besertaIstriWWK&&<span title="Wakil Wali Kota hadir bersama istri" style={{fontSize:12,padding:"2px 8px",borderRadius:10,background:"#F1F5F9",border:"1px solid #CBD5E1",color:"#334155",fontWeight:600}}>Wakil Wali Kota beserta Istri</span>}
             {ev.submittedBy&&<span style={{fontSize:12,color:"#94A3B8"}}>· Diajukan: {getNamaByUsername(ev.submittedBy)}</span>}
           </div>
           {/* Berkas — Undangan & Sambutan */}
@@ -8059,8 +8059,8 @@ function KabagDashboard({events, user, upd, showT, askConfirm, deleteAndSync, is
           ))}
           {/* Keterangan beserta istri */}
           {(ev.besertaIstriWK||ev.besertaIstriWWK)&&<div style={{display:"flex",gap:6,marginTop:4,marginBottom:6,flexWrap:"wrap"}}>
-            {ev.besertaIstriWK&&<span title="Wali Kota hadir bersama istri" style={{fontSize:13,padding:"2px 8px",borderRadius:10,background:"#fdf2f8",border:"1px solid #f9a8d4",color:"#be185d",fontWeight:600}}>💑 Wali Kota beserta Istri</span>}
-            {ev.besertaIstriWWK&&<span title="Wakil Wali Kota hadir bersama istri" style={{fontSize:13,padding:"2px 8px",borderRadius:10,background:"#fdf2f8",border:"1px solid #f9a8d4",color:"#be185d",fontWeight:600}}>💑 Wakil Wali Kota beserta Istri</span>}
+            {ev.besertaIstriWK&&<span title="Wali Kota hadir bersama istri" style={{fontSize:13,padding:"2px 8px",borderRadius:10,background:"#F1F5F9",border:"1px solid #CBD5E1",color:"#334155",fontWeight:600}}>Wali Kota beserta Istri</span>}
+            {ev.besertaIstriWWK&&<span title="Wakil Wali Kota hadir bersama istri" style={{fontSize:13,padding:"2px 8px",borderRadius:10,background:"#F1F5F9",border:"1px solid #CBD5E1",color:"#334155",fontWeight:600}}>Wakil Wali Kota beserta Istri</span>}
           </div>}
           {/* Aksi */}
           <div style={{marginTop:12,display:"flex",flexDirection:"column",gap:8}}>
