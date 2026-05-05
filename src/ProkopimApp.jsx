@@ -7,6 +7,7 @@ import GuestDashboard from "./GuestDashboard.jsx"
 import RekapPenugasanBulanan from "./RekapPenugasanBulanan.jsx"
 import WaliKotaAudiensiDashboard from "./WaliKotaAudiensiDashboard.jsx"
 import NewsroomDashboard from "./NewsroomDashboard.jsx";
+import SuperadminPage from "./pages/SuperadminPage.jsx";
 import { JADWAL_STATUS } from "./lib/statusColors.js";
 
 // ═══════════════════════════════════════════════════════
@@ -296,6 +297,7 @@ const C={
   glass:"rgba(255,255,255,0.08)", glassBorder:"rgba(255,255,255,0.14)",
 };
 const ALL_ROLE_DEFS=[
+  {key:"superadmin",         label:"Super Administrator",           icon:"check"},
   {key:"walikota",           label:"Wali Kota",                     icon:"circle"},
   {key:"wakilwalikota",      label:"Wakil Wali Kota",               icon:"circle2"},
   {key:"ajudan_walikota",    label:"Ajudan Wali Kota",              icon:"clip"},
@@ -315,6 +317,7 @@ const ALL_ROLE_DEFS=[
 const WF = JADWAL_STATUS;
 // Label display per role
 const ROLE_LABEL={
+  superadmin:"Super Administrator",
   walikota:"Wali Kota",wakilwalikota:"Wakil Wali Kota",
   kabag:"Kabag Prokopim",
   kasubbag_protokol:"Kasubbag Protokol",kasubbag_komdokpim:"Kasubbag Komdokpim",
@@ -5804,6 +5807,7 @@ function ArsipModal({events, onClose, user}){
 }
 
 export default function App(){
+  if (window.location.pathname === "/superadmin" || window.location.pathname.startsWith("/superadmin/")) return <SuperadminPage />;
   if (window.location.pathname === "/tamu" || window.location.search.includes("tamu")) return <TamuPage />;
   const width=useWindowWidth();const isMobile=width<768;
   const[user,setUser]=useState(null);const role=user?.role||null;
@@ -5847,9 +5851,10 @@ export default function App(){
     setLoginPhase("Menyiapkan dashboard...");
     await new Promise(r=>setTimeout(r,500));
     setLoginLoading(false);
+    if(candidate.disabled){setLE("Akun Anda dinonaktifkan oleh Administrator. Hubungi admin untuk informasi lebih lanjut.");return;}
     setUser(candidate);setTab(["ajudan_walikota","ajudan_wakilwalikota"].includes(candidate.role)?"ajudan":["kabag","kasubbag_protokol"].includes(candidate.role)?"dashboard":candidate.role==="admin_rk"?"pantau":candidate.role==="admin_undangan"?"undangan":candidate.role==="mitra_kerja"?"mitra":candidate.role==="walpri"?"tayang":"tayang");
     try{const seen=JSON.parse(localStorage.getItem("jp_seen_onboarding")||"{}");if(!seen[candidate.username]){setShowOnboarding(true);}}catch{}
-    try{localStorage.setItem("jp_session",JSON.stringify({username:candidate.username}));}catch{}
+    try{localStorage.setItem("jp_session",JSON.stringify({username:candidate.username,session_version:candidate.session_version||0}));}catch{}
     registerPush(candidate.username,candidate.role);
   };
  const doBioLogin=async()=>{
@@ -5874,7 +5879,8 @@ export default function App(){
       setLoginPhase("Menyiapkan dashboard...");
       await new Promise(r=>setTimeout(r,500));
       setLoginLoading(false);
-      setUser(u);setTab("jadwal");try{localStorage.setItem("jp_session",JSON.stringify({username:un}));}catch{}registerPush(un,u.role);}
+      if(u.disabled){setBioErr("Akun Anda dinonaktifkan oleh Administrator.");setLoginLoading(false);setBioLoading(false);return;}
+      setUser(u);setTab("jadwal");try{localStorage.setItem("jp_session",JSON.stringify({username:un,session_version:u.session_version||0}));}catch{}registerPush(un,u.role);}
     catch(e){setBioErr("Verifikasi biometrik gagal. Silakan coba lagi atau gunakan password.");}
     setBioLoading(false);
   };
@@ -5886,9 +5892,24 @@ export default function App(){
       // 1. Init users (Supabase → localStorage → default)
       await initUsers().catch(e=>console.warn("initUsers error:",e));
       // 2. Restore session setelah users tersedia
+      //    Cek juga: akun di-disable atau session_version di-bump (force logout dari superadmin)
       try{
         const s=localStorage.getItem("jp_session");
-        if(s){const d=JSON.parse(s);const u=loadUsers().find(u=>u.username===d.username);if(u)setUser(u);}
+        if(s){
+          const d=JSON.parse(s);
+          const u=loadUsers().find(u=>u.username===d.username);
+          if(u){
+            if(u.disabled){
+              localStorage.removeItem("jp_session");
+              setLE("Akun Anda dinonaktifkan oleh Administrator. Hubungi admin untuk informasi lebih lanjut.");
+            } else if(typeof u.session_version==="number" && typeof d.session_version==="number" && u.session_version>d.session_version){
+              localStorage.removeItem("jp_session");
+              setLE("Sesi Anda diakhiri oleh Administrator. Silakan login kembali.");
+            } else {
+              setUser(u);
+            }
+          }
+        }
       }catch{}
       // 3. Load events
       if(SUPA_OK){

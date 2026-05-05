@@ -171,6 +171,28 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ channel: "screen", code, nama: user.nama || username });
   }
 
+  // ── VERIFY OTP UNTUK LOGIN MFA (tanpa ganti password) ───
+  if (action === "verify_login") {
+    if (!otp) return res.status(400).json({ error: "OTP wajib diisi" });
+
+    let user;
+    try   { user = await getUser(username.toLowerCase().trim()); }
+    catch (e) { return res.status(500).json({ error: "Gagal membaca data: " + e.message }); }
+
+    if (!user)          return res.status(404).json({ error: "Username tidak ditemukan" });
+    if (!user.otp_code) return res.status(400).json({ error: "OTP belum diminta atau sudah kedaluwarsa" });
+    if (new Date(user.otp_expires) < new Date())
+                        return res.status(400).json({ error: "Kode OTP sudah kedaluwarsa. Minta kode baru." });
+    if (user.otp_code !== otp.trim())
+                        return res.status(400).json({ error: "Kode OTP salah" });
+
+    // Sukses — bersihkan OTP supaya tidak bisa dipakai ulang
+    try   { await updateUser(user.username, { otp_code: null, otp_expires: null }); }
+    catch (e) { return res.status(500).json({ error: "Gagal membersihkan OTP: " + e.message }); }
+
+    return res.status(200).json({ ok: true, role: user.role, nama: user.nama || username });
+  }
+
   // ── VERIFY OTP ───────────────────────────────────────────
   if (action === "verify") {
     if (!otp || !newPassword)
