@@ -6,6 +6,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
+import SuperadminPage from "./pages/SuperadminPage.jsx";
+import TamuPage from "./TamuPage.jsx";
 
 const queryClient = new QueryClient();
 
@@ -18,6 +20,9 @@ const App = () => {
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/superadmin" element={<SuperadminPage />} />
+            <Route path="/superadmin/*" element={<SuperadminPage />} />
+            <Route path="/tamu" element={<TamuPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
