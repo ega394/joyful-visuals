@@ -1858,7 +1858,7 @@ function NotifTab({user,showT}){
 // ==================== PROFILE MODAL (ganti username & password) ====================
 function ProfileModal({user,onClose,showT}){
   const[tabP,setTabP]=useState("profile");
-  const[form,setForm]=useState({nama:user.nama,jabatan:user.jabatan,noWA:user.noWA||""});
+  const[form,setForm]=useState({nama:user.nama,jabatan:user.jabatan,noWA:user.noWA||"",email:user.email||""});
   const[pw,setPw]=useState({old:"",next:"",confirm:""});
   const[uname,setUname]=useState({newUsername:"",pwConfirm:""});
   const[err,setErr]=useState("");
@@ -1866,8 +1866,9 @@ function ProfileModal({user,onClose,showT}){
 
   const saveProfile=()=>{
     setErr("");if(!form.nama.trim())return setErr("Nama wajib diisi.");
-    const users=loadUsers();const updated=users.map(u=>u.username===user.username?{...u,nama:form.nama,jabatan:form.jabatan,noWA:form.noWA}:u);
-    saveUsers(updated);showT("Profil disimpan ✓");onClose({...user,nama:form.nama,jabatan:form.jabatan,noWA:form.noWA});
+    if(form.email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))return setErr("Format email tidak valid.");
+    const users=loadUsers();const updated=users.map(u=>u.username===user.username?{...u,nama:form.nama,jabatan:form.jabatan,noWA:form.noWA,email:form.email}:u);
+    saveUsers(updated);showT("Profil disimpan ✓");onClose({...user,nama:form.nama,jabatan:form.jabatan,noWA:form.noWA,email:form.email});
   };
   const changePassword=async()=>{
     setErr("");
@@ -1911,7 +1912,7 @@ function ProfileModal({user,onClose,showT}){
       </div>
       <div style={{flex:1,overflowY:"auto",padding:"16px 20px 20px"}}>
         {err&&<div style={{background:"#fee2e2",borderRadius:8,padding:"9px 12px",marginBottom:12,fontSize:13,color:"#991b1b"}}>{err}</div>}
-        {tabP==="profile"&&<><div style={{marginBottom:12}}><label style={{display:"block",fontSize:12,color:"#64748b",fontWeight:600,marginBottom:4}}>Nama Lengkap</label><input value={form.nama} onChange={e=>setForm(p=>({...p,nama:e.target.value}))} style={inp}/></div><div style={{marginBottom:12}}><label style={{display:"block",fontSize:12,color:"#64748b",fontWeight:600,marginBottom:4}}>Jabatan</label><input value={form.jabatan} onChange={e=>setForm(p=>({...p,jabatan:e.target.value}))} style={inp}/></div><div style={{marginBottom:16}}><label style={{display:"block",fontSize:12,color:"#64748b",fontWeight:600,marginBottom:4}}>No. WhatsApp</label><input value={form.noWA} onChange={e=>setForm(p=>({...p,noWA:e.target.value}))} placeholder="08123456789" style={inp}/><div style={{fontSize:13,color:"#94a3b8",marginTop:3}}>📱 Digunakan untuk menerima kode OTP reset password</div></div><button onClick={saveProfile} style={{width:"100%",padding:"12px",borderRadius:10,border:"none",background:NAVY,color:"white",cursor:"pointer",fontSize:14,fontWeight:700}}>Simpan Profil</button></>}
+        {tabP==="profile"&&<><div style={{marginBottom:12}}><label style={{display:"block",fontSize:12,color:"#64748b",fontWeight:600,marginBottom:4}}>Nama Lengkap</label><input value={form.nama} onChange={e=>setForm(p=>({...p,nama:e.target.value}))} style={inp}/></div><div style={{marginBottom:12}}><label style={{display:"block",fontSize:12,color:"#64748b",fontWeight:600,marginBottom:4}}>Jabatan</label><input value={form.jabatan} onChange={e=>setForm(p=>({...p,jabatan:e.target.value}))} style={inp}/></div><div style={{marginBottom:12}}><label style={{display:"block",fontSize:12,color:"#64748b",fontWeight:600,marginBottom:4}}>No. WhatsApp</label><input value={form.noWA} onChange={e=>setForm(p=>({...p,noWA:e.target.value}))} placeholder="08123456789" style={inp}/><div style={{fontSize:13,color:"#94a3b8",marginTop:3}}>📱 Saluran utama OTP reset password</div></div><div style={{marginBottom:16}}><label style={{display:"block",fontSize:12,color:"#64748b",fontWeight:600,marginBottom:4}}>Email</label><input value={form.email} onChange={e=>setForm(p=>({...p,email:e.target.value}))} placeholder="nama@tarakankota.go.id" type="email" style={inp}/><div style={{fontSize:13,color:"#94a3b8",marginTop:3}}>✉️ Saluran cadangan OTP (dipakai bila WhatsApp tidak tersedia)</div></div><button onClick={saveProfile} style={{width:"100%",padding:"12px",borderRadius:10,border:"none",background:NAVY,color:"white",cursor:"pointer",fontSize:14,fontWeight:700}}>Simpan Profil</button></>}
         {tabP==="password"&&<><div style={{marginBottom:12}}><label style={{display:"block",fontSize:12,color:"#64748b",fontWeight:600,marginBottom:4}}>Password Lama</label><input type="password" value={pw.old} onChange={e=>setPw(p=>({...p,old:e.target.value}))} style={inp}/></div><div style={{marginBottom:12}}><label style={{display:"block",fontSize:12,color:"#64748b",fontWeight:600,marginBottom:4}}>Password Baru (min. 6 karakter)</label><input type="password" value={pw.next} onChange={e=>setPw(p=>({...p,next:e.target.value}))} style={inp}/><PasswordStrengthBar password={pw.next}/></div><div style={{marginBottom:16}}><label style={{display:"block",fontSize:12,color:"#64748b",fontWeight:600,marginBottom:4}}>Konfirmasi Password Baru</label><input type="password" value={pw.confirm} onChange={e=>setPw(p=>({...p,confirm:e.target.value}))} style={inp}/></div><button onClick={changePassword} style={{width:"100%",padding:"12px",borderRadius:10,border:"none",background:GREEN,color:"white",cursor:"pointer",fontSize:14,fontWeight:700}}>Ubah Password</button></>}
         {tabP==="username"&&<><div style={{background:"#fef3c7",borderRadius:9,padding:"9px 12px",marginBottom:14,fontSize:13,color:"#92400e",border:"1px solid #fde68a"}}>Setelah ubah username, Anda akan diminta login ulang.</div><div style={{marginBottom:12}}><label style={{display:"block",fontSize:12,color:"#64748b",fontWeight:600,marginBottom:4}}>Username Baru</label><input value={uname.newUsername} onChange={e=>setUname(p=>({...p,newUsername:e.target.value}))} autoCapitalize="none" style={inp}/></div><div style={{marginBottom:16}}><label style={{display:"block",fontSize:12,color:"#64748b",fontWeight:600,marginBottom:4}}>Konfirmasi dengan Password Anda</label><input type="password" value={uname.pwConfirm} onChange={e=>setUname(p=>({...p,pwConfirm:e.target.value}))} style={inp}/></div><button onClick={changeUsername} style={{width:"100%",padding:"12px",borderRadius:10,border:"none",background:"#d97706",color:"white",cursor:"pointer",fontSize:14,fontWeight:700}}>Ubah Username</button></>}
         {tabP==="biometric"&&<BiometricTab user={user} showT={showT}/>}
@@ -3387,14 +3388,14 @@ function ForgotPasswordModal({onClose}){
     return serverMsg || "Terjadi kesalahan. Coba lagi.";
   };
 
-  const requestOTP=async()=>{
+  const requestOTP=async(viaChannel)=>{
     setErr("");
     if(!captchaOK)return setErr("Selesaikan verifikasi anti-bot terlebih dahulu.");
     if(!un.trim())return setErr("Masukkan username terlebih dahulu.");
     setLoading(true);
     try{
       const r=await fetch("/api/otp",{method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({action:"request",username:un.toLowerCase().trim()})});
+        body:JSON.stringify({action:"request",username:un.toLowerCase().trim(),channel:viaChannel||"auto"})});
       const d=await r.json().catch(()=>({}));
       if(!r.ok){setErr(friendlyOtpError(r.status,d.error));setLoading(false);return;}
       setNama(d.nama);setChannel(d.channel);
@@ -3407,7 +3408,7 @@ function ForgotPasswordModal({onClose}){
 
   const verifyOTP=async()=>{
     setErr("");
-    if(!otp.trim())return setErr("Masukkan kode OTP 6 digit dari WhatsApp.");
+    if(!otp.trim())return setErr("Masukkan kode OTP 6 digit yang Anda terima.");
     if(!pw1)return setErr("Masukkan password baru.");
     if(pw1.length<6)return setErr("Password minimal 6 karakter.");
     if(pw1!==pw2)return setErr("Konfirmasi password tidak cocok.");
@@ -3442,25 +3443,33 @@ function ForgotPasswordModal({onClose}){
         {step==="username"&&<>
           <div style={{marginBottom:14}}>
             <label style={{display:"block",fontSize:12,color:"#475569",fontWeight:700,marginBottom:5}}>USERNAME</label>
-            <input value={un} onChange={e=>setUn(e.target.value)} onKeyDown={e=>e.key==="Enter"&&requestOTP()} placeholder="Masukkan username" autoCapitalize="none" style={inp}/>
+            <input value={un} onChange={e=>setUn(e.target.value)} onKeyDown={e=>e.key==="Enter"&&requestOTP("auto")} placeholder="Masukkan username" autoCapitalize="none" style={inp}/>
           </div>
-          <div style={{background:"#f0f9ff",borderRadius:9,padding:"10px 13px",marginBottom:16,fontSize:12,color:"#0284c7",border:"1px solid #bae6fd"}}>
-            📱 Kode reset akan dikirim ke nomor WhatsApp yang terdaftar pada akun Anda.
+          <div style={{background:"#f0f9ff",borderRadius:9,padding:"10px 13px",marginBottom:14,fontSize:12,color:"#0284c7",border:"1px solid #bae6fd"}}>
+            Kode akan dikirim ke <b>WhatsApp</b> jika nomor terdaftar. Bila WhatsApp tidak tersedia, kode dikirim ke <b>Email</b> sebagai cadangan.
           </div>
           <CaptchaBox onValid={ok=>setCaptchaOK(ok)}/>
-          <button onClick={requestOTP} disabled={loading} style={{width:"100%",padding:"13px",borderRadius:11,border:"none",background:loading?"#e2e8f0":"linear-gradient(135deg,#0A1628,#1B4080)",color:loading?"#94a3b8":"white",cursor:loading?"default":"pointer",fontSize:14,fontWeight:700}}>
-            {loading?"Mengirim...":"Kirim Kode OTP via WhatsApp"}
+          <button onClick={()=>requestOTP("auto")} disabled={loading} style={{width:"100%",padding:"13px",borderRadius:11,border:"none",background:loading?"#e2e8f0":"linear-gradient(135deg,#0A1628,#1B4080)",color:loading?"#94a3b8":"white",cursor:loading?"default":"pointer",fontSize:14,fontWeight:700,marginTop:4}}>
+            {loading?"Mengirim...":"Kirim Kode OTP"}
           </button>
+          <div style={{display:"flex",gap:8,marginTop:8,fontSize:12}}>
+            <button onClick={()=>requestOTP("wa")} disabled={loading} style={{flex:1,padding:"7px",border:"1px solid #e2e8f0",background:"white",color:"#475569",borderRadius:8,cursor:"pointer",fontWeight:600}}>📱 Paksa WhatsApp</button>
+            <button onClick={()=>requestOTP("email")} disabled={loading} style={{flex:1,padding:"7px",border:"1px solid #e2e8f0",background:"white",color:"#475569",borderRadius:8,cursor:"pointer",fontWeight:600}}>✉️ Paksa Email</button>
+          </div>
         </>}
 
         {/* Step 2: OTP + password baru */}
         {step==="otp"&&<>
           {channel==="wa"
             ?<div style={{background:"#f0fdf4",borderRadius:9,padding:"10px 13px",marginBottom:16,fontSize:12,color:"#166534",border:"1px solid #bbf7d0"}}>
-              ✅ Kode OTP dikirim ke WA <strong>{masked}</strong> atas nama <strong>{nama}</strong>. Berlaku 10 menit.
+              ✅ Kode OTP dikirim ke WhatsApp <strong>{masked}</strong> atas nama <strong>{nama}</strong>. Berlaku 10 menit.
+            </div>
+          :channel==="email"
+            ?<div style={{background:"#eff6ff",borderRadius:9,padding:"10px 13px",marginBottom:16,fontSize:12,color:"#1e40af",border:"1px solid #bfdbfe"}}>
+              ✅ Kode OTP dikirim ke email <strong>{masked}</strong> atas nama <strong>{nama}</strong>. Berlaku 10 menit. Periksa folder Spam jika tidak terlihat.
             </div>
             :<div style={{background:"#fef3c7",borderRadius:9,padding:"14px",marginBottom:16,border:"1px solid #fde68a",textAlign:"center"}}>
-              <div style={{fontSize:13,color:"#92400e",fontWeight:700,marginBottom:6}}>⚠️ WhatsApp belum aktif — Kode OTP Anda:</div>
+              <div style={{fontSize:13,color:"#92400e",fontWeight:700,marginBottom:6}}>⚠️ Saluran tidak aktif — Kode OTP Anda:</div>
               <div style={{fontSize:36,fontWeight:900,color:"#0A1628",letterSpacing:8,fontFamily:"monospace"}}>{screenCode}</div>
               <div style={{fontSize:13,color:"#92400e",marginTop:6}}>Berlaku 10 menit. Salin kode ini dan masukkan di bawah.</div>
             </div>

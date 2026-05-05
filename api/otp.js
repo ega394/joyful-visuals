@@ -62,6 +62,64 @@ function maskPhone(phone) {
   return p.slice(0, 4) + "****" + p.slice(-4);
 }
 
+function maskEmail(email) {
+  if (!email || !email.includes("@")) return "****";
+  const [local, domain] = email.split("@");
+  const visible = Math.min(2, Math.max(1, Math.floor(local.length / 3)));
+  return local.slice(0, visible) + "****@" + domain;
+}
+
+async function sendOTPviaEmail(toEmail, otp, nama) {
+  const apiKey  = process.env.RESEND_API_KEY;
+  const from    = process.env.MAIL_FROM || "Prokopim Hibot <onboarding@resend.dev>";
+
+  if (!apiKey) {
+    console.error("[OTP] RESEND_API_KEY tidak diset di environment variables!");
+    return { ok: false, reason: "no_api_key" };
+  }
+
+  const subject = "Kode OTP Prokopim Hibot";
+  const html = [
+    "<div style=\"font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;padding:24px;color:#0F172A\">",
+    "<div style=\"background:linear-gradient(135deg,#0A1628,#1B4080);color:white;padding:18px 22px;border-radius:12px 12px 0 0\">",
+    "<div style=\"font-weight:700;font-size:18px\">Prokopim Hibot Kota Tarakan</div>",
+    "<div style=\"opacity:.75;font-size:13px;margin-top:4px\">Kode Verifikasi (OTP)</div>",
+    "</div>",
+    "<div style=\"background:#F8FAFC;padding:24px 22px;border:1px solid #E2E8F0;border-top:none;border-radius:0 0 12px 12px\">",
+    "<p style=\"margin:0 0 12px;font-size:14px\">Halo <b>" + escapeHtml(nama || "") + "</b>,</p>",
+    "<p style=\"margin:0 0 14px;font-size:14px\">Berikut adalah kode verifikasi Anda:</p>",
+    "<div style=\"background:white;border:2px dashed #1E40AF;border-radius:10px;padding:18px;text-align:center;margin:14px 0\">",
+    "<div style=\"font-size:30px;letter-spacing:8px;font-weight:800;color:#1E40AF\">" + otp + "</div>",
+    "</div>",
+    "<p style=\"margin:0 0 6px;font-size:13px;color:#475569\">Kode berlaku <b>10 menit</b>. Jangan berikan kepada siapa pun.</p>",
+    "<p style=\"margin:0;font-size:12px;color:#94A3B8\">Abaikan email ini jika Anda tidak meminta kode tersebut.</p>",
+    "</div>",
+    "<p style=\"text-align:center;font-size:11px;color:#94A3B8;margin-top:14px\">© Bagian Prokopim Setda Kota Tarakan</p>",
+    "</div>",
+  ].join("");
+
+  try {
+    const r = await fetch("https://api.resend.com/emails", {
+      method:  "POST",
+      headers: { "Authorization": "Bearer " + apiKey, "Content-Type": "application/json" },
+      body:    JSON.stringify({ from, to: toEmail, subject, html }),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      console.error("[OTP] Resend gagal:", r.status, d?.message || JSON.stringify(d));
+      return { ok: false, reason: d?.name || "resend_error", detail: d };
+    }
+    return { ok: true };
+  } catch (e) {
+    console.error("[OTP] Fetch ke Resend error:", e.message);
+    return { ok: false, reason: "fetch_error", message: e.message };
+  }
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[c]));
+}
+
 async function sendOTPviaWA(noWA, otp, nama) {
   const token = process.env.FONNTE_TOKEN;
 
@@ -127,7 +185,7 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({ error: "Konfigurasi server belum lengkap (SUPABASE env)." });
   }
 
-  const { action, username, otp, newPassword } = req.body || {};
+  const { action, username, otp, newPassword, channel: wantChannel } = req.body || {};
   if (!username) return res.status(400).json({ error: "Username wajib diisi" });
 
   // ── REQUEST OTP ──────────────────────────────────────────
@@ -138,8 +196,23 @@ module.exports = async function handler(req, res) {
 
     if (!user) return res.status(404).json({ error: "Username tidak ditemukan" });
 
-    // ── LOG: cek data user ──
-    console.log("[OTP] User ditemukan:", user.username, "| noWA:", user.noWA || "(kosong)");
+    // Tentukan channel: "wa" | "email" | "auto"
+    // - "auto" (default): pakai WA jika ada noWA, kalau tidak fallback ke email
+    // - "wa"            : paksa WA (gagal kalau noWA kosong)
+    // - "email"         : paksa email (gagal kalau email kosong)
+    const ch = (wantChannel || "auto").toLowerCase();
+
+    if (ch === "wa" && !user.noWA) {
+      return res.status(400).json({ error: "Akun ini belum punya nomor WhatsApp terdaftar. Pilih channel email atau hubungi admin." });
+    }
+    if (ch === "email" && !user.email) {
+      return res.status(400).json({ error: "Akun ini belum punya email terdaftar. Pilih channel WhatsApp atau hubungi admin." });
+    }
+    if (ch === "auto" && !user.noWA && !user.email) {
+      return res.status(400).json({ error: "Akun ini belum punya nomor WhatsApp atau email. Hubungi admin untuk melengkapi data." });
+    }
+
+    console.log("[OTP] User:", user.username, "| channel:", ch, "| noWA:", user.noWA ? "ada" : "kosong", "| email:", user.email ? "ada" : "kosong");
 
     const code    = generateOTP();
     const expires = new Date(Date.now() + OTP_TTL_MS).toISOString();
@@ -147,28 +220,50 @@ module.exports = async function handler(req, res) {
     try   { await updateUser(user.username, { otp_code: code, otp_expires: expires }); }
     catch (e) { return res.status(500).json({ error: "Gagal menyimpan OTP: " + e.message }); }
 
-    if (user.noWA) {
-      const result = await sendOTPviaWA(user.noWA, code, user.nama || username);
-      if (result.ok) {
-        return res.status(200).json({
-          channel: "wa",
-          masked:  maskPhone(user.noWA),
-          nama:    user.nama || username,
-        });
-      }
-      // WA gagal — kembalikan info alasan ke frontend (hanya untuk admin/debug)
-      console.warn("[OTP] WA gagal, fallback ke screen. Alasan:", result.reason);
-      return res.status(200).json({
-        channel: "screen",
-        code,
-        nama:    user.nama || username,
-        _waError: result.reason, // info tambahan (tidak ditampilkan ke user biasa)
-      });
+    // Pengiriman dengan strategi:
+    //  - "wa"    : paksa WA (no fallback)
+    //  - "email" : paksa email (no fallback)
+    //  - "auto"  : coba WA dulu, kalau gagal (atau noWA kosong) → fallback email
+    const trySendWA = async () => {
+      const r = await sendOTPviaWA(user.noWA, code, user.nama || username);
+      return r.ok ? { ok: true, channel: "wa", masked: maskPhone(user.noWA), reason: null }
+                  : { ok: false, channel: "wa", reason: r.reason || "wa_failed" };
+    };
+    const trySendEmail = async () => {
+      const r = await sendOTPviaEmail(user.email, code, user.nama || username);
+      return r.ok ? { ok: true, channel: "email", masked: maskEmail(user.email), reason: null }
+                  : { ok: false, channel: "email", reason: r.reason || "email_failed" };
+    };
+
+    if (ch === "wa") {
+      const r = await trySendWA();
+      if (r.ok) return res.status(200).json({ channel: r.channel, masked: r.masked, nama: user.nama || username });
+      return res.status(500).json({ error: "Gagal mengirim OTP via WhatsApp. Coba lagi atau pakai saluran email." });
     }
 
-    // Tidak ada noWA → screen
-    console.warn("[OTP] noWA kosong untuk user:", user.username);
-    return res.status(200).json({ channel: "screen", code, nama: user.nama || username });
+    if (ch === "email") {
+      const r = await trySendEmail();
+      if (r.ok) return res.status(200).json({ channel: r.channel, masked: r.masked, nama: user.nama || username });
+      return res.status(500).json({ error: "Gagal mengirim email OTP. Coba lagi atau pakai saluran WhatsApp." });
+    }
+
+    // auto: WA dulu, fallback ke email
+    if (user.noWA) {
+      const r = await trySendWA();
+      if (r.ok) return res.status(200).json({ channel: r.channel, masked: r.masked, nama: user.nama || username });
+      console.warn("[OTP] WA gagal di mode auto, fallback ke email. Alasan:", r.reason);
+      if (user.email) {
+        const r2 = await trySendEmail();
+        if (r2.ok) return res.status(200).json({ channel: r2.channel, masked: r2.masked, nama: user.nama || username, _fallbackFrom: "wa" });
+      }
+      return res.status(500).json({ error: "Gagal mengirim OTP via WhatsApp dan email. Coba lagi nanti." });
+    }
+    if (user.email) {
+      const r = await trySendEmail();
+      if (r.ok) return res.status(200).json({ channel: r.channel, masked: r.masked, nama: user.nama || username });
+      return res.status(500).json({ error: "Gagal mengirim email OTP. Coba lagi nanti." });
+    }
+    return res.status(400).json({ error: "Akun ini belum punya nomor WhatsApp atau email." });
   }
 
   // ── VERIFY OTP UNTUK LOGIN MFA (tanpa ganti password) ───

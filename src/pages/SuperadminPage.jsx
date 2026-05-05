@@ -172,14 +172,18 @@ export default function SuperadminPage() {
       const ok = await verifyPassword(pw, cand.password);
       if (!ok) { setErr(fail); setBusy(false); return; }
 
+      // Super admin: paksa channel email (tidak pakai WhatsApp)
       const r = await fetch("/api/otp", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "request", username: cand.username }),
+        body: JSON.stringify({ action: "request", username: cand.username, channel: "email" }),
       });
       const d = await r.json().catch(() => ({}));
-      if (!r.ok) { setErr(d.error || "Gagal kirim OTP"); setBusy(false); return; }
-      if (d.channel !== "wa") {
-        setErr("Akun super admin wajib pakai OTP WhatsApp. Hubungi admin untuk daftarkan nomor WA.");
+      if (!r.ok) {
+        setErr(d.error || "Gagal kirim OTP. Pastikan email super admin sudah terdaftar.");
+        setBusy(false); return;
+      }
+      if (d.channel !== "email") {
+        setErr("Saluran email tidak aktif. Periksa konfigurasi RESEND_API_KEY di server.");
         setBusy(false); return;
       }
       setMasked(d.masked || "");
@@ -218,7 +222,7 @@ export default function SuperadminPage() {
     return (
       <Shell title="Super Admin Login">
         <p style={{ fontSize: 13, color: C.muted, marginTop: 0 }}>
-          Halaman terbatas. Wajib username & password super admin + verifikasi OTP WhatsApp.
+          Halaman terbatas. Wajib username & password super admin + verifikasi OTP via Email.
         </p>
         {err && <Banner kind="error">{err}</Banner>}
         <label style={{ fontSize: 12, fontWeight: 700, color: C.muted }}>USERNAME</label>
@@ -242,7 +246,7 @@ export default function SuperadminPage() {
     return (
       <Shell title="Verifikasi OTP">
         <p style={{ fontSize: 13, color: C.muted, marginTop: 0 }}>
-          Kode OTP dikirim ke WhatsApp <b>{masked || "(tersembunyi)"}</b>. Berlaku 10 menit.
+          Kode OTP dikirim ke email <b>{masked || "(tersembunyi)"}</b>. Berlaku 10 menit. Cek folder Spam jika tidak terlihat.
         </p>
         {err && <Banner kind="error">{err}</Banner>}
         <label style={{ fontSize: 12, fontWeight: 700, color: C.muted }}>KODE OTP (6 DIGIT)</label>
@@ -428,6 +432,7 @@ function UsersTab({ user, T }) {
                 <th style={th}>Nama</th>
                 <th style={th}>Role</th>
                 <th style={th}>WhatsApp</th>
+                <th style={th}>Email</th>
                 <th style={th}>Status</th>
                 <th style={th}>Aksi</th>
               </tr>
@@ -445,6 +450,7 @@ function UsersTab({ user, T }) {
                   </td>
                   <td style={td}><code style={{ fontSize: 12 }}>{u.role}</code></td>
                   <td style={td}>{u.noWA || "—"}</td>
+                  <td style={{ ...td, fontSize: 12, wordBreak: "break-all", maxWidth: 200 }}>{u.email || "—"}</td>
                   <td style={td}>
                     {u.disabled ? <span style={{ color: C.danger, fontWeight: 700 }}>Nonaktif</span> :
                                    <span style={{ color: C.ok,     fontWeight: 700 }}>Aktif</span>}
@@ -462,7 +468,7 @@ function UsersTab({ user, T }) {
                 </tr>
               ))}
               {filtered.length === 0 && (
-                <tr><td colSpan={6} style={{ ...td, textAlign: "center", color: C.muted, padding: 30 }}>Tidak ada user</td></tr>
+                <tr><td colSpan={7} style={{ ...td, textAlign: "center", color: C.muted, padding: 30 }}>Tidak ada user</td></tr>
               )}
             </tbody>
           </table>
@@ -477,12 +483,13 @@ function UsersTab({ user, T }) {
 function UserEditModal({ user, target, onClose, onSaved, T }) {
   const isNew = target === "new";
   const [form, setForm] = useState(isNew
-    ? { username: "", nama: "", jabatan: "", noWA: "", role: "staf", _newPw: "", disabled: false, must_change_pw: true }
-    : { ...target, _newPw: "" });
+    ? { username: "", nama: "", jabatan: "", noWA: "", email: "", role: "staf", _newPw: "", disabled: false, must_change_pw: true }
+    : { ...target, email: target.email || "", _newPw: "" });
   const [saving, setSaving] = useState(false);
 
   const save = async () => {
     if (!form.username.trim()) { T("Username wajib", "error"); return; }
+    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) { T("Format email tidak valid", "error"); return; }
     if (isNew && (!form._newPw || form._newPw.length < 6)) { T("Password awal minimal 6 karakter", "error"); return; }
     setSaving(true);
     try {
@@ -518,6 +525,10 @@ function UserEditModal({ user, target, onClose, onSaved, T }) {
         </Field>
         <Field label="No. WhatsApp (mis. 081234567890)">
           <input style={inp} value={form.noWA || ""} onChange={e => setForm({ ...form, noWA: e.target.value })} />
+        </Field>
+        <Field label="Email (saluran cadangan / wajib untuk superadmin)">
+          <input style={inp} type="email" value={form.email || ""} placeholder="nama@tarakankota.go.id"
+                 onChange={e => setForm({ ...form, email: e.target.value })} />
         </Field>
         <Field label="Role">
           <select style={inp} value={form.role} onChange={e => setForm({ ...form, role: e.target.value })}>
