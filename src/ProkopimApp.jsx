@@ -6721,7 +6721,7 @@ const TH={
     ]:[]),
     // ── Kasubbag Protokol ──
     ...(role==="kasubbag_protokol"?[
-      {key:"jadwal",  icon:"📋", label:"Antrian"},
+      {key:"dashboard",icon:"📋", label:"Antrian"},
       {key:"tayang",  icon:"📅", label:"Agenda"},
       {key:"tamu",    icon:"👥", label:"Manajemen Tamu"},
     ]:[]),
@@ -6733,7 +6733,7 @@ const TH={
     ]:[]),
     // ── Kabag ──
     ...(role==="kabag"?[
-      {key:"jadwal",   icon:"📋", label:"Antrian"},
+      {key:"dashboard",icon:"📋", label:"Antrian"},
       {key:"tayang",   icon:"📅", label:"Agenda"},
       {key:"tamu",     icon:"👥", label:"Manajemen Tamu"},
       {key:"newsroom", icon:"📰", label:"Monitoring Komdok"},
@@ -6843,7 +6843,7 @@ const TH={
   ]:[]),
   // ── Kasubbag Protokol ──
   ...(role==="kasubbag_protokol"?[
-    {key:"jadwal", label:"Antrian", icon:"📋"},
+    {key:"dashboard",label:"Antrian", icon:"📋"},
     {key:"tayang", label:"Agenda",  icon:"📅"},
     {key:"tamu",   label:"Tamu",    icon:"👥"},
   ]:[]),
@@ -6855,7 +6855,7 @@ const TH={
   ]:[]),
   // ── Kabag ──
   ...(role==="kabag"?[
-    {key:"jadwal",   label:"Antrian", icon:"📋"},
+    {key:"dashboard",label:"Antrian", icon:"📋"},
     {key:"tayang",   label:"Agenda",  icon:"📅"},
     {key:"tamu",     label:"Tamu",    icon:"👥"},
     {key:"newsroom", label:"Komdok",  icon:"📰"},
