@@ -172,7 +172,20 @@ export default function SuperadminPage() {
       const ok = await verifyPassword(pw, cand.password);
       if (!ok) { setErr(fail); setBusy(false); return; }
 
-      // Super admin: paksa channel email (tidak pakai WhatsApp)
+      // ── OTP DINONAKTIFKAN SEMENTARA (kuota Fonnte habis & Resend belum diset) ──
+      // Setelah password lolos, langsung masuk dashboard. Aktifkan kembali OTP
+      // dengan menghapus blok ini dan mengaktifkan kembali blok di bawah saat
+      // RESEND_API_KEY sudah dikonfigurasi di Vercel.
+      await logAudit({
+        actor: cand.username, actor_role: cand.role,
+        action: "auth.login_superadmin",
+        detail: { mfa: "disabled_temporarily", reason: "fonnte_quota_exhausted" },
+      });
+      try { localStorage.setItem("jp_sa_session", JSON.stringify({ username: cand.username, at: Date.now() })); } catch {}
+      setUser(cand);
+      setPhase("dashboard");
+
+      /* ── OTP via email (akan diaktifkan kembali) ──
       const r = await fetch("/api/otp", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "request", username: cand.username, channel: "email" }),
@@ -189,6 +202,7 @@ export default function SuperadminPage() {
       setMasked(d.masked || "");
       setUser(cand);
       setPhase("otp");
+      */
     } catch (e) { setErr(e.message); }
     setBusy(false);
   };
@@ -222,7 +236,7 @@ export default function SuperadminPage() {
     return (
       <Shell title="Super Admin Login">
         <p style={{ fontSize: 13, color: C.muted, marginTop: 0 }}>
-          Halaman terbatas. Wajib username & password super admin + verifikasi OTP via Email.
+          Halaman terbatas. Hanya akun dengan role <b>superadmin</b>. <span style={{ color: C.warn, fontWeight: 700 }}>Catatan: OTP sementara dinonaktifkan.</span>
         </p>
         {err && <Banner kind="error">{err}</Banner>}
         <label style={{ fontSize: 12, fontWeight: 700, color: C.muted }}>USERNAME</label>
@@ -235,7 +249,7 @@ export default function SuperadminPage() {
         <div style={{ height: 18 }} />
         <button style={{ ...btn("primary"), width: "100%", padding: "11px" }}
                 onClick={submitLogin} disabled={busy || !un || !pw}>
-          {busy ? "Memproses..." : "Lanjut ke Verifikasi OTP →"}
+          {busy ? "Memproses..." : "Masuk Dashboard"}
         </button>
       </Shell>
     );
