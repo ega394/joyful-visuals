@@ -62,14 +62,37 @@ async function fetchUsers() {
   if (!r.ok) throw new Error("Gagal load users (" + r.status + ")");
   return r.json();
 }
-async function upsertUser(u) {
+async function createUser(u) {
   const { _newPw, ...clean } = u;
   const r = await fetch(SUPA_URL + "/rest/v1/users", {
     method: "POST",
-    headers: { ...H(), Prefer: "resolution=merge-duplicates,return=minimal" },
+    headers: { ...H(), Prefer: "return=minimal" },
     body: JSON.stringify(clean),
   });
-  if (!r.ok) throw new Error("Gagal simpan user (" + r.status + ")");
+  if (!r.ok) {
+    const txt = await r.text().catch(() => "");
+    throw new Error("Gagal buat user (" + r.status + "): " + txt.slice(0, 200));
+  }
+}
+async function updateUserFields(username, fields) {
+  // Hilangkan field yang tidak boleh / tidak perlu dikirim ke PATCH
+  const { _newPw, created_at, updated_at, otp_code, otp_expires, ...clean } = fields;
+  // Jangan kirim username sebagai bagian update (kunci primer, lewat URL saja)
+  delete clean.username;
+  const r = await fetch(SUPA_URL + "/rest/v1/users?username=eq." + encodeURIComponent(username), {
+    method: "PATCH",
+    headers: { ...H(), Prefer: "return=minimal" },
+    body: JSON.stringify(clean),
+  });
+  if (!r.ok) {
+    const txt = await r.text().catch(() => "");
+    throw new Error("Gagal update user (" + r.status + "): " + txt.slice(0, 200));
+  }
+}
+async function upsertUser(u) {
+  // Compat: untuk panggilan lama (disable, force_logout dll) — pilih create/update otomatis
+  if (u._isNew) { delete u._isNew; return createUser(u); }
+  return updateUserFields(u.username, u);
 }
 async function removeUser(username) {
   const r = await fetch(SUPA_URL + "/rest/v1/users?username=eq." + encodeURIComponent(username), {
@@ -383,7 +406,7 @@ function UsersTab({ user, T }) {
     if (u.username === user.username) { T("Tidak bisa menonaktifkan akun sendiri", "warn"); return; }
     if (!confirm("Nonaktifkan akun " + u.username + "? User tidak bisa login sampai diaktifkan kembali.")) return;
     try {
-      await upsertUser({ ...u, disabled: !u.disabled });
+      await updateUserFields(u.username, { disabled: !u.disabled });
       await logAudit({ actor: user.username, actor_role: user.role,
         action: u.disabled ? "user.enable" : "user.disable", target: u.username });
       T(u.disabled ? "Akun diaktifkan" : "Akun dinonaktifkan");
@@ -394,7 +417,7 @@ function UsersTab({ user, T }) {
   const onForceLogout = async (u) => {
     if (!confirm("Paksa logout " + u.username + "? Sesi aktif akan diakhiri saat ia membuka app berikutnya.")) return;
     try {
-      await upsertUser({ ...u, session_version: (u.session_version || 0) + 1 });
+      await updateUserFields(u.username, { session_version: (u.session_version || 0) + 1 });
       await logAudit({ actor: user.username, actor_role: user.role, action: "user.force_logout", target: u.username });
       T("Force logout dijadwalkan");
       reload();
@@ -407,7 +430,7 @@ function UsersTab({ user, T }) {
     if (newPw.length < 6) { T("Password minimal 6 karakter", "error"); return; }
     try {
       const hashed = await hashPassword(newPw);
-      await upsertUser({ ...u, password: hashed, must_change_pw: true });
+      await updateUserFields(u.username, { password: hashed, must_change_pw: true });
       await logAudit({ actor: user.username, actor_role: user.role, action: "user.reset_password", target: u.username });
       T("Password direset. User wajib ganti pada login berikutnya.");
       reload();
@@ -507,16 +530,39 @@ function UserEditModal({ user, target, onClose, onSaved, T }) {
     if (isNew && (!form._newPw || form._newPw.length < 6)) { T("Password awal minimal 6 karakter", "error"); return; }
     setSaving(true);
     try {
-      const data = { ...form };
-      if (isNew || form._newPw) data.password = await hashPassword(form._newPw);
-      delete data._newPw;
-      data.username = data.username.toLowerCase().trim();
-      await upsertUser(data);
+      const username = form.username.toLowerCase().trim();
+      if (isNew) {
+        const newRow = {
+          username,
+          nama:           form.nama || "",
+          jabatan:        form.jabatan || "",
+          noWA:           form.noWA || "",
+          email:          form.email || "",
+          role:           form.role,
+          disabled:       !!form.disabled,
+          must_change_pw: !!form.must_change_pw,
+          password:       await hashPassword(form._newPw),
+        };
+        await createUser(newRow);
+      } else {
+        // PATCH: hanya kirim field yang bisa diubah dari form
+        const patch = {
+          nama:           form.nama || "",
+          jabatan:        form.jabatan || "",
+          noWA:           form.noWA || "",
+          email:          form.email || "",
+          role:           form.role,
+          disabled:       !!form.disabled,
+          must_change_pw: !!form.must_change_pw,
+        };
+        if (form._newPw) patch.password = await hashPassword(form._newPw);
+        await updateUserFields(username, patch);
+      }
       await logAudit({
         actor: user.username, actor_role: user.role,
         action: isNew ? "user.create" : "user.update",
-        target: data.username,
-        detail: { role: data.role, nama: data.nama },
+        target: username,
+        detail: { role: form.role, nama: form.nama, password_changed: !!form._newPw },
       });
       T(isNew ? "User dibuat" : "User diperbarui");
       onSaved();
