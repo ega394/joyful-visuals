@@ -627,6 +627,143 @@ const weekEnd=()=>{const d=new Date();d.setDate(d.getDate()-d.getDay()+7);return
 const monthStart=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-01";};
 const monthEnd=()=>{const _d=new Date();return localDateStr(new Date(_d.getFullYear(),_d.getMonth()+1,0));};
 const hasConflict=(events,ev)=>{const s=toMin(ev.jam),e2=s+120;return events.some(e=>e.id!==ev.id&&e.alur==="disetujui"&&e.tanggal===ev.tanggal&&e.untukPimpinan.some(p=>ev.untukPimpinan?.includes(p))&&(()=>{const es=toMin(e.jam),ee=es+120;return s<ee&&e2>es;})());};
+
+// ==================== TIMELINE AUDIT JADWAL ====================
+// Setiap transisi alur (dan event penting seperti delegasi, upload berkas)
+// dicatat di ev.timeline sebagai array. UI menampilkan ini di kartu antrian
+// agar admin_rk, kasubbag, dan kabag bisa periksa "siapa-melakukan-apa-kapan".
+
+function inferTimelineAction(from, to, prevEv, patch) {
+  if (from === "draft"             && to === "menunggu_kasubbag") return "submit";
+  if (from === "menunggu_kasubbag" && to === "menunggu_kabag")    return "forward_to_kabag";
+  if (from === "menunggu_kasubbag" && to === "ditolak")           return "return_by_kasubbag";
+  if (from === "menunggu_kabag"    && to === "disetujui")         return "publish";
+  if (from === "menunggu_kabag"    && to === "ditolak")           return "reject_by_kabag";
+  if (from === "menunggu_kabag"    && to === "menunggu_kasubbag") return "recall_by_kabag";
+  if (from === "disetujui"         && to === "menunggu_kasubbag") return "recall_published";
+  if (from === "ditolak"           && to === "menunggu_kasubbag") return "resubmit";
+  if (to === "draft")                                              return "back_to_draft";
+  return "update_alur";
+}
+
+function appendTimelineEntries(prevEv, patch, actor) {
+  if (!actor || !prevEv) return null;
+  const at = new Date().toISOString();
+  const base = { actor: actor.username, actor_role: actor.role, at };
+  const out = [];
+
+  // 1. Perubahan alur (workflow transition)
+  if (patch.alur !== undefined && patch.alur !== prevEv.alur) {
+    out.push({
+      ...base,
+      action: inferTimelineAction(prevEv.alur, patch.alur, prevEv, patch),
+      from:   prevEv.alur,
+      to:     patch.alur,
+      note:   patch.catatanTolak || patch.catatanKabag || patch.catatanKasubbag || null,
+    });
+  }
+
+  // 2. Disposisi / delegasi WK ke WWK
+  if (patch.delegasiKeWWK === true && !prevEv.delegasiKeWWK) {
+    out.push({ ...base, action: "delegasi_to_wwk" });
+  }
+  if (patch.delegasiKeWWK === false && prevEv.delegasiKeWWK) {
+    out.push({ ...base, action: "cancel_delegasi" });
+  }
+
+  // 3. Upload berkas
+  if (patch.undanganFile && patch.undanganFile !== prevEv.undanganFile) {
+    out.push({ ...base, action: "upload_undangan", note: patch.undanganNama || "" });
+  }
+  if (patch.sambutanFile && patch.sambutanFile !== prevEv.sambutanFile) {
+    out.push({ ...base, action: "upload_sambutan", note: patch.sambutanNama || "" });
+  }
+
+  return out.length ? out : null;
+}
+
+// Label Indonesia untuk setiap action (dipakai oleh TimelineView)
+const TIMELINE_LABEL = {
+  create:             { label: "Jadwal dibuat",                      color: "#475569", icon: "✏️" },
+  submit:             { label: "Diajukan ke Kasubbag",               color: "#1E40AF", icon: "📤" },
+  resubmit:           { label: "Diajukan ulang setelah revisi",      color: "#1E40AF", icon: "🔁" },
+  forward_to_kabag:   { label: "Diverifikasi & diteruskan ke Kabag", color: "#7C3AED", icon: "➡️" },
+  return_by_kasubbag: { label: "Dikembalikan oleh Kasubbag",         color: "#B45309", icon: "↩️" },
+  publish:            { label: "Disetujui & ditayangkan oleh Kabag", color: "#047857", icon: "✅" },
+  reject_by_kabag:    { label: "Ditolak oleh Kabag",                 color: "#B91C1C", icon: "❌" },
+  recall_by_kabag:    { label: "Ditarik ke Kasubbag oleh Kabag",     color: "#B45309", icon: "↩️" },
+  recall_published:   { label: "Ditarik dari publikasi",             color: "#B45309", icon: "🔙" },
+  back_to_draft:      { label: "Dikembalikan ke draft",              color: "#475569", icon: "📝" },
+  delegasi_to_wwk:    { label: "Didisposisi ke Wakil Wali Kota",     color: "#7C3AED", icon: "🎯" },
+  cancel_delegasi:    { label: "Disposisi dibatalkan",               color: "#B45309", icon: "↩️" },
+  upload_undangan:    { label: "Berkas undangan diunggah",           color: "#1E40AF", icon: "📎" },
+  upload_sambutan:    { label: "Berkas sambutan diunggah",           color: "#1E40AF", icon: "📄" },
+  update_alur:        { label: "Status alur diperbarui",             color: "#475569", icon: "•" },
+};
+
+function fmtTimelineAt(iso) {
+  if (!iso) return "—";
+  try {
+    const d = new Date(iso);
+    const tgl = d.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
+    const jam = d.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", hour12: false });
+    return tgl + " · " + jam + " WITA";
+  } catch { return iso; }
+}
+
+// Komponen tampilan timeline (vertical list). Hanya dipakai oleh peran yang
+// terlibat dalam alur (admin_rk, kasubbag_protokol, kabag).
+function AuditTimeline({ ev, compact }) {
+  const items = Array.isArray(ev?.timeline) ? ev.timeline : [];
+  if (items.length === 0) {
+    return (
+      <div style={{ fontSize: 12, color: "#94A3B8", fontStyle: "italic", padding: "8px 0" }}>
+        Belum ada riwayat alur untuk jadwal ini.
+      </div>
+    );
+  }
+  const ROLE_LBL = {
+    admin_rk: "Admin RK", kasubbag_protokol: "Kasubbag Protokol",
+    kasubbag_komdokpim: "Kasubbag Komdokpim", kabag: "Kabag",
+    walikota: "Wali Kota", wakilwalikota: "Wakil Wali Kota",
+    ajudan_walikota: "Ajudan WK", ajudan_wakilwalikota: "Ajudan WWK",
+    staf: "Staf Protokol", timkom: "Tim Komdok", superadmin: "Super Admin",
+  };
+  const namaActor = (un) => {
+    try { return loadUsers().find(u => u.username === un)?.nama || un; } catch { return un; }
+  };
+
+  return (
+    <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 9, padding: compact ? "8px 10px" : "10px 12px" }}>
+      <div style={{ fontSize: 11, fontWeight: 800, color: "#475569", letterSpacing: 0.5, marginBottom: 6 }}>
+        🕓 RIWAYAT ALUR ({items.length})
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {items.map((it, i) => {
+          const meta = TIMELINE_LABEL[it.action] || TIMELINE_LABEL.update_alur;
+          return (
+            <div key={i} style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+              <div style={{ fontSize: 14, lineHeight: "18px", flexShrink: 0, width: 18, textAlign: "center" }}>{meta.icon}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: meta.color }}>{meta.label}</div>
+                <div style={{ fontSize: 11, color: "#64748B" }}>
+                  {fmtTimelineAt(it.at)} · {namaActor(it.actor)}
+                  {it.actor_role ? " (" + (ROLE_LBL[it.actor_role] || it.actor_role) + ")" : ""}
+                </div>
+                {it.note && (
+                  <div style={{ fontSize: 11, color: "#475569", marginTop: 2, background: "white", padding: "4px 7px", borderRadius: 6, border: "1px solid #E2E8F0" }}>
+                    📝 {it.note}
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function makeICS(ev){
   const[y,mo,d]=ev.tanggal.split("-");
   const[hh,mm]=(ev.jam||"08:00").split(":");
@@ -2044,6 +2181,9 @@ function DraftProgressView({events,user,upd,showT,askConfirm,setTab,isMobile,set
               <AdminRKKehadiran ev={ev} upd={upd} showT={showT} setDelegTarget={()=>{}}/>
             </>}
 
+            {/* Riwayat alur (audit) — Admin RK dapat memeriksa siapa-melakukan-apa-kapan */}
+            <div style={{marginBottom:10}}><AuditTimeline ev={ev} compact/></div>
+
             <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
               {(isDraft||isDitolak)&&<button onClick={()=>{
                  setForm({tanggal:ev.tanggal,jam:ev.jam,namaAcara:ev.namaAcara,penyelenggara:ev.penyelenggara,kontak:ev.kontak||"",buktiUndangan:ev.buktiUndangan||"",pakaian:ev.pakaian,jenisKegiatan:ev.jenisKegiatan,catatan:ev.catatan||"",lokasi:ev.lokasi||"",untukPimpinan:ev.untukPimpinan||[],besertaIstriWK:ev.besertaIstriWK||false,besertaIstriWWK:ev.besertaIstriWWK||false,undanganFile:ev.undanganFile||null,undanganNama:ev.undanganNama||""});
@@ -2158,6 +2298,8 @@ function ApprovalQueueView({events,role,upd,showT,askConfirm,isMobile}){
     <div style={{fontWeight:700,marginBottom:2}}>📝 Alasan Kabag menarik (perlu ditindaklanjuti):</div>{ev.catatanKabag}
   </div>}
 </div>}
+          {/* Riwayat alur (audit) */}
+          <div style={{marginBottom:10}}><AuditTimeline ev={ev}/></div>
         </div>
         {/* Zona aksi — selalu terlihat */}
         <div style={{padding:"0 18px 16px"}}>
@@ -6052,7 +6194,20 @@ export default function App(){
 
   const showT=(msg,type="ok")=>{if(type==="ok")haptic(40);else if(type==="warn")haptic(80);else if(type==="error")haptic([50,30,50]);setToast({msg,type});setTimeout(()=>setToast(null),type==="error"?5000:type==="warn"?4000:3000);};
   _toast.fn=showT; // bridge for components without showT prop
-  const updAndSync=useCallback((id,patch)=>{setEvents(p=>{const next=p.map(e=>e.id===id?{...e,...patch}:e);const ev=next.find(e=>e.id===id);if(ev)dbUpsert(ev).catch(console.error);return next;});},[]);
+  const updAndSync=useCallback((id,patch)=>{
+    setEvents(p=>{
+      const prev=p.find(e=>e.id===id);
+      let finalPatch=patch;
+      if(prev&&user){
+        const tlNew=appendTimelineEntries(prev,patch,user);
+        if(tlNew){finalPatch={...patch,timeline:[...(prev.timeline||[]),...tlNew]};}
+      }
+      const next=p.map(e=>e.id===id?{...e,...finalPatch}:e);
+      const ev=next.find(e=>e.id===id);
+      if(ev)dbUpsert(ev).catch(console.error);
+      return next;
+    });
+  },[user]);
   const askConfirm=(title,body,onConfirm,confirmLabel="Ya, Lanjutkan",confirmColor="#DC2626")=>{
     setConfirmDlg({title,body,onConfirm,confirmLabel,confirmColor});
   };
@@ -6298,7 +6453,8 @@ const submit = async () => {
       }
     }
     else{
-      const n={...formDataToSave,id:evId,alur:"draft",submittedBy:user?.username,catatanTolak:"",statusWK:null,statusWWK:null,perwakilanWK:"",perwakilanWWK:"",delegasiKeWWK:false,besertaIstriWK:!!form.besertaIstriWK,besertaIstriWWK:!!form.besertaIstriWWK,sambutanFile:null,sambutanNama:"",catatanPimpinan:"",tersembunyi:false,alurHapus:null};
+      const _createTL=[{at:new Date().toISOString(),action:"create",actor:user?.username,actor_role:user?.role}];
+      const n={...formDataToSave,id:evId,alur:"draft",submittedBy:user?.username,catatanTolak:"",statusWK:null,statusWWK:null,perwakilanWK:"",perwakilanWWK:"",delegasiKeWWK:false,besertaIstriWK:!!form.besertaIstriWK,besertaIstriWWK:!!form.besertaIstriWWK,sambutanFile:null,sambutanNama:"",catatanPimpinan:"",tersembunyi:false,alurHapus:null,timeline:_createTL};
       setEvents(p=>[...p,n]);
       await dbUpsert(n).catch(console.error);
       if(conflict)showT("Potensi tabrakan jadwal!","warn");else showT("Draft disimpan. Kirim ke Kasubbag.");
@@ -8099,6 +8255,8 @@ function KabagDashboard({events, user, upd, showT, askConfirm, deleteAndSync, is
             {ev.besertaIstriWK&&<span title="Wali Kota hadir bersama istri" style={{fontSize:13,padding:"2px 8px",borderRadius:10,background:"#F1F5F9",border:"1px solid #CBD5E1",color:"#334155",fontWeight:600}}>Wali Kota beserta Istri</span>}
             {ev.besertaIstriWWK&&<span title="Wakil Wali Kota hadir bersama istri" style={{fontSize:13,padding:"2px 8px",borderRadius:10,background:"#F1F5F9",border:"1px solid #CBD5E1",color:"#334155",fontWeight:600}}>Wakil Wali Kota beserta Istri</span>}
           </div>}
+          {/* Riwayat alur (audit) */}
+          <div style={{marginTop:10,marginBottom:6}}><AuditTimeline ev={ev} compact/></div>
           {/* Aksi */}
           <div style={{marginTop:12,display:"flex",flexDirection:"column",gap:8}}>
             <button disabled={busyId===ev.id} onClick={()=>askConfirm(
@@ -8472,6 +8630,8 @@ function KasubbagDashboard({events, user, upd, showT, askConfirm, isMobile, onPe
     <div style={{fontWeight:700,marginBottom:2}}>📝 Alasan Kabag menarik (perlu ditindaklanjuti):</div>{ev.catatanKabag}
   </div>}
 </div>}
+          {/* Riwayat alur (audit) */}
+          <div style={{marginTop:8,marginBottom:10}}><AuditTimeline ev={ev} compact/></div>
           <div style={{display:"flex",flexDirection:"column",gap:8}}>
             <button onClick={()=>askConfirm(
               "Verifikasi & Teruskan ke Kabag?",
