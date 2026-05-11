@@ -8046,6 +8046,13 @@ function KabagDashboard({events, user, upd, showT, askConfirm, deleteAndSync, is
 
   const AntrianCard=({ev})=>{
     const exp=expandedId===ev.id;
+    const ALUR_STEPS=[
+      {key:"draft",            label:"Draft",    color:"#94A3B8"},
+      {key:"menunggu_kasubbag",label:"Kasubbag", color:"#3B82F6"},
+      {key:"menunggu_kabag",   label:"Kabag",    color:"#8B5CF6"},
+      {key:"disetujui",        label:"Tayang",   color:"#10B981"},
+    ];
+    const alurIdx=ALUR_STEPS.findIndex(s=>s.key===ev.alur);
     return(
       <div style={{background:"white",borderRadius:14,marginBottom:10,overflow:"hidden",border:"1.5px solid #DBEAFE",boxShadow:"0 2px 10px rgba(10,22,40,0.07)"}}>
         <div style={{padding:"14px 16px",cursor:"pointer",display:"flex",gap:12,alignItems:"flex-start"}} onClick={()=>setExpanded(exp?null:ev.id)}>
