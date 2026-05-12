@@ -2212,6 +2212,169 @@ function DraftProgressView({events,user,upd,showT,askConfirm,setTab,isMobile,set
   );
 }
 
+// ==================== RIWAYAT ALUR (Audit) ============================
+// Halaman khusus untuk audit timeline jadwal. Bisa diakses oleh
+// admin_rk, kasubbag_protokol, dan kabag. Untuk admin_rk hanya jadwal
+// yang dia ajukan; untuk kasubbag/kabag semua jadwal.
+function AuditPage({events,user,role,isMobile}){
+  const NAVY="#0A1628";
+  const [q,setQ]=React.useState("");
+  const [filterAction,setFilterAction]=React.useState("");
+  const [filterDate,setFilterDate]=React.useState("");
+  const [openId,setOpenId]=React.useState(null);
+
+  // Admin RK hanya melihat jadwalnya sendiri; kasubbag & kabag lihat semua.
+  const visible=React.useMemo(()=>{
+    let list=events.filter(e=>!e.tersembunyi);
+    if(role==="admin_rk")list=list.filter(e=>e.submittedBy===user?.username);
+    return list;
+  },[events,role,user]);
+
+  // Hitung waktu transisi terakhir untuk sort
+  const lastAt=ev=>{
+    const tl=ev.timeline||[];
+    if(!tl.length)return "";
+    return tl[tl.length-1].at||"";
+  };
+
+  const filtered=visible.filter(ev=>{
+    const tl=ev.timeline||[];
+    if(tl.length===0)return false; // sembunyikan jadwal yg belum punya riwayat sama sekali
+    if(q.trim()){
+      const needle=q.toLowerCase();
+      if(!(ev.namaAcara||"").toLowerCase().includes(needle)
+        && !(ev.penyelenggara||"").toLowerCase().includes(needle)
+        && !(ev.lokasi||"").toLowerCase().includes(needle)
+        && !((ev.submittedBy||"").toLowerCase().includes(needle))) return false;
+    }
+    if(filterAction){
+      if(!tl.some(t=>t.action===filterAction)) return false;
+    }
+    if(filterDate){
+      if(!tl.some(t=>(t.at||"").startsWith(filterDate))) return false;
+    }
+    return true;
+  }).sort((a,b)=>(lastAt(b)||"").localeCompare(lastAt(a)||""));
+
+  // Statistik total events
+  const stats=React.useMemo(()=>{
+    const counts={};
+    visible.forEach(ev=>(ev.timeline||[]).forEach(t=>{counts[t.action]=(counts[t.action]||0)+1;}));
+    return counts;
+  },[visible]);
+
+  const ACTION_OPTIONS=Object.keys(TIMELINE_LABEL);
+
+  const fmtRingkas=(iso)=>{
+    if(!iso)return "—";
+    try{
+      const d=new Date(iso);
+      return d.toLocaleDateString("id-ID",{day:"numeric",month:"short"})+" "+d.toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit",hour12:false});
+    }catch{return iso;}
+  };
+
+  const namaActor=(un)=>{
+    try{return loadUsers().find(u=>u.username===un)?.nama||un;}catch{return un;}
+  };
+
+  return (
+    <div style={{padding:isMobile?"12px":"20px",maxWidth:900,margin:"0 auto"}}>
+      <div style={{marginBottom:10}}>
+        <div style={{fontSize:18,fontWeight:800,color:NAVY,marginBottom:3}}>🕓 Riwayat Alur Jadwal</div>
+        <div style={{fontSize:13,color:"#64748B"}}>
+          Catatan audit setiap perubahan alur jadwal — kapan diajukan, diteruskan, disetujui, atau ditarik, beserta nama pelaku.
+        </div>
+      </div>
+
+      {/* Statistik singkat */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(110px,1fr))",gap:8,marginBottom:14}}>
+        {[
+          {k:"submit",     l:"Diajukan"},
+          {k:"forward_to_kabag",l:"Ke Kabag"},
+          {k:"publish",    l:"Disetujui"},
+          {k:"return_by_kasubbag",l:"Dikembalikan"},
+          {k:"reject_by_kabag",l:"Ditolak"},
+          {k:"recall_by_kabag",l:"Ditarik"},
+        ].map(s=>(
+          <div key={s.k} style={{background:"white",border:"1px solid #E2E8F0",borderRadius:9,padding:"8px 12px"}}>
+            <div style={{fontSize:11,color:"#94A3B8",fontWeight:700,textTransform:"uppercase",letterSpacing:0.4}}>{s.l}</div>
+            <div style={{fontSize:18,fontWeight:800,color:NAVY}}>{stats[s.k]||0}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Filter */}
+      <div style={{background:"white",border:"1px solid #E2E8F0",borderRadius:11,padding:10,marginBottom:14,display:"flex",gap:8,flexWrap:"wrap"}}>
+        <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Cari nama acara, lokasi, pengaju..."
+          style={{flex:"2 1 240px",padding:"8px 12px",borderRadius:8,border:"1.5px solid #E2E8F0",fontSize:13}}/>
+        <select value={filterAction} onChange={e=>setFilterAction(e.target.value)}
+          style={{flex:"1 1 160px",padding:"8px 12px",borderRadius:8,border:"1.5px solid #E2E8F0",fontSize:13,background:"white"}}>
+          <option value="">Semua jenis aksi</option>
+          {ACTION_OPTIONS.map(k=>(<option key={k} value={k}>{TIMELINE_LABEL[k].label}</option>))}
+        </select>
+        <input type="date" value={filterDate} onChange={e=>setFilterDate(e.target.value)}
+          style={{flex:"1 1 150px",padding:"8px 12px",borderRadius:8,border:"1.5px solid #E2E8F0",fontSize:13}}/>
+        {(q||filterAction||filterDate)&&(
+          <button onClick={()=>{setQ("");setFilterAction("");setFilterDate("");}}
+            style={{padding:"8px 14px",borderRadius:8,border:"1.5px solid #E2E8F0",background:"white",cursor:"pointer",fontSize:12,fontWeight:700,color:"#64748B"}}>Reset</button>
+        )}
+      </div>
+
+      <div style={{fontSize:12,color:"#94A3B8",marginBottom:10}}>
+        Menampilkan {filtered.length} jadwal {visible.length>filtered.length?"(dari "+visible.length+")":""}
+      </div>
+
+      {filtered.length===0&&(
+        <div style={{background:"#F8FAFC",borderRadius:12,padding:40,textAlign:"center",color:"#94A3B8"}}>
+          <div style={{fontSize:32,marginBottom:8}}>🕓</div>
+          <div style={{fontSize:14,fontWeight:600}}>Belum ada jadwal dengan riwayat alur</div>
+          <div style={{fontSize:12,marginTop:4}}>Setiap aksi baru (kirim, verifikasi, setujui, tarik) akan tercatat di sini.</div>
+        </div>
+      )}
+
+      {filtered.map(ev=>{
+        const tl=ev.timeline||[];
+        const last=tl[tl.length-1];
+        const first=tl[0];
+        const open=openId===ev.id;
+        const lastMeta=last?TIMELINE_LABEL[last.action]||TIMELINE_LABEL.update_alur:null;
+        return (
+          <div key={ev.id} style={{background:"white",border:"1px solid #E2E8F0",borderRadius:12,marginBottom:10,overflow:"hidden",boxShadow:"0 1px 3px rgba(15,23,42,0.04)"}}>
+            <div onClick={()=>setOpenId(open?null:ev.id)}
+              style={{padding:"12px 14px",cursor:"pointer",display:"flex",gap:12,alignItems:"flex-start"}}>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:14,fontWeight:800,color:"#0F172A",marginBottom:2}}>{ev.namaAcara}</div>
+                <div style={{fontSize:12,color:"#64748B",marginBottom:4}}>
+                  {ev.tanggal} · {ev.jam} WITA · {ev.penyelenggara||"—"}
+                </div>
+                {last&&(
+                  <div style={{fontSize:12,color:lastMeta?.color||"#475569"}}>
+                    <b>Terakhir:</b> {lastMeta?.icon} {lastMeta?.label} — {fmtRingkas(last.at)} oleh {namaActor(last.actor)}
+                  </div>
+                )}
+                {first&&first!==last&&(
+                  <div style={{fontSize:11,color:"#94A3B8",marginTop:2}}>
+                    Diajukan: {fmtRingkas(first.at)} oleh {namaActor(first.actor)}
+                  </div>
+                )}
+              </div>
+              <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
+                <span style={{fontSize:11,padding:"2px 8px",borderRadius:10,background:"#F1F5F9",color:"#475569",fontWeight:700}}>{tl.length} aksi</span>
+                <span style={{fontSize:13,color:"#94A3B8"}}>{open?"▲":"▼"}</span>
+              </div>
+            </div>
+            {open&&(
+              <div style={{padding:"4px 14px 14px",background:"#FAFBFF",borderTop:"1px solid #E2E8F0"}}>
+                <AuditTimeline ev={ev}/>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ==================== APPROVAL QUEUE VIEW (Kasubbag / Kabag) ====================
 function ApprovalQueueView({events,role,upd,showT,askConfirm,isMobile}){
   const NAVY="#0A1628",GOLD="#C9A84C";
@@ -6870,6 +7033,7 @@ const TH={
       {key:"pantau",  icon:"✏️", label:"Input & Pantau"},
       {key:"tayang",  icon:"📅", label:"Agenda"},
       {key:"tamu",    icon:"👥", label:"Manajemen Tamu"},
+      {key:"audit",   icon:"🕓", label:"Riwayat Alur"},
     ]:[]),
     // ── Admin Generator Undangan — hanya tampil menu generator ──
     ...(role==="admin_undangan"?[
@@ -6880,6 +7044,7 @@ const TH={
       {key:"dashboard",icon:"📋", label:"Antrian"},
       {key:"tayang",  icon:"📅", label:"Agenda"},
       {key:"tamu",    icon:"👥", label:"Manajemen Tamu"},
+      {key:"audit",   icon:"🕓", label:"Riwayat Alur"},
     ]:[]),
     // ── Kasubbag Komdokpim ──
     ...(role==="kasubbag_komdokpim"?[
@@ -6893,6 +7058,7 @@ const TH={
       {key:"tayang",   icon:"📅", label:"Agenda"},
       {key:"tamu",     icon:"👥", label:"Manajemen Tamu"},
       {key:"newsroom", icon:"📰", label:"Monitoring Komdok"},
+      {key:"audit",    icon:"🕓", label:"Riwayat Alur"},
     ]:[]),
     // ── Ajudan Wali Kota / Wakil Wali Kota ──
     ...((role==="ajudan_walikota"||role==="ajudan_wakilwalikota")?[
@@ -6992,6 +7158,7 @@ const TH={
     {key:"pantau", label:"Input & Pantau", icon:"✏️"},
     {key:"tayang", label:"Agenda",          icon:"📅"},
     {key:"tamu",   label:"Tamu",            icon:"👥"},
+    {key:"audit",  label:"Riwayat",         icon:"🕓"},
   ]:[]),
   // ── Admin Generator Undangan — hanya tampil generator ──
   ...(role==="admin_undangan"?[
@@ -7002,6 +7169,7 @@ const TH={
     {key:"dashboard",label:"Antrian", icon:"📋"},
     {key:"tayang", label:"Agenda",  icon:"📅"},
     {key:"tamu",   label:"Tamu",    icon:"👥"},
+    {key:"audit",  label:"Riwayat", icon:"🕓"},
   ]:[]),
   // ── Kasubbag Komdokpim ──
   ...(role==="kasubbag_komdokpim"?[
@@ -7015,6 +7183,7 @@ const TH={
     {key:"tayang",   label:"Agenda",  icon:"📅"},
     {key:"tamu",     label:"Tamu",    icon:"👥"},
     {key:"newsroom", label:"Komdok",  icon:"📰"},
+    {key:"audit",    label:"Riwayat", icon:"🕓"},
   ]:[]),
   // ── Ajudan WK / WWK ──
   ...((role==="ajudan_walikota"||role==="ajudan_wakilwalikota")?[
@@ -9814,7 +9983,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
 
 
   // ==================== MAIN CONTENT ====================
-  const pageTitle=tab==="ekinerja"?"Generator E-Kinerja":tab==="tayang"?"Agenda Kegiatan Pimpinan":tab==="pantau"?"Input & Pantau Jadwal":tab==="undangan"?"Generator Undangan Resmi":tab==="form"?"Input Jadwal Baru":tab==="semua"?"Semua Jadwal":tab==="penugasan"?"Penugasan Saya":tab==="jadwal"?KASUBBAG_ROLES.includes(role)||role==="kabag"?"Antrian Approval":"Jadwal":"Jadwal";
+  const pageTitle=tab==="ekinerja"?"Generator E-Kinerja":tab==="tayang"?"Agenda Kegiatan Pimpinan":tab==="pantau"?"Input & Pantau Jadwal":tab==="undangan"?"Generator Undangan Resmi":tab==="form"?"Input Jadwal Baru":tab==="semua"?"Semua Jadwal":tab==="penugasan"?"Penugasan Saya":tab==="audit"?"Riwayat Alur Jadwal":tab==="jadwal"?KASUBBAG_ROLES.includes(role)||role==="kabag"?"Antrian Approval":"Jadwal":"Jadwal";
 
   // ═══════════════════════════════════════════════════════════════
   // FITUR 1: SAPAAN CERDAS + RINGKASAN PAGI
@@ -10211,6 +10380,9 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
         ?<KasubbagDashboard events={events} user={user} upd={upd} showT={showT} askConfirm={askConfirm} isMobile={isMobile} onPenugasan={ev=>setPenugasanEv(ev)}/>
 
       /* 5. Admin RK: Input & Pantau terpadu */
+      :(["admin_rk","kasubbag_protokol","kabag"].includes(role)&&tab==="audit")
+        ?<AuditPage events={events} user={user} role={role} isMobile={isMobile}/>
+
       :(role==="admin_rk"&&tab==="pantau")
         ?<DraftProgressView events={events} user={user} upd={upd} showT={showT} askConfirm={askConfirm} setTab={setTab} isMobile={isMobile} setForm={setForm} setEditId={setEditId} deleteAndSync={deleteAndSync} onAddNew={()=>{setForm(emptyForm);setEditId(null);setTab("form");}}/>
 
