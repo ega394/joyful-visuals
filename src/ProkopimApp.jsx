@@ -2867,7 +2867,7 @@ function AdminModal({onClose, showT, events, updAndSync}) {
           
           {/* 4. MENU RESPONSIVE (Mencegah menu ngumpet) */}
           <div style={{display: "flex", gap: 5, flexWrap: "wrap", paddingBottom: "10px"}}>
-            {[{k: "users", l: "Pengguna"}, {k: "pendaftaran", l: "Pendaftaran" + (pendRegs.length > 0 ? " (" + pendRegs.length + ")" : "")}, {k: "add", l: "Tambah"}, {k: "pw", l: "Reset PW"}, {k: "import", l: "Import"}, {k: "export", l: "📦 Backup"}].map(t => (
+            {[{k: "users", l: "Pengguna"}, {k: "pendaftaran", l: "Pendaftaran" + (pendRegs.length > 0 ? " (" + pendRegs.length + ")" : "")}, {k: "add", l: "Tambah"}, {k: "ruangan", l: "🏛️ Pengelola Ruangan"}, {k: "pw", l: "Reset PW"}, {k: "import", l: "Import"}, {k: "export", l: "📦 Backup"}].map(t => (
               <button key={t.k} onClick={() => { setTabA(t.k); setErr(""); }} style={{padding: "8px 12px", border: "none", background: tabA === t.k ? "#0A1628" : "#f1f5f9", color: tabA === t.k ? "white" : (t.k === "pendaftaran" && pendRegs.length > 0 ? "#DC2626" : "#64748b"), borderRadius: 8, fontWeight: 700, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap"}}>{t.l}</button>
             ))}
           </div>
@@ -2998,6 +2998,8 @@ function AdminModal({onClose, showT, events, updAndSync}) {
               ))}
             </div>
           )}
+
+          {tabA === "ruangan" && <RoomManagement user={loadUsers().find(u=>u.role==="kabag")||null} isMobile={false}/>}
 
           {tabA === "pw" && <div style={{background: "#fef3c7", borderRadius: 10, padding: "12px 14px", fontSize: 13, color: "#92400e"}}>Untuk reset password pengguna, gunakan tab <b>Pengguna</b> lalu klik Edit pada akun yang bersangkutan, dan isi bagian Password Baru.</div>}
           
@@ -7114,7 +7116,6 @@ const TH={
       {key:"tamu",          icon:"👥", label:"Manajemen Tamu"},
       {key:"newsroom",      icon:"📰", label:"Monitoring Komdok"},
       {key:"ruangan",       icon:"🏛️", label:"Peminjaman Ruangan"},
-      {key:"ruangan_mgmt",  icon:"👤", label:"Pengelola Ruangan"},
     ]:[]),
     // ── Staf/Kasubbag dengan akses kelola ruangan ──
     ...((user?.can_manage_rooms&&role!=="kabag")?[
@@ -10475,10 +10476,6 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
       /* 8b. Peminjaman Ruangan — dashboard admin */
       :tab==="ruangan"&&(role==="kabag"||user?.can_manage_rooms)
         ?<BookingDashboard user={user} isMobile={isMobile}/>
-
-      /* 8c. Pengelola Ruangan — Kabag: tunjuk staf */
-      :tab==="ruangan_mgmt"&&role==="kabag"
-        ?<RoomManagement user={user} isMobile={isMobile}/>
 
       /* 9. Mitra Kerja — Joyful MitraView */
       :role==="mitra_kerja"&&(tab==="mitra"||tab==="jadwal")
