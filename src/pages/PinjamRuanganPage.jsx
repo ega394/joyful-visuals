@@ -83,7 +83,7 @@ function SlotBar({ status }) {
 }
 
 // ── Kalender bulanan ──────────────────────────────────────────
-function RoomCalendar({ bookings, rooms, year, month }) {
+function RoomCalendar({ bookings, rooms, year, month, highlightRange }) {
   const firstOfMonth = new Date(year, month-1, 1);
   const daysInMonth  = new Date(year, month, 0).getDate();
   const startDow     = firstOfMonth.getDay();
@@ -93,6 +93,16 @@ function RoomCalendar({ bookings, rooms, year, month }) {
   for (let i=0; i<startDow; i++) cells.push(null);
   for (let d=1; d<=daysInMonth; d++)
     cells.push(`${year}-${String(month).padStart(2,"0")}-${String(d).padStart(2,"0")}`);
+
+  // Highlight membantu: cek apakah tanggal & ruangan masuk pilihan user
+  const inHighlight = (dateStr, roomId, session) => {
+    if (!highlightRange?.start || !highlightRange?.end) return false;
+    if (dateStr < highlightRange.start || dateStr > highlightRange.end) return false;
+    if (highlightRange.room_id && highlightRange.room_id !== roomId) return false;
+    if (!highlightRange.session) return true;
+    if (highlightRange.session === "Full_Day") return true;
+    return highlightRange.session === session;
+  };
 
   return (
     <div style={{display:"flex",flexDirection:"column",gap:28}}>
@@ -128,27 +138,38 @@ function RoomCalendar({ bookings, rooms, year, month }) {
                   const siang = slotStatus(bookings,room.id,dateStr,"Siang");
                   const isToday = dateStr===today;
                   const isPast  = dateStr<today;
+                  const isHighlighted = highlightRange && inHighlight(dateStr,room.id,null);
+                  const pagiHL  = highlightRange && inHighlight(dateStr,room.id,"Pagi");
+                  const siangHL = highlightRange && inHighlight(dateStr,room.id,"Siang");
                   return (
                     <div key={dateStr} style={{
-                      border:`2px solid ${isToday ? GOLD : BORDER}`,
+                      border:isHighlighted
+                        ? `2px solid ${"#2563EB"}`
+                        : `2px solid ${isToday ? GOLD : BORDER}`,
                       borderRadius:8,
                       padding:"5px 4px 4px",
-                      background:isPast?"#FAFAFA":"white",
+                      background:isHighlighted?"#EFF6FF":(isPast?"#FAFAFA":"white"),
                       opacity:isPast?0.55:1,
-                      boxShadow:isToday?"0 0 0 2px rgba(201,168,76,0.25)":undefined,
+                      boxShadow:isHighlighted
+                        ? "0 0 0 2px rgba(37,99,235,0.25)"
+                        : (isToday?"0 0 0 2px rgba(201,168,76,0.25)":undefined),
                     }}>
                       <div style={{
                         textAlign:"center",
                         fontSize:12,
-                        fontWeight:isToday?900:500,
-                        color:isToday?NAVY:"#374151",
+                        fontWeight:(isToday||isHighlighted)?900:500,
+                        color:isHighlighted?"#1D4ED8":(isToday?NAVY:"#374151"),
                         marginBottom:4,
                       }}>
                         {parseInt(dateStr.slice(8))}
                       </div>
                       <div style={{display:"flex",flexDirection:"column",gap:2}}>
-                        <SlotBar status={pagi}/>
-                        <SlotBar status={siang}/>
+                        <div style={pagiHL?{outline:"1.5px solid #2563EB",borderRadius:5}:undefined}>
+                          <SlotBar status={pagi}/>
+                        </div>
+                        <div style={siangHL?{outline:"1.5px solid #2563EB",borderRadius:5}:undefined}>
+                          <SlotBar status={siang}/>
+                        </div>
                       </div>
                     </div>
                   );
@@ -341,16 +362,27 @@ function StatusTracker() {
                         <b>Keterangan:</b> {b.notes}
                       </div>
                     )}
-                    {b.status==="Pending" && (
-                      <div style={{padding:"0 14px 14px"}}>
-                        <button onClick={()=>doCancel(b.id,b.booking_code)} disabled={cancelling}
-                          style={{
-                            padding:"8px 18px",borderRadius:8,border:`1.5px solid ${RED}`,
-                            background:"white",color:RED,fontWeight:700,fontSize:13,
-                            cursor:cancelling?"not-allowed":"pointer",
-                          }}>
-                          Batalkan Peminjaman
-                        </button>
+                    {(b.status==="Pending" || b.status==="Approved") && (
+                      <div style={{padding:"0 14px 14px",display:"flex",gap:8,flexWrap:"wrap"}}>
+                        {b.status==="Pending" && (
+                          <button onClick={()=>doCancel(b.id,b.booking_code)} disabled={cancelling}
+                            style={{
+                              padding:"8px 18px",borderRadius:8,border:`1.5px solid ${RED}`,
+                              background:"white",color:RED,fontWeight:700,fontSize:13,
+                              cursor:cancelling?"not-allowed":"pointer",
+                            }}>
+                            Batalkan Peminjaman
+                          </button>
+                        )}
+                        {b.status==="Approved" && (
+                          <button onClick={()=>printBookingPublic(b)}
+                            style={{
+                              padding:"8px 18px",borderRadius:8,border:"none",
+                              background:NAVY,color:"white",fontWeight:700,fontSize:13,cursor:"pointer",
+                            }}>
+                            🖨️ Cetak Surat Konfirmasi
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
@@ -362,8 +394,51 @@ function StatusTracker() {
   );
 }
 
+// ── Print helper untuk peminjam publik ────────────────────────
+function printBookingPublic(b) {
+  const w = window.open("", "_blank", "width=800,height=900");
+  if (!w) { alert("Mohon izinkan popup untuk mencetak."); return; }
+  const esc = s => String(s||"").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const fmtFull = s => s ? new Date(s+"T00:00:00").toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long",year:"numeric"}) : "-";
+  const ST = { Pagi:"07.30 – 12.00 WITA", Siang:"12.30 – 16.30 WITA", Full_Day:"Seharian (07.30 – 16.30 WITA)" };
+  const today = new Date().toLocaleDateString("id-ID",{day:"numeric",month:"long",year:"numeric"});
+  const tgl = b.start_date===b.end_date ? fmtFull(b.start_date) : `${fmtFull(b.start_date)} s/d ${fmtFull(b.end_date)}`;
+
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8"/><title>Konfirmasi ${esc(b.booking_code)}</title><style>
+    *{box-sizing:border-box}body{font-family:Arial,sans-serif;font-size:11pt;margin:28px;color:#111;line-height:1.5}
+    .head{text-align:center;border-bottom:3px double #0A1628;padding-bottom:12px;margin-bottom:24px}
+    .head h2{margin:2px 0 4px;font-size:14pt;color:#0A1628}.head p{margin:0;font-size:10pt;color:#444}
+    .code{font-family:monospace;font-size:14pt;font-weight:900;color:#0A1628;background:#FEF3C7;border:2px solid #C9A84C;padding:6px 14px;border-radius:8px;letter-spacing:2px;display:inline-block}
+    .badge{display:inline-block;padding:4px 12px;border-radius:20px;font-weight:700;font-size:10pt;background:#D1FAE5;color:#065F46;border:1px solid #6EE7B7}
+    h1{font-size:14pt;text-align:center;margin:14px 0 20px;text-decoration:underline}
+    table{width:100%;border-collapse:collapse;margin:14px 0}
+    td{padding:8px 10px;border-bottom:1px solid #E5E7EB;vertical-align:top;font-size:11pt}
+    td.lbl{width:35%;color:#555;font-weight:600}
+    .footer{margin-top:34px;text-align:right}.sp{height:72px}
+    @media print{body{margin:16mm}}</style></head><body>
+    <div class="head"><p>PEMERINTAH KOTA TARAKAN</p><h2>BAGIAN PROTOKOL &amp; KOMUNIKASI PIMPINAN</h2><p style="font-size:9pt">prokopim.tarakankota.go.id</p></div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:14px"><div><div style="font-size:9pt;color:#666">Kode Booking</div><div class="code">${esc(b.booking_code)}</div></div><div style="text-align:right"><div style="font-size:9pt;color:#666;margin-bottom:4px">Status</div><span class="badge">DISETUJUI</span></div></div>
+    <h1>SURAT KONFIRMASI PEMINJAMAN RUANGAN</h1>
+    <table>
+      <tr><td class="lbl">Nama Acara / Kegiatan</td><td><b>${esc(b.event_name)}</b></td></tr>
+      <tr><td class="lbl">Instansi / Pemohon</td><td>${esc(b.instansi)}</td></tr>
+      <tr><td class="lbl">PIC / Penanggung Jawab</td><td>${esc(b.pic_name)}</td></tr>
+      <tr><td class="lbl">Kontak WhatsApp</td><td>${esc(b.pic_wa)}</td></tr>
+      <tr><td class="lbl">Ruangan</td><td><b>${esc(b.rooms?.name||"-")}</b> (Kapasitas ${b.rooms?.capacity||"-"} orang)</td></tr>
+      <tr><td class="lbl">Jumlah Peserta</td><td>${b.participant_count} orang</td></tr>
+      <tr><td class="lbl">Tanggal Penggunaan</td><td>${tgl}</td></tr>
+      <tr><td class="lbl">Sesi / Waktu</td><td>${esc(ST[b.session]||b.session)}</td></tr>
+      ${b.srikandi_ref ? `<tr><td class="lbl">No. Surat Srikandi</td><td>${esc(b.srikandi_ref)}</td></tr>` : ""}
+    </table>
+    <p style="margin-top:14px">Dengan ini, peminjaman ruangan di atas <b>DISETUJUI</b>. Pemohon diharapkan:</p>
+    <ol style="margin:6px 0 14px 22px"><li>Hadir tepat waktu sesuai jadwal di atas.</li><li>Menjaga kebersihan dan kerapian ruangan.</li><li>Mengembalikan ruangan dalam kondisi semula setelah selesai digunakan.</li><li>Menghubungi staf Bagian Prokopim apabila ada perubahan jadwal.</li></ol>
+    <div class="footer"><div style="display:inline-block;text-align:center;min-width:240px"><p>Tarakan, ${today}</p><p>Pengelola Ruangan,</p><div class="sp"></div><p><b><u>${esc(b.reviewed_by||"_____________________")}</u></b></p><p style="font-size:9pt;color:#666">Bagian Prokopim Kota Tarakan</p></div></div>
+    <script>window.onload=()=>{setTimeout(()=>window.print(),300)}</script></body></html>`);
+  w.document.close();
+}
+
 // ── Form peminjaman ───────────────────────────────────────────
-function BookingForm({ rooms, onSuccess }) {
+function BookingForm({ rooms, bookings, onSuccess }) {
   const today = toYMD(new Date());
   const [form,setForm] = useState({
     room_id:"",instansi:"",pic_name:"",pic_wa:"",event_name:"",
@@ -377,6 +452,31 @@ function BookingForm({ rooms, onSuccess }) {
   const f = (k,v) => setForm(p=>({...p,[k]:v}));
   const isMultiDay = form.end_date && form.start_date && form.end_date!==form.start_date;
   const selectedRoom = rooms.find(r=>r.id===Number(form.room_id));
+
+  // Kalender bulan = ambil dari start_date
+  const [calOffset, setCalOffset] = useState(0); // 0 = bulan dari start_date
+  const baseDate = new Date(form.start_date+"T00:00:00");
+  const calDate  = new Date(baseDate.getFullYear(), baseDate.getMonth()+calOffset, 1);
+  const calYear  = calDate.getFullYear();
+  const calMonth = calDate.getMonth()+1;
+
+  // Filter rooms yang ditampilkan: jika user pilih ruangan, hanya itu
+  const calRooms = selectedRoom ? [selectedRoom] : rooms;
+
+  // Cek apakah slot yang dipilih user konflik
+  const slotConflict = (() => {
+    if (!form.room_id || !form.session || !form.start_date || !form.end_date) return null;
+    const conflict = form.session === "Full_Day" ? ["Pagi","Siang","Full_Day"]
+                   : form.session === "Pagi"     ? ["Pagi","Full_Day"]
+                   :                                ["Siang","Full_Day"];
+    const overlap = (bookings||[]).find(b =>
+      b.room_id === Number(form.room_id) &&
+      b.status !== "Cancelled" && b.status !== "Rejected" &&
+      b.start_date <= form.end_date && b.end_date >= form.start_date &&
+      conflict.includes(b.session)
+    );
+    return overlap || null;
+  })();
 
   const handleSubmit = async e => {
     e.preventDefault();
@@ -436,6 +536,61 @@ function BookingForm({ rooms, onSuccess }) {
         <span style={{fontSize:16,flexShrink:0,marginTop:1}}>ℹ️</span>
         <span>Pengajuan akan diproses oleh staf Bagian Protokol & Komunikasi Pimpinan. Konfirmasi dikirim ke WhatsApp Anda.</span>
       </div>
+
+      {/* Kalender ketersediaan (compact) */}
+      <div style={{
+        background:"white",borderRadius:14,padding:"16px 16px 14px",
+        border:`1.5px solid ${BORDER}`,marginBottom:16,
+        boxShadow:"0 1px 4px rgba(0,0,0,0.05)",
+      }}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10,flexWrap:"wrap",gap:8}}>
+          <div>
+            <div style={{fontSize:12,fontWeight:700,color:NAVY,letterSpacing:1,textTransform:"uppercase"}}>
+              Cek Ketersediaan
+            </div>
+            <div style={{fontSize:11,color:GRAY,marginTop:1}}>
+              {selectedRoom
+                ? `Menampilkan jadwal ${selectedRoom.name}`
+                : "Pilih ruangan untuk lihat detail per ruangan"}
+            </div>
+          </div>
+          <div style={{display:"flex",gap:6,alignItems:"center"}}>
+            <button type="button" onClick={()=>setCalOffset(o=>o-1)}
+              style={{width:28,height:28,borderRadius:7,border:`1.5px solid ${BORDER}`,
+                background:"white",cursor:"pointer",fontWeight:700,fontSize:13}}>‹</button>
+            <div style={{fontSize:13,fontWeight:700,color:NAVY,minWidth:120,textAlign:"center"}}>
+              {MONTH_NAMES[calMonth-1]} {calYear}
+            </div>
+            <button type="button" onClick={()=>setCalOffset(o=>o+1)}
+              style={{width:28,height:28,borderRadius:7,border:`1.5px solid ${BORDER}`,
+                background:"white",cursor:"pointer",fontWeight:700,fontSize:13}}>›</button>
+          </div>
+        </div>
+        <RoomCalendar
+          bookings={bookings||[]}
+          rooms={calRooms}
+          year={calYear}
+          month={calMonth}
+          highlightRange={form.start_date && form.end_date ? {start:form.start_date,end:form.end_date,room_id:Number(form.room_id)||null,session:form.session||null} : null}
+        />
+        <Legend/>
+      </div>
+
+      {/* Warning konflik */}
+      {slotConflict && (
+        <div style={{
+          background:RED_BG,border:`1.5px solid ${RED_BORDER}`,
+          borderRadius:10,padding:"12px 14px",marginBottom:16,
+          display:"flex",alignItems:"flex-start",gap:10,
+        }}>
+          <span style={{fontSize:18,flexShrink:0}}>⚠️</span>
+          <div style={{fontSize:13,color:RED}}>
+            <b>Slot tidak tersedia.</b> Sudah ada {slotConflict.status === "Approved" ? "booking disetujui" : "pengajuan menunggu"}:
+            {" "}<i>{slotConflict.event_name}</i> ({slotConflict.start_date}{slotConflict.end_date!==slotConflict.start_date?` s/d ${slotConflict.end_date}`:""}, sesi {slotConflict.session}).
+            <br/>Silakan pilih tanggal/sesi lain.
+          </div>
+        </div>
+      )}
 
       {/* Bagian 1: Identitas */}
       <div style={section}>
@@ -852,7 +1007,7 @@ export default function PinjamRuanganPage() {
         {section==="form" && (
           success
             ? <SuccessView booking={success} onReset={gotoSection}/>
-            : <BookingForm rooms={rooms} onSuccess={setSuccess}/>
+            : <BookingForm rooms={rooms} bookings={bookings} onSuccess={setSuccess}/>
         )}
 
         {/* ── Tracker ── */}

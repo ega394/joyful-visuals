@@ -17,6 +17,9 @@
 const SUPA_URL = process.env.SUPABASE_URL  || process.env.VITE_SUPABASE_URL;
 const SUPA_KEY = process.env.SUPABASE_KEY  || process.env.VITE_SUPABASE_ANON_KEY;
 const FONNTE   = process.env.FONNTE_TOKEN;
+const VAPID_PUBLIC  = process.env.VAPID_PUBLIC;
+const VAPID_PRIVATE = process.env.VAPID_PRIVATE;
+const VAPID_EMAIL   = process.env.VAPID_EMAIL || "mailto:prokopim@tarakankota.go.id";
 
 const H = () => ({
   "Content-Type":  "application/json",
@@ -61,6 +64,43 @@ async function sendWA(to, message) {
       body: JSON.stringify({ target: String(to).replace(/\D/g, ""), message }),
     });
   } catch { /* non-critical */ }
+}
+
+// ── Push notification helper ──────────────────────────────────
+async function sendPushToManagers({ title, body, url, tag }) {
+  if (!VAPID_PUBLIC || !VAPID_PRIVATE) return;
+  let webpush;
+  try { webpush = (await import("web-push")).default || (await import("web-push")); }
+  catch { return; }
+  try { webpush.setVapidDetails(VAPID_EMAIL, VAPID_PUBLIC, VAPID_PRIVATE); }
+  catch { return; }
+
+  // Ambil username pengelola ruangan + kabag
+  const [managers, kabagList] = await Promise.all([
+    sbGet("users?can_manage_rooms=eq.true&select=username").catch(()=>[]),
+    sbGet("users?role=eq.kabag&select=username").catch(()=>[]),
+  ]);
+  const usernames = [...new Set([...(managers||[]),...(kabagList||[])].map(u=>u.username).filter(Boolean))];
+  if (!usernames.length) return;
+
+  // Ambil semua subscription untuk usernames tersebut
+  const list = usernames.map(u => encodeURIComponent(u)).join(",");
+  const subs = await sbGet(`push_subscriptions?username=in.(${list})&select=endpoint,subscription`).catch(()=>[]);
+  if (!subs?.length) return;
+
+  const payload = JSON.stringify({ title, body, url, tag });
+  for (const row of subs) {
+    try {
+      await webpush.sendNotification(row.subscription, payload);
+    } catch (e) {
+      // Subscription kadaluwarsa → hapus
+      if (e.statusCode === 404 || e.statusCode === 410) {
+        await fetch(`${SUPA_URL}/rest/v1/push_subscriptions?endpoint=eq.${encodeURIComponent(row.endpoint)}`, {
+          method: "DELETE", headers: H(),
+        }).catch(()=>{});
+      }
+    }
+  }
 }
 
 // ── Session conflict logic ────────────────────────────────────
@@ -233,6 +273,14 @@ export default async function handler(req, res) {
         (srikandi_ref ? `Srikandi: ${srikandi_ref}\n` : "") +
         `\nSilakan validasi di dashboard Kelola Ruangan.`;
       for (const u of targets) await sendWA(u.noWA, adminMsg);
+
+      // Push notification ke pengelola ruangan (in-app/browser)
+      await sendPushToManagers({
+        title: `🏛️ Pengajuan Ruangan Baru — ${room.name}`,
+        body: `${event_name} (${instansi}) — ${tanggalStr} sesi ${sessionLabel(session)}`,
+        url: "/",
+        tag: `booking-${booking.id}`,
+      });
 
       // WA ke peminjam
       await sendWA(pic_wa,
