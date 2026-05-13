@@ -8,6 +8,7 @@ import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import SuperadminPage from "./pages/SuperadminPage.jsx";
 import TamuPage from "./TamuPage.jsx";
+import PinjamRuanganPage from "./pages/PinjamRuanganPage.jsx";
 
 const queryClient = new QueryClient();
 
@@ -23,6 +24,7 @@ const App = () => {
             <Route path="/superadmin" element={<SuperadminPage />} />
             <Route path="/superadmin/*" element={<SuperadminPage />} />
             <Route path="/tamu" element={<TamuPage />} />
+            <Route path="/pinjamruangan" element={<PinjamRuanganPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

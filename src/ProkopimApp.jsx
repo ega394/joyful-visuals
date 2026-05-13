@@ -8,6 +8,8 @@ import RekapPenugasanBulanan from "./RekapPenugasanBulanan.jsx"
 import WaliKotaAudiensiDashboard from "./WaliKotaAudiensiDashboard.jsx"
 import NewsroomDashboard from "./NewsroomDashboard.jsx";
 import SuperadminPage from "./pages/SuperadminPage.jsx";
+import BookingDashboard from "./components/BookingDashboard.jsx";
+import RoomManagement from "./components/RoomManagement.jsx";
 import { JADWAL_STATUS } from "./lib/statusColors.js";
 
 // ═══════════════════════════════════════════════════════
@@ -7107,10 +7109,16 @@ const TH={
     ]:[]),
     // ── Kabag ──
     ...(role==="kabag"?[
-      {key:"dashboard",icon:"📋", label:"Antrian"},
-      {key:"tayang",   icon:"📅", label:"Agenda"},
-      {key:"tamu",     icon:"👥", label:"Manajemen Tamu"},
-      {key:"newsroom", icon:"📰", label:"Monitoring Komdok"},
+      {key:"dashboard",     icon:"📋", label:"Antrian"},
+      {key:"tayang",        icon:"📅", label:"Agenda"},
+      {key:"tamu",          icon:"👥", label:"Manajemen Tamu"},
+      {key:"newsroom",      icon:"📰", label:"Monitoring Komdok"},
+      {key:"ruangan",       icon:"🏛️", label:"Peminjaman Ruangan"},
+      {key:"ruangan_mgmt",  icon:"👤", label:"Pengelola Ruangan"},
+    ]:[]),
+    // ── Staf/Kasubbag dengan akses kelola ruangan ──
+    ...((user?.can_manage_rooms&&role!=="kabag")?[
+      {key:"ruangan",icon:"🏛️",label:"Peminjaman Ruangan"},
     ]:[]),
     // ── Ajudan Wali Kota / Wakil Wali Kota ──
     ...((role==="ajudan_walikota"||role==="ajudan_wakilwalikota")?[
@@ -7230,10 +7238,15 @@ const TH={
   ]:[]),
   // ── Kabag ──
   ...(role==="kabag"?[
-    {key:"dashboard",label:"Antrian", icon:"📋"},
-    {key:"tayang",   label:"Agenda",  icon:"📅"},
-    {key:"tamu",     label:"Tamu",    icon:"👥"},
-    {key:"newsroom", label:"Komdok",  icon:"📰"},
+    {key:"dashboard",    label:"Antrian", icon:"📋"},
+    {key:"tayang",       label:"Agenda",  icon:"📅"},
+    {key:"tamu",         label:"Tamu",    icon:"👥"},
+    {key:"newsroom",     label:"Komdok",  icon:"📰"},
+    {key:"ruangan",      label:"Ruangan", icon:"🏛️"},
+  ]:[]),
+  // ── Pengelola Ruangan (non-kabag) ──
+  ...((user?.can_manage_rooms&&role!=="kabag")?[
+    {key:"ruangan",label:"Ruangan",icon:"🏛️"},
   ]:[]),
   // ── Ajudan WK / WWK ──
   ...((role==="ajudan_walikota"||role==="ajudan_wakilwalikota")?[
@@ -10458,6 +10471,14 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
       /* 8. Kasubbag/Kabag: Antrian Approval (tab jadwal) */
       :(["kasubbag_protokol","kabag"].includes(role)&&tab==="jadwal")
         ?<ApprovalQueueView events={events} role={role} upd={upd} showT={showT} askConfirm={askConfirm} isMobile={isMobile}/>
+
+      /* 8b. Peminjaman Ruangan — dashboard admin */
+      :tab==="ruangan"&&(role==="kabag"||user?.can_manage_rooms)
+        ?<BookingDashboard user={user} isMobile={isMobile}/>
+
+      /* 8c. Pengelola Ruangan — Kabag: tunjuk staf */
+      :tab==="ruangan_mgmt"&&role==="kabag"
+        ?<RoomManagement user={user} isMobile={isMobile}/>
 
       /* 9. Mitra Kerja — Joyful MitraView */
       :role==="mitra_kerja"&&(tab==="mitra"||tab==="jadwal")
