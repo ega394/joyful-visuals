@@ -314,10 +314,10 @@ export default function BookingDashboard({ user, isMobile }) {
       if (filterRoom)   params.set("room_id", filterRoom);
 
       const [bR, rR] = await Promise.all([
-        fetch(`/api/room-bookings-admin?${params}`, {
+        fetch(`/api/room-booking?admin=1&${params}`, {
           headers: { "X-Username": user?.username || "" },
         }).then(r => r.json()),
-        fetch("/api/rooms").then(r => r.json()),
+        fetch("/api/room-booking?op=rooms").then(r => r.json()),
       ]);
       setBookings(Array.isArray(bR) ? bR : []);
       setRooms(Array.isArray(rR) ? rR : []);
@@ -333,7 +333,7 @@ export default function BookingDashboard({ user, isMobile }) {
     if (!modal) return;
     setProcessing(true);
     try {
-      const r = await fetch("/api/room-bookings-admin", {
+      const r = await fetch("/api/room-booking", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
