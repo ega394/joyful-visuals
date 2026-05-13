@@ -121,6 +121,20 @@ async function loadJadwal() {
     .filter(e => e && e.alur === "disetujui" && e.tanggal >= today);
 }
 
+// Versi untuk pending-approval (semua alur, jadwal aktif belum lewat)
+async function loadJadwalPending() {
+  const today = localDateWITA(0);
+  const rows = await sbGet(`jadwal?select=data&order=id`);
+  if (!rows) return [];
+  return rows
+    .map(r => r.data)
+    .filter(e =>
+      e &&
+      (e.alur === "menunggu_kasubbag" || e.alur === "menunggu_kabag") &&
+      e.tanggal >= today
+    );
+}
+
 async function loadUsers() {
   const rows = await sbGet(`users?select=username,nama,jabatan,role,noWA`);
   return rows || [];
@@ -166,26 +180,8 @@ async function notifPagi(jadwal, users) {
     console.log(`[PAGI] Terkirim → ${u.nama} (${u.role})`);
   }
 
-  // Personil bertugas — pesan personal
-  const allPersonil = [...new Set(sorted.flatMap(e => e.personil || []))];
-  for (const username of allPersonil) {
-    const u = users.find(x => x.username === username);
-    if (!u?.noWA) continue;
-
-    const tugasKu = sorted.filter(e => (e.personil || []).includes(username));
-    const detail  = tugasKu.map(e =>
-      `🕐 ${e.jam?.slice(0,5)} — *${e.namaAcara}*\n📍 ${e.lokasi || "-"}\n👔 ${e.pakaian || "-"}`
-    ).join("\n\n");
-
-    const msgPersonil =
-      `📋 *Penugasan Anda Hari Ini*\n` +
-      `${fmtTgl(today)}\n\n` +
-      detail +
-      `\n\n_Harap hadir tepat waktu. Prokopim Tarakan_`;
-
-    await sendWA(u.noWA, msgPersonil);
-    console.log(`[PAGI] Personil → ${u.nama}`);
-  }
+  // Personil bertugas — DINONAKTIFKAN (notifikasi penugasan dimatikan global)
+  console.log("[PAGI] Notifikasi personil/penugasan dinonaktifkan — skip.");
 }
 
 /**
@@ -267,33 +263,64 @@ async function notifAjudan(jadwal, users) {
 }
 
 /**
- * PERSONIL (16:10 WITA) — notif penugasan BESOK ke personil bertugas
+ * PERSONIL — DINONAKTIFKAN (notifikasi penugasan dimatikan global)
  */
 async function notifPersonil(jadwal, users) {
-  const tomorrow = localDateWITA(1);
-  const tmrwEvs  = jadwal
-    .filter(e => e.tanggal === tomorrow)
-    .sort((a, b) => a.jam.localeCompare(b.jam));
+  console.log("[PERSONIL] Notifikasi penugasan dinonaktifkan — skip.");
+  return;
+}
 
-  const allPersonil = [...new Set(tmrwEvs.flatMap(e => e.personil || []))];
+/**
+ * PENDING (16:00 WITA) — pengingat jadwal yang belum disetujui
+ * Penerima:
+ *   - Kasubbag Protokol & Komdokpim → jadwal "menunggu_kasubbag"
+ *   - Kabag → jadwal "menunggu_kabag"
+ */
+async function notifPendingApproval(users) {
+  const pendings = await loadJadwalPending();
+  if (pendings.length === 0) {
+    console.log("[PENDING] Tidak ada jadwal yang menunggu persetujuan — skip.");
+    return;
+  }
 
-  for (const username of allPersonil) {
-    const u = users.find(x => x.username === username);
-    if (!u?.noWA) continue;
+  const pendKasubbag = pendings.filter(e => e.alur === "menunggu_kasubbag")
+    .sort((a, b) => (a.tanggal + a.jam).localeCompare(b.tanggal + b.jam));
+  const pendKabag = pendings.filter(e => e.alur === "menunggu_kabag")
+    .sort((a, b) => (a.tanggal + a.jam).localeCompare(b.tanggal + b.jam));
 
-    const tugasKu = tmrwEvs.filter(e => (e.personil || []).includes(username));
-    const detail  = tugasKu.map(e =>
-      `🕐 ${e.jam?.slice(0,5)} — *${e.namaAcara}*\n📍 ${e.lokasi || "-"}\n👔 ${e.pakaian || "-"}\n📝 ${e.catatanPenugasan || "-"}`
-    ).join("\n\n");
+  const fmtItem = (e) =>
+    `• ${fmtTgl(e.tanggal)} ${e.jam?.slice(0,5)} — *${e.namaAcara}*\n   📍 ${e.lokasi || e.penyelenggara || "-"}`;
 
+  // Untuk Kasubbag (Protokol & Komdokpim)
+  if (pendKasubbag.length > 0) {
+    const kasubbags = users.filter(
+      u => (u.role === "kasubbag_protokol" || u.role === "kasubbag_komdokpim") && u.noWA
+    );
+    const daftar = pendKasubbag.map(fmtItem).join("\n");
     const msg =
-      `📋 *Penugasan Anda*\n` +
-      `${fmtTgl(tomorrow)}\n\n` +
-      detail +
-      `\n\nHarap konfirmasi kesiapan Anda. Prokopim Tarakan 🙏`;
+      `⏰ *Pengingat Antrian Persetujuan*\n` +
+      `Sampai pukul 16:00 WITA, masih ada *${pendKasubbag.length}* jadwal menunggu verifikasi Kasubbag:\n\n` +
+      daftar +
+      `\n\nMohon segera ditindaklanjuti agar tidak menumpuk.\n_Prokopim Kota Tarakan_`;
+    for (const u of kasubbags) {
+      await sendWA(u.noWA, msg);
+      console.log(`[PENDING-KASUBBAG] Terkirim → ${u.nama}`);
+    }
+  }
 
-    await sendWA(u.noWA, msg);
-    console.log(`[PERSONIL] Terkirim → ${u.nama}`);
+  // Untuk Kabag
+  if (pendKabag.length > 0) {
+    const kabags = users.filter(u => u.role === "kabag" && u.noWA);
+    const daftar = pendKabag.map(fmtItem).join("\n");
+    const msg =
+      `⏰ *Pengingat Persetujuan Akhir*\n` +
+      `Sampai pukul 16:00 WITA, masih ada *${pendKabag.length}* jadwal menunggu persetujuan Kabag:\n\n` +
+      daftar +
+      `\n\nMohon segera ditindaklanjuti.\n_Prokopim Kota Tarakan_`;
+    for (const u of kabags) {
+      await sendWA(u.noWA, msg);
+      console.log(`[PENDING-KABAG] Terkirim → ${u.nama}`);
+    }
   }
 }
 
@@ -332,6 +359,7 @@ export default async function handler(req, res) {
     else if (type === "reminder") await notifReminder(jadwal, users);
     else if (type === "ajudan")   await notifAjudan(jadwal, users);
     else if (type === "personil") await notifPersonil(jadwal, users);
+    else if (type === "pending")  await notifPendingApproval(users);
     else {
       return res.status(400).json({ error: `Tipe tidak dikenal: ${type}` });
     }
