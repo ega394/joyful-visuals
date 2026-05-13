@@ -315,13 +315,28 @@ const SESSION_TIME = {
   Full_Day: "Seharian (07.30 – 16.30 WITA)",
 };
 
-/** Cetak rekap daftar booking (admin) */
+const STATUS_ID = {
+  Pending:   "Menunggu Konfirmasi",
+  Approved:  "Disetujui",
+  Rejected:  "Ditolak",
+  Cancelled: "Dibatalkan",
+};
+
+/** Cetak rekap daftar booking (admin) — diurut berdasarkan tanggal terdekat */
 function printBookingList(bookings, filterLabel) {
   const w = window.open("", "_blank", "width=900,height=700");
   if (!w) { alert("Mohon izinkan popup untuk mencetak."); return; }
   const today = new Date().toLocaleDateString("id-ID",{ weekday:"long", day:"numeric", month:"long", year:"numeric" });
 
-  const rows = bookings.map((b,i) => `
+  // Urutkan: tanggal mulai paling dekat ke yang paling jauh
+  const sorted = [...bookings].sort((a, b) => {
+    if (a.start_date !== b.start_date) return a.start_date.localeCompare(b.start_date);
+    // tanggal sama → urut berdasarkan sesi (Pagi → Siang → Full_Day)
+    const sesOrder = { Pagi: 1, Siang: 2, Full_Day: 3 };
+    return (sesOrder[a.session] || 9) - (sesOrder[b.session] || 9);
+  });
+
+  const rows = sorted.map((b,i) => `
     <tr>
       <td style="text-align:center">${i+1}</td>
       <td><b>${escapeHTML(b.booking_code)}</b></td>
@@ -330,12 +345,18 @@ function printBookingList(bookings, filterLabel) {
       <td>${b.start_date===b.end_date ? fmtTglFull(b.start_date) : fmtTglFull(b.start_date)+" s/d "+fmtTglFull(b.end_date)}<br/><small>${escapeHTML(SESSION_TIME[b.session]||b.session)}</small></td>
       <td style="text-align:center">${b.participant_count}</td>
       <td>${escapeHTML(b.pic_name)}<br/><small>${escapeHTML(b.pic_wa)}</small></td>
-      <td style="text-align:center"><b>${escapeHTML(b.status)}</b></td>
+      <td style="text-align:center"><b>${escapeHTML(STATUS_ID[b.status]||b.status)}</b></td>
     </tr>
   `).join("");
 
+  // Hitung statistik singkat
+  const total     = sorted.length;
+  const menunggu  = sorted.filter(b => b.status === "Pending").length;
+  const disetujui = sorted.filter(b => b.status === "Approved").length;
+  const ditolak   = sorted.filter(b => b.status === "Rejected").length;
+
   w.document.write(`
-    <!doctype html><html><head>
+    <!doctype html><html lang="id"><head>
     <meta charset="utf-8"/>
     <title>Rekap Peminjaman Ruangan</title>
     <style>
@@ -346,6 +367,9 @@ function printBookingList(bookings, filterLabel) {
       .head h2{margin:2px 0 4px;font-size:14pt;color:#0A1628}
       .head p{margin:0;font-size:10pt;color:#444}
       .meta{display:flex;justify-content:space-between;font-size:10pt;color:#444;margin-bottom:10px}
+      .stat{display:flex;gap:16px;margin:10px 0 14px;font-size:10pt;background:#F3F4F6;padding:8px 12px;border-radius:6px}
+      .stat b{color:#0A1628}
+      .intro{font-size:10.5pt;margin-bottom:10px;text-align:justify}
       table{width:100%;border-collapse:collapse;font-size:10pt}
       th,td{border:1px solid #555;padding:6px 8px;vertical-align:top}
       th{background:#0A1628;color:white;text-align:left;font-size:10pt}
@@ -360,29 +384,46 @@ function printBookingList(bookings, filterLabel) {
       <p>PEMERINTAH KOTA TARAKAN</p>
       <h2>BAGIAN PROTOKOL & KOMUNIKASI PIMPINAN</h2>
       <p style="font-size:9pt">Sekretariat Daerah Kota Tarakan</p>
-      <h1 style="margin-top:8px">REKAP PEMINJAMAN RUANGAN</h1>
+      <h1 style="margin-top:8px">REKAP PERMOHONAN PEMINJAMAN RUANGAN</h1>
     </div>
     <div class="meta">
-      <span>Filter: <b>${escapeHTML(filterLabel)}</b></span>
-      <span>Dicetak: ${today}</span>
+      <span>Penyaringan data: <b>${escapeHTML(filterLabel)}</b></span>
+      <span>Dicetak pada: ${today}</span>
+    </div>
+    <p class="intro">
+      Berikut disampaikan rekapitulasi data permohonan peminjaman ruangan
+      di lingkungan Bagian Protokol &amp; Komunikasi Pimpinan Setda Kota Tarakan.
+      Data disajikan secara berurutan berdasarkan tanggal pelaksanaan kegiatan,
+      mulai dari yang terdekat hingga yang terjauh.
+    </p>
+    <div class="stat">
+      <span>Total permohonan: <b>${total}</b></span>
+      <span>Menunggu konfirmasi: <b>${menunggu}</b></span>
+      <span>Disetujui: <b>${disetujui}</b></span>
+      <span>Ditolak: <b>${ditolak}</b></span>
     </div>
     <table>
       <thead><tr>
-        <th style="width:32px">No</th>
+        <th style="width:32px">No.</th>
         <th>Kode</th>
-        <th>Acara / Instansi</th>
+        <th>Nama Acara / Instansi</th>
         <th>Ruangan</th>
-        <th>Tanggal / Sesi</th>
+        <th>Tanggal &amp; Sesi</th>
         <th style="width:60px">Peserta</th>
-        <th>PIC</th>
-        <th style="width:80px">Status</th>
+        <th>Penanggung Jawab</th>
+        <th style="width:90px">Status</th>
       </tr></thead>
-      <tbody>${rows || '<tr><td colspan="8" style="text-align:center;padding:24px">Tidak ada data</td></tr>'}</tbody>
+      <tbody>${rows || '<tr><td colspan="8" style="text-align:center;padding:24px">Belum ada data permohonan pada periode ini.</td></tr>'}</tbody>
     </table>
+    <p style="font-size:9.5pt;color:#555;margin-top:14px;font-style:italic">
+      Demikian rekapitulasi ini disusun sebagai bahan monitoring dan dokumentasi
+      penggunaan ruang rapat. Apabila terdapat ketidaksesuaian data, mohon segera
+      menghubungi staf pengelola ruangan pada Bagian Protokol &amp; Komunikasi Pimpinan.
+    </p>
     <div class="footer">
       <div class="ttd">
         <p>Tarakan, ${today.split(", ")[1]||today}</p>
-        <p>Kepala Bagian Protokol & Komunikasi Pimpinan,</p>
+        <p>Kepala Bagian Protokol &amp; Komunikasi Pimpinan,</p>
         <div class="sp"></div>
         <p><b><u>__________________________</u></b></p>
         <p>NIP. ___________________</p>
@@ -401,13 +442,15 @@ function printSingleBooking(b) {
   const today = new Date().toLocaleDateString("id-ID",{ day:"numeric", month:"long", year:"numeric" });
   const tgl = b.start_date===b.end_date ? fmtTglFull(b.start_date) : `${fmtTglFull(b.start_date)} s/d ${fmtTglFull(b.end_date)}`;
 
+  const statusUpper = (STATUS_ID[b.status]||b.status).toUpperCase();
+
   w.document.write(`
-    <!doctype html><html><head>
+    <!doctype html><html lang="id"><head>
     <meta charset="utf-8"/>
     <title>Konfirmasi Peminjaman ${escapeHTML(b.booking_code)}</title>
     <style>
       *{box-sizing:border-box}
-      body{font-family:Arial,sans-serif;font-size:11pt;margin:28px;color:#111;line-height:1.5}
+      body{font-family:Arial,sans-serif;font-size:11pt;margin:28px;color:#111;line-height:1.55}
       .head{text-align:center;border-bottom:3px double #0A1628;padding-bottom:12px;margin-bottom:24px}
       .head h2{margin:2px 0 4px;font-size:14pt;color:#0A1628}
       .head p{margin:0;font-size:10pt;color:#444}
@@ -417,10 +460,13 @@ function printSingleBooking(b) {
       .approved{background:#D1FAE5;color:#065F46;border:1px solid #6EE7B7}
       .pending{background:#FEF3C7;color:#92400E;border:1px solid #FCD34D}
       .rejected{background:#FEE2E2;color:#991B1B;border:1px solid #FCA5A5}
+      .cancelled{background:#F3F4F6;color:#374151;border:1px solid #D1D5DB}
       h1{font-size:14pt;text-align:center;margin:14px 0 20px;text-decoration:underline}
+      .intro{text-align:justify;margin-bottom:14px}
       table{width:100%;border-collapse:collapse;margin:14px 0}
       td{padding:8px 10px;border-bottom:1px solid #E5E7EB;vertical-align:top;font-size:11pt}
       td.lbl{width:35%;color:#555;font-weight:600}
+      .closing{margin-top:18px;text-align:justify}
       .footer{margin-top:34px;display:flex;justify-content:flex-end}
       .ttd{text-align:center;min-width:260px}
       .ttd .sp{height:72px}
@@ -428,7 +474,7 @@ function printSingleBooking(b) {
     </style></head><body>
     <div class="head">
       <p>PEMERINTAH KOTA TARAKAN</p>
-      <h2>BAGIAN PROTOKOL & KOMUNIKASI PIMPINAN</h2>
+      <h2>BAGIAN PROTOKOL &amp; KOMUNIKASI PIMPINAN</h2>
       <p style="font-size:9pt">Sekretariat Daerah Kota Tarakan · prokopim.tarakankota.go.id</p>
     </div>
 
@@ -438,35 +484,69 @@ function printSingleBooking(b) {
         <div class="code">${escapeHTML(b.booking_code)}</div>
       </div>
       <div style="text-align:right">
-        <div style="font-size:9pt;color:#666;margin-bottom:4px">Status</div>
-        <span class="badge ${b.status.toLowerCase()}">${b.status==="Approved"?"DISETUJUI":b.status==="Pending"?"MENUNGGU":b.status==="Rejected"?"DITOLAK":"DIBATALKAN"}</span>
+        <div style="font-size:9pt;color:#666;margin-bottom:4px">Status Permohonan</div>
+        <span class="badge ${b.status.toLowerCase()}">${statusUpper}</span>
       </div>
     </div>
 
     <h1>SURAT KONFIRMASI PEMINJAMAN RUANGAN</h1>
 
+    <p class="intro">
+      Sehubungan dengan permohonan peminjaman ruangan yang telah diajukan kepada
+      Bagian Protokol &amp; Komunikasi Pimpinan Setda Kota Tarakan, dengan ini disampaikan
+      rincian permohonan sebagai berikut:
+    </p>
+
     <table>
       <tr><td class="lbl">Nama Acara / Kegiatan</td><td><b>${escapeHTML(b.event_name)}</b></td></tr>
       <tr><td class="lbl">Instansi / Pemohon</td><td>${escapeHTML(b.instansi)}</td></tr>
-      <tr><td class="lbl">PIC / Penanggung Jawab</td><td>${escapeHTML(b.pic_name)}</td></tr>
-      <tr><td class="lbl">Kontak WhatsApp</td><td>${escapeHTML(b.pic_wa)}</td></tr>
-      <tr><td class="lbl">Ruangan</td><td><b>${escapeHTML(b.rooms?.name||"-")}</b> (Kapasitas ${b.rooms?.capacity||"-"} orang)</td></tr>
+      <tr><td class="lbl">Penanggung Jawab (PIC)</td><td>${escapeHTML(b.pic_name)}</td></tr>
+      <tr><td class="lbl">Nomor Kontak WhatsApp</td><td>${escapeHTML(b.pic_wa)}</td></tr>
+      <tr><td class="lbl">Ruangan yang Dipinjam</td><td><b>${escapeHTML(b.rooms?.name||"-")}</b> (kapasitas ${b.rooms?.capacity||"-"} orang)</td></tr>
       <tr><td class="lbl">Jumlah Peserta</td><td>${b.participant_count} orang</td></tr>
       <tr><td class="lbl">Tanggal Penggunaan</td><td>${tgl}</td></tr>
-      <tr><td class="lbl">Sesi / Waktu</td><td>${escapeHTML(SESSION_TIME[b.session]||b.session)}</td></tr>
-      ${b.srikandi_ref ? `<tr><td class="lbl">No. Surat Srikandi</td><td>${escapeHTML(b.srikandi_ref)}</td></tr>` : ""}
-      ${b.notes ? `<tr><td class="lbl">Catatan</td><td>${escapeHTML(b.notes)}</td></tr>` : ""}
+      <tr><td class="lbl">Sesi / Waktu Penggunaan</td><td>${escapeHTML(SESSION_TIME[b.session]||b.session)}</td></tr>
+      ${b.srikandi_ref ? `<tr><td class="lbl">Nomor Surat (Srikandi)</td><td>${escapeHTML(b.srikandi_ref)}</td></tr>` : ""}
+      ${b.notes ? `<tr><td class="lbl">Catatan dari Pengelola</td><td>${escapeHTML(b.notes)}</td></tr>` : ""}
     </table>
 
     ${b.status === "Approved" ? `
-      <p style="margin-top:14px">Dengan ini, peminjaman ruangan di atas <b>DISETUJUI</b>. Pemohon diharapkan:</p>
+      <p class="closing">
+        Berdasarkan ketersediaan ruangan dan kelengkapan administrasi, dengan ini
+        permohonan peminjaman ruangan tersebut di atas dinyatakan <b>DISETUJUI</b>.
+        Kepada pemohon diharapkan untuk memperhatikan ketentuan berikut:
+      </p>
       <ol style="margin:6px 0 14px 22px">
-        <li>Hadir tepat waktu sesuai jadwal di atas.</li>
-        <li>Menjaga kebersihan dan kerapian ruangan.</li>
-        <li>Mengembalikan ruangan dalam kondisi semula setelah selesai digunakan.</li>
-        <li>Menghubungi staf Bagian Prokopim apabila ada perubahan jadwal.</li>
+        <li>Hadir tepat waktu sesuai jadwal yang telah ditentukan.</li>
+        <li>Menjaga kebersihan, ketertiban, dan kerapian ruangan selama kegiatan berlangsung.</li>
+        <li>Mengembalikan ruangan dalam kondisi semula setelah kegiatan selesai.</li>
+        <li>Segera menghubungi staf Bagian Prokopim apabila terdapat perubahan jadwal atau pembatalan.</li>
+        <li>Bertanggung jawab atas seluruh fasilitas yang digunakan selama peminjaman berlangsung.</li>
       </ol>
-    `:""}
+    ` : b.status === "Rejected" ? `
+      <p class="closing">
+        Setelah dilakukan verifikasi terhadap data permohonan dan ketersediaan ruangan,
+        dengan ini permohonan peminjaman tersebut di atas dinyatakan <b>DITOLAK</b>.
+        ${b.notes ? `Adapun alasan penolakan dapat dilihat pada bagian catatan di atas.` : ""}
+        Pemohon dipersilakan untuk mengajukan permohonan baru dengan tanggal atau ruangan yang berbeda.
+      </p>
+    ` : b.status === "Cancelled" ? `
+      <p class="closing">
+        Permohonan peminjaman ruangan tersebut di atas telah <b>DIBATALKAN</b>.
+        ${b.notes ? `Keterangan pembatalan tercantum pada bagian catatan di atas.` : ""}
+      </p>
+    ` : `
+      <p class="closing">
+        Permohonan peminjaman ruangan tersebut di atas saat ini berstatus
+        <b>MENUNGGU KONFIRMASI</b> dari pengelola. Konfirmasi akan disampaikan melalui
+        nomor WhatsApp pemohon paling lambat 1×24 jam sejak permohonan diajukan.
+      </p>
+    `}
+
+    <p style="margin-top:14px;text-align:justify">
+      Demikian surat konfirmasi ini disampaikan untuk dapat dipergunakan sebagaimana mestinya.
+      Atas perhatian dan kerja samanya, diucapkan terima kasih.
+    </p>
 
     <div class="footer">
       <div class="ttd">

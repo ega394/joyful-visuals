@@ -419,19 +419,38 @@ function printBookingPublic(b) {
     <div class="head"><p>PEMERINTAH KOTA TARAKAN</p><h2>BAGIAN PROTOKOL &amp; KOMUNIKASI PIMPINAN</h2><p style="font-size:9pt">prokopim.tarakankota.go.id</p></div>
     <div style="display:flex;justify-content:space-between;margin-bottom:14px"><div><div style="font-size:9pt;color:#666">Kode Booking</div><div class="code">${esc(b.booking_code)}</div></div><div style="text-align:right"><div style="font-size:9pt;color:#666;margin-bottom:4px">Status</div><span class="badge">DISETUJUI</span></div></div>
     <h1>SURAT KONFIRMASI PEMINJAMAN RUANGAN</h1>
+    <p style="text-align:justify;margin-bottom:14px">
+      Sehubungan dengan permohonan peminjaman ruangan yang telah diajukan kepada Bagian
+      Protokol &amp; Komunikasi Pimpinan Setda Kota Tarakan, dengan ini disampaikan rincian
+      permohonan sebagai berikut:
+    </p>
     <table>
       <tr><td class="lbl">Nama Acara / Kegiatan</td><td><b>${esc(b.event_name)}</b></td></tr>
       <tr><td class="lbl">Instansi / Pemohon</td><td>${esc(b.instansi)}</td></tr>
-      <tr><td class="lbl">PIC / Penanggung Jawab</td><td>${esc(b.pic_name)}</td></tr>
-      <tr><td class="lbl">Kontak WhatsApp</td><td>${esc(b.pic_wa)}</td></tr>
-      <tr><td class="lbl">Ruangan</td><td><b>${esc(b.rooms?.name||"-")}</b> (Kapasitas ${b.rooms?.capacity||"-"} orang)</td></tr>
+      <tr><td class="lbl">Penanggung Jawab (PIC)</td><td>${esc(b.pic_name)}</td></tr>
+      <tr><td class="lbl">Nomor Kontak WhatsApp</td><td>${esc(b.pic_wa)}</td></tr>
+      <tr><td class="lbl">Ruangan yang Dipinjam</td><td><b>${esc(b.rooms?.name||"-")}</b> (kapasitas ${b.rooms?.capacity||"-"} orang)</td></tr>
       <tr><td class="lbl">Jumlah Peserta</td><td>${b.participant_count} orang</td></tr>
       <tr><td class="lbl">Tanggal Penggunaan</td><td>${tgl}</td></tr>
-      <tr><td class="lbl">Sesi / Waktu</td><td>${esc(ST[b.session]||b.session)}</td></tr>
-      ${b.srikandi_ref ? `<tr><td class="lbl">No. Surat Srikandi</td><td>${esc(b.srikandi_ref)}</td></tr>` : ""}
+      <tr><td class="lbl">Sesi / Waktu Penggunaan</td><td>${esc(ST[b.session]||b.session)}</td></tr>
+      ${b.srikandi_ref ? `<tr><td class="lbl">Nomor Surat (Srikandi)</td><td>${esc(b.srikandi_ref)}</td></tr>` : ""}
     </table>
-    <p style="margin-top:14px">Dengan ini, peminjaman ruangan di atas <b>DISETUJUI</b>. Pemohon diharapkan:</p>
-    <ol style="margin:6px 0 14px 22px"><li>Hadir tepat waktu sesuai jadwal di atas.</li><li>Menjaga kebersihan dan kerapian ruangan.</li><li>Mengembalikan ruangan dalam kondisi semula setelah selesai digunakan.</li><li>Menghubungi staf Bagian Prokopim apabila ada perubahan jadwal.</li></ol>
+    <p style="margin-top:14px;text-align:justify">
+      Berdasarkan ketersediaan ruangan dan kelengkapan administrasi, dengan ini permohonan
+      peminjaman ruangan tersebut di atas dinyatakan <b>DISETUJUI</b>. Kepada pemohon diharapkan
+      untuk memperhatikan ketentuan berikut:
+    </p>
+    <ol style="margin:6px 0 14px 22px">
+      <li>Hadir tepat waktu sesuai jadwal yang telah ditentukan.</li>
+      <li>Menjaga kebersihan, ketertiban, dan kerapian ruangan selama kegiatan berlangsung.</li>
+      <li>Mengembalikan ruangan dalam kondisi semula setelah kegiatan selesai.</li>
+      <li>Segera menghubungi staf Bagian Prokopim apabila terdapat perubahan jadwal atau pembatalan.</li>
+      <li>Bertanggung jawab atas seluruh fasilitas yang digunakan selama peminjaman berlangsung.</li>
+    </ol>
+    <p style="margin-top:14px;text-align:justify">
+      Demikian surat konfirmasi ini disampaikan untuk dapat dipergunakan sebagaimana mestinya.
+      Atas perhatian dan kerja samanya, diucapkan terima kasih.
+    </p>
     <div class="footer"><div style="display:inline-block;text-align:center;min-width:240px"><p>Tarakan, ${today}</p><p>Pengelola Ruangan,</p><div class="sp"></div><p><b><u>${esc(b.reviewed_by||"_____________________")}</u></b></p><p style="font-size:9pt;color:#666">Bagian Prokopim Kota Tarakan</p></div></div>
     <script>window.onload=()=>{setTimeout(()=>window.print(),300)}</script></body></html>`);
   w.document.close();
