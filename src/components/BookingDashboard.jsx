@@ -272,17 +272,494 @@ function BookingRow({ booking, onAction, isMobile }) {
             </div>
           )}
           {booking.status === "Approved" && (
-            <button onClick={() => onAction(booking, "Cancelled")}
-              style={{
-                padding: "7px 14px", borderRadius: 8,
-                border: `1.5px solid ${YELLOW}`, background: "white",
-                color: YELLOW, fontWeight: 600, fontSize: 13, cursor: "pointer",
-              }}>
-              Batalkan
-            </button>
+            <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+              <button onClick={() => onAction(booking, "Cancelled")}
+                style={{
+                  padding: "7px 14px", borderRadius: 8,
+                  border: `1.5px solid ${YELLOW}`, background: "white",
+                  color: YELLOW, fontWeight: 600, fontSize: 13, cursor: "pointer",
+                }}>
+                Batalkan
+              </button>
+              <button onClick={() => printSingleBooking(booking)}
+                style={{
+                  padding: "7px 14px", borderRadius: 8,
+                  border: `1.5px solid ${NAVY}`, background: "white",
+                  color: NAVY, fontWeight: 700, fontSize: 13, cursor: "pointer",
+                }}>
+                🖨️ Cetak Surat
+              </button>
+            </div>
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Print/PDF Export Helpers ──────────────────────────────────
+
+function escapeHTML(s) {
+  return String(s||"").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+function fmtTglFull(s) {
+  if (!s) return "-";
+  const d = new Date(s+"T00:00:00");
+  return d.toLocaleDateString("id-ID", { weekday:"long", day:"numeric", month:"long", year:"numeric" });
+}
+
+const SESSION_TIME = {
+  Pagi: "07.30 – 12.00 WITA",
+  Siang: "12.30 – 16.30 WITA",
+  Full_Day: "Seharian (07.30 – 16.30 WITA)",
+};
+
+/** Cetak rekap daftar booking (admin) */
+function printBookingList(bookings, filterLabel) {
+  const w = window.open("", "_blank", "width=900,height=700");
+  if (!w) { alert("Mohon izinkan popup untuk mencetak."); return; }
+  const today = new Date().toLocaleDateString("id-ID",{ weekday:"long", day:"numeric", month:"long", year:"numeric" });
+
+  const rows = bookings.map((b,i) => `
+    <tr>
+      <td style="text-align:center">${i+1}</td>
+      <td><b>${escapeHTML(b.booking_code)}</b></td>
+      <td>${escapeHTML(b.event_name)}<br/><small>${escapeHTML(b.instansi)}</small></td>
+      <td>${escapeHTML(b.rooms?.name||"-")}</td>
+      <td>${b.start_date===b.end_date ? fmtTglFull(b.start_date) : fmtTglFull(b.start_date)+" s/d "+fmtTglFull(b.end_date)}<br/><small>${escapeHTML(SESSION_TIME[b.session]||b.session)}</small></td>
+      <td style="text-align:center">${b.participant_count}</td>
+      <td>${escapeHTML(b.pic_name)}<br/><small>${escapeHTML(b.pic_wa)}</small></td>
+      <td style="text-align:center"><b>${escapeHTML(b.status)}</b></td>
+    </tr>
+  `).join("");
+
+  w.document.write(`
+    <!doctype html><html><head>
+    <meta charset="utf-8"/>
+    <title>Rekap Peminjaman Ruangan</title>
+    <style>
+      *{box-sizing:border-box}
+      body{font-family:Arial,sans-serif;font-size:11pt;margin:24px;color:#111}
+      .head{text-align:center;border-bottom:3px double #0A1628;padding-bottom:12px;margin-bottom:18px}
+      .head h1{margin:0;font-size:16pt;color:#0A1628}
+      .head h2{margin:2px 0 4px;font-size:14pt;color:#0A1628}
+      .head p{margin:0;font-size:10pt;color:#444}
+      .meta{display:flex;justify-content:space-between;font-size:10pt;color:#444;margin-bottom:10px}
+      table{width:100%;border-collapse:collapse;font-size:10pt}
+      th,td{border:1px solid #555;padding:6px 8px;vertical-align:top}
+      th{background:#0A1628;color:white;text-align:left;font-size:10pt}
+      td small{color:#666;font-size:9pt}
+      .footer{margin-top:30px;display:flex;justify-content:flex-end}
+      .ttd{text-align:center;min-width:240px}
+      .ttd p{margin:0}
+      .ttd .sp{height:60px}
+      @media print { body{margin:14mm} }
+    </style></head><body>
+    <div class="head">
+      <p>PEMERINTAH KOTA TARAKAN</p>
+      <h2>BAGIAN PROTOKOL & KOMUNIKASI PIMPINAN</h2>
+      <p style="font-size:9pt">Sekretariat Daerah Kota Tarakan</p>
+      <h1 style="margin-top:8px">REKAP PEMINJAMAN RUANGAN</h1>
+    </div>
+    <div class="meta">
+      <span>Filter: <b>${escapeHTML(filterLabel)}</b></span>
+      <span>Dicetak: ${today}</span>
+    </div>
+    <table>
+      <thead><tr>
+        <th style="width:32px">No</th>
+        <th>Kode</th>
+        <th>Acara / Instansi</th>
+        <th>Ruangan</th>
+        <th>Tanggal / Sesi</th>
+        <th style="width:60px">Peserta</th>
+        <th>PIC</th>
+        <th style="width:80px">Status</th>
+      </tr></thead>
+      <tbody>${rows || '<tr><td colspan="8" style="text-align:center;padding:24px">Tidak ada data</td></tr>'}</tbody>
+    </table>
+    <div class="footer">
+      <div class="ttd">
+        <p>Tarakan, ${today.split(", ")[1]||today}</p>
+        <p>Kepala Bagian Protokol & Komunikasi Pimpinan,</p>
+        <div class="sp"></div>
+        <p><b><u>__________________________</u></b></p>
+        <p>NIP. ___________________</p>
+      </div>
+    </div>
+    <script>window.onload=()=>{setTimeout(()=>window.print(),300)}</script>
+    </body></html>
+  `);
+  w.document.close();
+}
+
+/** Cetak surat konfirmasi 1 booking */
+function printSingleBooking(b) {
+  const w = window.open("", "_blank", "width=800,height=900");
+  if (!w) { alert("Mohon izinkan popup untuk mencetak."); return; }
+  const today = new Date().toLocaleDateString("id-ID",{ day:"numeric", month:"long", year:"numeric" });
+  const tgl = b.start_date===b.end_date ? fmtTglFull(b.start_date) : `${fmtTglFull(b.start_date)} s/d ${fmtTglFull(b.end_date)}`;
+
+  w.document.write(`
+    <!doctype html><html><head>
+    <meta charset="utf-8"/>
+    <title>Konfirmasi Peminjaman ${escapeHTML(b.booking_code)}</title>
+    <style>
+      *{box-sizing:border-box}
+      body{font-family:Arial,sans-serif;font-size:11pt;margin:28px;color:#111;line-height:1.5}
+      .head{text-align:center;border-bottom:3px double #0A1628;padding-bottom:12px;margin-bottom:24px}
+      .head h2{margin:2px 0 4px;font-size:14pt;color:#0A1628}
+      .head p{margin:0;font-size:10pt;color:#444}
+      .meta{margin-bottom:20px;display:flex;justify-content:space-between}
+      .meta .code{font-family:monospace;font-size:14pt;font-weight:900;color:#0A1628;background:#FEF3C7;border:2px solid #C9A84C;padding:6px 14px;border-radius:8px;letter-spacing:2px}
+      .badge{display:inline-block;padding:4px 12px;border-radius:20px;font-weight:700;font-size:10pt}
+      .approved{background:#D1FAE5;color:#065F46;border:1px solid #6EE7B7}
+      .pending{background:#FEF3C7;color:#92400E;border:1px solid #FCD34D}
+      .rejected{background:#FEE2E2;color:#991B1B;border:1px solid #FCA5A5}
+      h1{font-size:14pt;text-align:center;margin:14px 0 20px;text-decoration:underline}
+      table{width:100%;border-collapse:collapse;margin:14px 0}
+      td{padding:8px 10px;border-bottom:1px solid #E5E7EB;vertical-align:top;font-size:11pt}
+      td.lbl{width:35%;color:#555;font-weight:600}
+      .footer{margin-top:34px;display:flex;justify-content:flex-end}
+      .ttd{text-align:center;min-width:260px}
+      .ttd .sp{height:72px}
+      @media print { body{margin:16mm} }
+    </style></head><body>
+    <div class="head">
+      <p>PEMERINTAH KOTA TARAKAN</p>
+      <h2>BAGIAN PROTOKOL & KOMUNIKASI PIMPINAN</h2>
+      <p style="font-size:9pt">Sekretariat Daerah Kota Tarakan · prokopim.tarakankota.go.id</p>
+    </div>
+
+    <div class="meta">
+      <div>
+        <div style="font-size:9pt;color:#666">Kode Booking</div>
+        <div class="code">${escapeHTML(b.booking_code)}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:9pt;color:#666;margin-bottom:4px">Status</div>
+        <span class="badge ${b.status.toLowerCase()}">${b.status==="Approved"?"DISETUJUI":b.status==="Pending"?"MENUNGGU":b.status==="Rejected"?"DITOLAK":"DIBATALKAN"}</span>
+      </div>
+    </div>
+
+    <h1>SURAT KONFIRMASI PEMINJAMAN RUANGAN</h1>
+
+    <table>
+      <tr><td class="lbl">Nama Acara / Kegiatan</td><td><b>${escapeHTML(b.event_name)}</b></td></tr>
+      <tr><td class="lbl">Instansi / Pemohon</td><td>${escapeHTML(b.instansi)}</td></tr>
+      <tr><td class="lbl">PIC / Penanggung Jawab</td><td>${escapeHTML(b.pic_name)}</td></tr>
+      <tr><td class="lbl">Kontak WhatsApp</td><td>${escapeHTML(b.pic_wa)}</td></tr>
+      <tr><td class="lbl">Ruangan</td><td><b>${escapeHTML(b.rooms?.name||"-")}</b> (Kapasitas ${b.rooms?.capacity||"-"} orang)</td></tr>
+      <tr><td class="lbl">Jumlah Peserta</td><td>${b.participant_count} orang</td></tr>
+      <tr><td class="lbl">Tanggal Penggunaan</td><td>${tgl}</td></tr>
+      <tr><td class="lbl">Sesi / Waktu</td><td>${escapeHTML(SESSION_TIME[b.session]||b.session)}</td></tr>
+      ${b.srikandi_ref ? `<tr><td class="lbl">No. Surat Srikandi</td><td>${escapeHTML(b.srikandi_ref)}</td></tr>` : ""}
+      ${b.notes ? `<tr><td class="lbl">Catatan</td><td>${escapeHTML(b.notes)}</td></tr>` : ""}
+    </table>
+
+    ${b.status === "Approved" ? `
+      <p style="margin-top:14px">Dengan ini, peminjaman ruangan di atas <b>DISETUJUI</b>. Pemohon diharapkan:</p>
+      <ol style="margin:6px 0 14px 22px">
+        <li>Hadir tepat waktu sesuai jadwal di atas.</li>
+        <li>Menjaga kebersihan dan kerapian ruangan.</li>
+        <li>Mengembalikan ruangan dalam kondisi semula setelah selesai digunakan.</li>
+        <li>Menghubungi staf Bagian Prokopim apabila ada perubahan jadwal.</li>
+      </ol>
+    `:""}
+
+    <div class="footer">
+      <div class="ttd">
+        <p>Tarakan, ${today}</p>
+        <p>Pengelola Ruangan,</p>
+        <div class="sp"></div>
+        <p><b><u>${escapeHTML(b.reviewed_by||"_____________________")}</u></b></p>
+        <p style="font-size:9pt;color:#666">Bagian Prokopim Kota Tarakan</p>
+      </div>
+    </div>
+
+    <script>window.onload=()=>{setTimeout(()=>window.print(),300)}</script>
+    </body></html>
+  `);
+  w.document.close();
+}
+
+// ── Admin Calendar View ───────────────────────────────────────
+
+const DAYS_SHORT  = ["Min","Sen","Sel","Rab","Kam","Jum","Sab"];
+const MONTH_NAMES = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+
+function bookingsOnDate(bookings, roomId, dateStr, session) {
+  return bookings.filter(b => {
+    if (b.status === "Cancelled" || b.status === "Rejected") return false;
+    if (b.room_id !== roomId) return false;
+    if (b.start_date > dateStr || b.end_date < dateStr) return false;
+    if (session === "Full_Day") return ["Pagi","Siang","Full_Day"].includes(b.session);
+    if (session === "Pagi")     return ["Pagi","Full_Day"].includes(b.session);
+    return ["Siang","Full_Day"].includes(b.session);
+  });
+}
+
+function AdminCalendar({ bookings, rooms, year, month, roomFilter, onBookingClick }) {
+  const firstOfMonth = new Date(year, month-1, 1);
+  const daysInMonth  = new Date(year, month, 0).getDate();
+  const startDow     = firstOfMonth.getDay();
+  const today        = new Date().toISOString().slice(0,10);
+
+  const cells = [];
+  for (let i=0;i<startDow;i++) cells.push(null);
+  for (let d=1;d<=daysInMonth;d++)
+    cells.push(`${year}-${String(month).padStart(2,"0")}-${String(d).padStart(2,"0")}`);
+
+  const filteredRooms = roomFilter
+    ? rooms.filter(r => r.id === Number(roomFilter))
+    : rooms;
+
+  const colorFor = (status) => {
+    if (status === "Approved") return { bg:"#FEE2E2", border:"#FCA5A5", text:"#991B1B" };
+    if (status === "Pending")  return { bg:"#FEF3C7", border:"#FCD34D", text:"#92400E" };
+    return { bg:"#F3F4F6", border:"#D1D5DB", text:"#374151" };
+  };
+
+  return (
+    <div style={{display:"flex",flexDirection:"column",gap:24}}>
+      {filteredRooms.map(room => (
+        <div key={room.id}>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+            <div style={{background:NAVY,color:"white",borderRadius:9,padding:"5px 14px",fontSize:13,fontWeight:800}}>
+              {room.name}
+            </div>
+            <div style={{background:"#F3F4F6",color:GRAY,borderRadius:20,padding:"3px 10px",fontSize:11,fontWeight:600}}>
+              Kapasitas {room.capacity}
+            </div>
+          </div>
+          <div style={{overflowX:"auto"}}>
+            <div style={{minWidth:700}}>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4,marginBottom:4}}>
+                {DAYS_SHORT.map(d => (
+                  <div key={d} style={{textAlign:"center",fontSize:11,fontWeight:700,color:GRAY,padding:"3px 0"}}>{d}</div>
+                ))}
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4}}>
+                {cells.map((dateStr,i) => {
+                  if (!dateStr) return <div key={i}/>;
+                  const isToday = dateStr === today;
+                  const isPast  = dateStr < today;
+                  const pagi  = bookingsOnDate(bookings, room.id, dateStr, "Pagi");
+                  const siang = bookingsOnDate(bookings, room.id, dateStr, "Siang");
+                  return (
+                    <div key={dateStr} style={{
+                      border:`2px solid ${isToday?GOLD:"#E5E7EB"}`,
+                      borderRadius:8,padding:"5px 4px",minHeight:90,
+                      background:isPast?"#FAFAFA":"white",
+                      opacity:isPast?0.6:1,
+                      display:"flex",flexDirection:"column",gap:3,
+                    }}>
+                      <div style={{
+                        fontSize:12,fontWeight:isToday?900:600,
+                        color:isToday?NAVY:"#374151",textAlign:"center",
+                      }}>{parseInt(dateStr.slice(8))}</div>
+
+                      {/* Render booking entries */}
+                      {pagi.length > 0 && (
+                        <div>
+                          <div style={{fontSize:8,color:GRAY,fontWeight:700,marginBottom:1,letterSpacing:0.5}}>PAGI</div>
+                          {pagi.slice(0,2).map(b => {
+                            const c = colorFor(b.status);
+                            return (
+                              <button key={b.id+"_p"} type="button"
+                                onClick={()=>onBookingClick(b)}
+                                title={`${b.event_name} (${b.instansi})`}
+                                style={{
+                                  display:"block",width:"100%",
+                                  background:c.bg,color:c.text,
+                                  border:`1px solid ${c.border}`,
+                                  borderRadius:4,padding:"2px 4px",
+                                  fontSize:9,fontWeight:700,textAlign:"left",
+                                  cursor:"pointer",lineHeight:1.2,
+                                  overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",
+                                  marginBottom:2,
+                                }}>
+                                {b.event_name}
+                              </button>
+                            );
+                          })}
+                          {pagi.length > 2 && (
+                            <div style={{fontSize:8,color:GRAY,fontStyle:"italic"}}>+{pagi.length-2} lagi</div>
+                          )}
+                        </div>
+                      )}
+                      {siang.length > 0 && (
+                        <div>
+                          <div style={{fontSize:8,color:GRAY,fontWeight:700,marginBottom:1,letterSpacing:0.5}}>SIANG</div>
+                          {siang.slice(0,2).map(b => {
+                            const c = colorFor(b.status);
+                            return (
+                              <button key={b.id+"_s"} type="button"
+                                onClick={()=>onBookingClick(b)}
+                                title={`${b.event_name} (${b.instansi})`}
+                                style={{
+                                  display:"block",width:"100%",
+                                  background:c.bg,color:c.text,
+                                  border:`1px solid ${c.border}`,
+                                  borderRadius:4,padding:"2px 4px",
+                                  fontSize:9,fontWeight:700,textAlign:"left",
+                                  cursor:"pointer",lineHeight:1.2,
+                                  overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",
+                                  marginBottom:2,
+                                }}>
+                                {b.event_name}
+                              </button>
+                            );
+                          })}
+                          {siang.length > 2 && (
+                            <div style={{fontSize:8,color:GRAY,fontStyle:"italic"}}>+{siang.length-2} lagi</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
+
+      {/* Legend */}
+      <div style={{
+        display:"flex",gap:14,flexWrap:"wrap",
+        background:"#F9FAFB",borderRadius:10,padding:"10px 14px",fontSize:12,
+      }}>
+        <span style={{fontWeight:700,color:GRAY}}>Keterangan:</span>
+        {[
+          { label:"Disetujui", bg:"#FEE2E2", border:"#FCA5A5" },
+          { label:"Menunggu",  bg:"#FEF3C7", border:"#FCD34D" },
+        ].map(c => (
+          <div key={c.label} style={{display:"flex",alignItems:"center",gap:5}}>
+            <div style={{width:24,height:12,borderRadius:3,background:c.bg,border:`1px solid ${c.border}`}}/>
+            <span style={{color:"#374151"}}>{c.label}</span>
+          </div>
+        ))}
+        <span style={{color:GRAY}}>Klik kotak booking untuk lihat detail.</span>
+      </div>
+    </div>
+  );
+}
+
+// ── Booking Detail Popover ────────────────────────────────────
+function BookingDetailModal({ booking, onClose, onAction }) {
+  if (!booking) return null;
+  const cfg = STATUS_CFG[booking.status] || STATUS_CFG.Pending;
+  const ses = SESSION_INFO[booking.session] || {};
+  const tgl = booking.start_date === booking.end_date
+    ? formatTgl(booking.start_date)
+    : `${formatTgl(booking.start_date)} – ${formatTgl(booking.end_date)}`;
+
+  return (
+    <div style={{
+      position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",
+      display:"flex",alignItems:"center",justifyContent:"center",
+      zIndex:9999,padding:16,
+    }} onClick={e => e.target===e.currentTarget && onClose()}>
+      <div style={{
+        background:"white",borderRadius:16,padding:0,
+        maxWidth:520,width:"100%",maxHeight:"90vh",overflowY:"auto",
+        boxShadow:"0 20px 60px rgba(0,0,0,0.3)",
+      }}>
+        {/* Header */}
+        <div style={{
+          padding:"18px 22px",borderBottom:"1px solid #F3F4F6",
+          display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10,
+        }}>
+          <div>
+            <div style={{fontFamily:"monospace",fontWeight:900,color:NAVY,fontSize:15,letterSpacing:1}}>
+              {booking.booking_code}
+            </div>
+            <div style={{fontWeight:800,fontSize:16,color:"#111827",marginTop:3}}>
+              {booking.event_name}
+            </div>
+          </div>
+          <button onClick={onClose} style={{
+            width:30,height:30,borderRadius:7,border:"none",
+            background:"#F3F4F6",cursor:"pointer",fontSize:18,
+          }}>×</button>
+        </div>
+
+        {/* Status badge */}
+        <div style={{padding:"12px 22px 0"}}>
+          <span style={{
+            padding:"5px 12px",borderRadius:20,
+            background:cfg.bg,color:cfg.color,
+            fontSize:12,fontWeight:700,
+          }}>{cfg.label}</span>
+        </div>
+
+        {/* Detail grid */}
+        <div style={{padding:"14px 22px 18px",display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px 16px",fontSize:13}}>
+          <div><div style={{color:GRAY,fontSize:11,fontWeight:600}}>Ruangan</div><b>{booking.rooms?.name}</b></div>
+          <div><div style={{color:GRAY,fontSize:11,fontWeight:600}}>Sesi</div>{ses.label} ({ses.time})</div>
+          <div><div style={{color:GRAY,fontSize:11,fontWeight:600}}>Tanggal</div>{tgl}</div>
+          <div><div style={{color:GRAY,fontSize:11,fontWeight:600}}>Peserta</div>{booking.participant_count} orang</div>
+          <div style={{gridColumn:"1/-1"}}><div style={{color:GRAY,fontSize:11,fontWeight:600}}>Instansi</div>{booking.instansi}</div>
+          <div><div style={{color:GRAY,fontSize:11,fontWeight:600}}>PIC</div>{booking.pic_name}</div>
+          <div><div style={{color:GRAY,fontSize:11,fontWeight:600}}>WhatsApp</div>{booking.pic_wa}</div>
+          {booking.srikandi_ref && (
+            <div style={{gridColumn:"1/-1"}}>
+              <div style={{color:GRAY,fontSize:11,fontWeight:600}}>No. Srikandi</div>
+              <b style={{color:NAVY}}>{booking.srikandi_ref}</b>
+            </div>
+          )}
+          {booking.document_path && (
+            <div style={{gridColumn:"1/-1"}}>
+              <div style={{color:GRAY,fontSize:11,fontWeight:600}}>Surat</div>
+              <a href={booking.document_path} target="_blank" rel="noopener noreferrer"
+                style={{color:"#2563EB",fontWeight:700,textDecoration:"none"}}>
+                Lihat / Unduh Dokumen ↗
+              </a>
+            </div>
+          )}
+          {booking.notes && (
+            <div style={{gridColumn:"1/-1"}}>
+              <div style={{color:GRAY,fontSize:11,fontWeight:600}}>Catatan</div>
+              <div style={{color:booking.status==="Rejected"?RED:"#374151"}}>{booking.notes}</div>
+            </div>
+          )}
+          <div style={{gridColumn:"1/-1",fontSize:11,color:GRAY,paddingTop:8,borderTop:"1px solid #F3F4F6"}}>
+            Diajukan: {formatTgl(booking.created_at)}
+            {booking.reviewed_by && <span> · Direview: {booking.reviewed_by}</span>}
+          </div>
+        </div>
+
+        {/* Action buttons */}
+        <div style={{padding:"0 22px 18px",display:"flex",gap:8,flexWrap:"wrap"}}>
+          {booking.status === "Pending" && (
+            <>
+              <button onClick={()=>{onAction(booking,"Approved");onClose();}}
+                style={{padding:"9px 18px",borderRadius:9,border:"none",
+                  background:GREEN,color:"white",fontWeight:700,fontSize:13,cursor:"pointer"}}>
+                ✓ Setujui
+              </button>
+              <button onClick={()=>{onAction(booking,"Rejected");onClose();}}
+                style={{padding:"9px 18px",borderRadius:9,border:"none",
+                  background:RED,color:"white",fontWeight:700,fontSize:13,cursor:"pointer"}}>
+                ✕ Tolak
+              </button>
+              <button onClick={()=>{onAction(booking,"Cancelled");onClose();}}
+                style={{padding:"9px 18px",borderRadius:9,border:`1.5px solid #D1D5DB`,
+                  background:"white",color:"#374151",fontWeight:600,fontSize:13,cursor:"pointer"}}>
+                Batalkan
+              </button>
+            </>
+          )}
+          <button onClick={()=>printSingleBooking(booking)}
+            style={{padding:"9px 18px",borderRadius:9,border:`1.5px solid ${NAVY}`,
+              background:"white",color:NAVY,fontWeight:700,fontSize:13,cursor:"pointer",
+              marginLeft:"auto"}}>
+            🖨️ Cetak Surat
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -301,6 +778,14 @@ export default function BookingDashboard({ user, isMobile }) {
   const [filterStatus, setFilterStatus] = useState("Pending");
   const [filterRoom, setFilterRoom]     = useState("");
 
+  // View mode: 'list' | 'calendar'
+  const [viewMode, setViewMode] = useState("list");
+  const now = new Date();
+  const [calYear, setCalYear]   = useState(now.getFullYear());
+  const [calMonth, setCalMonth] = useState(now.getMonth()+1);
+  const [calRoom, setCalRoom]   = useState(""); // "" = semua
+  const [calBooking, setCalBooking] = useState(null); // popover detail
+
   const showToast = msg => {
     setToast(msg);
     setTimeout(() => setToast(""), 3000);
@@ -309,12 +794,8 @@ export default function BookingDashboard({ user, isMobile }) {
   const loadBookings = useCallback(async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams();
-      if (filterStatus) params.set("status", filterStatus);
-      if (filterRoom)   params.set("room_id", filterRoom);
-
       const [bR, rR] = await Promise.all([
-        fetch(`/api/room-booking?admin=1&${params}`, {
+        fetch(`/api/room-booking?admin=1`, {
           headers: { "X-Username": user?.username || "" },
         }).then(r => r.json()),
         fetch("/api/room-booking?op=rooms").then(r => r.json()),
@@ -323,7 +804,14 @@ export default function BookingDashboard({ user, isMobile }) {
       setRooms(Array.isArray(rR) ? rR : []);
     } catch { /* skip */ }
     setLoading(false);
-  }, [filterStatus, filterRoom, user]);
+  }, [user]);
+
+  // Filter client-side untuk view list
+  const filteredBookings = bookings.filter(b => {
+    if (filterStatus && b.status !== filterStatus) return false;
+    if (filterRoom && b.room_id !== Number(filterRoom)) return false;
+    return true;
+  });
 
   useEffect(() => { loadBookings(); }, [loadBookings]);
 
@@ -395,21 +883,46 @@ export default function BookingDashboard({ user, isMobile }) {
           ))}
         </div>
 
+        {/* View mode toggle */}
+        <div style={{
+          display:"flex",gap:4,background:"#F3F4F6",borderRadius:10,padding:4,marginBottom:14,
+        }}>
+          {[
+            { k:"list",     icon:"📋", label:"Daftar" },
+            { k:"calendar", icon:"📅", label:"Kalender" },
+          ].map(({k,icon,label})=>(
+            <button key={k} onClick={()=>setViewMode(k)}
+              style={{
+                flex:1,padding:"9px",borderRadius:7,border:"none",cursor:"pointer",
+                fontSize:13,fontWeight:700,
+                background:viewMode===k?"white":"transparent",
+                color:viewMode===k?NAVY:GRAY,
+                boxShadow:viewMode===k?"0 1px 4px rgba(0,0,0,0.12)":undefined,
+                display:"flex",alignItems:"center",justifyContent:"center",gap:6,
+              }}>
+              <span>{icon}</span>{label}
+            </button>
+          ))}
+        </div>
+
         {/* Filter bar */}
         <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
-            style={{
-              padding: "8px 12px", borderRadius: 8, border: "1.5px solid #D1D5DB",
-              fontSize: 13, outline: "none", background: "white",
-            }}>
-            <option value="">Semua Status</option>
-            <option value="Pending">Menunggu</option>
-            <option value="Approved">Disetujui</option>
-            <option value="Rejected">Ditolak</option>
-            <option value="Cancelled">Dibatalkan</option>
-          </select>
+          {viewMode === "list" && (
+            <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
+              style={{
+                padding: "8px 12px", borderRadius: 8, border: "1.5px solid #D1D5DB",
+                fontSize: 13, outline: "none", background: "white",
+              }}>
+              <option value="">Semua Status</option>
+              <option value="Pending">Menunggu</option>
+              <option value="Approved">Disetujui</option>
+              <option value="Rejected">Ditolak</option>
+              <option value="Cancelled">Dibatalkan</option>
+            </select>
+          )}
 
-          <select value={filterRoom} onChange={e => setFilterRoom(e.target.value)}
+          <select value={viewMode === "calendar" ? calRoom : filterRoom}
+            onChange={e => viewMode === "calendar" ? setCalRoom(e.target.value) : setFilterRoom(e.target.value)}
             style={{
               padding: "8px 12px", borderRadius: 8, border: "1.5px solid #D1D5DB",
               fontSize: 13, outline: "none", background: "white",
@@ -420,12 +933,45 @@ export default function BookingDashboard({ user, isMobile }) {
             ))}
           </select>
 
+          {viewMode === "calendar" && (
+            <div style={{display:"flex",gap:4,alignItems:"center"}}>
+              <button onClick={()=>{ if(calMonth===1){setCalYear(y=>y-1);setCalMonth(12);}else setCalMonth(m=>m-1); }}
+                style={{padding:"8px 12px",borderRadius:8,border:"1.5px solid #D1D5DB",background:"white",cursor:"pointer",fontSize:13}}>‹</button>
+              <div style={{padding:"8px 12px",fontWeight:700,fontSize:13,color:NAVY,minWidth:130,textAlign:"center"}}>
+                {MONTH_NAMES[calMonth-1]} {calYear}
+              </div>
+              <button onClick={()=>{ if(calMonth===12){setCalYear(y=>y+1);setCalMonth(1);}else setCalMonth(m=>m+1); }}
+                style={{padding:"8px 12px",borderRadius:8,border:"1.5px solid #D1D5DB",background:"white",cursor:"pointer",fontSize:13}}>›</button>
+            </div>
+          )}
+
           <button onClick={loadBookings}
             style={{
               padding: "8px 14px", borderRadius: 8, border: "1.5px solid #D1D5DB",
               background: "white", cursor: "pointer", fontSize: 13, color: "#374151",
             }}>
             ↻ Refresh
+          </button>
+
+          <button onClick={() => {
+              const dataToPrint = viewMode === "calendar"
+                ? bookings.filter(b => !calRoom || b.room_id === Number(calRoom))
+                : filteredBookings;
+              const label = [
+                viewMode === "list" ? (filterStatus || "Semua status") : `Bulan ${MONTH_NAMES[calMonth-1]} ${calYear}`,
+                (viewMode === "calendar" ? calRoom : filterRoom)
+                  ? rooms.find(r => r.id === Number(viewMode === "calendar" ? calRoom : filterRoom))?.name
+                  : "Semua ruangan",
+              ].filter(Boolean).join(" · ");
+              printBookingList(dataToPrint, label);
+            }}
+            style={{
+              padding: "8px 14px", borderRadius: 8, border: "none",
+              background: NAVY, color: "white",
+              cursor: "pointer", fontSize: 13, fontWeight: 700,
+              display: "inline-flex", alignItems: "center", gap: 5,
+            }}>
+            🖨️ Cetak PDF
           </button>
 
           <a href="/pinjamruangan" target="_blank" rel="noopener noreferrer"
@@ -439,10 +985,24 @@ export default function BookingDashboard({ user, isMobile }) {
           </a>
         </div>
 
-        {/* List bookings */}
+        {/* Konten — list atau calendar */}
         {loading ? (
           <div style={{ textAlign: "center", padding: 40, color: GRAY }}>Memuat data...</div>
-        ) : bookings.length === 0 ? (
+        ) : viewMode === "calendar" ? (
+          <div style={{
+            background:"white",borderRadius:14,padding:"18px 16px",
+            border:"1.5px solid #E5E7EB",boxShadow:"0 1px 4px rgba(0,0,0,0.05)",
+          }}>
+            <AdminCalendar
+              bookings={bookings}
+              rooms={rooms}
+              year={calYear}
+              month={calMonth}
+              roomFilter={calRoom}
+              onBookingClick={setCalBooking}
+            />
+          </div>
+        ) : filteredBookings.length === 0 ? (
           <div style={{
             textAlign: "center", padding: 40,
             background: "white", borderRadius: 14, border: "1.5px solid #E5E7EB",
@@ -452,10 +1012,19 @@ export default function BookingDashboard({ user, isMobile }) {
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {bookings.map(b => (
+            {filteredBookings.map(b => (
               <BookingRow key={b.id} booking={b} onAction={handleAction} isMobile={isMobile} />
             ))}
           </div>
+        )}
+
+        {/* Booking detail modal (dari kalender) */}
+        {calBooking && (
+          <BookingDetailModal
+            booking={calBooking}
+            onClose={()=>setCalBooking(null)}
+            onAction={handleAction}
+          />
         )}
 
         {/* Modal konfirmasi aksi */}
