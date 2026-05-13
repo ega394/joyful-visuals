@@ -2216,7 +2216,7 @@ function DraftProgressView({events,user,upd,showT,askConfirm,setTab,isMobile,set
 // Halaman khusus untuk audit timeline jadwal. Bisa diakses oleh
 // admin_rk, kasubbag_protokol, dan kabag. Untuk admin_rk hanya jadwal
 // yang dia ajukan; untuk kasubbag/kabag semua jadwal.
-function AuditPage({events,user,role,isMobile}){
+function AuditPage({events,user,role,isMobile,embedded}){
   const NAVY="#0A1628";
   const [q,setQ]=React.useState("");
   const [filterAction,setFilterAction]=React.useState("");
@@ -2278,13 +2278,13 @@ function AuditPage({events,user,role,isMobile}){
   };
 
   return (
-    <div style={{padding:isMobile?"12px":"20px",maxWidth:900,margin:"0 auto"}}>
-      <div style={{marginBottom:10}}>
+    <div style={{padding:embedded?0:(isMobile?"12px":"20px"),maxWidth:900,margin:"0 auto"}}>
+      {!embedded&&<div style={{marginBottom:10}}>
         <div style={{fontSize:18,fontWeight:800,color:NAVY,marginBottom:3}}>🕓 Riwayat Alur Jadwal</div>
         <div style={{fontSize:13,color:"#64748B"}}>
           Catatan audit setiap perubahan alur jadwal — kapan diajukan, diteruskan, disetujui, atau ditarik, beserta nama pelaku.
         </div>
-      </div>
+      </div>}
 
       {/* Statistik singkat */}
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(110px,1fr))",gap:8,marginBottom:14}}>
@@ -3823,7 +3823,55 @@ function getNamaByUsername(username){
   }catch{return username;}
 }
 
+// ============================================================
+//  NOTIF_FLAGS — kontrol global per kategori notifikasi.
+//  Set ke false untuk menonaktifkan TANPA harus ubah call site.
+//  Kategori dideteksi otomatis dari `params.event` (sendWA) atau
+//  prefix `tag` (sendPush).
+// ============================================================
+const NOTIF_FLAGS = {
+  penugasan:        false, // "Anda Ditugaskan" — dinonaktifkan
+  persetujuan:      false, // alur submit/teruskan/setujui/tolak/tarik — dinonaktifkan
+  kehadiran:        true,  // konfirmasi kehadiran pimpinan
+  pembatalan:       true,  // permintaan batal tayang
+  delegasi:         true,  // WK delegasi ke WWK
+  pending_reminder: true,  // pengingat 16:00 WITA (baru)
+  lainnya:          true,  // event lain yang belum diklasifikasi
+};
+
+const WA_EVENT_CATEGORY = {
+  submit:               "persetujuan",
+  kasubbag_approve:     "persetujuan",
+  approved:             "persetujuan",
+  rejected:             "persetujuan",
+  recalled:             "persetujuan",
+  jadwal_diubah:        "persetujuan",
+  konfirmasi_kehadiran: "kehadiran",
+  delegasi_wwk:         "delegasi",
+  pembatalan_request:   "pembatalan",
+  pembatalan_setuju:    "pembatalan",
+  pembatalan_tolak:     "pembatalan",
+  penugasan:            "penugasan",
+  cabut_penugasan:      "penugasan",
+};
+
+function pushTagCategory(tag){
+  if(!tag) return "lainnya";
+  if(tag.startsWith("penugasan-")||tag.startsWith("cabut-")) return "penugasan";
+  if(/^(submit-|approve-|approved-|rejected-|recall-|resubmit-|recall-admin-)/.test(tag)) return "persetujuan";
+  if(tag.startsWith("delegasi-")) return "delegasi";
+  if(tag.startsWith("status-")) return "kehadiran";
+  if(tag.startsWith("batal-")) return "pembatalan";
+  return "lainnya";
+}
+
 async function sendWA(params){
+  // Filter per kategori — skip jika flag-nya dimatikan
+  const cat = WA_EVENT_CATEGORY[params.event];
+  if(cat && NOTIF_FLAGS[cat] === false){
+    console.info("[NOTIF] WA skipped — kategori dinonaktifkan:",cat,"event:",params.event);
+    return;
+  }
   if(!params.to){console.warn("sendWA: skip - nomor WA kosong untuk",params.event||"");return;}
   // Normalisasi nomor: 08xxx → 628xxx
   const nomor=params.to.trim().replace(/^0/,"62").replace(/\D/g,"");
@@ -3841,6 +3889,12 @@ async function sendWA(params){
 
 // ── PWA Push Notifikasi Helper ──
 async function sendPush({targetRole,title,body,url,tag}){
+  // Filter per kategori — skip jika flag-nya dimatikan
+  const cat = pushTagCategory(tag);
+  if(NOTIF_FLAGS[cat] === false){
+    console.info("[NOTIF] Push skipped — kategori dinonaktifkan:",cat,"tag:",tag);
+    return;
+  }
   try{
     await fetch("/api/webpush",{
       method:"POST",
@@ -7044,7 +7098,6 @@ const TH={
       {key:"dashboard",icon:"📋", label:"Antrian"},
       {key:"tayang",  icon:"📅", label:"Agenda"},
       {key:"tamu",    icon:"👥", label:"Manajemen Tamu"},
-      {key:"audit",   icon:"🕓", label:"Riwayat Alur"},
     ]:[]),
     // ── Kasubbag Komdokpim ──
     ...(role==="kasubbag_komdokpim"?[
@@ -7058,7 +7111,6 @@ const TH={
       {key:"tayang",   icon:"📅", label:"Agenda"},
       {key:"tamu",     icon:"👥", label:"Manajemen Tamu"},
       {key:"newsroom", icon:"📰", label:"Monitoring Komdok"},
-      {key:"audit",    icon:"🕓", label:"Riwayat Alur"},
     ]:[]),
     // ── Ajudan Wali Kota / Wakil Wali Kota ──
     ...((role==="ajudan_walikota"||role==="ajudan_wakilwalikota")?[
@@ -7169,7 +7221,6 @@ const TH={
     {key:"dashboard",label:"Antrian", icon:"📋"},
     {key:"tayang", label:"Agenda",  icon:"📅"},
     {key:"tamu",   label:"Tamu",    icon:"👥"},
-    {key:"audit",  label:"Riwayat", icon:"🕓"},
   ]:[]),
   // ── Kasubbag Komdokpim ──
   ...(role==="kasubbag_komdokpim"?[
@@ -7183,7 +7234,6 @@ const TH={
     {key:"tayang",   label:"Agenda",  icon:"📅"},
     {key:"tamu",     label:"Tamu",    icon:"👥"},
     {key:"newsroom", label:"Komdok",  icon:"📰"},
-    {key:"audit",    label:"Riwayat", icon:"🕓"},
   ]:[]),
   // ── Ajudan WK / WWK ──
   ...((role==="ajudan_walikota"||role==="ajudan_wakilwalikota")?[
@@ -8361,6 +8411,7 @@ function KabagDashboard({events, user, upd, showT, askConfirm, deleteAndSync, is
     {key:"antrian",label:"Antrian",icon:"📋",badge:antrian.length},
     {key:"jadwal",label:"Jadwal Tayang",icon:"🗓️",badge:0},
     {key:"batal",label:"Batal Tayang",icon:"🚫",badge:permintaanBatal.length},
+    {key:"riwayat",label:"Riwayat Alur",icon:"🕓",badge:0},
   ];
 
   const StatusChip=({alur})=>{
@@ -8723,9 +8774,17 @@ function KabagDashboard({events, user, upd, showT, askConfirm, deleteAndSync, is
               </div>
             ))}
         </>}
+
+        {/* TAB RIWAYAT ALUR */}
+        {activeTab==="riwayat"&&<KabagRiwayatTab events={events} user={user}/>}
       </div>
     </div>
   );
+}
+
+// Inline Riwayat Alur (sub-tab Kabag dashboard) — embedded mode
+function KabagRiwayatTab({events,user}){
+  return <AuditPage events={events} user={user} role="kabag" isMobile={true} embedded={true}/>;
 }
 
 // ═══════════════════════════════════════════════════════
@@ -8774,6 +8833,7 @@ function KasubbagDashboard({events, user, upd, showT, askConfirm, isMobile, onPe
     {key:"antrian",label:"Antrian",icon:"📋",badge:antrian.length},
     {key:"jadwal",label:"Jadwal",icon:"🗓️",badge:0},
     {key:"personil",label:"Personil",icon:"👥",badge:0},
+    {key:"riwayat",label:"Riwayat Alur",icon:"🕓",badge:0},
   ];
 
   const AntrianCard=({ev})=>{
@@ -8999,6 +9059,9 @@ function KasubbagDashboard({events, user, upd, showT, askConfirm, isMobile, onPe
           })}
           {stafBawahan.length===0&&<div style={{textAlign:"center",padding:"40px 20px",color:"#94A3B8"}}><div style={{fontSize:36,marginBottom:8}}>👤</div><div style={{fontSize:13,fontWeight:600}}>Belum ada staf terdaftar di bawah Anda</div></div>}
         </>}
+
+        {/* TAB RIWAYAT ALUR */}
+        {activeTab==="riwayat"&&<AuditPage events={events} user={user} role="kasubbag_protokol" isMobile={true} embedded={true}/>}
     {/* ── MODAL CABUT PENUGASAN ── */}
     {cabutTarget&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"flex-end",zIndex:9999}}
       onClick={e=>{if(e.target===e.currentTarget){setCabutTarget(null);setAlasanCabut("");}}}>
