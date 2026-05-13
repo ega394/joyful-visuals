@@ -448,7 +448,7 @@ function printBookingPublic(b) {
       <li>Bertanggung jawab atas seluruh fasilitas yang digunakan selama peminjaman berlangsung.</li>
     </ol>
     <p style="margin-top:14px;text-align:justify">
-      Demikian surat konfirmasi ini disampaikan untuk dapat dipergunakan sebagaimana mestinya.
+      Demikian konfirmasi ini disampaikan untuk dapat dipergunakan sebagaimana mestinya.
       Atas perhatian dan kerja samanya, diucapkan terima kasih.
     </p>
     <div class="footer"><div style="display:inline-block;text-align:center;min-width:240px"><p>Tarakan, ${today}</p><p>Pengelola Ruangan,</p><div class="sp"></div><p><b><u>${esc(b.reviewed_by||"_____________________")}</u></b></p><p style="font-size:9pt;color:#666">Bagian Prokopim Kota Tarakan</p></div></div>

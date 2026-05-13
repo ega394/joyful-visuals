@@ -544,7 +544,7 @@ function printSingleBooking(b) {
     `}
 
     <p style="margin-top:14px;text-align:justify">
-      Demikian surat konfirmasi ini disampaikan untuk dapat dipergunakan sebagaimana mestinya.
+      Demikian konfirmasi ini disampaikan untuk dapat dipergunakan sebagaimana mestinya.
       Atas perhatian dan kerja samanya, diucapkan terima kasih.
     </p>
 
