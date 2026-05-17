@@ -214,6 +214,16 @@ export default async function handler(req, res) {
       if (new Date(end_date) < new Date(start_date))
         return res.status(400).json({ error: "Tanggal selesai tidak boleh sebelum tanggal mulai" });
 
+      // Tolak Sabtu/Minggu — cek seluruh rentang tanggal
+      for (let d = new Date(start_date + "T00:00:00"), end = new Date(end_date + "T00:00:00");
+           d <= end; d.setDate(d.getDate() + 1)) {
+        const dow = d.getDay();
+        if (dow === 0 || dow === 6)
+          return res.status(400).json({
+            error: "Peminjaman tidak diperbolehkan pada hari Sabtu/Minggu. Pilih hari kerja (Senin–Jumat).",
+          });
+      }
+
       const isMultiDay = end_date !== start_date;
       if (isMultiDay && !srikandi_ref && !document_path)
         return res.status(400).json({
