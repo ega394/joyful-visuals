@@ -1,7 +1,7 @@
 /**
  * PinjamRuanganPage.jsx — Halaman Publik Peminjaman Ruangan
  */
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo, memo } from "react";
 
 const NAVY   = "#0A1628";
 const NAVY2  = "#1E3A5F";
@@ -82,29 +82,41 @@ function SlotCell({ session, booking, highlighted, onClick, weekend }) {
   const approved = booking.status==="Approved";
   return (
     <div style={{
-      borderRadius:2, padding:"1px 3px",
+      height:10, borderRadius:2,
       background: approved?"#FEE2E2":"#FEF3C7",
-      border:`1px solid ${approved?"#FECACA":"#FCD34D"}`,
+      border:`1px solid ${approved?"#FCA5A5":"#FCD34D"}`,
       color: approved?"#991B1B":"#92400E",
-      fontSize:8, fontWeight:700,
-      whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis",
-      lineHeight:"1.4",
+      fontSize:7, fontWeight:800, letterSpacing:0.3,
+      textAlign:"center", lineHeight:"9px", textTransform:"uppercase",
     }}>
-      {booking.event_name || (approved?"Terisi":"Proses")}
+      {approved?"Terisi":"Proses"}
     </div>
   );
 }
 
 // ── Calendar ──────────────────────────────────────────────────
-function RoomCalendar({ bookings, rooms, year, month, highlightRange, onSlotClick }) {
+const RoomCalendar = memo(function RoomCalendar({ bookings, rooms, year, month, highlightRange, onSlotClick }) {
   const daysInMonth = new Date(year, month, 0).getDate();
   const startDow    = new Date(year, month-1, 1).getDay();
   const today       = toYMD(new Date());
 
-  const cells = [];
-  for (let i=0; i<startDow; i++) cells.push(null);
-  for (let d=1; d<=daysInMonth; d++)
-    cells.push(`${year}-${String(month).padStart(2,"0")}-${String(d).padStart(2,"0")}`);
+  // Index booking per ruangan sekali saja → lookup sel kalender jadi ringan
+  const byRoom = useMemo(() => {
+    const m = new Map();
+    for (const b of (bookings||[])) {
+      if (!m.has(b.room_id)) m.set(b.room_id, []);
+      m.get(b.room_id).push(b);
+    }
+    return m;
+  }, [bookings]);
+
+  const cells = useMemo(() => {
+    const arr = [];
+    for (let i=0; i<startDow; i++) arr.push(null);
+    for (let d=1; d<=daysInMonth; d++)
+      arr.push(`${year}-${String(month).padStart(2,"0")}-${String(d).padStart(2,"0")}`);
+    return arr;
+  }, [year, month, daysInMonth, startDow]);
 
   const inHL = (dateStr, roomId, session) => {
     if (!highlightRange?.start) return false;
@@ -117,7 +129,9 @@ function RoomCalendar({ bookings, rooms, year, month, highlightRange, onSlotClic
 
   return (
     <div style={{display:"flex",flexDirection:"column",gap:28}}>
-      {rooms.map(room => (
+      {rooms.map(room => {
+        const roomBk = byRoom.get(room.id) || [];
+        return (
         <div key={room.id}>
           <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
             <div style={{background:NAVY,color:"white",borderRadius:10,padding:"6px 16px",fontSize:14,fontWeight:800}}>
@@ -146,8 +160,8 @@ function RoomCalendar({ bookings, rooms, year, month, highlightRange, onSlotClic
                     if (!dateStr) return <div key={i}/>;
                     const dow   = new Date(dateStr+"T00:00:00").getDay();
                     const wknd  = dow===0||dow===6;
-                    const pagiB = slotBooking(bookings,room.id,dateStr,"Pagi");
-                    const sngB  = slotBooking(bookings,room.id,dateStr,"Siang");
+                    const pagiB = slotBooking(roomBk,room.id,dateStr,"Pagi");
+                    const sngB  = slotBooking(roomBk,room.id,dateStr,"Siang");
                     const isToday = dateStr===today;
                     const isPast  = dateStr<today;
                     const hlCell  = highlightRange && inHL(dateStr,room.id,null);
@@ -205,10 +219,11 @@ function RoomCalendar({ bookings, rooms, year, month, highlightRange, onSlotClic
             }}/>
           </div>
         </div>
-      ))}
+        );
+      })}
     </div>
   );
-}
+});
 
 // ── Legend ────────────────────────────────────────────────────
 function Legend({ showClickHint }) {
@@ -437,34 +452,67 @@ function BookingForm({ rooms, bookings, onSuccess, prefill, onClearPrefill }) {
     }
   },[prefill]);
 
-  const f = (k,v) => setForm(p=>({...p,[k]:v}));
+  const f = useCallback((k,v) => setForm(p=>({...p,[k]:v})), []);
   const isMultiDay    = form.end_date && form.start_date && form.end_date!==form.start_date;
-  const selectedRoom  = rooms.find(r=>r.id===Number(form.room_id));
+  const selectedRoom  = useMemo(()=>rooms.find(r=>r.id===Number(form.room_id)), [rooms, form.room_id]);
 
   // Calendar for step 2
   const [calOff,setCalOff] = useState(0);
-  const base  = new Date(form.start_date+"T00:00:00");
-  const calDt = new Date(base.getFullYear(),base.getMonth()+calOff,1);
-  const calY  = calDt.getFullYear();
-  const calM  = calDt.getMonth()+1;
+  const { calY, calM } = useMemo(() => {
+    const base = new Date(form.start_date+"T00:00:00");
+    const dt   = new Date(base.getFullYear(), base.getMonth()+calOff, 1);
+    return { calY: dt.getFullYear(), calM: dt.getMonth()+1 };
+  }, [form.start_date, calOff]);
+
+  // Bookings akurat untuk bulan yang sedang ditampilkan di kalender form.
+  // Tanpa ini, navigasi bulan menampilkan ketersediaan yang salah.
+  const [calBookings, setCalBookings] = useState(bookings||[]);
+  const [calLoading, setCalLoading]   = useState(false);
+  useEffect(()=>{ setCalBookings(bookings||[]); }, [bookings]);
+  useEffect(()=>{
+    let alive = true;
+    const ms = `${calY}-${String(calM).padStart(2,"0")}`;
+    setCalLoading(true);
+    fetch(`/api/room-booking?month=${ms}`)
+      .then(r=>r.json())
+      .then(d=>{ if(alive && Array.isArray(d)) setCalBookings(d); })
+      .catch(()=>{})
+      .finally(()=>{ if(alive) setCalLoading(false); });
+    return ()=>{ alive=false; };
+  },[calY, calM]);
 
   // Weekend in range
-  const hasWknd = (() => {
+  const hasWknd = useMemo(() => {
     if (!form.start_date||!form.end_date) return false;
     let d = form.start_date;
     while (d<=form.end_date) { if(isWeekend(d)) return true; d=addDays(d,1); }
     return false;
-  })();
+  }, [form.start_date, form.end_date]);
 
   // Conflict
-  const slotConflict = (() => {
+  const slotConflict = useMemo(() => {
     if (!form.room_id||!form.session||!form.start_date||!form.end_date) return null;
     const cs = form.session==="Full_Day"?["Pagi","Siang","Full_Day"]:form.session==="Pagi"?["Pagi","Full_Day"]:["Siang","Full_Day"];
-    return (bookings||[]).find(b=>
+    return (calBookings||[]).find(b=>
       b.room_id===Number(form.room_id)&&b.status!=="Cancelled"&&b.status!=="Rejected"&&
       b.start_date<=form.end_date&&b.end_date>=form.start_date&&cs.includes(b.session)
     )||null;
-  })();
+  }, [calBookings, form.room_id, form.session, form.start_date, form.end_date]);
+
+  // Props kalender yang stabil → kalender tidak re-render saat mengetik field lain
+  const calRooms = useMemo(()=> selectedRoom?[selectedRoom]:rooms, [selectedRoom, rooms]);
+  const highlightRange = useMemo(()=>(
+    form.start_date&&form.end_date
+      ? {start:form.start_date,end:form.end_date,room_id:Number(form.room_id)||null,session:form.session||null}
+      : null
+  ), [form.start_date, form.end_date, form.room_id, form.session]);
+
+  // Klik slot kosong di kalender → pilih tanggal + sesi (1 hari)
+  const pickSlot = useCallback((dateStr, roomId, session) => {
+    setForm(p=>({...p, start_date:dateStr, end_date:dateStr, room_id:String(roomId), session}));
+    setCalOff(0);
+    setErr("");
+  }, []);
 
   const nextStep = () => {
     if (formStep===1) {
@@ -588,7 +636,9 @@ function BookingForm({ rooms, bookings, onSuccess, prefill, onClearPrefill }) {
           <div style={{background:"white",borderRadius:14,padding:"16px 16px 14px",border:`1.5px solid ${BORDER}`,marginBottom:16,boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10,flexWrap:"wrap",gap:8}}>
               <div>
-                <div style={{fontSize:12,fontWeight:700,color:NAVY,letterSpacing:1,textTransform:"uppercase"}}>Cek Ketersediaan</div>
+                <div style={{fontSize:12,fontWeight:700,color:NAVY,letterSpacing:1,textTransform:"uppercase"}}>
+                  Cek Ketersediaan {calLoading&&<span style={{fontWeight:500,color:GRAY}}>· memuat…</span>}
+                </div>
                 <div style={{fontSize:11,color:GRAY,marginTop:1}}>{selectedRoom?`Jadwal ${selectedRoom.name}`:"Pilih ruangan di atas untuk detail"}</div>
               </div>
               <div style={{display:"flex",gap:6,alignItems:"center"}}>
@@ -597,11 +647,15 @@ function BookingForm({ rooms, bookings, onSuccess, prefill, onClearPrefill }) {
                 <button type="button" onClick={()=>setCalOff(o=>o+1)} style={{width:28,height:28,borderRadius:7,border:`1.5px solid ${BORDER}`,background:"white",cursor:"pointer",fontWeight:700,fontSize:13}}>›</button>
               </div>
             </div>
+            <div style={{fontSize:11,color:"#2563EB",background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:8,padding:"7px 10px",marginBottom:10}}>
+              💡 Klik slot <b>kosong</b> di kalender untuk memilih tanggal &amp; sesi secara otomatis.
+            </div>
             <RoomCalendar
-              bookings={bookings||[]}
-              rooms={selectedRoom?[selectedRoom]:rooms}
+              bookings={calBookings}
+              rooms={calRooms}
               year={calY} month={calM}
-              highlightRange={form.start_date&&form.end_date?{start:form.start_date,end:form.end_date,room_id:Number(form.room_id)||null,session:form.session||null}:null}
+              highlightRange={highlightRange}
+              onSlotClick={pickSlot}
             />
             <Legend/>
           </div>
