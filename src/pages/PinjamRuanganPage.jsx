@@ -32,6 +32,10 @@ const MONTH_NAMES = ["Januari","Februari","Maret","April","Mei","Juni","Juli","A
 const toYMD = d => (d instanceof Date ? d : new Date(d)).toISOString().slice(0,10);
 const isWeekend = s => { const d = new Date(s+"T00:00:00"); return d.getDay()===0||d.getDay()===6; };
 
+// Format Srikandi wajib: nomor/nomor/instansi/tahun  (cth: 005/1234/DKISP/2026)
+const SRIKANDI_RE = /^\d[\d.]*\/\d[\d.]*\/[^/]+\/\d{4}$/;
+const isValidSrikandi = s => SRIKANDI_RE.test(String(s||"").trim());
+
 function addDays(dateStr, n) {
   const d = new Date(dateStr+"T00:00:00"); d.setDate(d.getDate()+n); return toYMD(d);
 }
@@ -476,6 +480,9 @@ function BookingForm({ rooms, bookings, onSuccess, prefill, onClearPrefill }) {
       if (!form.session) { setErr("Pilih sesi terlebih dahulu."); return; }
       if (hasWknd)       { setErr("Peminjaman tidak diperbolehkan pada hari Sabtu/Minggu."); return; }
       if (isMultiDay&&!form.srikandi_ref&&!file) { setErr("Wajib lampirkan nomor Srikandi atau file surat."); return; }
+      if (form.srikandi_ref && !isValidSrikandi(form.srikandi_ref)) {
+        setErr("Format nomor Srikandi salah. Gunakan: nomor/nomor/instansi/tahun (contoh: 005/1234/DKISP/2026)."); return;
+      }
       setErr(""); setFormStep(3); return;
     }
   };
@@ -654,9 +661,16 @@ function BookingForm({ rooms, bookings, onSuccess, prefill, onClearPrefill }) {
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
                 <div>
                   <label style={{...lbl,color:"#92400E"}}>Nomor Surat Srikandi</label>
-                  <input value={form.srikandi_ref} onChange={e=>f("srikandi_ref",e.target.value)} placeholder="Contoh: 005/XXXX/2026"
-                    style={{...inp,border:`1.5px solid ${YELLOW_BORDER}`,background:"white"}}
-                    onFocus={e=>e.target.style.border=`1.5px solid ${YELLOW}`} onBlur={e=>e.target.style.border=`1.5px solid ${YELLOW_BORDER}`}/>
+                  {(()=>{ const bad=form.srikandi_ref&&!isValidSrikandi(form.srikandi_ref); const bc=bad?RED:YELLOW_BORDER; return (
+                    <input value={form.srikandi_ref} onChange={e=>f("srikandi_ref",e.target.value)} placeholder="005/1234/DKISP/2026"
+                      style={{...inp,border:`1.5px solid ${bc}`,background:"white"}}
+                      onFocus={e=>e.target.style.border=`1.5px solid ${bad?RED:YELLOW}`} onBlur={e=>e.target.style.border=`1.5px solid ${bc}`}/>
+                  ); })()}
+                  <div style={{fontSize:11,color:form.srikandi_ref&&!isValidSrikandi(form.srikandi_ref)?RED:GRAY,marginTop:4}}>
+                    {form.srikandi_ref&&!isValidSrikandi(form.srikandi_ref)
+                      ? "⚠️ Format salah. Wajib: nomor/nomor/instansi/tahun"
+                      : "Format: nomor/nomor/instansi/tahun (cth: 005/1234/DKISP/2026)"}
+                  </div>
                 </div>
                 <div>
                   <label style={{...lbl,color:"#92400E"}}>Upload Surat (PDF)</label>
@@ -687,7 +701,7 @@ function BookingForm({ rooms, bookings, onSuccess, prefill, onClearPrefill }) {
             </button>
             <button type="button" onClick={nextStep}
               disabled={!form.session||hasWknd||(isMultiDay&&!form.srikandi_ref&&!file)}
-              style={{flex:2,padding:"13px",borderRadius:12,border:"none",background:(!form.session||hasWknd||(isMultiDay&&!form.srikandi_ref&&!file))?"#E5E7EB":`linear-gradient(135deg,${NAVY} 0%,${NAVY2} 100%)`,color:(!form.session||hasWknd||(isMultiDay&&!form.srikandi_ref&&!file))?"#9CA3AF":"white",fontWeight:800,fontSize:14,cursor:(!form.session||hasWknd||(isMultiDay&&!form.srikandi_ref&&!file))?"not-allowed":"pointer",boxShadow:"0 4px 14px rgba(10,22,40,0.2)",letterSpacing:0.3}}>
+              style={{flex:2,padding:"13px",borderRadius:12,border:"none",background:(!form.session||hasWknd||(isMultiDay&&!form.srikandi_ref&&!file)||(form.srikandi_ref&&!isValidSrikandi(form.srikandi_ref)))?"#E5E7EB":`linear-gradient(135deg,${NAVY} 0%,${NAVY2} 100%)`,color:(!form.session||hasWknd||(isMultiDay&&!form.srikandi_ref&&!file)||(form.srikandi_ref&&!isValidSrikandi(form.srikandi_ref)))?"#9CA3AF":"white",fontWeight:800,fontSize:14,cursor:(!form.session||hasWknd||(isMultiDay&&!form.srikandi_ref&&!file)||(form.srikandi_ref&&!isValidSrikandi(form.srikandi_ref)))?"not-allowed":"pointer",boxShadow:"0 4px 14px rgba(10,22,40,0.2)",letterSpacing:0.3}}>
               Lihat Konfirmasi →
             </button>
           </div>

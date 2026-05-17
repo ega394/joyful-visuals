@@ -230,6 +230,12 @@ export default async function handler(req, res) {
           error: "Peminjaman lebih dari 1 hari wajib melampirkan nomor Srikandi atau file surat",
         });
 
+      // Format nomor Srikandi wajib: nomor/nomor/instansi/tahun (cth: 005/1234/DKISP/2026)
+      if (srikandi_ref && !/^\d[\d.]*\/\d[\d.]*\/[^/]+\/\d{4}$/.test(String(srikandi_ref).trim()))
+        return res.status(400).json({
+          error: "Format nomor Srikandi tidak valid. Gunakan format: nomor/nomor/instansi/tahun (contoh: 005/1234/DKISP/2026)",
+        });
+
       const rooms = await sbGet(`rooms?id=eq.${room_id}&select=*`);
       const room  = rooms?.[0];
       if (!room) return res.status(400).json({ error: "Ruangan tidak ditemukan" });
