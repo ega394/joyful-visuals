@@ -83,6 +83,13 @@ export default defineConfig(({ mode }) => ({
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
 
+        // ✅ Hindari bundle basi: bersihkan precache lama & ambil alih segera
+        // Mencegah index.html lama memuat chunk JS yang sudah terhapus
+        // (penyebab React gagal mount → form tidak bisa diketik)
+        cleanupOutdatedCaches: true,
+        skipWaiting: true,
+        clientsClaim: true,
+
         // ✅ FIX: Jangan intercept /api/* — biarkan ke server
         navigateFallbackDenylist: [
           /^\/api\/.*/,
