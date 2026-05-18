@@ -259,7 +259,7 @@ function Legend({ showClickHint }) {
       </div>
       {showClickHint && (
         <div style={{marginLeft:"auto",fontSize:11,color:"#2563EB",fontWeight:600,background:"#EFF6FF",padding:"3px 8px",borderRadius:6,border:"1px solid #BFDBFE"}}>
-          Klik slot kosong → isi form otomatis
+          Klik slot untuk mulai pengajuan (isi formulir dari awal)
         </div>
       )}
     </div>
@@ -630,12 +630,14 @@ function BookingForm({ rooms, bookings, onSuccess, prefill, onClearPrefill }) {
 
   useEffect(()=>{
     if (prefill) {
+      // Pra-pilih ruangan + slot dari kalender, TAPI tetap mulai dari
+      // Step 1 (Identitas) — jangan lompat ke Step 2 agar form tidak dibypass.
       setForm(p=>({
         ...p,
         room_id: prefill.room_id ?? p.room_id,
         slots: prefill.slot ? [prefill.slot] : p.slots,
       }));
-      setFormStep(2);
+      setFormStep(1);
       onClearPrefill?.();
     }
   },[prefill]);
@@ -1118,8 +1120,10 @@ export default function PinjamRuanganPage() {
   };
 
   const handleSlotClick = (dateStr,roomId,session) => {
+    // Klik kalender hanya mengantar ke form & pra-pilih slot.
+    // Tetap mulai dari checklist → Step 1 (form wajib diisi dari awal).
     setPrefill({room_id:String(roomId),slot:{date:dateStr,session}});
-    setShowChecklist(false);
+    setShowChecklist(true);
     setSec("form"); setSuccess(null);
     window.scrollTo({top:0,behavior:"smooth"});
   };
