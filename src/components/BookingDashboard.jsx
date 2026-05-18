@@ -980,6 +980,10 @@ export default function BookingDashboard({ user, isMobile }) {
   const filteredGroups = useMemo(() => allGroups.filter(g => {
     if (filterStatus && g.status !== filterStatus) return false;
     if (filterRoom && g.room_id !== Number(filterRoom)) return false;
+    // Tanpa filter status eksplisit: sembunyikan Cancelled/Rejected
+    // yang lebih lama dari 60 hari (Pending/Approved selalu tampil).
+    if (!filterStatus && (g.status === "Cancelled" || g.status === "Rejected")
+        && daysSince(g.created_at) > 60) return false;
     return true;
   }), [allGroups, filterStatus, filterRoom]);
 
