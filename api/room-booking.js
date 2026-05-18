@@ -75,7 +75,7 @@ async function sendPushToManagers({ title, body, url, tag }) {
   try { webpush.setVapidDetails(VAPID_EMAIL, VAPID_PUBLIC, VAPID_PRIVATE); }
   catch { return; }
 
-  // Ambil username pengelola ruangan + kabag
+  // Ambil username peninjau permohonan + kabag
   const [managers, kabagList] = await Promise.all([
     sbGet("users?can_manage_rooms=eq.true&select=username").catch(()=>[]),
     sbGet("users?role=eq.kabag&select=username").catch(()=>[]),
@@ -172,7 +172,7 @@ export default async function handler(req, res) {
       // ?admin=1 → admin list (protected)
       if (query.admin === "1") {
         const admin = await verifyAdmin(req);
-        if (!admin) return res.status(403).json({ error: "Akses ditolak. Sesi pengelola tidak valid — silakan login ulang." });
+        if (!admin) return res.status(403).json({ error: "Akses ditolak. Sesi peninjau permohonan tidak valid — silakan login ulang." });
 
         let filters = "select=*,rooms(name,capacity)";
         if (query.status)  filters += `&status=eq.${query.status}`;
@@ -236,7 +236,7 @@ export default async function handler(req, res) {
         if (!u || u.disabled || u.password !== pass)
           return res.status(401).json({ error: "Username atau password salah." });
         if (!(u.role === "kabag" || u.can_manage_rooms))
-          return res.status(403).json({ error: "Akun ini bukan pengelola ruangan." });
+          return res.status(403).json({ error: "Akun ini bukan peninjau permohonan." });
 
         const TTL_MS = 12 * 3600 * 1000;
         const token = genToken();
@@ -355,7 +355,7 @@ export default async function handler(req, res) {
         .map(s => `• ${s.date} — ${sessionLabel(s.session)}`)
         .join("\n");
 
-      // WA ke pengelola
+      // WA ke peninjau permohonan
       const [managers, kabagList] = await Promise.all([
         sbGet("users?can_manage_rooms=eq.true&select=nama,noWA"),
         sbGet("users?role=eq.kabag&select=nama,noWA"),
@@ -370,7 +370,7 @@ export default async function handler(req, res) {
         `PIC: ${pic_name} (${pic_wa})\nPeserta: ${participant_count} orang\n` +
         `Jadwal (${slots.length} slot):\n${slotLines}\n` +
         (srikandi_ref ? `Srikandi: ${srikandi_ref}\n` : "") +
-        `\nSilakan validasi di dashboard Kelola Ruangan.`;
+        `\nSilakan validasi di dashboard Peninjau Permohonan.`;
       for (const u of targets) await sendWA(u.noWA, adminMsg);
 
       await sendPushToManagers({
@@ -397,12 +397,12 @@ export default async function handler(req, res) {
     // ── PUT — admin update status / set_manager ────────────────
     if (method === "PUT") {
       const admin = await verifyAdmin(req);
-      if (!admin) return res.status(403).json({ error: "Akses ditolak. Sesi pengelola tidak valid — silakan login ulang." });
+      if (!admin) return res.status(403).json({ error: "Akses ditolak. Sesi peninjau permohonan tidak valid — silakan login ulang." });
 
-      // ?op=set_manager → kabag tetapkan/cabut hak pengelola ruangan
+      // ?op=set_manager → kabag tetapkan/cabut hak peninjau permohonan
       if (query.op === "set_manager") {
         if (admin.role !== "kabag")
-          return res.status(403).json({ error: "Hanya Kabag yang dapat mengatur pengelola ruangan." });
+          return res.status(403).json({ error: "Hanya Kabag yang dapat mengatur peninjau permohonan." });
         const { target, value } = body || {};
         if (!target) return res.status(400).json({ error: "Field 'target' wajib ada" });
         const tgt = await sbGet(`users?username=eq.${encodeURIComponent(target)}&select=username,role,disabled`);
@@ -475,7 +475,7 @@ export default async function handler(req, res) {
           (notes ? `Alasan: ${notes}\n` : "") +
           `\nSilakan ajukan ulang atau hubungi Bagian Prokopim.`,
         Cancelled:
-          `*[PROKOPIM TARAKAN]* Peminjaman Anda *DIBATALKAN* oleh pengelola.\n\n` +
+          `*[PROKOPIM TARAKAN]* Peminjaman Anda *DIBATALKAN* oleh peninjau permohonan.\n\n` +
           `Kode: *${head.booking_code}*\n` +
           (notes ? `Keterangan: ${notes}\n` : "") +
           `Hubungi Bagian Prokopim jika ada pertanyaan.`,
@@ -498,7 +498,7 @@ export default async function handler(req, res) {
       const booking = rows[0];
       if (rows.some(r => r.status !== "Pending"))
         return res.status(400).json({
-          error: `Pengajuan sudah diproses (status '${booking.status}') dan tidak bisa dibatalkan. Hubungi pengelola ruangan.`,
+          error: `Pengajuan sudah diproses (status '${booking.status}') dan tidak bisa dibatalkan. Hubungi peninjau permohonan.`,
         });
 
       await sbPatch(`room_bookings?booking_code=eq.${booking.booking_code}`, { status:"Cancelled", notes:"Dibatalkan oleh peminjam" });

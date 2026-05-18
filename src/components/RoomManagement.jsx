@@ -1,5 +1,5 @@
 /**
- * RoomManagement.jsx — Kabag: Tunjuk Pengelola Ruangan
+ * RoomManagement.jsx — Kabag: Tunjuk Peninjau Permohonan
  * Hanya bisa diakses role kabag.
  * Mengatur flag can_manage_rooms per user staf/admin_rk/kasubbag_protokol.
  */
@@ -76,7 +76,7 @@ export default function RoomManagement({ user, isMobile }) {
   const handleToggle = async (u) => {
     const newVal = !u.can_manage_rooms;
     const action = newVal ? "menunjuk" : "mencabut akses dari";
-    if (!window.confirm(`Yakin ${action} ${u.nama} sebagai pengelola ruangan?`)) return;
+    if (!window.confirm(`Yakin ${action} ${u.nama} sebagai peninjau permohonan?`)) return;
 
     setToggling(u.username);
     try {
@@ -97,11 +97,11 @@ export default function RoomManagement({ user, isMobile }) {
       <div style={{ maxWidth: 700, margin: "0 auto" }}>
         <div style={{ marginBottom: 20 }}>
           <h2 style={{ margin: "0 0 4px", fontSize: 20, fontWeight: 800, color: NAVY }}>
-            Pengelola Ruangan
+            Peninjau Permohonan
           </h2>
           <p style={{ margin: 0, fontSize: 13, color: GRAY }}>
             Tunjuk staf yang berwenang memvalidasi permohonan peminjaman ruang rapat.
-            Pengelola yang ditunjuk akan menerima notifikasi WA setiap ada permohonan baru.
+            Peninjau yang ditunjuk akan menerima notifikasi WA setiap ada permohonan baru.
           </p>
         </div>
 
@@ -118,13 +118,13 @@ export default function RoomManagement({ user, isMobile }) {
           <div style={{ textAlign: "center", padding: 40, color: GRAY }}>Memuat data staf...</div>
         ) : (
           <>
-            {/* Pengelola aktif */}
+            {/* Peninjau aktif */}
             <div style={{ marginBottom: 24 }}>
               <div style={{
                 fontSize: 12, fontWeight: 700, color: GRAY,
                 letterSpacing: 1, textTransform: "uppercase", marginBottom: 8,
               }}>
-                Pengelola Aktif ({managers.length})
+                Peninjau Aktif ({managers.length})
               </div>
               {managers.length === 0 ? (
                 <div style={{
@@ -132,7 +132,7 @@ export default function RoomManagement({ user, isMobile }) {
                   borderRadius: 10, padding: "12px 14px",
                   fontSize: 13, color: "#92400E",
                 }}>
-                  Belum ada pengelola ruangan yang ditunjuk. Tunjuk staf di bawah.
+                  Belum ada peninjau permohonan yang ditunjuk. Tunjuk staf di bawah.
                 </div>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -158,7 +158,7 @@ export default function RoomManagement({ user, isMobile }) {
               </div>
               {others.length === 0 ? (
                 <div style={{ color: GRAY, fontSize: 13, textAlign: "center", padding: "16px 0" }}>
-                  Semua staf sudah ditunjuk sebagai pengelola.
+                  Semua staf sudah ditunjuk sebagai peninjau permohonan.
                 </div>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>

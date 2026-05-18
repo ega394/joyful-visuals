@@ -481,7 +481,7 @@ function printBookingList(bookings, filterLabel) {
     <p style="font-size:9.5pt;color:#555;margin-top:14px;font-style:italic">
       Demikian rekapitulasi ini disusun sebagai bahan monitoring dan dokumentasi
       penggunaan ruang rapat. Apabila terdapat ketidaksesuaian data, mohon segera
-      menghubungi staf pengelola ruangan pada Bagian Protokol &amp; Komunikasi Pimpinan.
+      menghubungi staf peninjau permohonan pada Bagian Protokol &amp; Komunikasi Pimpinan.
     </p>
     <div class="footer">
       <div class="ttd">
@@ -502,7 +502,11 @@ function printBookingList(bookings, filterLabel) {
 function printSingleBooking(b, slots) {
   const w = window.open("", "_blank", "width=800,height=900");
   if (!w) { alert("Mohon izinkan popup untuk mencetak."); return; }
-  const today = new Date().toLocaleDateString("id-ID",{ day:"numeric", month:"long", year:"numeric" });
+  // Tanggal surat = tanggal tahapan diproses (disetujui/ditolak/dibatalkan
+  // pakai reviewed_at; masih menunggu pakai tanggal diajukan).
+  const tglSumber = (b.status === "Pending" ? b.created_at : b.reviewed_at)
+    || b.reviewed_at || b.created_at || Date.now();
+  const today = new Date(tglSumber).toLocaleDateString("id-ID",{ day:"numeric", month:"long", year:"numeric" });
   const list = (slots && slots.length ? slots : [b])
     .slice().sort((x,y)=> x.start_date.localeCompare(y.start_date) || (SES_ORDER[x.session]||9)-(SES_ORDER[y.session]||9));
   const jadwalRows = list.map(s =>
@@ -572,7 +576,7 @@ function printSingleBooking(b, slots) {
       <tr><td class="lbl">Ruangan yang Dipinjam</td><td><b>${escapeHTML(b.rooms?.name||"-")}</b> (kapasitas ${b.rooms?.capacity||"-"} orang)</td></tr>
       <tr><td class="lbl">Jumlah Peserta</td><td>${b.participant_count} orang</td></tr>
       ${b.srikandi_ref ? `<tr><td class="lbl">Nomor Surat (Srikandi)</td><td>${escapeHTML(b.srikandi_ref)}</td></tr>` : ""}
-      ${b.notes ? `<tr><td class="lbl">Catatan dari Pengelola</td><td>${escapeHTML(b.notes)}</td></tr>` : ""}
+      ${b.notes ? `<tr><td class="lbl">Catatan dari Peninjau Permohonan</td><td>${escapeHTML(b.notes)}</td></tr>` : ""}
     </table>
     <p style="margin:8px 0 4px;font-weight:600;color:#555">Jadwal Penggunaan (${list.length} slot):</p>
     <table><tr><td class="lbl">Tanggal</td><td class="lbl">Sesi / Waktu</td></tr>${jadwalRows}</table>
@@ -589,6 +593,7 @@ function printSingleBooking(b, slots) {
         <li>Mengembalikan ruangan dalam kondisi semula setelah kegiatan selesai.</li>
         <li>Segera menghubungi staf Bagian Prokopim apabila terdapat perubahan jadwal atau pembatalan.</li>
         <li>Bertanggung jawab atas seluruh fasilitas yang digunakan selama peminjaman berlangsung.</li>
+        <li>Peminjaman ruangan sewaktu-waktu dapat dibatalkan apabila terdapat pertemuan/kegiatan yang diinisiasi dan dilaksanakan oleh Kepala Daerah/Wakil Kepala Daerah.</li>
       </ol>
     ` : b.status === "Rejected" ? `
       <p class="closing">
@@ -605,7 +610,7 @@ function printSingleBooking(b, slots) {
     ` : `
       <p class="closing">
         Permohonan peminjaman ruangan tersebut di atas saat ini berstatus
-        <b>MENUNGGU KONFIRMASI</b> dari pengelola. Konfirmasi akan disampaikan melalui
+        <b>MENUNGGU KONFIRMASI</b> dari peninjau permohonan. Konfirmasi akan disampaikan melalui
         nomor WhatsApp pemohon paling lambat 1×24 jam sejak permohonan diajukan.
       </p>
     `}
@@ -618,7 +623,7 @@ function printSingleBooking(b, slots) {
     <div class="footer">
       <div class="ttd">
         <p>Tarakan, ${today}</p>
-        <p>Pengelola Ruangan,</p>
+        <p>Peninjau Permohonan,</p>
         <div class="sp"></div>
         <p><b><u>${escapeHTML(b.reviewed_by||"_____________________")}</u></b></p>
         <p style="font-size:9pt;color:#666">Bagian Prokopim Kota Tarakan</p>
@@ -970,7 +975,7 @@ export default function BookingDashboard({ user, isMobile }) {
     } catch (e) {
       clearAdminToken();
       setBookings([]);
-      setAuthErr(e.message || "Gagal memuat data pengelola.");
+      setAuthErr(e.message || "Gagal memuat data peninjau permohonan.");
     }
     setLoading(false);
   }, [user]);
@@ -1043,7 +1048,7 @@ export default function BookingDashboard({ user, isMobile }) {
             borderRadius: 10, padding: "12px 14px", marginBottom: 16, fontSize: 13,
             display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10,
           }}>
-            <span>⚠ {authErr} Sesi pengelola perlu diverifikasi ulang.</span>
+            <span>⚠ {authErr} Sesi peninjau permohonan perlu diverifikasi ulang.</span>
             <button onClick={() => { clearAdminToken(); loadBookings(); }}
               style={{
                 padding: "7px 14px", borderRadius: 8, border: "none",
