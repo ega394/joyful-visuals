@@ -167,7 +167,16 @@ export default async function handler(req, res) {
         if (query.from)    filters += `&start_date=gte.${query.from}`;
         if (query.to)      filters += `&end_date=lte.${query.to}`;
 
-        const rows = await sbGet(`room_bookings?${filters}&order=created_at.desc&limit=200`);
+        // Default: tampilkan semua Pending/Approved, tapi sembunyikan
+        // Cancelled/Rejected yang lebih lama dari 60 hari agar daftar tidak
+        // membengkak (multi-slot melipatgandakan baris).
+        if (!query.status && !query.from && !query.to) {
+          const cutoff = new Date(Date.now() - 60 * 86400000).toISOString().slice(0, 10);
+          filters += `&or=(status.in.(Pending,Approved),created_at.gte.${cutoff})`;
+        }
+
+        // Limit dinaikkan: 1 pengajuan kini bisa banyak baris slot.
+        const rows = await sbGet(`room_bookings?${filters}&order=created_at.desc&limit=1000`);
         return res.status(200).json(rows);
       }
 
