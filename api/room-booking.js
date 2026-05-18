@@ -125,14 +125,28 @@ function sessionLabel(s) {
        : s === "Full_Day" ? "Full Day (Seharian)" : s;
 }
 
-// ── Auth helper — verifikasi admin ───────────────────────────
-async function verifyAdmin(username) {
-  if (!username) return null;
+// ── Auth helper — verifikasi token sesi admin ────────────────
+function genToken() {
+  const c = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz0123456789";
+  let s = "";
+  for (let i = 0; i < 40; i++) s += c[Math.floor(Math.random() * c.length)];
+  return s;
+}
+
+// Verifikasi via header Authorization: Bearer <token> (atau X-Admin-Token).
+// Token diterbitkan oleh op=auth & disimpan di users.session_token.
+async function verifyAdmin(req) {
+  const auth = req.headers["authorization"] || "";
+  const token = (auth.startsWith("Bearer ") ? auth.slice(7) : "")
+    || req.headers["x-admin-token"] || "";
+  if (!token) return null;
   const rows = await sbGet(
-    `users?username=eq.${encodeURIComponent(username)}&select=username,nama,role,can_manage_rooms,disabled`
+    `users?session_token=eq.${encodeURIComponent(token)}` +
+    `&select=username,nama,role,can_manage_rooms,disabled,session_expires`
   );
   const u = rows?.[0];
   if (!u || u.disabled) return null;
+  if (!u.session_expires || new Date(u.session_expires) < new Date()) return null;
   return (u.role === "kabag" || u.can_manage_rooms) ? u : null;
 }
 
@@ -140,7 +154,7 @@ async function verifyAdmin(username) {
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-Username");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Admin-Token");
   if (req.method === "OPTIONS") return res.status(200).end();
 
   const { method, query, body } = req;
@@ -157,9 +171,8 @@ export default async function handler(req, res) {
 
       // ?admin=1 → admin list (protected)
       if (query.admin === "1") {
-        const username = req.headers["x-username"] || query.username;
-        const admin = await verifyAdmin(username);
-        if (!admin) return res.status(403).json({ error: "Akses ditolak." });
+        const admin = await verifyAdmin(req);
+        if (!admin) return res.status(403).json({ error: "Akses ditolak. Sesi pengelola tidak valid — silakan login ulang." });
 
         let filters = "select=*,rooms(name,capacity)";
         if (query.status)  filters += `&status=eq.${query.status}`;
@@ -214,6 +227,35 @@ export default async function handler(req, res) {
 
     // ── POST — submit pengajuan publik (multi-slot) ────────────
     if (method === "POST") {
+
+      // ── op=auth → tukar (username + hash password) dgn token sesi ──
+      if (query.op === "auth") {
+        const { username, pass } = body || {};
+        if (!username || !pass)
+          return res.status(400).json({ error: "Username & kredensial wajib diisi." });
+        const rows = await sbGet(
+          `users?username=eq.${encodeURIComponent(String(username).toLowerCase())}` +
+          `&select=username,nama,role,can_manage_rooms,disabled,password`
+        );
+        const u = rows?.[0];
+        if (!u || u.disabled || u.password !== pass)
+          return res.status(401).json({ error: "Username atau password salah." });
+        if (!(u.role === "kabag" || u.can_manage_rooms))
+          return res.status(403).json({ error: "Akun ini bukan pengelola ruangan." });
+
+        const TTL_MS = 12 * 3600 * 1000;
+        const token = genToken();
+        await sbPatch(`users?username=eq.${encodeURIComponent(u.username)}`, {
+          session_token: token,
+          session_expires: new Date(Date.now() + TTL_MS).toISOString(),
+        });
+        return res.status(200).json({
+          ok: true, token, ttl_ms: TTL_MS,
+          username: u.username, nama: u.nama, role: u.role,
+          can_manage_rooms: !!u.can_manage_rooms,
+        });
+      }
+
       const {
         room_id, instansi, pic_name, pic_wa, event_name,
         participant_count, srikandi_ref, document_path,
@@ -357,11 +399,25 @@ export default async function handler(req, res) {
       });
     }
 
-    // ── PUT — admin update status ──────────────────────────────
+    // ── PUT — admin update status / set_manager ────────────────
     if (method === "PUT") {
-      const username = req.headers["x-username"] || query.username;
-      const admin = await verifyAdmin(username);
-      if (!admin) return res.status(403).json({ error: "Akses ditolak." });
+      const admin = await verifyAdmin(req);
+      if (!admin) return res.status(403).json({ error: "Akses ditolak. Sesi pengelola tidak valid — silakan login ulang." });
+
+      // ?op=set_manager → kabag tetapkan/cabut hak pengelola ruangan
+      if (query.op === "set_manager") {
+        if (admin.role !== "kabag")
+          return res.status(403).json({ error: "Hanya Kabag yang dapat mengatur pengelola ruangan." });
+        const { target, value } = body || {};
+        if (!target) return res.status(400).json({ error: "Field 'target' wajib ada" });
+        const tgt = await sbGet(`users?username=eq.${encodeURIComponent(target)}&select=username,role,disabled`);
+        if (!tgt?.length) return res.status(404).json({ error: "User tidak ditemukan" });
+        const patch = { can_manage_rooms: !!value };
+        // Cabut akses → sekalian akhiri sesi admin user tsb
+        if (!value) { patch.session_token = null; patch.session_expires = null; }
+        await sbPatch(`users?username=eq.${encodeURIComponent(target)}`, patch);
+        return res.status(200).json({ ok: true, username: target, can_manage_rooms: !!value });
+      }
 
       const { id, booking_code, status, notes } = body || {};
       if (!id && !booking_code)

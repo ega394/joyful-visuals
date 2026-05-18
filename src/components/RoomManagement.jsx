@@ -4,6 +4,7 @@
  * Mengatur flag can_manage_rooms per user staf/admin_rk/kasubbag_protokol.
  */
 import React, { useState, useEffect, useCallback } from "react";
+import { adminFetch } from "../roomAuth";
 
 const NAVY = "#0A1628";
 const GOLD = "#C9A84C";
@@ -37,22 +38,17 @@ async function fetchEligibleUsers() {
   return r.json();
 }
 
-async function setCanManageRooms(username, value) {
-  const r = await fetch(
-    `${SUPA_URL}/rest/v1/users?username=eq.${encodeURIComponent(username)}`,
-    {
-      method: "PATCH",
-      headers: {
-        "apikey": SUPA_KEY,
-        "Authorization": `Bearer ${SUPA_KEY}`,
-        "Content-Type": "application/json",
-        "Prefer": "return=representation",
-      },
-      body: JSON.stringify({ can_manage_rooms: value }),
-    }
-  );
-  if (!r.ok) throw new Error(await r.text());
-  return r.json();
+// Perubahan hak akses lewat server (terverifikasi Kabag), bukan tulis
+// langsung ke Supabase dengan anon key.
+async function setCanManageRooms(kabagUser, username, value) {
+  const r = await adminFetch(kabagUser, "/api/room-booking?op=set_manager", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ target: username, value }),
+  });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || "Gagal mengubah hak akses.");
+  return d;
 }
 
 export default function RoomManagement({ user, isMobile }) {
@@ -84,7 +80,7 @@ export default function RoomManagement({ user, isMobile }) {
 
     setToggling(u.username);
     try {
-      await setCanManageRooms(u.username, newVal);
+      await setCanManageRooms(user, u.username, newVal);
       showToast(`Berhasil ${action} ${u.nama}`);
       setUsers(prev => prev.map(x => x.username === u.username ? { ...x, can_manage_rooms: newVal } : x));
     } catch (e) {

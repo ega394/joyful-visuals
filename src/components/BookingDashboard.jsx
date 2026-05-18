@@ -3,6 +3,7 @@
  * Dapat diakses oleh role kabag atau user dengan can_manage_rooms=true
  */
 import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { adminFetch, clearAdminToken } from "../roomAuth";
 
 const NAVY   = "#0A1628";
 const GOLD   = "#C9A84C";
@@ -935,6 +936,7 @@ export default function BookingDashboard({ user, isMobile }) {
   const [modal, setModal]         = useState(null); // { booking, action }
   const [processing, setProcessing] = useState(false);
   const [toast, setToast]         = useState("");
+  const [authErr, setAuthErr]     = useState("");
 
   // Filter state
   const [filterStatus, setFilterStatus] = useState("Pending");
@@ -956,15 +958,20 @@ export default function BookingDashboard({ user, isMobile }) {
   const loadBookings = useCallback(async () => {
     setLoading(true);
     try {
-      const [bR, rR] = await Promise.all([
-        fetch(`/api/room-booking?admin=1`, {
-          headers: { "X-Username": user?.username || "" },
-        }).then(r => r.json()),
+      const [bRes, rR] = await Promise.all([
+        adminFetch(user, `/api/room-booking?admin=1`),
         fetch("/api/room-booking?op=rooms").then(r => r.json()),
       ]);
+      const bR = await bRes.json().catch(() => ({}));
+      if (!bRes.ok) throw new Error(bR.error || "Akses ditolak.");
       setBookings(Array.isArray(bR) ? bR : []);
       setRooms(Array.isArray(rR) ? rR : []);
-    } catch { /* skip */ }
+      setAuthErr("");
+    } catch (e) {
+      clearAdminToken();
+      setBookings([]);
+      setAuthErr(e.message || "Gagal memuat data pengelola.");
+    }
     setLoading(false);
   }, [user]);
 
@@ -989,12 +996,9 @@ export default function BookingDashboard({ user, isMobile }) {
     if (!modal) return;
     setProcessing(true);
     try {
-      const r = await fetch("/api/room-booking", {
+      const r = await adminFetch(user, "/api/room-booking", {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Username": user?.username || "",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ booking_code: modal.booking.booking_code, status: action, notes }),
       });
       const data = await r.json();
@@ -1028,6 +1032,24 @@ export default function BookingDashboard({ user, isMobile }) {
             Validasi dan kelola permohonan peminjaman ruang rapat
           </p>
         </div>
+
+        {authErr && (
+          <div style={{
+            background: "#FEF2F2", border: "1.5px solid #FCA5A5", color: "#991B1B",
+            borderRadius: 10, padding: "12px 14px", marginBottom: 16, fontSize: 13,
+            display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10,
+          }}>
+            <span>⚠ {authErr} Sesi pengelola perlu diverifikasi ulang.</span>
+            <button onClick={() => { clearAdminToken(); loadBookings(); }}
+              style={{
+                padding: "7px 14px", borderRadius: 8, border: "none",
+                background: "#991B1B", color: "white", fontWeight: 700,
+                fontSize: 12, cursor: "pointer", whiteSpace: "nowrap",
+              }}>
+              Coba Lagi
+            </button>
+          </div>
+        )}
 
         {/* Stat cards */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 20 }}>

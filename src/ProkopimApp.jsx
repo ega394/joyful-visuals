@@ -10,6 +10,7 @@ import NewsroomDashboard from "./NewsroomDashboard.jsx";
 import SuperadminPage from "./pages/SuperadminPage.jsx";
 import BookingDashboard from "./components/BookingDashboard.jsx";
 import RoomManagement from "./components/RoomManagement.jsx";
+import { clearAdminToken } from "./roomAuth";
 import { JADWAL_STATUS } from "./lib/statusColors.js";
 
 // ═══════════════════════════════════════════════════════
@@ -6256,7 +6257,7 @@ export default function App(){
     catch(e){setBioErr("Verifikasi biometrik gagal. Silakan coba lagi atau gunakan password.");}
     setBioLoading(false);
   };
-  const doLogout=(reason)=>{setUser(null);setSessionWarn(false);try{localStorage.removeItem("jp_session");}catch{}if(reason==="timeout")setLE("Sesi Anda berakhir karena tidak aktif selama 12 jam. Silakan login kembali.");};
+  const doLogout=(reason)=>{setUser(null);setSessionWarn(false);try{localStorage.removeItem("jp_session");}catch{}clearAdminToken();if(reason==="timeout")setLE("Sesi Anda berakhir karena tidak aktif selama 12 jam. Silakan login kembali.");};
 
   useEffect(()=>{
     // Load users DAN events bersamaan dari Supabase
