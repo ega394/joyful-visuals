@@ -2868,7 +2868,7 @@ function AdminModal({onClose, showT, events, updAndSync}) {
           
           {/* 4. MENU RESPONSIVE (Mencegah menu ngumpet) */}
           <div style={{display: "flex", gap: 5, flexWrap: "wrap", paddingBottom: "10px"}}>
-            {[{k: "users", l: "Pengguna"}, {k: "pendaftaran", l: "Pendaftaran" + (pendRegs.length > 0 ? " (" + pendRegs.length + ")" : "")}, {k: "add", l: "Tambah"}, {k: "ruangan", l: "🏛️ Pengelola Ruangan"}, {k: "pw", l: "Reset PW"}, {k: "import", l: "Import"}, {k: "export", l: "📦 Backup"}].map(t => (
+            {[{k: "users", l: "Pengguna"}, {k: "pendaftaran", l: "Pendaftaran" + (pendRegs.length > 0 ? " (" + pendRegs.length + ")" : "")}, {k: "add", l: "Tambah"}, {k: "ruangan", l: "🏛️ Peninjau Permohonan"}, {k: "pw", l: "Reset PW"}, {k: "import", l: "Import"}, {k: "export", l: "📦 Backup"}].map(t => (
               <button key={t.k} onClick={() => { setTabA(t.k); setErr(""); }} style={{padding: "8px 12px", border: "none", background: tabA === t.k ? "#0A1628" : "#f1f5f9", color: tabA === t.k ? "white" : (t.k === "pendaftaran" && pendRegs.length > 0 ? "#DC2626" : "#64748b"), borderRadius: 8, fontWeight: 700, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap"}}>{t.l}</button>
             ))}
           </div>
@@ -7246,7 +7246,7 @@ const TH={
     {key:"newsroom",     label:"Komdok",  icon:"📰"},
     {key:"ruangan",      label:"Ruangan", icon:"🏛️"},
   ]:[]),
-  // ── Pengelola Ruangan (non-kabag) ──
+  // ── Peninjau Permohonan (non-kabag) ──
   ...((user?.can_manage_rooms&&role!=="kabag")?[
     {key:"ruangan",label:"Ruangan",icon:"🏛️"},
   ]:[]),

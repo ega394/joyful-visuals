@@ -406,7 +406,8 @@ function printBookingPublic(b, slots) {
   const esc = s=>String(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const fmtFull = s=>s?new Date(s+"T00:00:00").toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long",year:"numeric"}):"-";
   const ST = {Pagi:"07.30 – 12.00 WITA",Siang:"12.30 – 16.30 WITA",Full_Day:"Seharian (07.30 – 16.30 WITA)"};
-  const today = new Date().toLocaleDateString("id-ID",{day:"numeric",month:"long",year:"numeric"});
+  // Tanggal surat = tanggal disetujui (surat ini hanya untuk booking Approved)
+  const today = new Date(b.reviewed_at || b.created_at || Date.now()).toLocaleDateString("id-ID",{day:"numeric",month:"long",year:"numeric"});
   const list = (slots && slots.length ? slots : [{start_date:b.start_date, session:b.session}])
     .slice().sort((x,y)=> x.start_date<y.start_date?-1:x.start_date>y.start_date?1:0);
   const jadwalRows = list.map(s=>`<tr><td>${fmtFull(s.start_date)}</td><td>${esc(ST[s.session]||s.session)}</td></tr>`).join("");
@@ -444,9 +445,10 @@ function printBookingPublic(b, slots) {
       <li>Mengembalikan ruangan dalam kondisi semula setelah kegiatan selesai.</li>
       <li>Segera menghubungi staf Bagian Prokopim apabila terdapat perubahan jadwal atau pembatalan.</li>
       <li>Bertanggung jawab atas seluruh fasilitas yang digunakan selama peminjaman berlangsung.</li>
+      <li>Peminjaman ruangan sewaktu-waktu dapat dibatalkan apabila terdapat pertemuan/kegiatan yang diinisiasi dan dilaksanakan oleh Kepala Daerah/Wakil Kepala Daerah.</li>
     </ol>
     <p style="margin-top:14px;text-align:justify">Demikian konfirmasi ini disampaikan untuk dapat dipergunakan sebagaimana mestinya. Atas perhatian dan kerja samanya, diucapkan terima kasih.</p>
-    <div class="footer"><div style="display:inline-block;text-align:center;min-width:240px"><p>Tarakan, ${today}</p><p>Pengelola Ruangan,</p><div class="sp"></div><p><b><u>${esc(b.reviewed_by||"_____________________")}</u></b></p><p style="font-size:9pt;color:#666">Bagian Prokopim Kota Tarakan</p></div></div>
+    <div class="footer"><div style="display:inline-block;text-align:center;min-width:240px"><p>Tarakan, ${today}</p><p>Peninjau Permohonan,</p><div class="sp"></div><p><b><u>${esc(b.reviewed_by||"_____________________")}</u></b></p><p style="font-size:9pt;color:#666">Bagian Prokopim Kota Tarakan</p></div></div>
     <script>window.onload=()=>{setTimeout(()=>window.print(),300)}</script></body></html>`);
   w.document.close();
 }
