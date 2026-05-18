@@ -136,10 +136,10 @@ function ActionModal({ booking, action, onConfirm, onCancel }) {
 function BookingRow({ booking, onAction, isMobile }) {
   const [expanded, setExpanded] = useState(false);
   const cfg = STATUS_CFG[booking.status] || STATUS_CFG.Pending;
-  const ses = SESSION_INFO[booking.session] || {};
-  const tanggalStr = booking.start_date === booking.end_date
-    ? formatTgl(booking.start_date)
-    : `${formatTgl(booking.start_date)} – ${formatTgl(booking.end_date)}`;
+  const slots = booking.slots || [booking];
+  const tanggalStr = slots.length === 1
+    ? formatTgl(slots[0].start_date)
+    : `${slots.length} slot · ${formatTgl(slots[0].start_date)} – ${formatTgl(slots[slots.length-1].start_date)}`;
   const age = daysSince(booking.created_at);
   const isSlaWarning = booking.status === "Pending" && age >= 1;
 
@@ -186,8 +186,6 @@ function BookingRow({ booking, onAction, isMobile }) {
           <div style={{ fontSize: 12, color: GRAY, marginTop: 2, display: "flex", gap: 10, flexWrap: "wrap" }}>
             <span>{booking.rooms?.name}</span>
             <span>·</span>
-            <span style={{ color: ses.color, fontWeight: 600 }}>{ses.label}</span>
-            <span>·</span>
             <span>{tanggalStr}</span>
             <span>·</span>
             <span>{booking.instansi}</span>
@@ -202,6 +200,24 @@ function BookingRow({ booking, onAction, isMobile }) {
       {/* Expanded detail */}
       {expanded && (
         <div style={{ borderTop: "1px solid #F3F4F6", padding: "14px" }}>
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ color: GRAY, fontSize: 11, fontWeight: 600, marginBottom: 6 }}>
+              Jadwal ({slots.length} slot)
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {slots.map(s => {
+                const si = SESSION_INFO[s.session] || {};
+                return (
+                  <span key={s.id||s.start_date+s.session} style={{
+                    fontSize: 12, background: "#F8FAFC", border: "1px solid #E5E7EB",
+                    borderRadius: 8, padding: "5px 9px",
+                  }}>
+                    <b>{formatTgl(s.start_date)}</b> · <span style={{ color: si.color, fontWeight: 700 }}>{si.label}</span>
+                  </span>
+                );
+              })}
+            </div>
+          </div>
           <div style={{
             display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4,1fr)",
             gap: "8px 14px", fontSize: 13, marginBottom: 14,
@@ -281,7 +297,7 @@ function BookingRow({ booking, onAction, isMobile }) {
                 }}>
                 Batalkan
               </button>
-              <button onClick={() => printSingleBooking(booking)}
+              <button onClick={() => printSingleBooking(booking, slots)}
                 style={{
                   padding: "7px 14px", borderRadius: 8,
                   border: `1.5px solid ${NAVY}`, background: "white",
@@ -321,6 +337,28 @@ const STATUS_ID = {
   Rejected:  "Ditolak",
   Cancelled: "Dibatalkan",
 };
+
+const SES_ORDER = { Pagi: 1, Siang: 2, Full_Day: 3 };
+
+// 1 pengajuan = banyak baris (slot) berbagi booking_code → kelompokkan
+function groupByCode(rows) {
+  const map = new Map();
+  for (const r of (rows || [])) {
+    if (!map.has(r.booking_code)) map.set(r.booking_code, []);
+    map.get(r.booking_code).push(r);
+  }
+  const groups = [];
+  for (const slots of map.values()) {
+    const sorted = slots.slice().sort((a, b) =>
+      a.start_date !== b.start_date
+        ? a.start_date.localeCompare(b.start_date)
+        : (SES_ORDER[a.session] || 9) - (SES_ORDER[b.session] || 9)
+    );
+    groups.push({ ...sorted[0], slots: sorted });
+  }
+  groups.sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""));
+  return groups;
+}
 
 /** Cetak rekap daftar booking (admin) — diurut berdasarkan tanggal terdekat */
 function printBookingList(bookings, filterLabel) {
@@ -436,11 +474,15 @@ function printBookingList(bookings, filterLabel) {
 }
 
 /** Cetak surat konfirmasi 1 booking */
-function printSingleBooking(b) {
+function printSingleBooking(b, slots) {
   const w = window.open("", "_blank", "width=800,height=900");
   if (!w) { alert("Mohon izinkan popup untuk mencetak."); return; }
   const today = new Date().toLocaleDateString("id-ID",{ day:"numeric", month:"long", year:"numeric" });
-  const tgl = b.start_date===b.end_date ? fmtTglFull(b.start_date) : `${fmtTglFull(b.start_date)} s/d ${fmtTglFull(b.end_date)}`;
+  const list = (slots && slots.length ? slots : [b])
+    .slice().sort((x,y)=> x.start_date.localeCompare(y.start_date) || (SES_ORDER[x.session]||9)-(SES_ORDER[y.session]||9));
+  const jadwalRows = list.map(s =>
+    `<tr><td>${fmtTglFull(s.start_date)}</td><td>${escapeHTML(SESSION_TIME[s.session]||s.session)}</td></tr>`
+  ).join("");
 
   const statusUpper = (STATUS_ID[b.status]||b.status).toUpperCase();
 
@@ -504,11 +546,11 @@ function printSingleBooking(b) {
       <tr><td class="lbl">Nomor Kontak WhatsApp</td><td>${escapeHTML(b.pic_wa)}</td></tr>
       <tr><td class="lbl">Ruangan yang Dipinjam</td><td><b>${escapeHTML(b.rooms?.name||"-")}</b> (kapasitas ${b.rooms?.capacity||"-"} orang)</td></tr>
       <tr><td class="lbl">Jumlah Peserta</td><td>${b.participant_count} orang</td></tr>
-      <tr><td class="lbl">Tanggal Penggunaan</td><td>${tgl}</td></tr>
-      <tr><td class="lbl">Sesi / Waktu Penggunaan</td><td>${escapeHTML(SESSION_TIME[b.session]||b.session)}</td></tr>
       ${b.srikandi_ref ? `<tr><td class="lbl">Nomor Surat (Srikandi)</td><td>${escapeHTML(b.srikandi_ref)}</td></tr>` : ""}
       ${b.notes ? `<tr><td class="lbl">Catatan dari Pengelola</td><td>${escapeHTML(b.notes)}</td></tr>` : ""}
     </table>
+    <p style="margin:8px 0 4px;font-weight:600;color:#555">Jadwal Penggunaan (${list.length} slot):</p>
+    <table><tr><td class="lbl">Tanggal</td><td class="lbl">Sesi / Waktu</td></tr>${jadwalRows}</table>
 
     ${b.status === "Approved" ? `
       <p class="closing">
@@ -728,13 +770,11 @@ function AdminCalendar({ bookings, rooms, year, month, roomFilter, onBookingClic
 }
 
 // ── Booking Detail Popover ────────────────────────────────────
-function BookingDetailModal({ booking, onClose, onAction }) {
+function BookingDetailModal({ booking, slots, onClose, onAction }) {
   if (!booking) return null;
   const cfg = STATUS_CFG[booking.status] || STATUS_CFG.Pending;
-  const ses = SESSION_INFO[booking.session] || {};
-  const tgl = booking.start_date === booking.end_date
-    ? formatTgl(booking.start_date)
-    : `${formatTgl(booking.start_date)} – ${formatTgl(booking.end_date)}`;
+  const allSlots = (slots && slots.length ? slots : [booking])
+    .slice().sort((a,b)=> a.start_date.localeCompare(b.start_date) || (SES_ORDER[a.session]||9)-(SES_ORDER[b.session]||9));
 
   return (
     <div style={{
@@ -778,9 +818,17 @@ function BookingDetailModal({ booking, onClose, onAction }) {
         {/* Detail grid */}
         <div style={{padding:"14px 22px 18px",display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px 16px",fontSize:13}}>
           <div><div style={{color:GRAY,fontSize:11,fontWeight:600}}>Ruangan</div><b>{booking.rooms?.name}</b></div>
-          <div><div style={{color:GRAY,fontSize:11,fontWeight:600}}>Sesi</div>{ses.label} ({ses.time})</div>
-          <div><div style={{color:GRAY,fontSize:11,fontWeight:600}}>Tanggal</div>{tgl}</div>
           <div><div style={{color:GRAY,fontSize:11,fontWeight:600}}>Peserta</div>{booking.participant_count} orang</div>
+          <div style={{gridColumn:"1/-1"}}>
+            <div style={{color:GRAY,fontSize:11,fontWeight:600,marginBottom:5}}>Jadwal ({allSlots.length} slot)</div>
+            <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+              {allSlots.map(s=>{ const si=SESSION_INFO[s.session]||{}; return (
+                <span key={s.id||s.start_date+s.session} style={{fontSize:12,background:"#F8FAFC",border:"1px solid #E5E7EB",borderRadius:8,padding:"5px 9px"}}>
+                  <b>{formatTgl(s.start_date)}</b> · <span style={{color:si.color,fontWeight:700}}>{si.label}</span>
+                </span>
+              ); })}
+            </div>
+          </div>
           <div style={{gridColumn:"1/-1"}}><div style={{color:GRAY,fontSize:11,fontWeight:600}}>Instansi</div>{booking.instansi}</div>
           <div><div style={{color:GRAY,fontSize:11,fontWeight:600}}>PIC</div>{booking.pic_name}</div>
           <div><div style={{color:GRAY,fontSize:11,fontWeight:600}}>WhatsApp</div>{booking.pic_wa}</div>
@@ -832,7 +880,7 @@ function BookingDetailModal({ booking, onClose, onAction }) {
               </button>
             </>
           )}
-          <button onClick={()=>printSingleBooking(booking)}
+          <button onClick={()=>printSingleBooking(booking, allSlots)}
             style={{padding:"9px 18px",borderRadius:9,border:`1.5px solid ${NAVY}`,
               background:"white",color:NAVY,fontWeight:700,fontSize:13,cursor:"pointer",
               marginLeft:"auto"}}>
@@ -907,12 +955,12 @@ export default function BookingDashboard({ user, isMobile }) {
           "Content-Type": "application/json",
           "X-Username": user?.username || "",
         },
-        body: JSON.stringify({ id: modal.booking.id, status: action, notes }),
+        body: JSON.stringify({ booking_code: modal.booking.booking_code, status: action, notes }),
       });
       const data = await r.json();
       if (!r.ok) throw new Error(data.error);
       const actionLabel = { Approved: "disetujui", Rejected: "ditolak", Cancelled: "dibatalkan" }[action] || action;
-      showToast(`Booking ${modal.booking.booking_code} berhasil ${actionLabel}`);
+      showToast(`Pengajuan ${modal.booking.booking_code} (${data.count||1} slot) berhasil ${actionLabel}`);
       setModal(null);
       loadBookings();
     } catch (e) {
@@ -1092,8 +1140,8 @@ export default function BookingDashboard({ user, isMobile }) {
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {filteredBookings.map(b => (
-              <BookingRow key={b.id} booking={b} onAction={handleAction} isMobile={isMobile} />
+            {groupByCode(filteredBookings).map(g => (
+              <BookingRow key={g.booking_code} booking={g} onAction={handleAction} isMobile={isMobile} />
             ))}
           </div>
         )}
@@ -1102,6 +1150,7 @@ export default function BookingDashboard({ user, isMobile }) {
         {calBooking && (
           <BookingDetailModal
             booking={calBooking}
+            slots={bookings.filter(x => x.booking_code === calBooking.booking_code)}
             onClose={()=>setCalBooking(null)}
             onAction={handleAction}
           />
