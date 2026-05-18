@@ -454,7 +454,7 @@ export default async function handler(req, res) {
 
       const updated = await sbPatch(
         `room_bookings?booking_code=eq.${head.booking_code}`,
-        { status, notes: notes || null, reviewed_by: admin.username, reviewed_at: new Date().toISOString() }
+        { status, notes: notes || null, reviewed_by: admin.nama || admin.username, reviewed_at: new Date().toISOString() }
       );
 
       const slotLines = group
