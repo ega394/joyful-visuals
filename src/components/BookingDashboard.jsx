@@ -2,7 +2,7 @@
  * BookingDashboard.jsx — Dashboard Admin Peminjaman Ruangan
  * Dapat diakses oleh role kabag atau user dengan can_manage_rooms=true
  */
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 
 const NAVY   = "#0A1628";
 const GOLD   = "#C9A84C";
@@ -48,10 +48,8 @@ function ActionModal({ booking, action, onConfirm, onCancel }) {
     Cancelled: { title: "Batalkan Peminjaman", btn: "Batalkan", btnColor: "#78350F" },
   }[action] || {};
 
-  const ses = SESSION_INFO[booking.session] || {};
-  const tanggalStr = booking.start_date === booking.end_date
-    ? formatTgl(booking.start_date)
-    : `${formatTgl(booking.start_date)} – ${formatTgl(booking.end_date)}`;
+  const slots = (booking.slots && booking.slots.length ? booking.slots : [booking])
+    .slice().sort((a,b)=> a.start_date.localeCompare(b.start_date) || (SES_ORDER[a.session]||9)-(SES_ORDER[b.session]||9));
 
   return (
     <div style={{
@@ -72,18 +70,43 @@ function ActionModal({ booking, action, onConfirm, onCancel }) {
 
         <div style={{
           background: "#F9FAFB", borderRadius: 10, padding: "12px 14px",
-          fontSize: 13, marginBottom: 16,
+          fontSize: 13, marginBottom: 12,
           display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 12px",
         }}>
           <div><span style={{ color: GRAY }}>Acara:</span> <b>{booking.event_name}</b></div>
           <div><span style={{ color: GRAY }}>Instansi:</span> {booking.instansi}</div>
           <div><span style={{ color: GRAY }}>Ruangan:</span> {booking.rooms?.name}</div>
-          <div><span style={{ color: GRAY }}>Sesi:</span> {ses.label} ({ses.time})</div>
-          <div><span style={{ color: GRAY }}>Tanggal:</span> {tanggalStr}</div>
           <div><span style={{ color: GRAY }}>Peserta:</span> {booking.participant_count} orang</div>
           <div><span style={{ color: GRAY }}>PIC:</span> {booking.pic_name}</div>
           <div><span style={{ color: GRAY }}>WA PIC:</span> {booking.pic_wa}</div>
         </div>
+
+        <div style={{ fontSize: 12, fontWeight: 700, color: NAVY, marginBottom: 6 }}>
+          Jadwal ({slots.length} slot)
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
+          {slots.map(s => {
+            const si = SESSION_INFO[s.session] || {};
+            return (
+              <span key={s.id||s.start_date+s.session} style={{
+                fontSize: 12, background: "#F1F5F9", border: "1px solid #E5E7EB",
+                borderRadius: 8, padding: "5px 9px",
+              }}>
+                <b>{formatTgl(s.start_date)}</b> · <span style={{ color: si.color, fontWeight: 700 }}>{si.label}</span>
+              </span>
+            );
+          })}
+        </div>
+
+        {slots.length > 1 && (
+          <div style={{
+            background: "#EFF6FF", border: "1px solid #BFDBFE", color: "#1D4ED8",
+            borderRadius: 8, padding: "9px 12px", fontSize: 12, marginBottom: 16,
+            fontWeight: 600,
+          }}>
+            ⓘ {cfg.btn} berlaku untuk <b>seluruh {slots.length} slot</b> pengajuan ini sekaligus.
+          </div>
+        )}
 
         {(isReject || isCancel) && (
           <div style={{ marginBottom: 16 }}>
@@ -366,32 +389,33 @@ function printBookingList(bookings, filterLabel) {
   if (!w) { alert("Mohon izinkan popup untuk mencetak."); return; }
   const today = new Date().toLocaleDateString("id-ID",{ weekday:"long", day:"numeric", month:"long", year:"numeric" });
 
-  // Urutkan: tanggal mulai paling dekat ke yang paling jauh
-  const sorted = [...bookings].sort((a, b) => {
-    if (a.start_date !== b.start_date) return a.start_date.localeCompare(b.start_date);
-    // tanggal sama → urut berdasarkan sesi (Pagi → Siang → Full_Day)
-    const sesOrder = { Pagi: 1, Siang: 2, Full_Day: 3 };
-    return (sesOrder[a.session] || 9) - (sesOrder[b.session] || 9);
-  });
+  // 1 pengajuan = 1 baris; jadwal memuat seluruh slot. Urut tanggal terdekat.
+  const groups = groupByCode(bookings).sort((a, b) =>
+    (a.slots[0].start_date).localeCompare(b.slots[0].start_date)
+  );
 
-  const rows = sorted.map((b,i) => `
+  const rows = groups.map((g,i) => {
+    const jadwal = g.slots
+      .map(s => `${fmtTglFull(s.start_date)} — ${escapeHTML(SESSION_TIME[s.session]||s.session)}`)
+      .join("<br/>");
+    return `
     <tr>
       <td style="text-align:center">${i+1}</td>
-      <td><b>${escapeHTML(b.booking_code)}</b></td>
-      <td>${escapeHTML(b.event_name)}<br/><small>${escapeHTML(b.instansi)}</small></td>
-      <td>${escapeHTML(b.rooms?.name||"-")}</td>
-      <td>${b.start_date===b.end_date ? fmtTglFull(b.start_date) : fmtTglFull(b.start_date)+" s/d "+fmtTglFull(b.end_date)}<br/><small>${escapeHTML(SESSION_TIME[b.session]||b.session)}</small></td>
-      <td style="text-align:center">${b.participant_count}</td>
-      <td>${escapeHTML(b.pic_name)}<br/><small>${escapeHTML(b.pic_wa)}</small></td>
-      <td style="text-align:center"><b>${escapeHTML(STATUS_ID[b.status]||b.status)}</b></td>
-    </tr>
-  `).join("");
+      <td><b>${escapeHTML(g.booking_code)}</b></td>
+      <td>${escapeHTML(g.event_name)}<br/><small>${escapeHTML(g.instansi)}</small></td>
+      <td>${escapeHTML(g.rooms?.name||"-")}</td>
+      <td><small>${jadwal}</small></td>
+      <td style="text-align:center">${g.participant_count}</td>
+      <td>${escapeHTML(g.pic_name)}<br/><small>${escapeHTML(g.pic_wa)}</small></td>
+      <td style="text-align:center"><b>${escapeHTML(STATUS_ID[g.status]||g.status)}</b></td>
+    </tr>`;
+  }).join("");
 
-  // Hitung statistik singkat
-  const total     = sorted.length;
-  const menunggu  = sorted.filter(b => b.status === "Pending").length;
-  const disetujui = sorted.filter(b => b.status === "Approved").length;
-  const ditolak   = sorted.filter(b => b.status === "Rejected").length;
+  // Statistik singkat — per pengajuan
+  const total     = groups.length;
+  const menunggu  = groups.filter(g => g.status === "Pending").length;
+  const disetujui = groups.filter(g => g.status === "Approved").length;
+  const ditolak   = groups.filter(g => g.status === "Rejected").length;
 
   w.document.write(`
     <!doctype html><html lang="id"><head>
@@ -859,6 +883,16 @@ function BookingDetailModal({ booking, slots, onClose, onAction }) {
           </div>
         </div>
 
+        {allSlots.length > 1 && (
+          <div style={{
+            margin:"0 22px 12px", background:"#EFF6FF", border:"1px solid #BFDBFE",
+            color:"#1D4ED8", borderRadius:8, padding:"9px 12px", fontSize:12, fontWeight:600,
+          }}>
+            ⓘ Pengajuan ini berisi <b>{allSlots.length} slot</b>. Menyetujui/menolak/membatalkan
+            berlaku untuk seluruh slot sekaligus.
+          </div>
+        )}
+
         {/* Action buttons */}
         <div style={{padding:"0 22px 18px",display:"flex",gap:8,flexWrap:"wrap"}}>
           {booking.status === "Pending" && (
@@ -934,16 +968,22 @@ export default function BookingDashboard({ user, isMobile }) {
     setLoading(false);
   }, [user]);
 
-  // Filter client-side untuk view list
-  const filteredBookings = bookings.filter(b => {
-    if (filterStatus && b.status !== filterStatus) return false;
-    if (filterRoom && b.room_id !== Number(filterRoom)) return false;
+  // Kelompokkan per pengajuan (1 booking_code = 1 pengajuan, banyak slot)
+  const allGroups = useMemo(() => groupByCode(bookings), [bookings]);
+  const filteredGroups = useMemo(() => allGroups.filter(g => {
+    if (filterStatus && g.status !== filterStatus) return false;
+    if (filterRoom && g.room_id !== Number(filterRoom)) return false;
     return true;
-  });
+  }), [allGroups, filterStatus, filterRoom]);
 
   useEffect(() => { loadBookings(); }, [loadBookings]);
 
-  const handleAction = (booking, action) => setModal({ booking, action });
+  const handleAction = (booking, action) => {
+    // Pastikan modal selalu punya seluruh slot grup (dari kalender = 1 baris)
+    const slots = booking.slots
+      || bookings.filter(x => x.booking_code === booking.booking_code);
+    setModal({ booking: { ...booking, slots }, action });
+  };
 
   const handleConfirm = async (action, notes) => {
     if (!modal) return;
@@ -970,10 +1010,10 @@ export default function BookingDashboard({ user, isMobile }) {
     }
   };
 
-  // Stats
-  const pending   = bookings.filter(b => b.status === "Pending").length;
-  const approved  = bookings.filter(b => b.status === "Approved").length;
-  const slaAlert  = bookings.filter(b => b.status === "Pending" && daysSince(b.created_at) >= 1).length;
+  // Stats — dihitung per PENGAJUAN, bukan per baris slot
+  const pending   = allGroups.filter(g => g.status === "Pending").length;
+  const approved  = allGroups.filter(g => g.status === "Approved").length;
+  const slaAlert  = allGroups.filter(g => g.status === "Pending" && daysSince(g.created_at) >= 1).length;
 
   return (
     <div style={{ padding: isMobile ? "12px 12px" : "20px 24px", fontFamily: "Inter, system-ui, sans-serif" }}>
@@ -992,8 +1032,8 @@ export default function BookingDashboard({ user, isMobile }) {
         {/* Stat cards */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 20 }}>
           {[
-            { label: "Menunggu", value: pending, color: YELLOW, bg: "#FEF3C7", icon: "⏳" },
-            { label: "Disetujui (tampil)", value: approved, color: GREEN, bg: "#D1FAE5", icon: "✓" },
+            { label: "Menunggu (pengajuan)", value: pending, color: YELLOW, bg: "#FEF3C7", icon: "⏳" },
+            { label: "Disetujui (pengajuan)", value: approved, color: GREEN, bg: "#D1FAE5", icon: "✓" },
             { label: "Perlu Segera (>24j)", value: slaAlert, color: RED, bg: "#FEE2E2", icon: "⚠" },
           ].map(s => (
             <div key={s.label} style={{
@@ -1084,7 +1124,7 @@ export default function BookingDashboard({ user, isMobile }) {
           <button onClick={() => {
               const dataToPrint = viewMode === "calendar"
                 ? bookings.filter(b => !calRoom || b.room_id === Number(calRoom))
-                : filteredBookings;
+                : filteredGroups.flatMap(g => g.slots);
               const label = [
                 viewMode === "list" ? (filterStatus || "Semua status") : `Bulan ${MONTH_NAMES[calMonth-1]} ${calYear}`,
                 (viewMode === "calendar" ? calRoom : filterRoom)
@@ -1130,7 +1170,7 @@ export default function BookingDashboard({ user, isMobile }) {
               onBookingClick={setCalBooking}
             />
           </div>
-        ) : filteredBookings.length === 0 ? (
+        ) : filteredGroups.length === 0 ? (
           <div style={{
             textAlign: "center", padding: 40,
             background: "white", borderRadius: 14, border: "1.5px solid #E5E7EB",
@@ -1140,7 +1180,7 @@ export default function BookingDashboard({ user, isMobile }) {
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {groupByCode(filteredBookings).map(g => (
+            {filteredGroups.map(g => (
               <BookingRow key={g.booking_code} booking={g} onAction={handleAction} isMobile={isMobile} />
             ))}
           </div>
