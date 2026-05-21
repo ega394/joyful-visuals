@@ -5,12 +5,13 @@
 //  Fitur:
 //   1. Manajemen User (CRUD, ubah role, reset password, force logout)
 //   2. Manajemen Data (jadwal, tamu, pending_regs)
-//   3. Backup & Restore (JSON download/upload)
+//   3. Backup & Restore (ZIP: DB + Storage) + Reset Storage — otorisasi ganda Kabag & Kasubbag Protokol
 //   4. Audit Log (siapa-melakukan-apa)
 //   5. System Info (counts, koneksi, env masked)
 // ============================================================
 
 import React, { useState, useEffect, useCallback } from "react";
+import JSZip from "jszip";
 
 const SUPA_URL = import.meta.env.VITE_SUPABASE_URL || "";
 const SUPA_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
@@ -738,141 +739,391 @@ function DataSummary({ row, table }) {
 }
 
 // ──────────────────────────────────────────────────────────────
-//  TAB 3: BACKUP & RESTORE
+//  TAB 3: BACKUP & RESTORE (DB + Storage, otorisasi ganda)
 // ──────────────────────────────────────────────────────────────
+
+// Urutan PARENT → CHILD untuk insert; pembersihan jalan terbalik (child dulu).
+// Tambah/kurangi sesuai skema. PK dipakai untuk delete per-baris.
+const BACKUP_TABLES = [
+  { table: "users",              pk: "username" },
+  { table: "rooms",              pk: "id" },
+  { table: "jadwal",             pk: "id" },
+  { table: "pending_regs",       pk: "id" },
+  { table: "audit_log",          pk: "id" },
+  { table: "tamu",               pk: "id" },
+  { table: "room_bookings",      pk: "id" },
+  { table: "push_subscriptions", pk: "endpoint" },
+];
+
+// Storage helpers ────────────────────────────────────────────
+async function listBuckets() {
+  const r = await fetch(SUPA_URL + "/storage/v1/bucket", { headers: H() });
+  if (!r.ok) throw new Error("List buckets gagal (" + r.status + ")");
+  return r.json();
+}
+async function listObjectsAll(bucket) {
+  // PostgREST/Storage list: paginate sampai habis
+  const out = []; const lim = 1000; let off = 0;
+  while (true) {
+    const r = await fetch(SUPA_URL + "/storage/v1/object/list/" + encodeURIComponent(bucket), {
+      method: "POST", headers: H(),
+      body: JSON.stringify({ prefix: "", limit: lim, offset: off, sortBy: { column: "name", order: "asc" } }),
+    });
+    if (!r.ok) throw new Error("List " + bucket + " gagal (" + r.status + ")");
+    const page = await r.json();
+    if (!Array.isArray(page) || page.length === 0) break;
+    // Hanya file (objek dengan metadata.size); subfolder muncul tanpa id
+    for (const o of page) if (o && o.id) out.push(o.name);
+    if (page.length < lim) break;
+    off += lim;
+  }
+  return out;
+}
+async function downloadObject(bucket, name) {
+  const r = await fetch(SUPA_URL + "/storage/v1/object/" + bucket + "/" + name, {
+    headers: { apikey: SUPA_KEY, Authorization: "Bearer " + SUPA_KEY },
+  });
+  if (!r.ok) throw new Error("Download " + bucket + "/" + name + " gagal (" + r.status + ")");
+  return r.blob();
+}
+async function uploadObject(bucket, name, blob) {
+  const r = await fetch(SUPA_URL + "/storage/v1/object/" + bucket + "/" + name, {
+    method: "POST",
+    headers: {
+      apikey: SUPA_KEY, Authorization: "Bearer " + SUPA_KEY,
+      "Content-Type": blob.type || "application/octet-stream",
+      "x-upsert": "true",
+    },
+    body: blob,
+  });
+  if (!r.ok) throw new Error("Upload " + bucket + "/" + name + " gagal (" + r.status + ")");
+}
+async function deleteObjects(bucket, names) {
+  if (!names.length) return;
+  // Storage menerima DELETE dengan body { prefixes:[...] }
+  const r = await fetch(SUPA_URL + "/storage/v1/object/" + encodeURIComponent(bucket), {
+    method: "DELETE", headers: H(),
+    body: JSON.stringify({ prefixes: names }),
+  });
+  if (!r.ok) throw new Error("Hapus " + bucket + " gagal (" + r.status + ")");
+}
+
+// Otorisasi ganda: Kabag + Kasubbag Protokol harus login di layar yang sama
+function DualAuthModal({ aksi, onConfirm, onCancel, busy }) {
+  const [kabagUn, setKabagUn]   = useState("");
+  const [kabagPw, setKabagPw]   = useState("");
+  const [ksbgUn, setKsbgUn]     = useState("");
+  const [ksbgPw, setKsbgPw]     = useState("");
+  const [err, setErr]           = useState("");
+  const [check, setCheck]       = useState(false);
+
+  const verifyRole = async (un, pw, expectedRole) => {
+    const rows = await fetch(
+      SUPA_URL + "/rest/v1/users?username=eq." + encodeURIComponent(un.toLowerCase().trim()) +
+      "&select=username,nama,role,password,disabled",
+      { headers: H() }
+    ).then(r => r.ok ? r.json() : []);
+    const u = rows?.[0];
+    if (!u || u.disabled) return { ok: false, msg: "Akun '" + un + "' tidak ditemukan / nonaktif." };
+    if (u.role !== expectedRole) return { ok: false, msg: "Akun '" + un + "' bukan " + expectedRole + "." };
+    const ok = await verifyPassword(pw, u.password);
+    if (!ok) return { ok: false, msg: "Password untuk " + expectedRole + " salah." };
+    return { ok: true, u };
+  };
+
+  const submit = async () => {
+    setErr(""); setCheck(true);
+    try {
+      if (!kabagUn || !kabagPw || !ksbgUn || !ksbgPw) {
+        setErr("Lengkapi semua kolom."); setCheck(false); return;
+      }
+      const a = await verifyRole(kabagUn, kabagPw, "kabag");
+      if (!a.ok)  { setErr(a.msg);  setCheck(false); return; }
+      const b = await verifyRole(ksbgUn, ksbgPw, "kasubbag_protokol");
+      if (!b.ok)  { setErr(b.msg);  setCheck(false); return; }
+      setCheck(false);
+      onConfirm({ kabag: a.u, kasubbag: b.u });
+    } catch (e) { setErr(e.message); setCheck(false); }
+  };
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 9999,
+      display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
+    }} onClick={e => e.target === e.currentTarget && !busy && !check && onCancel()}>
+      <div style={{ background: "white", borderRadius: 12, padding: 22, maxWidth: 480, width: "100%" }}>
+        <h3 style={{ margin: "0 0 4px", fontSize: 17, color: C.danger }}>Otorisasi Ganda — {aksi}</h3>
+        <p style={{ margin: "0 0 14px", fontSize: 13, color: C.muted }}>
+          Tindakan ini perlu persetujuan <b>Kabag</b> dan <b>Kasubbag Protokol</b>.
+          Keduanya login di layar ini.
+        </p>
+
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: C.primary, marginBottom: 6 }}>1 · Kabag</div>
+          <input style={{ ...inp, marginBottom: 6 }} placeholder="Username Kabag"
+            value={kabagUn} onChange={e => setKabagUn(e.target.value)} autoComplete="off" />
+          <input style={inp} type="password" placeholder="Password Kabag"
+            value={kabagPw} onChange={e => setKabagPw(e.target.value)} autoComplete="new-password" />
+        </div>
+
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: C.primary, marginBottom: 6 }}>2 · Kasubbag Protokol</div>
+          <input style={{ ...inp, marginBottom: 6 }} placeholder="Username Kasubbag Protokol"
+            value={ksbgUn} onChange={e => setKsbgUn(e.target.value)} autoComplete="off" />
+          <input style={inp} type="password" placeholder="Password Kasubbag Protokol"
+            value={ksbgPw} onChange={e => setKsbgPw(e.target.value)} autoComplete="new-password" />
+        </div>
+
+        {err && <div style={{ background: "#FEE2E2", color: C.danger, borderRadius: 8, padding: "8px 12px", fontSize: 13, marginBottom: 12 }}>{err}</div>}
+
+        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+          <button style={btn("ghost")} onClick={onCancel} disabled={busy || check}>Batal</button>
+          <button style={btn("danger")} onClick={submit} disabled={busy || check}>
+            {check ? "Memverifikasi..." : busy ? "Memproses..." : "Setujui & Jalankan"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function BackupTab({ user, T }) {
   const [busy, setBusy] = useState(false);
-  const [stats, setStats] = useState(null);
+  const [progress, setProgress] = useState("");
+  const [pending, setPending] = useState(null); // {type:'backup'|'restore'|'reset', file?}
+  const [restoreFile, setRestoreFile] = useState(null);
 
-  const exportAll = async () => {
-    setBusy(true); setStats(null);
+  const log = (msg) => setProgress(msg);
+
+  // ── Backup: DB + Storage → ZIP ──
+  const doBackup = async (approvers) => {
+    setBusy(true); setProgress("Mengambil tabel...");
     try {
-      const [users, jadwal, tamu, pendingRegs, audit] = await Promise.all([
-        fetchUsers(),
-        fetchTable("jadwal"),
-        fetchTable("tamu").catch(() => []),
-        fetchTable("pending_regs").catch(() => []),
-        fetchTable("audit_log", "&order=at.desc&limit=5000").catch(() => []),
-      ]);
-      const dump = {
-        _meta: {
-          app: "Prokopim Hibot",
-          exportedAt: new Date().toISOString(),
-          exportedBy: user.username,
-          source: SUPA_URL,
-          version: 1,
-        },
-        users, jadwal, tamu, pending_regs: pendingRegs, audit_log: audit,
+      const zip = new JSZip();
+      const dbDir = zip.folder("db");
+      const storageDir = zip.folder("storage");
+
+      const counts = {};
+      for (const { table } of BACKUP_TABLES) {
+        log("Tabel: " + table);
+        const extra = table === "audit_log" ? "&order=at.desc&limit=10000" : "";
+        const rows = await fetchTable(table, extra).catch(() => []);
+        counts[table] = rows.length;
+        dbDir.file(table + ".json", JSON.stringify(rows, null, 2));
+      }
+
+      // Storage: enumerate buckets (fallback ke daftar yang dikenal jika gagal)
+      let buckets = [];
+      try { buckets = (await listBuckets()).map(b => b.name); }
+      catch { buckets = ["room-documents"]; }
+
+      const fileIndex = {};
+      for (const b of buckets) {
+        if (b === "backups") continue;
+        log("Bucket: " + b);
+        const names = await listObjectsAll(b).catch(() => []);
+        fileIndex[b] = names;
+        const bucketDir = storageDir.folder(b);
+        for (let i = 0; i < names.length; i++) {
+          log("Download " + b + "/" + names[i] + " (" + (i+1) + "/" + names.length + ")");
+          try {
+            const blob = await downloadObject(b, names[i]);
+            bucketDir.file(names[i], blob);
+          } catch (e) { /* skip file rusak */ }
+        }
+      }
+
+      const manifest = {
+        app: "Prokopim Hibot",
+        kind: "full-backup-v2",
+        exportedAt: new Date().toISOString(),
+        exportedBy: user.username,
+        source: SUPA_URL,
+        approvers: { kabag: approvers.kabag.username, kasubbag_protokol: approvers.kasubbag.username },
+        tables: counts,
+        storage: Object.fromEntries(Object.entries(fileIndex).map(([k, v]) => [k, v.length])),
       };
-      const blob = new Blob([JSON.stringify(dump, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
+      zip.file("manifest.json", JSON.stringify(manifest, null, 2));
+
+      log("Mengompres ZIP...");
+      const zblob = await zip.generateAsync({ type: "blob", compression: "DEFLATE", compressionOptions: { level: 6 } });
+      const url = URL.createObjectURL(zblob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "prokopim-backup-" + new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-") + ".json";
+      a.download = "prokopim-backup-" + new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-") + ".zip";
       document.body.appendChild(a); a.click(); a.remove();
       URL.revokeObjectURL(url);
 
-      setStats({ users: users.length, jadwal: jadwal.length, tamu: tamu.length, pending_regs: pendingRegs.length, audit: audit.length });
-      await logAudit({ actor: user.username, actor_role: user.role, action: "backup.export",
-        detail: { users: users.length, jadwal: jadwal.length, tamu: tamu.length, audit: audit.length } });
-      T("Backup berhasil di-download");
-    } catch (e) { T(e.message, "error"); }
-    setBusy(false);
+      await logAudit({ actor: user.username, actor_role: user.role, action: "backup.export_full",
+        detail: { ...manifest, approvers } });
+      T("Backup berhasil di-download (DB + Storage)");
+    } catch (e) { T("Gagal backup: " + e.message, "error"); }
+    setBusy(false); setProgress("");
   };
 
-  const restoreFromFile = async (file) => {
-    if (!file) return;
-    if (!confirm("PERHATIAN: tindakan ini akan MENGGANTI seluruh data (users, jadwal, tamu) dengan isi backup.\n\nLanjutkan?")) return;
-    if (!confirm("Konfirmasi sekali lagi: HAPUS semua data lama lalu IMPOR dari backup?")) return;
-    setBusy(true);
+  // ── Restore: ZIP → wipe DB + Storage, lalu impor ──
+  const doRestore = async (approvers) => {
+    setBusy(true); setProgress("Membuka file...");
     try {
-      const text = await file.text();
-      const dump = JSON.parse(text);
-      if (!dump || !dump._meta || dump._meta.app !== "Prokopim Hibot") {
-        T("File backup tidak valid", "error"); setBusy(false); return;
-      }
+      const zip = await JSZip.loadAsync(restoreFile);
+      const manifestRaw = await zip.file("manifest.json")?.async("string");
+      if (!manifestRaw) throw new Error("manifest.json tidak ada — file bukan backup valid");
+      const manifest = JSON.parse(manifestRaw);
+      if (manifest.app !== "Prokopim Hibot") throw new Error("File backup bukan dari Prokopim Hibot");
 
-      // Wipe & insert per table
-      const wipe = async (table, rows, key) => {
-        // Delete semua existing rows (best-effort)
-        for (const r of (await fetchTable(table).catch(() => []))) {
-          try {
-            await fetch(SUPA_URL + "/rest/v1/" + table + "?" + key + "=eq." + encodeURIComponent(r[key]), {
-              method: "DELETE", headers: H(),
-            });
-          } catch {}
+      // 1) Wipe tabel CHILD dulu, lalu PARENT (urut terbalik dari BACKUP_TABLES)
+      for (let i = BACKUP_TABLES.length - 1; i >= 0; i--) {
+        const { table, pk } = BACKUP_TABLES[i];
+        log("Wipe: " + table);
+        const cur = await fetchTable(table).catch(() => []);
+        for (const r of cur) {
+          if (r[pk] == null) continue;
+          await fetch(SUPA_URL + "/rest/v1/" + table + "?" + pk + "=eq." + encodeURIComponent(r[pk]),
+            { method: "DELETE", headers: H() }).catch(() => {});
         }
-        // Insert ulang dalam batch 50
+      }
+      // 2) Insert PARENT → CHILD
+      for (const { table } of BACKUP_TABLES) {
+        const f = zip.file("db/" + table + ".json");
+        if (!f) continue;
+        const rows = JSON.parse(await f.async("string"));
+        if (!rows.length) continue;
+        log("Insert: " + table + " (" + rows.length + ")");
         for (let i = 0; i < rows.length; i += 50) {
-          const batch = rows.slice(i, i + 50);
           await fetch(SUPA_URL + "/rest/v1/" + table, {
             method: "POST",
             headers: { ...H(), Prefer: "resolution=merge-duplicates,return=minimal" },
-            body: JSON.stringify(batch),
-          });
+            body: JSON.stringify(rows.slice(i, i + 50)),
+          }).catch(() => {});
         }
-      };
-
-      if (Array.isArray(dump.users))         await wipe("users",        dump.users,        "username");
-      if (Array.isArray(dump.jadwal))        await wipe("jadwal",       dump.jadwal,       "id");
-      if (Array.isArray(dump.tamu))          await wipe("tamu",         dump.tamu,         "id");
-      if (Array.isArray(dump.pending_regs))  await wipe("pending_regs", dump.pending_regs, "id");
-
-      await logAudit({
-        actor: user.username, actor_role: user.role, action: "backup.restore",
-        detail: { from: dump._meta, counts: {
-          users: dump.users?.length || 0,
-          jadwal: dump.jadwal?.length || 0,
-          tamu: dump.tamu?.length || 0,
-        }},
+      }
+      // 3) Storage: hapus file existing (per bucket dalam manifest) lalu upload ulang
+      const storageDir = zip.folder("storage");
+      const bucketsInZip = [];
+      storageDir.forEach((rel, file) => {
+        if (file.dir) return;
+        const [bucket, ...rest] = rel.split("/");
+        if (!bucket || !rest.length) return;
+        const name = rest.join("/");
+        const idx = bucketsInZip.find(b => b.bucket === bucket);
+        if (idx) idx.files.push({ name, file });
+        else bucketsInZip.push({ bucket, files: [{ name, file }] });
       });
+      for (const { bucket, files } of bucketsInZip) {
+        log("Storage wipe: " + bucket);
+        const existing = await listObjectsAll(bucket).catch(() => []);
+        if (existing.length) await deleteObjects(bucket, existing).catch(() => {});
+        for (let i = 0; i < files.length; i++) {
+          log("Upload " + bucket + "/" + files[i].name + " (" + (i+1) + "/" + files.length + ")");
+          const blob = await files[i].file.async("blob");
+          await uploadObject(bucket, files[i].name, blob).catch(() => {});
+        }
+      }
+
+      await logAudit({ actor: user.username, actor_role: user.role, action: "backup.restore_full",
+        detail: { manifest, approvers } });
       T("Restore selesai. Aplikasi akan reload.", "warn");
       setTimeout(() => window.location.reload(), 1500);
     } catch (e) { T("Gagal restore: " + e.message, "error"); }
-    setBusy(false);
+    setBusy(false); setProgress(""); setRestoreFile(null);
   };
+
+  // ── Reset Storage: hapus seluruh file di SEMUA bucket (DB tidak disentuh) ──
+  const doReset = async (approvers) => {
+    setBusy(true); setProgress("Membaca bucket...");
+    try {
+      let buckets = [];
+      try { buckets = (await listBuckets()).map(b => b.name); }
+      catch { buckets = ["room-documents"]; }
+
+      const summary = {};
+      for (const b of buckets) {
+        if (b === "backups") continue;
+        log("Reset: " + b);
+        const names = await listObjectsAll(b).catch(() => []);
+        summary[b] = names.length;
+        if (names.length) await deleteObjects(b, names).catch(() => {});
+      }
+      await logAudit({ actor: user.username, actor_role: user.role, action: "storage.reset",
+        detail: { deleted: summary, approvers } });
+      T("Reset Storage selesai (" + Object.values(summary).reduce((a,b)=>a+b,0) + " file dihapus).", "warn");
+    } catch (e) { T("Gagal reset: " + e.message, "error"); }
+    setBusy(false); setProgress("");
+  };
+
+  const onAuthConfirm = (approvers) => {
+    const type = pending?.type;
+    setPending(null);
+    if (type === "backup")  doBackup(approvers);
+    else if (type === "restore") doRestore(approvers);
+    else if (type === "reset")   doReset(approvers);
+  };
+
+  const card = (border) => ({
+    background: "white", borderRadius: 10, border: "1px solid " + border,
+    padding: 20, marginBottom: 14,
+  });
 
   return (
     <div>
       <h2 style={{ marginTop: 0, fontSize: 18 }}>Backup & Restore</h2>
 
-      <div style={{ background: "white", borderRadius: 10, border: "1px solid " + C.border, padding: 20, marginBottom: 14 }}>
-        <h3 style={{ marginTop: 0, fontSize: 15 }}>Ekspor Backup</h3>
+      <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13, color: "#1E40AF" }}>
+        ⓘ Setiap aksi (Backup / Restore / Reset Storage) wajib mendapat <b>persetujuan Kabag dan Kasubbag Protokol</b> — keduanya login di layar yang sama saat aksi dijalankan.
+      </div>
+
+      {/* Backup */}
+      <div style={card(C.border)}>
+        <h3 style={{ marginTop: 0, fontSize: 15 }}>Backup Lengkap (DB + Storage)</h3>
         <p style={{ fontSize: 13, color: C.muted, marginTop: 4 }}>
-          Mengunduh seluruh data (users, jadwal, tamu, pending_regs, audit_log) sebagai 1 file JSON. Simpan di tempat aman.
+          Mengunduh 1 file ZIP berisi seluruh tabel ({BACKUP_TABLES.map(t => t.table).join(", ")}) dan semua file di Storage.
         </p>
-        <button style={btn("primary")} onClick={exportAll} disabled={busy}>
-          {busy ? "Memproses..." : "↓ Ekspor Semua Data"}
+        <button style={btn("primary")} onClick={() => setPending({ type: "backup" })} disabled={busy}>
+          {busy && progress ? "Memproses..." : "↓ Backup Sekarang"}
         </button>
-        {stats && (
-          <div style={{ marginTop: 12, fontSize: 13, color: C.ok }}>
-            ✓ {stats.users} users · {stats.jadwal} jadwal · {stats.tamu} tamu · {stats.pending_regs} pending · {stats.audit} audit
-          </div>
-        )}
       </div>
 
-      <div style={{ background: "white", borderRadius: 10, border: "1px solid " + C.danger, padding: 20, marginBottom: 14 }}>
-        <h3 style={{ marginTop: 0, fontSize: 15, color: C.danger }}>Restore dari Backup ⚠ DESTRUKTIF</h3>
+      {/* Restore */}
+      <div style={card(C.danger)}>
+        <h3 style={{ marginTop: 0, fontSize: 15, color: C.danger }}>Restore dari ZIP ⚠ DESTRUKTIF</h3>
         <p style={{ fontSize: 13, color: C.muted, marginTop: 4 }}>
-          Mengganti SELURUH data dengan isi backup. Semua perubahan setelah backup akan HILANG. Pastikan Anda sudah ekspor backup terbaru sebelum restore.
+          Mengganti SELURUH data (DB &amp; Storage) dengan isi backup. Pastikan ekspor terbaru sudah dibuat.
         </p>
-        <input type="file" accept="application/json" disabled={busy}
-               onChange={e => restoreFromFile(e.target.files?.[0])} />
+        <input type="file" accept=".zip,application/zip" disabled={busy}
+          onChange={e => {
+            const f = e.target.files?.[0];
+            if (!f) return;
+            setRestoreFile(f);
+            setPending({ type: "restore" });
+          }} />
       </div>
 
-      <div style={{ background: "#FFFBEB", borderRadius: 10, border: "1px solid #FDE68A", padding: 20 }}>
-        <h3 style={{ marginTop: 0, fontSize: 15, color: C.warn }}>Cara Migrasi Database (Pindah Project Supabase)</h3>
-        <ol style={{ fontSize: 13, color: C.text, paddingLeft: 20, lineHeight: 1.7 }}>
-          <li>Klik <b>Ekspor Semua Data</b> di atas — simpan file JSON yang terunduh.</li>
-          <li>Buat project Supabase baru. Jalankan SQL migration dari <code>supabase-migrations/</code>.</li>
-          <li>Di Vercel Dashboard, ubah <code>VITE_SUPABASE_URL</code> dan <code>VITE_SUPABASE_ANON_KEY</code> ke project baru.</li>
-          <li>Trigger redeploy (Vercel → Deployments → Redeploy).</li>
-          <li>Setelah aplikasi naik, login ke <code>/superadmin</code> di project baru, lalu klik <b>Restore</b> dan upload file JSON tadi.</li>
-        </ol>
-        <p style={{ fontSize: 12, color: C.muted, marginTop: 10, marginBottom: 0 }}>
-          Catatan: ganti DB target tidak bisa dilakukan dari UI runtime karena alasan keamanan. Lihat dokumentasi keamanan.
+      {/* Reset Storage */}
+      <div style={card(C.warn)}>
+        <h3 style={{ marginTop: 0, fontSize: 15, color: C.warn }}>Reset Storage (Akhir Tahun) ⚠</h3>
+        <p style={{ fontSize: 13, color: C.muted, marginTop: 4 }}>
+          Menghapus SEMUA file di semua bucket Storage. Database tidak dihapus — tapi tautan dokumen pada baris lama akan menjadi tidak valid.
+          Lakukan <b>setelah</b> Backup Lengkap berhasil disimpan.
         </p>
+        <button style={btn("warn")} onClick={() => setPending({ type: "reset" })} disabled={busy}>
+          Reset Storage
+        </button>
       </div>
+
+      {progress && (
+        <div style={{ background: "#F3F4F6", border: "1px solid " + C.border, borderRadius: 8, padding: "10px 14px", fontSize: 12, color: C.muted, fontFamily: "monospace" }}>
+          {progress}
+        </div>
+      )}
+
+      {pending && (
+        <DualAuthModal
+          aksi={pending.type === "backup" ? "Backup" : pending.type === "restore" ? "Restore" : "Reset Storage"}
+          busy={busy}
+          onConfirm={onAuthConfirm}
+          onCancel={() => { setPending(null); setRestoreFile(null); }}
+        />
+      )}
     </div>
   );
 }
