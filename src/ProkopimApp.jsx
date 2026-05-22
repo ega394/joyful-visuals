@@ -41,6 +41,9 @@ function isLoginLocked(){const a=getLoginAttempts();if(a.lockedUntil&&Date.now()
 const SESSION_TIMEOUT_MS=12*60*60*1000;
 let _lastActivity=Date.now();
 function touchActivity(){_lastActivity=Date.now();}
+// Saat kartu antrian sedang dibuka/dibaca, polling realtime ditahan
+// agar tampilan tidak ter-refresh & posisi baca tidak hilang.
+let _readingFocus=false;
 
 // ═══════════════════════════════════════════════════════
 // KEAMANAN: Input Sanitizer (anti XSS)
@@ -2755,7 +2758,7 @@ function AdminModal({onClose, showT, events, updAndSync}) {
 
   React.useEffect(() => {
     refreshPendRegs();
-    const iv = setInterval(() => refreshPendRegs(), 5000);
+    const iv = setInterval(() => refreshPendRegs(), 20000);
     const onStorage = () => refreshPendRegs();
     window.addEventListener("storage", onStorage);
     return () => { clearInterval(iv); window.removeEventListener("storage", onStorage); };
@@ -6395,10 +6398,14 @@ export default function App(){
     return()=>{window.removeEventListener("touchstart",onTS);window.removeEventListener("touchmove",onTM);window.removeEventListener("touchend",onTE);};
   },[user,isMobile,pullRefreshing]);
 
-  // ── Realtime: poll Supabase setiap 10 detik ──
+  // ── Realtime: poll Supabase berkala (jeda lega, tidak mengganggu baca) ──
   React.useEffect(()=>{
     if(!SUPA_OK||!user)return;
     const poll=async()=>{
+      // Jangan refresh saat user sedang membuka kartu antrian, atau
+      // baru saja berinteraksi (scroll/sentuh) — supaya tidak ter-reset.
+      if(_readingFocus) return;
+      if(Date.now()-_lastActivity < 12000) return;
       try{
         const rows=await dbLoadAll();
         if(rows&&rows.length>0){
@@ -6410,7 +6417,7 @@ export default function App(){
         }
       }catch{}
     };
-    const interval=setInterval(poll,10000);
+    const interval=setInterval(poll,30000);
     return ()=>clearInterval(interval);
   },[user]);
 
@@ -8400,6 +8407,8 @@ function KabagDashboard({events, user, upd, showT, askConfirm, deleteAndSync, is
   const NAVY="#0A1628",GOLD="#C9A84C",GREEN="#0D6B4F";
   const [activeTab, setActiveTab] = useState("antrian");
   const [expandedId, setExpanded] = useState(null);
+  // Tahan polling realtime selama kartu dibuka agar tidak ter-refresh saat dibaca
+  React.useEffect(()=>{ _readingFocus = expandedId!=null; return ()=>{ _readingFocus=false; }; },[expandedId]);
   const [rejectTexts, setRT] = useState({});
   const [searchQ, setSearchQ] = useState("");
   // busyId: id event yang sedang diproses (cegah dobel klik Setujui & Publikasi)
@@ -8811,6 +8820,8 @@ function KasubbagDashboard({events, user, upd, showT, askConfirm, isMobile, onPe
   const isProto=role==="kasubbag_protokol";
   const [activeTab, setActiveTab] = useState("antrian");
   const [expandedId, setExpanded] = useState(null);
+  // Tahan polling realtime selama kartu dibuka agar tidak ter-refresh saat dibaca
+  React.useEffect(()=>{ _readingFocus = expandedId!=null; return ()=>{ _readingFocus=false; }; },[expandedId]);
   const [rejectTexts, setRT] = useState({});
   const [cabutTarget, setCabutTarget] = useState(null); // {evId, un, nama}
   const [alasanCabut, setAlasanCabut] = useState("");
