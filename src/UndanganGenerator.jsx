@@ -118,7 +118,7 @@ export default function UndanganGenerator({ isMobile, showT }) {
     tanggalAcaraInput: "",
     waktuMulai:    "08:00",
     waktuSelesai:  "",
-    zonaWaktu:     "WITA", // default WITA, opsional WIB / WIT
+    zonaWaktu:     "Wita", // default Wita, opsional WIB / WIT
     tempat:        "",
     acara:         "1. ...;\n2. ...; dan\n3. Hal-hal lain yang dianggap perlu.",
     
@@ -150,10 +150,10 @@ export default function UndanganGenerator({ isMobile, showT }) {
   let pklText = "";
   if (form.waktuMulai) {
     let jamMulai = form.waktuMulai.replace(/:/g, ".");
-    let tz = form.zonaWaktu || "WITA";
+    let tz = form.zonaWaktu || "Wita";
     if (form.waktuSelesai) {
       let jamSelesai = form.waktuSelesai.replace(/:/g, ".");
-      pklText = `${jamMulai} s.d. ${jamSelesai} ${tz}`;
+      pklText = `${jamMulai} - ${jamSelesai} ${tz}`;
     } else {
       pklText = `${jamMulai} ${tz} s.d. selesai`;
     }
@@ -394,9 +394,9 @@ export default function UndanganGenerator({ isMobile, showT }) {
                 <div style={{ flex: "1 1 130px" }}><Label text="Pukul Mulai" required /><input type="time" className="ug-input" style={inputSt} value={form.waktuMulai} onChange={set("waktuMulai")}/></div>
                 <div style={{ flex: "1 1 130px" }}><Label text="Pukul Selesai" hint="Kosong = s.d. selesai"/><input type="time" className="ug-input" style={inputSt} value={form.waktuSelesai} onChange={set("waktuSelesai")}/></div>
                 <div style={{ flex: "0 0 110px" }}>
-                  <Label text="Zona Waktu" hint="Default: WITA"/>
-                  <select className="ug-input" style={inputSt} value={form.zonaWaktu || "WITA"} onChange={set("zonaWaktu")}>
-                    <option value="WITA">WITA</option>
+                  <Label text="Zona Waktu" hint="Default: Wita"/>
+                  <select className="ug-input" style={inputSt} value={form.zonaWaktu || "Wita"} onChange={set("zonaWaktu")}>
+                    <option value="Wita">Wita</option>
                     <option value="WIB">WIB</option>
                     <option value="WIT">WIT</option>
                   </select>
