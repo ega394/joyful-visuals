@@ -103,16 +103,17 @@ export default function GuestDashboard({ role, user, events, showT, isMobile }) 
 //  VIEW 1 — ADMIN RK: Pintu Pertama
 // ══════════════════════════════════════════════════════════════
 function AdminRKView({ user, showT, isMobile }) {
-  var [guests,  setGuests]  = useState([]);
-  var [loading, setLoading] = useState(true);
-  var [tab,     setTab]     = useState("pending_rk");
-  var [detail,  setDetail]  = useState(null);
+  var [guests,     setGuests]     = useState([]);
+  var [loading,    setLoading]    = useState(true);
+  var [tab,        setTab]        = useState("pending_rk");
+  var [detail,     setDetail]     = useState(null);
+  var [lastLoaded, setLastLoaded] = useState(null);
 
   var load = useCallback(function() {
     setLoading(true);
     fetch(API+"?action=queue&status="+tab+"&limit=60")
       .then(function(r){return r.json();})
-      .then(function(d){setGuests(Array.isArray(d)?d:[]);})
+      .then(function(d){setGuests(Array.isArray(d)?d:[]); setLastLoaded(new Date());})
       .catch(function(){setGuests([]);})
       .finally(function(){setLoading(false);});
   }, [tab]);
@@ -122,7 +123,8 @@ function AdminRKView({ user, showT, isMobile }) {
   if(detail) return (
     <AdminRKDetail
       guest={detail} user={user} showT={showT} isMobile={isMobile}
-      onBack={function(){setDetail(null);load();}}
+      onBack={function(){setDetail(null);}}
+      onDone={function(){setGuests(function(prev){return prev.filter(function(g){return g.id!==detail.id;});}); setDetail(null);}}
     />
   );
 
@@ -154,6 +156,8 @@ function AdminRKView({ user, showT, isMobile }) {
         })}
       </div>
 
+      <MetaBar lastLoaded={lastLoaded} onRefresh={load} loading={loading}/>
+
       {/* List */}
       <div style={{padding:"12px 16px"}}>
         {loading ? <SkeletonList/> : guests.length===0 ? <EmptyState label="Tidak ada permohonan di kategori ini"/> :
@@ -166,10 +170,11 @@ function AdminRKView({ user, showT, isMobile }) {
   );
 }
 
-function AdminRKDetail({ guest, user, showT, isMobile, onBack }) {
+function AdminRKDetail({ guest, user, showT, isMobile, onBack, onDone }) {
   var [catatan, setCatatan] = useState(guest.catatan_rk || "");
   var [loading, setLoading] = useState(false);
   var [konfirm, setKonfirm] = useState(null); // "teruskan"|"tolak"
+  var done = onDone || onBack;
 
   async function teruskan() {
     setLoading(true);
@@ -180,7 +185,7 @@ function AdminRKDetail({ guest, user, showT, isMobile, onBack }) {
         admin_name: user?.nama || user?.username,
       });
       showT("✅ Diteruskan ke Kasubbag Protokol");
-      onBack();
+      done();
     } catch(e) { showT("❌ "+e.message); }
     finally { setLoading(false); setKonfirm(null); }
   }
@@ -195,7 +200,7 @@ function AdminRKDetail({ guest, user, showT, isMobile, onBack }) {
         responded_by: user?.username,
       });
       showT("Permohonan ditolak");
-      onBack();
+      done();
     } catch(e) { showT("❌ "+e.message); }
     finally { setLoading(false); setKonfirm(null); }
   }
@@ -262,16 +267,17 @@ function AdminRKDetail({ guest, user, showT, isMobile, onBack }) {
 //  VIEW 2 — KASUBBAG PROTOKOL
 // ══════════════════════════════════════════════════════════════
 function KasubbagView({ user, showT, isMobile }) {
-  var [guests,  setGuests]  = useState([]);
-  var [loading, setLoading] = useState(true);
-  var [tab,     setTab]     = useState("pending_kasubbag");
-  var [detail,  setDetail]  = useState(null);
+  var [guests,     setGuests]     = useState([]);
+  var [loading,    setLoading]    = useState(true);
+  var [tab,        setTab]        = useState("pending_kasubbag");
+  var [detail,     setDetail]     = useState(null);
+  var [lastLoaded, setLastLoaded] = useState(null);
 
   var load = useCallback(function() {
     setLoading(true);
     fetch(API+"?action=queue&status="+tab+"&limit=60")
       .then(function(r){return r.json();})
-      .then(function(d){setGuests(Array.isArray(d)?d:[]);})
+      .then(function(d){setGuests(Array.isArray(d)?d:[]); setLastLoaded(new Date());})
       .catch(function(){setGuests([]);})
       .finally(function(){setLoading(false);});
   }, [tab]);
@@ -281,7 +287,8 @@ function KasubbagView({ user, showT, isMobile }) {
   if(detail) return (
     <KasubbagDetail
       guest={detail} user={user} showT={showT} isMobile={isMobile}
-      onBack={function(){setDetail(null);load();}}
+      onBack={function(){setDetail(null);}}
+      onDone={function(){setGuests(function(prev){return prev.filter(function(g){return g.id!==detail.id;});}); setDetail(null);}}
     />
   );
 
@@ -309,6 +316,8 @@ function KasubbagView({ user, showT, isMobile }) {
         })}
       </div>
 
+      <MetaBar lastLoaded={lastLoaded} onRefresh={load} loading={loading}/>
+
       <div style={{padding:"12px 16px"}}>
         {loading ? <SkeletonList/> : guests.length===0 ? <EmptyState label="Tidak ada permohonan"/> :
           guests.map(function(g){
@@ -320,7 +329,8 @@ function KasubbagView({ user, showT, isMobile }) {
   );
 }
 
-function KasubbagDetail({ guest, user, showT, isMobile, onBack }) {
+function KasubbagDetail({ guest, user, showT, isMobile, onBack, onDone }) {
+  var done = onDone || onBack;
   var [priority,  setPriority]  = useState(gPrioritas(guest));
   var [catatan,   setCatatan]   = useState(guest.catatan_staf || "");
   var [loading,   setLoading]   = useState(false);
@@ -337,7 +347,7 @@ function KasubbagDetail({ guest, user, showT, isMobile, onBack }) {
         screened_by: user?.username,
       });
       showT("✅ Diteruskan ke Kabag Prokopim");
-      onBack();
+      done();
     } catch(e) { showT("❌ "+e.message); }
     finally { setLoading(false); setKonfirm(null); }
   }
@@ -351,7 +361,7 @@ function KasubbagDetail({ guest, user, showT, isMobile, onBack }) {
         responded_by: user?.username,
       });
       showT("Permohonan ditolak");
-      onBack();
+      done();
     } catch(e) { showT("❌ "+e.message); }
     finally { setLoading(false); setKonfirm(null); }
   }
@@ -365,7 +375,7 @@ function KasubbagDetail({ guest, user, showT, isMobile, onBack }) {
         returned_by: user?.username,
       });
       showT("Dikembalikan ke Admin RK");
-      onBack();
+      done();
     } catch(e) { showT("❌ "+e.message); }
     finally { setLoading(false); setKonfirm(null); }
   }
@@ -481,16 +491,17 @@ function KasubbagDetail({ guest, user, showT, isMobile, onBack }) {
 //  VIEW 3 — KABAG PROKOPIM: Gatekeeper Eksekutif
 // ══════════════════════════════════════════════════════════════
 function KabagView({ user, showT, isMobile }) {
-  var [guests,  setGuests]  = useState([]);
-  var [loading, setLoading] = useState(true);
-  var [tab,     setTab]     = useState("pending_kabag");
-  var [detail,  setDetail]  = useState(null);
+  var [guests,     setGuests]     = useState([]);
+  var [loading,    setLoading]    = useState(true);
+  var [tab,        setTab]        = useState("pending_kabag");
+  var [detail,     setDetail]     = useState(null);
+  var [lastLoaded, setLastLoaded] = useState(null);
 
   var load = useCallback(function() {
     setLoading(true);
     fetch(API+"?action=queue&status="+tab+"&limit=60")
       .then(function(r){return r.json();})
-      .then(function(d){setGuests(Array.isArray(d)?d:[]);})
+      .then(function(d){setGuests(Array.isArray(d)?d:[]); setLastLoaded(new Date());})
       .catch(function(){setGuests([]);})
       .finally(function(){setLoading(false);});
   }, [tab]);
@@ -500,7 +511,8 @@ function KabagView({ user, showT, isMobile }) {
   if(detail) return (
     <KabagDetail
       guest={detail} user={user} showT={showT} isMobile={isMobile}
-      onBack={function(){setDetail(null);load();}}
+      onBack={function(){setDetail(null);}}
+      onDone={function(){setGuests(function(prev){return prev.filter(function(g){return g.id!==detail.id;});}); setDetail(null);}}
     />
   );
 
@@ -529,6 +541,8 @@ function KabagView({ user, showT, isMobile }) {
         })}
       </div>
 
+      <MetaBar lastLoaded={lastLoaded} onRefresh={load} loading={loading}/>
+
       <div style={{padding:"12px 16px"}}>
         {loading ? <SkeletonList/> : guests.length===0 ? <EmptyState label="Tidak ada permohonan"/> :
           guests.map(function(g){
@@ -540,7 +554,8 @@ function KabagView({ user, showT, isMobile }) {
   );
 }
 
-function KabagDetail({ guest, user, showT, isMobile, onBack }) {
+function KabagDetail({ guest, user, showT, isMobile, onBack, onDone }) {
+  var done = onDone || onBack;
   var [priority,   setPriority]   = useState(gPrioritas(guest));
   var [telaah,     setTelaah]     = useState(guest.telaah_kabag || "");
   var [loading,    setLoading]    = useState(false);
@@ -557,7 +572,7 @@ function KabagDetail({ guest, user, showT, isMobile, onBack }) {
         forwarded_by: user?.username,
       });
       showT("✅ Diteruskan ke Pimpinan");
-      onBack();
+      done();
     } catch(e) { showT("❌ "+e.message); }
     finally { setLoading(false); setKonfirm(null); }
   }
@@ -571,7 +586,7 @@ function KabagDetail({ guest, user, showT, isMobile, onBack }) {
         returned_by: user?.username,
       });
       showT("Dikembalikan ke Kasubbag");
-      onBack();
+      done();
     } catch(e) { showT("❌ "+e.message); }
     finally { setLoading(false); setKonfirm(null); }
   }
@@ -585,7 +600,7 @@ function KabagDetail({ guest, user, showT, isMobile, onBack }) {
         responded_by: user?.username,
       });
       showT("Permohonan ditolak");
-      onBack();
+      done();
     } catch(e) { showT("❌ "+e.message); }
     finally { setLoading(false); setKonfirm(null); }
   }
@@ -693,10 +708,11 @@ function KabagDetail({ guest, user, showT, isMobile, onBack }) {
 //  VIEW 4 — PIMPINAN: Keputusan Akhir + Penjadwalan
 // ══════════════════════════════════════════════════════════════
 function PimpinanView({ role, user, events, showT, isMobile }) {
-  var [guests,  setGuests]  = useState([]);
-  var [loading, setLoading] = useState(true);
-  var [tab,     setTab]     = useState("pending_pimpinan");
-  var [detail,  setDetail]  = useState(null);
+  var [guests,     setGuests]     = useState([]);
+  var [loading,    setLoading]    = useState(true);
+  var [tab,        setTab]        = useState("pending_pimpinan");
+  var [detail,     setDetail]     = useState(null);
+  var [lastLoaded, setLastLoaded] = useState(null);
 
   var load = useCallback(function() {
     var pimpinanLabel = role==="wakilwalikota" ? "Wakil Wali Kota" : "Wali Kota";
@@ -712,6 +728,7 @@ function PimpinanView({ role, user, events, showT, isMobile }) {
           return g.tujuan_pejabat === pimpinanLabel;
         });
         setGuests(list);
+        setLastLoaded(new Date());
       })
       .catch(function(){setGuests([]);})
       .finally(function(){setLoading(false);});
@@ -723,7 +740,8 @@ function PimpinanView({ role, user, events, showT, isMobile }) {
     <PimpinanDetail
       guest={detail} role={role} user={user} events={events}
       showT={showT} isMobile={isMobile}
-      onBack={function(){setDetail(null);load();}}
+      onBack={function(){setDetail(null);}}
+      onDone={function(){setGuests(function(prev){return prev.filter(function(g){return g.id!==detail.id;});}); setDetail(null);}}
     />
   );
 
@@ -756,6 +774,8 @@ function PimpinanView({ role, user, events, showT, isMobile }) {
         })}
       </div>
 
+      <MetaBar lastLoaded={lastLoaded} onRefresh={load} loading={loading}/>
+
       <div style={{padding:"12px 16px"}}>
         {loading ? <SkeletonList/> : guests.length===0 ? <EmptyState label="Tidak ada permohonan"/> :
           guests.map(function(g){
@@ -767,7 +787,8 @@ function PimpinanView({ role, user, events, showT, isMobile }) {
   );
 }
 
-function PimpinanDetail({ guest, role, user, events, showT, isMobile, onBack }) {
+function PimpinanDetail({ guest, role, user, events, showT, isMobile, onBack, onDone }) {
+  var done = onDone || onBack;
   var [loading,    setLoading]    = useState(false);
   var [mode,       setMode]       = useState(null); // "jadwal"|"tolak"|"disposisi"
   var [jadwalTgl,  setJadwalTgl]  = useState(guest.preferensi_tanggal || "");
@@ -829,7 +850,7 @@ function PimpinanDetail({ guest, role, user, events, showT, isMobile, onBack }) 
       }
 
       showT("✅ Permohonan disetujui"+(jadwalTgl?" & masuk ke Agenda":""));
-      onBack();
+      done();
     } catch(e) { showT("❌ "+e.message); }
     finally { setLoading(false); }
   }
@@ -843,7 +864,7 @@ function PimpinanDetail({ guest, role, user, events, showT, isMobile, onBack }) 
         responded_by: user?.username,
       });
       showT("Permohonan ditolak");
-      onBack();
+      done();
     } catch(e) { showT("❌ "+e.message); }
     finally { setLoading(false); }
   }
@@ -858,7 +879,7 @@ function PimpinanDetail({ guest, role, user, events, showT, isMobile, onBack }) 
         responded_by: user?.username,
       });
       showT("Permohonan didisposisi ke "+disposisiKe);
-      onBack();
+      done();
     } catch(e) { showT("❌ "+e.message); }
     finally { setLoading(false); }
   }
@@ -1414,6 +1435,29 @@ function ActionBtn({ label, color, flex, outline, onClick, loading }) {
       {loading && <Spin/>}
       {label}
     </button>
+  );
+}
+
+// Indikator "Data per HH:MM" + tombol segarkan manual
+function MetaBar({ lastLoaded, onRefresh, loading }) {
+  var ts = lastLoaded
+    ? lastLoaded.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })
+    : "—";
+  return (
+    <div style={{ padding: "8px 16px 0", display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 11, color: "#64748B" }}>
+      <span>Data per: <b style={{ color: NAVY }}>{ts}</b></span>
+      <button
+        type="button"
+        onClick={onRefresh}
+        disabled={!!loading}
+        style={{
+          background: "white", border: "1px solid " + NAVY + "33",
+          color: NAVY, borderRadius: 6, padding: "4px 10px",
+          fontSize: 11, fontWeight: 700, cursor: loading ? "wait" : "pointer",
+        }}>
+        {loading ? "Memuat…" : "↻ Segarkan"}
+      </button>
+    </div>
   );
 }
 

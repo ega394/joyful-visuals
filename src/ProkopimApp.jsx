@@ -2,8 +2,12 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import { ZenModeView, AjudanView, StafView, MitraView, SkeletonLoader, EmptyState, useDynamicTheme } from "./JoyfulInterface.jsx";
 import { ZenDashboard } from "./ZenModeUI.jsx";
 import UndanganGenerator from "./UndanganGenerator.jsx";
-import TamuPage from "./TamuPage.jsx";
-import GuestDashboard from "./GuestDashboard.jsx"
+// Lazy load modul tamu (publik + dashboard) → bundle awal lebih ringan
+const TamuPage       = React.lazy(() => import("./TamuPage.jsx"));
+const GuestDashboard = React.lazy(() => import("./GuestDashboard.jsx"));
+const _LazyFallback  = () => (
+  <div style={{ padding: 24, textAlign: "center", color: "#64748b" }}>Memuat…</div>
+);
 import RekapPenugasanBulanan from "./RekapPenugasanBulanan.jsx"
 import WaliKotaAudiensiDashboard from "./WaliKotaAudiensiDashboard.jsx"
 import NewsroomDashboard from "./NewsroomDashboard.jsx";
@@ -6184,7 +6188,8 @@ function ArsipModal({events, onClose, user}){
 
 export default function App(){
   if (window.location.pathname === "/superadmin" || window.location.pathname.startsWith("/superadmin/")) return <SuperadminPage />;
-  if (window.location.pathname === "/tamu" || window.location.search.includes("tamu")) return <TamuPage />;
+  if (window.location.pathname === "/tamu" || window.location.search.includes("tamu"))
+    return <React.Suspense fallback={<_LazyFallback />}><TamuPage /></React.Suspense>;
   const width=useWindowWidth();const isMobile=width<768;
   const[user,setUser]=useState(null);const role=user?.role||null;
   const[loginForm,setLF]=useState({username:"",password:""});const[loginErr,setLE]=useState("");const[showPass,setShowPass]=useState(false);
@@ -10439,13 +10444,15 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
       :tab==="tamu"&&(role==="walikota"||role==="wakilwalikota")
         ?<WaliKotaAudiensiDashboard role={role} user={user} showT={showT} isMobile={isMobile}/>
       :tab==="tamu"
-        ?<GuestDashboard
-          role={role}
-          user={user}
-          events={events}
-          showT={showT}
-          isMobile={isMobile}
-        />
+        ?<React.Suspense fallback={<_LazyFallback />}>
+          <GuestDashboard
+            role={role}
+            user={user}
+            events={events}
+            showT={showT}
+            isMobile={isMobile}
+          />
+        </React.Suspense>
 
         /* 👇 TAMBAHKAN KODE INI UNTUK AI NEWSROOM 👇 */
       :tab==="newsroom"
