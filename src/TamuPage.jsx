@@ -147,7 +147,9 @@ export default function TamuPage() {
     btnText: "#000000",
   } : null;
 
-  var [form, setForm] = useState({
+  // Restore draft otomatis dari localStorage jika ada (≤ 7 hari)
+  var DRAFT_KEY = "tp_draft";
+  var FORM_DEFAULT = {
     name:                "",
     organization:        "",
     phone:               "",
@@ -159,7 +161,35 @@ export default function TamuPage() {
     needs_aksesibilitas: false,
     akses_options:       [],
     akses_detail:        "",
+  };
+  var [form, setForm] = useState(function() {
+    try {
+      var raw = localStorage.getItem(DRAFT_KEY);
+      if (!raw) return FORM_DEFAULT;
+      var saved = JSON.parse(raw);
+      if (!saved || !saved._at || Date.now() - saved._at > 7 * 86400000) {
+        localStorage.removeItem(DRAFT_KEY);
+        return FORM_DEFAULT;
+      }
+      delete saved._at;
+      return Object.assign({}, FORM_DEFAULT, saved);
+    } catch (_) { return FORM_DEFAULT; }
   });
+
+  // Autosave draft (debounce ~700ms)
+  useEffect(function() {
+    var t = setTimeout(function() {
+      try {
+        var hasContent = form.name || form.organization || form.phone || form.purpose ||
+                         form.preferred_date || form.preferred_time || form.message ||
+                         form.tujuan_pejabat;
+        if (hasContent) {
+          localStorage.setItem(DRAFT_KEY, JSON.stringify(Object.assign({}, form, { _at: Date.now() })));
+        }
+      } catch (_) {}
+    }, 700);
+    return function() { clearTimeout(t); };
+  }, [form]);
 
   var setF = useCallback(function(k, v) {
     setForm(function(p) {
@@ -359,6 +389,7 @@ export default function TamuPage() {
         maksud_keperluan:insertPayload.maksud_keperluan,
         status:          "pending_kasubbag",
       });
+      try { localStorage.removeItem(DRAFT_KEY); } catch (_) {}
       setStep("success");
       announce("Permohonan berhasil dikirim. Silakan cek layar untuk detail.");
       requestAnimationFrame(function() {
