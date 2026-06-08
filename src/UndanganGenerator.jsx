@@ -118,6 +118,7 @@ export default function UndanganGenerator({ isMobile, showT }) {
     tanggalAcaraInput: "",
     waktuMulai:    "08:00",
     waktuSelesai:  "",
+    zonaWaktu:     "Wita", // default Wita, opsional WIB / WIT
     tempat:        "",
     acara:         "1. ...;\n2. ...; dan\n3. Hal-hal lain yang dianggap perlu.",
     
@@ -149,11 +150,12 @@ export default function UndanganGenerator({ isMobile, showT }) {
   let pklText = "";
   if (form.waktuMulai) {
     let jamMulai = form.waktuMulai.replace(/:/g, ".");
+    let tz = form.zonaWaktu || "Wita";
     if (form.waktuSelesai) {
       let jamSelesai = form.waktuSelesai.replace(/:/g, ".");
-      pklText = `${jamMulai} s.d. ${jamSelesai} WITA`;
+      pklText = `${jamMulai} - ${jamSelesai} ${tz}`;
     } else {
-      pklText = `${jamMulai} s.d. selesai`;
+      pklText = `${jamMulai} ${tz} s.d. selesai`;
     }
   }
 
@@ -388,9 +390,17 @@ export default function UndanganGenerator({ isMobile, showT }) {
             <SectionBtn isActive={section === "acara"} onClick={() => setSection(s => s === "acara" ? "" : "acara")} icon="📋" title="Data Acara" subtitle="Kalender, waktu, dan susunan kegiatan"/>
             <SectionBody isActive={section === "acara"}>
               <div style={{ marginBottom: 12 }}><Label text="Hari/Tanggal Acara" required hint="Pilih dari kalender"/><input type="date" className="ug-input" style={inputSt} value={form.tanggalAcaraInput} onChange={set("tanggalAcaraInput")}/></div>
-              <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-                <div style={{ flex: 1 }}><Label text="Pukul Mulai" required /><input type="time" className="ug-input" style={inputSt} value={form.waktuMulai} onChange={set("waktuMulai")}/></div>
-                <div style={{ flex: 1 }}><Label text="Pukul Selesai" hint="Kosong = s.d. selesai"/><input type="time" className="ug-input" style={inputSt} value={form.waktuSelesai} onChange={set("waktuSelesai")}/></div>
+              <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
+                <div style={{ flex: "1 1 130px" }}><Label text="Pukul Mulai" required /><input type="time" className="ug-input" style={inputSt} value={form.waktuMulai} onChange={set("waktuMulai")}/></div>
+                <div style={{ flex: "1 1 130px" }}><Label text="Pukul Selesai" hint="Kosong = s.d. selesai"/><input type="time" className="ug-input" style={inputSt} value={form.waktuSelesai} onChange={set("waktuSelesai")}/></div>
+                <div style={{ flex: "0 0 110px" }}>
+                  <Label text="Zona Waktu" hint="Default: Wita"/>
+                  <select className="ug-input" style={inputSt} value={form.zonaWaktu || "Wita"} onChange={set("zonaWaktu")}>
+                    <option value="Wita">Wita</option>
+                    <option value="WIB">WIB</option>
+                    <option value="WIT">WIT</option>
+                  </select>
+                </div>
               </div>
               <div style={{ marginBottom: 12 }}><Label text="Tempat Acara" required/><input className="ug-input" style={inputSt} value={form.tempat} onChange={set("tempat")}/></div>
               <div style={{ marginBottom: 4 }}><Label text="Nama / Susunan Acara"/><textarea className="ug-input" style={{...textareaSt, minHeight:90}} value={form.acara} onChange={set("acara")}/></div>
