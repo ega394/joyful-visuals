@@ -1310,17 +1310,37 @@ function MitraCard({ ev, now, expanded, onToggle }) {
     ? "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(ev.lokasi + " Tarakan")
     : null;
 
-  // Pimpinan yang hadir (public-friendly)
-  const pimpinanHadir = [];
-  if ((ev.untukPimpinan||[]).includes("walikota")) {
-    if (ev.delegasiKeWWK) pimpinanHadir.push("Wakil Wali Kota");
-    else if (ev.statusWK === "diwakilkan" && ev.perwakilanWK) pimpinanHadir.push(ev.perwakilanWK);
-    else pimpinanHadir.push("Wali Kota");
+  // ── Kehadiran per pimpinan (untuk mitra: siapa hadir & siapa diwakili) ──
+  const STATUS_MAP = {
+    hadir:       { label: "Hadir",                bg: "#D1FAE5", color: "#065F46" },
+    tidak_hadir: { label: "Tidak Hadir",          bg: "#FEE2E2", color: "#991B1B" },
+    diwakilkan:  { label: "Diwakilkan",           bg: "#EDE9FE", color: "#5B21B6" },
+    delegasi:    { label: "Didelegasi ke Wakil",  bg: "#FEF3C7", color: "#92400E" },
+    pending:     { label: "Belum dikonfirmasi",   bg: "#F1F5F9", color: "#475569" },
+  };
+  const kehadiran = [];
+  const untuk = ev.untukPimpinan || [];
+  if (untuk.includes("walikota")) {
+    if (ev.delegasiKeWWK) {
+      kehadiran.push({ jabatan: "Wali Kota", st: STATUS_MAP.delegasi, oleh: "Wakil Wali Kota" });
+    } else if (ev.statusWK === "diwakilkan") {
+      kehadiran.push({ jabatan: "Wali Kota", st: STATUS_MAP.diwakilkan, oleh: ev.perwakilanWK || "(belum ditentukan)" });
+    } else {
+      kehadiran.push({ jabatan: "Wali Kota", st: STATUS_MAP[ev.statusWK] || STATUS_MAP.pending });
+    }
   }
-  if ((ev.untukPimpinan||[]).includes("wakilwalikota") && !ev.delegasiKeWWK) {
-    if (ev.statusWWK === "diwakilkan" && ev.perwakilanWWK) pimpinanHadir.push(ev.perwakilanWWK);
-    else pimpinanHadir.push("Wakil Wali Kota");
+  if (untuk.includes("wakilwalikota") || ev.delegasiKeWWK) {
+    if (ev.statusWWK === "diwakilkan") {
+      kehadiran.push({ jabatan: "Wakil Wali Kota", st: STATUS_MAP.diwakilkan, oleh: ev.perwakilanWWK || "(belum ditentukan)" });
+    } else {
+      kehadiran.push({ jabatan: "Wakil Wali Kota", st: STATUS_MAP[ev.statusWWK] || STATUS_MAP.pending });
+    }
   }
+
+  // Pill ringkas di kartu collapsed
+  const pillRingkas = kehadiran.map(k =>
+    k.oleh ? k.jabatan + " → " + k.oleh : k.jabatan + " · " + k.st.label
+  );
 
   return (
     <div style={{
@@ -1362,11 +1382,11 @@ function MitraCard({ ev, now, expanded, onToggle }) {
               <span>📍</span> {ev.lokasi}
             </div>
           )}
-          {pimpinanHadir.length > 0 && (
+          {kehadiran.length > 0 && (
             <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-              {pimpinanHadir.map(p => (
-                <span key={p} style={{ background: "#EFF6FF", color: "#1D4ED8", borderRadius: 20, padding: "2px 8px", fontSize: 10, fontWeight: 700 }}>
-                  🎖️ {p}
+              {kehadiran.map((k, i) => (
+                <span key={i} style={{ background: k.st.bg, color: k.st.color, borderRadius: 20, padding: "2px 8px", fontSize: 10, fontWeight: 700 }}>
+                  🎖️ {k.oleh ? k.jabatan + " → " + k.oleh : k.jabatan + " · " + k.st.label}
                 </span>
               ))}
             </div>
@@ -1377,6 +1397,40 @@ function MitraCard({ ev, now, expanded, onToggle }) {
 
       {expanded && (
         <div style={{ borderTop: "1px solid #F1F5F9", padding: "12px 16px", background: "#FAFBFF" }}>
+          {/* Kehadiran Pimpinan */}
+          {kehadiran.length > 0 && (
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 9, color: "#94A3B8", fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>
+                Kehadiran Pimpinan
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {kehadiran.map((k, i) => (
+                  <div key={i} style={{
+                    background: "white", border: "1px solid #E2E8F0", borderRadius: 10,
+                    padding: "8px 12px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
+                  }}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: "#0F172A" }}>
+                        🎖️ {k.jabatan}
+                      </div>
+                      {k.oleh && (
+                        <div style={{ fontSize: 11, color: "#475569", marginTop: 2 }}>
+                          Diwakili oleh: <b style={{ color: "#5B21B6" }}>{k.oleh}</b>
+                        </div>
+                      )}
+                    </div>
+                    <span style={{
+                      background: k.st.bg, color: k.st.color, borderRadius: 20,
+                      padding: "3px 10px", fontSize: 10, fontWeight: 800, whiteSpace: "nowrap",
+                    }}>
+                      {k.st.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
             {[
               { l: "Penyelenggara", v: ev.penyelenggara },
