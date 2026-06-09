@@ -7170,7 +7170,7 @@ const TH={
   {label:"LAPORAN & TOOLS",items:[
     {key:"action:summary",icon:"💬",label:"Rekap WA Hari Ini"},
     {key:"action:report", icon:"📄",label:"Cetak Rekap PDF"},
-    {key:"action:report_tamu", icon:"📇",label:"Cetak Rekap Tamu"},
+    ...(role!=="mitra_kerja"?[{key:"action:report_tamu", icon:"📇",label:"Cetak Rekap Tamu"}]:[]),
     ...(canReport?[{key:"action:laporan",icon:"📊",label:"Laporan Mingguan/Bulanan"}]:[]),
     ...((KASUBBAG_ROLES.includes(role)||role==="kabag")?[{key:"penugasan",icon:"📈",label:"Rekap Evaluasi Kinerja"}]:[]),
     ...((KASUBBAG_ROLES.includes(role)||role==="kabag")?[{key:"rekap_penugasan",icon:"🏆",label:"Rekap Penugasan Bulanan"}]:[]),
