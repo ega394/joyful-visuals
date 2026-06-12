@@ -45,17 +45,57 @@ module.exports = async function handler(req, res) {
 
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return res.status(500).json({ error: "GEMINI_API_KEY belum diset di Vercel." });
-
   const body = await readBody(req);
+  const provider = String(body.provider || process.env.AI_PROVIDER || "gemini").toLowerCase();
   const messages = body.messages || [];
   if (!messages.length) return res.status(400).json({ error: "Request tidak valid." });
 
-  // Bangun parts untuk Gemini API
   const contentArr = Array.isArray(messages[0].content)
     ? messages[0].content
     : [{ type: "text", text: String(messages[0].content || "") }];
+
+  // ── Provider: Groq (OpenAI-compatible, gratis dengan limit ramah) ──
+  if (provider === "groq") {
+    const groqKey = process.env.GROQ_API_KEY;
+    if (!groqKey) return res.status(500).json({ error: "GROQ_API_KEY belum diset di Vercel." });
+    const model = process.env.GROQ_VISION_MODEL || "meta-llama/llama-4-scout-17b-16e-instruct";
+
+    const oaiContent = [];
+    for (const block of contentArr) {
+      if (block.type === "text") oaiContent.push({ type: "text", text: block.text });
+      else if ((block.type === "image" || block.type === "document") && block.source) {
+        const mt = block.source.media_type || "image/jpeg";
+        oaiContent.push({
+          type: "image_url",
+          image_url: { url: "data:" + mt + ";base64," + block.source.data },
+        });
+      }
+    }
+    if (!oaiContent.length) return res.status(400).json({ error: "Tidak ada konten untuk diproses." });
+
+    try {
+      const result = await httpsPost("https://api.groq.com/openai/v1/chat/completions", {
+        model,
+        messages: [{ role: "user", content: oaiContent }],
+        temperature: 0.1,
+        max_tokens: 4096,
+      }, { "Authorization": "Bearer " + groqKey });
+
+      if (result.status !== 200) {
+        const msg = result.body?.error?.message || ("Groq error " + result.status);
+        return res.status(result.status).json({ error: String(msg) });
+      }
+      const text = result.body?.choices?.[0]?.message?.content || "";
+      if (!text) return res.status(500).json({ error: "Groq tidak menghasilkan teks. Coba foto lebih jelas." });
+      return res.status(200).json({ content: [{ type: "text", text }] });
+    } catch (err) {
+      return res.status(500).json({ error: "Gagal menghubungi Groq: " + String(err.message || err) });
+    }
+  }
+
+  // ── Provider: Gemini (default) ──
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return res.status(500).json({ error: "GEMINI_API_KEY belum diset di Vercel." });
 
   const parts = [];
   for (const block of contentArr) {

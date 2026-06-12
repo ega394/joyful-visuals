@@ -107,9 +107,10 @@ export default function NewsroomDashboard({ events, user, showT, isMobile, upd }
   };
 
   const callAI = async (systemPrompt, extra={}) => {
+    let provider = "gemini"; try { provider = localStorage.getItem("ai_provider") || "gemini"; } catch(_) {}
     const res = await fetch("/api/ai-newsroom", {
       method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({ namaAcara: selectedEv?.namaAcara, systemPrompt, ...extra })
+      body: JSON.stringify({ provider, namaAcara: selectedEv?.namaAcara, systemPrompt, ...extra })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error||"Gagal");

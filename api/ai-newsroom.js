@@ -82,6 +82,80 @@ async function sendWA(to, message) {
  * - Caption IG: max 150 kata + 5-7 hashtag lokal Tarakan
  * - Hindari opini, fokus pada fakta dari catatan
  */
+// Dispatcher provider AI: Gemini (default) atau Groq.
+// Kedua-duanya menghasilkan { berita, captionIg }.
+async function generateNews({ provider, rawNotes, agendaName, agendaDate, lokasi }) {
+  const p = String(provider || process.env.AI_PROVIDER || "gemini").toLowerCase();
+  if (p === "groq") return generateNewsWithGroq({ rawNotes, agendaName, agendaDate, lokasi });
+  return generateNewsWithGemini({ rawNotes, agendaName, agendaDate, lokasi });
+}
+
+// Helper umum: bangun prompt yang dipakai kedua provider.
+function buildNewsPrompt({ rawNotes, agendaName, agendaDate, lokasi }) {
+  const dateContext = agendaDate
+    ? new Date(agendaDate + "T00:00:00+08:00").toLocaleDateString("id-ID", {
+        weekday: "long", year: "numeric", month: "long", day: "numeric",
+        timeZone: "Asia/Makassar",
+      })
+    : "tanggal tidak diketahui";
+  return `
+Kamu adalah jurnalis profesional Humas Pemerintah Kota Tarakan, Kalimantan Utara.
+Tugasmu: Ubah catatan lapangan berikut menjadi berita dan caption Instagram.
+
+DATA KEGIATAN:
+- Nama Acara  : ${agendaName}
+- Tanggal     : ${dateContext} (WITA)
+- Lokasi      : ${lokasi || "Kota Tarakan"}
+- Catatan Lapangan:
+---
+${rawNotes}
+---
+
+INSTRUKSI:
+Buatkan OUTPUT dalam format JSON dengan 2 key berikut (tanpa markdown, hanya JSON murni):
+
+{
+  "berita": "<teks berita format Straight News, min 3 paragraf, max 500 kata. Gunakan gaya bahasa formal dan netral. Lead paragraph harus menjawab 5W+1H. Sertakan nama lengkap Wali Kota dr. H. Khairul, M.Kes jika relevan. Akhiri dengan kalimat penutup yang mencerminkan visi Kota Tarakan>",
+  "caption_ig": "<caption Instagram max 150 kata, awali dengan emoji yang relevan, informatif, sertakan 5-7 hashtag: #KotaTarakan #TarakanHibot #ProkopimTarakan + hashtag relevan dengan topik kegiatan>"
+}
+
+PENTING: Hanya balas dengan JSON. Tidak ada teks lain di luar JSON.`;
+}
+
+// Provider: Groq (OpenAI-compatible). Gratis dengan limit ramah.
+async function generateNewsWithGroq({ rawNotes, agendaName, agendaDate, lokasi }) {
+  const groqKey = process.env.GROQ_API_KEY;
+  if (!groqKey) throw new Error("GROQ_API_KEY belum diset di Vercel.");
+  const model = process.env.GROQ_TEXT_MODEL || "llama-3.3-70b-versatile";
+
+  const prompt = buildNewsPrompt({ rawNotes, agendaName, agendaDate, lokasi });
+  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Authorization": "Bearer " + groqKey },
+    body: JSON.stringify({
+      model,
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.7, max_tokens: 2048,
+      response_format: { type: "json_object" },
+    }),
+  });
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`Groq API error ${response.status}: ${errText.slice(0, 300)}`);
+  }
+  const data = await response.json();
+  const rawText = data?.choices?.[0]?.message?.content;
+  if (!rawText) throw new Error("Groq tidak menghasilkan output");
+  try {
+    const clean = String(rawText).replace(/```json|```/g, "").trim();
+    const parsed = JSON.parse(clean);
+    if (!parsed.berita || !parsed.caption_ig) throw new Error("Format output Groq tidak sesuai");
+    return { berita: parsed.berita, captionIg: parsed.caption_ig };
+  } catch (e) {
+    throw new Error("Gagal mem-parse output Groq: " + e.message);
+  }
+}
+
 async function generateNewsWithGemini({ rawNotes, agendaName, agendaDate, lokasi }) {
   if (!GEMINI_KEY) throw new Error("GEMINI_API_KEY tidak tersedia");
 
@@ -204,9 +278,9 @@ async function actionGenerate(body) {
     draftId = created[0].id;
   }
 
-  // Generate dengan AI
-  const { berita, captionIg } = await generateNewsWithGemini({
-    rawNotes, agendaName, agendaDate, lokasi,
+  // Generate dengan AI (provider bisa dipilih dari klien: gemini | groq)
+  const { berita, captionIg } = await generateNews({
+    provider: body.provider, rawNotes, agendaName, agendaDate, lokasi,
   });
 
   // Simpan hasil
