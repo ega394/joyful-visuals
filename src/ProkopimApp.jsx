@@ -45,6 +45,9 @@ function isLoginLocked(){const a=getLoginAttempts();if(a.lockedUntil&&Date.now()
 const SESSION_TIMEOUT_MS=12*60*60*1000;
 let _lastActivity=Date.now();
 function touchActivity(){_lastActivity=Date.now();}
+// Provider AI yang dipakai untuk OCR & newsroom. Dipilih user via Profil.
+// Default: gemini. Alternatif: groq.
+function getAIProvider(){ try{return localStorage.getItem("ai_provider")||"gemini";}catch{return "gemini";} }
 // Saat kartu antrian sedang dibuka/dibaca, polling realtime ditahan
 // agar tampilan tidak ter-refresh & posisi baca tidak hilang.
 let _readingFocus=false;
@@ -1096,6 +1099,7 @@ function AIModal({onFill,onClose}){
         method:"POST",
         headers:{"Content-Type":"application/json"},
         body:JSON.stringify({
+          provider: getAIProvider(),
           model:"claude-sonnet-4-20250514",
           max_tokens:1000,
           messages:[{role:"user",content:bodyContent}]
@@ -1777,6 +1781,59 @@ const printF4L_lap=()=>{
 }
 
 // ==================== NOTIF TAB ====================
+// Tab pengaturan provider AI (untuk OCR undangan & AI Newsroom).
+// Pilihan disimpan di localStorage agar bisa di-switch kapan saja
+// tanpa redeploy. Otomatis dipakai oleh semua pemanggilan /api/ai
+// dan /api/ai-newsroom (via getAIProvider()).
+function AIProviderTab({ showT }) {
+  const NAVY = "#0A1628";
+  const [val, setVal] = React.useState(() => {
+    try { return localStorage.getItem("ai_provider") || "gemini"; } catch { return "gemini"; }
+  });
+  const save = (p) => {
+    setVal(p);
+    try { localStorage.setItem("ai_provider", p); } catch {}
+    showT("Provider AI: " + (p === "groq" ? "Groq" : "Gemini"));
+  };
+  const Card = ({ k, title, desc, kuota }) => (
+    <div onClick={() => save(k)} style={{
+      border: "2px solid " + (val === k ? NAVY : "#E2E8F0"),
+      background: val === k ? "#EFF6FF" : "white",
+      borderRadius: 12, padding: "14px 16px", cursor: "pointer",
+      marginBottom: 10, transition: "all 0.15s",
+    }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+        <div style={{ fontSize: 14, fontWeight: 800, color: NAVY }}>{title}</div>
+        {val === k && <span style={{ background: NAVY, color: "white", borderRadius: 12, padding: "2px 9px", fontSize: 10, fontWeight: 700 }}>AKTIF</span>}
+      </div>
+      <div style={{ fontSize: 12, color: "#475569", lineHeight: 1.5 }}>{desc}</div>
+      <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>{kuota}</div>
+    </div>
+  );
+  return (
+    <div>
+      <div style={{ fontSize: 12, color: "#64748b", marginBottom: 12, lineHeight: 1.6 }}>
+        Pilih layanan AI yang dipakai untuk <b>memindai undangan dari foto/PDF</b> dan <b>generator berita di AI Newsroom</b>. Pengaturan ini disimpan di perangkat Anda dan langsung berlaku — tidak perlu logout.
+      </div>
+      <Card
+        k="gemini"
+        title="🟢 Google Gemini (default)"
+        desc="Kualitas tinggi untuk OCR dan penulisan formal. Bahasa Indonesia sangat baik."
+        kuota="Gratis ~15 permintaan/menit · 1.500/hari dari Google AI Studio."
+      />
+      <Card
+        k="groq"
+        title="⚡ Groq (cadangan)"
+        desc="Sangat cepat. Cocok dipakai bila kuota Gemini habis atau respons lambat."
+        kuota="Gratis dengan limit harian yang ramah dari Groq."
+      />
+      <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 10, padding: "10px 12px", background: "#F1F5F9", borderRadius: 8 }}>
+        💡 Pengelola server perlu memasang ENV <code>GROQ_API_KEY</code> di Vercel (dan ENV opsional <code>GROQ_TEXT_MODEL</code> / <code>GROQ_VISION_MODEL</code> bila ingin ganti model).
+      </div>
+    </div>
+  );
+}
+
 function NotifTab({user,showT}){
   const NAVY="#0A1628";
   const[isNativeApp,setIsNativeApp]=useState(false);
@@ -2045,7 +2102,7 @@ function ProfileModal({user,onClose,showT}){
     showT("Username diubah. Silakan login ulang.","warn");
     setTimeout(()=>{localStorage.removeItem("jp_session");window.location.reload();},1800);
   };
-  const tabs=[{k:"profile",l:"Profil"},{k:"password",l:"Ganti Password"},{k:"username",l:"Ganti Username"},{k:"biometric",l:"Biometrik"},{k:"notif",l:"🔔 Notifikasi"}];
+  const tabs=[{k:"profile",l:"Profil"},{k:"password",l:"Ganti Password"},{k:"username",l:"Ganti Username"},{k:"biometric",l:"Biometrik"},{k:"notif",l:"🔔 Notifikasi"},{k:"ai",l:"🤖 AI"}];
   return <div style={{position:"fixed",inset:0,zIndex:8200,background:"rgba(0,0,0,0.55)",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
     <div style={{background:"white",borderRadius:16,width:"100%",maxWidth:480,maxHeight:"90vh",display:"flex",flexDirection:"column"}}>
       <div style={{padding:"16px 20px 0",borderBottom:"1px solid #f1f5f9",flexShrink:0}}>
@@ -2064,6 +2121,7 @@ function ProfileModal({user,onClose,showT}){
         {tabP==="username"&&<><div style={{background:"#fef3c7",borderRadius:9,padding:"9px 12px",marginBottom:14,fontSize:13,color:"#92400e",border:"1px solid #fde68a"}}>Setelah ubah username, Anda akan diminta login ulang.</div><div style={{marginBottom:12}}><label style={{display:"block",fontSize:12,color:"#64748b",fontWeight:600,marginBottom:4}}>Username Baru</label><input value={uname.newUsername} onChange={e=>setUname(p=>({...p,newUsername:e.target.value}))} autoCapitalize="none" style={inp}/></div><div style={{marginBottom:16}}><label style={{display:"block",fontSize:12,color:"#64748b",fontWeight:600,marginBottom:4}}>Konfirmasi dengan Password Anda</label><input type="password" value={uname.pwConfirm} onChange={e=>setUname(p=>({...p,pwConfirm:e.target.value}))} style={inp}/></div><button onClick={changeUsername} style={{width:"100%",padding:"12px",borderRadius:10,border:"none",background:"#d97706",color:"white",cursor:"pointer",fontSize:14,fontWeight:700}}>Ubah Username</button></>}
         {tabP==="biometric"&&<BiometricTab user={user} showT={showT}/>}
         {tabP==="notif"&&<NotifTab user={user} showT={showT}/>}
+        {tabP==="ai"&&<AIProviderTab showT={showT}/>}
       </div>
     </div>
   </div>;
@@ -7449,7 +7507,7 @@ function AIModalRK({onFill,onClose}){
       if(f.type==="application/pdf"){b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result.split(",")[1]);r.onerror=rej;r.readAsDataURL(f);});mimeType="application/pdf";}
       else{const img=new Image();const url=URL.createObjectURL(f);b64=await new Promise(res=>{img.onload=()=>{URL.revokeObjectURL(url);const c=document.createElement("canvas");let w=img.width,h=img.height;if(w>1024||h>1024){if(w>h){h=Math.round(h*1024/w);w=1024;}else{w=Math.round(w*1024/h);h=1024;}}c.width=w;c.height=h;c.getContext("2d").drawImage(img,0,0,w,h);res(c.toDataURL("image/jpeg",0.75).split(",")[1]);};img.onerror=()=>{const r=new FileReader();r.onload=e=>res(e.target.result.split(",")[1]);r.readAsDataURL(f);};img.src=url;});mimeType="image/jpeg";}
       const PROMPT='Baca dokumen ini dan balas HANYA JSON: {"judul":"","perihal":"","tanggalMulai":"YYYY-MM-DD","tanggalSelesai":"YYYY-MM-DD","uraian":"","catatan":""}';
-      const resp=await fetch("/api/ai",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,messages:[{role:"user",content:[{type:f.type==="application/pdf"?"document":"image",source:{type:"base64",media_type:mimeType,data:b64}},{type:"text",text:PROMPT}]}]})});
+      const resp=await fetch("/api/ai",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({provider:getAIProvider(),model:"claude-sonnet-4-20250514",max_tokens:1000,messages:[{role:"user",content:[{type:f.type==="application/pdf"?"document":"image",source:{type:"base64",media_type:mimeType,data:b64}},{type:"text",text:PROMPT}]}]})});
       const data=await resp.json().catch(()=>null);
       if(!resp.ok)throw new Error(data?.error||"Server error");
       const txt=(data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("").replace(/```(?:json)?\s*/gi,"").replace(/```/g,"").trim();
