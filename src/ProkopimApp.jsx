@@ -1823,12 +1823,18 @@ function AIProviderTab({ showT }) {
       />
       <Card
         k="groq"
-        title="⚡ Groq (cadangan)"
-        desc="Sangat cepat. Cocok dipakai bila kuota Gemini habis atau respons lambat."
-        kuota="Gratis dengan limit harian yang ramah dari Groq."
+        title="⚡ Groq (cadangan, cepat)"
+        desc="Sangat cepat. Cocok bila kuota Gemini habis. Hanya gambar — PDF otomatis dialihkan ke Gemini."
+        kuota="Gratis dengan limit harian dari Groq."
+      />
+      <Card
+        k="openrouter"
+        title="🌐 OpenRouter (kuota terpisah, dukung PDF)"
+        desc="Routing ke model Gemini Flash via OpenRouter — kuota terhitung terpisah dari key Gemini Anda. Mendukung gambar & PDF."
+        kuota="Gratis dengan limit harian dari OpenRouter."
       />
       <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 10, padding: "10px 12px", background: "#F1F5F9", borderRadius: 8 }}>
-        💡 Pengelola server perlu memasang ENV <code>GROQ_API_KEY</code> di Vercel (dan ENV opsional <code>GROQ_TEXT_MODEL</code> / <code>GROQ_VISION_MODEL</code> bila ingin ganti model).
+        💡 Server perlu ENV: <code>GEMINI_API_KEY</code> (Gemini), <code>GROQ_API_KEY</code> (Groq), <code>OPENROUTER_API_KEY</code> (OpenRouter). Model dapat diganti via ENV <code>GROQ_VISION_MODEL</code> / <code>GROQ_TEXT_MODEL</code> / <code>OPENROUTER_MODEL</code>.
       </div>
     </div>
   );

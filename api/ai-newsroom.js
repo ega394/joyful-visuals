@@ -82,12 +82,52 @@ async function sendWA(to, message) {
  * - Caption IG: max 150 kata + 5-7 hashtag lokal Tarakan
  * - Hindari opini, fokus pada fakta dari catatan
  */
-// Dispatcher provider AI: Gemini (default) atau Groq.
-// Kedua-duanya menghasilkan { berita, captionIg }.
+// Dispatcher provider AI: Gemini (default), Groq, atau OpenRouter.
+// Semuanya menghasilkan { berita, captionIg }.
 async function generateNews({ provider, rawNotes, agendaName, agendaDate, lokasi }) {
   const p = String(provider || process.env.AI_PROVIDER || "gemini").toLowerCase();
-  if (p === "groq") return generateNewsWithGroq({ rawNotes, agendaName, agendaDate, lokasi });
+  if (p === "groq")       return generateNewsWithGroq({ rawNotes, agendaName, agendaDate, lokasi });
+  if (p === "openrouter") return generateNewsWithOpenRouter({ rawNotes, agendaName, agendaDate, lokasi });
   return generateNewsWithGemini({ rawNotes, agendaName, agendaDate, lokasi });
+}
+
+// Provider: OpenRouter (gratis dengan kuota terpisah, dukung PDF).
+async function generateNewsWithOpenRouter({ rawNotes, agendaName, agendaDate, lokasi }) {
+  const orKey = process.env.OPENROUTER_API_KEY;
+  if (!orKey) throw new Error("OPENROUTER_API_KEY belum diset di Vercel.");
+  const model = process.env.OPENROUTER_MODEL || "google/gemini-2.0-flash-exp:free";
+
+  const prompt = buildNewsPrompt({ rawNotes, agendaName, agendaDate, lokasi });
+  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + orKey,
+      "HTTP-Referer": process.env.OPENROUTER_REFERER || "https://prokopim.tarakankota.go.id",
+      "X-Title": "Prokopim Hibot",
+    },
+    body: JSON.stringify({
+      model,
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.7, max_tokens: 2048,
+      response_format: { type: "json_object" },
+    }),
+  });
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`OpenRouter API error ${response.status}: ${errText.slice(0, 300)}`);
+  }
+  const data = await response.json();
+  const rawText = data?.choices?.[0]?.message?.content;
+  if (!rawText) throw new Error("OpenRouter tidak menghasilkan output");
+  try {
+    const clean = String(rawText).replace(/```json|```/g, "").trim();
+    const parsed = JSON.parse(clean);
+    if (!parsed.berita || !parsed.caption_ig) throw new Error("Format output OpenRouter tidak sesuai");
+    return { berita: parsed.berita, captionIg: parsed.caption_ig };
+  } catch (e) {
+    throw new Error("Gagal mem-parse output OpenRouter: " + e.message);
+  }
 }
 
 // Helper umum: bangun prompt yang dipakai kedua provider.
