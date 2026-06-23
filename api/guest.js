@@ -51,6 +51,18 @@ async function sendWA(to, message) {
   } catch (e) { console.warn("[WA guest]", e.message); }
 }
 
+// Format tanggal Indonesia (WITA) untuk pesan WA, mis. "Senin, 16 Juni 2026"
+function fmtTanggalWA(ymd) {
+  if (!ymd) return "";
+  try {
+    var d = new Date(ymd + "T00:00:00+08:00");
+    return d.toLocaleDateString("id-ID", {
+      weekday: "long", day: "numeric", month: "long", year: "numeric",
+      timeZone: "Asia/Makassar",
+    });
+  } catch (e) { return ymd; }
+}
+
 // 1. GET: queue
 async function actionQueue(query) {
   var status   = query.status;
@@ -129,22 +141,88 @@ async function actionForward(body) {
   return { ok: true };
 }
 
+// Notifikasi WA konfirmasi penerimaan permohonan (dipanggil dari form publik)
+async function actionNotifyNew(body) {
+  var nama   = body.nama || body.name || "Pemohon";
+  var no_wa  = body.no_wa || body.phone;
+  var tujuan = body.tujuan_pejabat || "Pimpinan";
+  if (!no_wa) return { ok: false, skipped: true };
+
+  await sendWA(no_wa,
+    "✅ *Permohonan Audiensi Diterima*\n\n" +
+    "Yth. *" + nama + "*,\n" +
+    "Permohonan audiensi Anda kepada *" + tujuan + "* telah kami terima dan sedang diproses oleh Tim Protokol.\n\n" +
+    "Anda akan menerima pemberitahuan melalui WhatsApp ini begitu ada keputusan dan penjadwalan dari pimpinan.\n\n" +
+    "_Bagian Prokopim Setda Kota Tarakan_");
+  return { ok: true };
+}
+
 // 6. POST: respond (Pimpinan: approved/rejected/disposed)
 async function actionRespond(body) {
   if (!body.id || !body.response) throw new Error("id & response wajib");
-  
+
+  // Ambil data tamu untuk notifikasi WA
+  var guest = {};
+  try {
+    var rows = await sbGet("permohonan_tamu?id=eq." + body.id +
+      "&select=nama,no_wa,tujuan_pejabat&limit=1");
+    guest = (rows && rows[0]) || {};
+  } catch (e) { /* tetap lanjut update walau gagal baca */ }
+
   var updateData = { status: body.response, diputuskan_oleh: body.responded_by || "" };
-  
+
   if (body.response === "approved") {
     updateData.jadwal_tanggal = body.scheduled_date || null;
     updateData.jadwal_jam = body.scheduled_time || null;
   } else if (body.response === "rejected") {
-    updateData.alasan_tolak = body.reason || "";
+    updateData.alasan_tolak = body.reason || body.alasan_tolak || "";
   } else if (body.response === "disposed") {
-    updateData.disposisi_ke = body.disposed_to || "";
+    updateData.disposisi_ke = body.disposed_to || body.disposisi_ke || "";
   }
 
   await sbPatch(body.id, updateData);
+
+  // ── Notifikasi WA ke pemohon sesuai keputusan ──
+  if (guest.no_wa) {
+    var pejabat = guest.tujuan_pejabat || "Pimpinan";
+    var nama    = guest.nama || "Pemohon";
+    var msg     = null;
+
+    if (body.response === "approved") {
+      var jadwalStr = "";
+      if (updateData.jadwal_tanggal) {
+        jadwalStr = "\n🗓️ *Jadwal:* " + fmtTanggalWA(updateData.jadwal_tanggal) +
+          (updateData.jadwal_jam ? ", pukul " + String(updateData.jadwal_jam).slice(0,5) + " WITA" : "");
+      }
+      msg =
+        "✅ *Audiensi Disetujui*\n\n" +
+        "Yth. *" + nama + "*,\n" +
+        "Permohonan audiensi Anda kepada *" + pejabat + "* telah *DISETUJUI*." +
+        jadwalStr + "\n\n" +
+        "📍 Lokasi: Ruang Pimpinan, Kantor Wali Kota Tarakan.\n" +
+        "Mohon hadir 15 menit sebelum jadwal dan membawa identitas diri.\n\n" +
+        "_Bagian Prokopim Setda Kota Tarakan_";
+    } else if (body.response === "rejected") {
+      msg =
+        "🙏 *Pemberitahuan Permohonan Audiensi*\n\n" +
+        "Yth. *" + nama + "*,\n" +
+        "Mohon maaf, permohonan audiensi Anda kepada *" + pejabat +
+        "* belum dapat kami penuhi saat ini." +
+        (updateData.alasan_tolak ? "\n\n📝 Keterangan: " + updateData.alasan_tolak : "") +
+        "\n\nAnda dipersilakan mengajukan kembali di lain waktu.\n\n" +
+        "_Bagian Prokopim Setda Kota Tarakan_";
+    } else if (body.response === "disposed") {
+      msg =
+        "↪️ *Permohonan Diteruskan*\n\n" +
+        "Yth. *" + nama + "*,\n" +
+        "Permohonan audiensi Anda telah diteruskan kepada *" +
+        (updateData.disposisi_ke || "unit terkait") +
+        "* untuk ditindaklanjuti. Tim terkait akan menghubungi Anda lebih lanjut.\n\n" +
+        "_Bagian Prokopim Setda Kota Tarakan_";
+    }
+    if (msg) await sendWA(guest.no_wa, msg);
+  }
+
   return { ok: true };
 }
 
@@ -157,6 +235,7 @@ export default async function handler(req, res) {
       result = await actionQueue(req.query);
     } else if (req.method === "POST") {
       if      (action === "checkin")    result = await actionCheckin(req.body);
+      else if (action === "notify_new") result = await actionNotifyNew(req.body);
       else if (action === "verify_rk")  result = await actionVerifyRK(req.body);
       else if (action === "screen")     result = await actionScreen(req.body);
       else if (action === "forward")    result = await actionForward(req.body);

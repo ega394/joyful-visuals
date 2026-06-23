@@ -379,6 +379,19 @@ export default function TamuPage() {
       var inserted = await insertRes.json().catch(function() { return [{}]; });
       var row = Array.isArray(inserted) ? inserted[0] : inserted;
 
+      // ── Step 4b: Kirim WA konfirmasi (best-effort, tidak blokir sukses) ──
+      try {
+        await fetch("/api/guest?action=notify_new", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            nama: insertPayload.nama,
+            no_wa: noWaNormal,
+            tujuan_pejabat: pejabatLabel,
+          }),
+        });
+      } catch (_) { /* abaikan — konfirmasi WA bersifat tambahan */ }
+
       // ── Step 5: Tampilkan sukses ──────────────────────────
       setResult({
         id:              row.id || null,

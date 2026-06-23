@@ -108,6 +108,7 @@ function AdminRKView({ user, showT, isMobile }) {
   var [tab,        setTab]        = useState("pending_rk");
   var [detail,     setDetail]     = useState(null);
   var [lastLoaded, setLastLoaded] = useState(null);
+  var [q,          setQ]          = useState("");
 
   var load = useCallback(function() {
     setLoading(true);
@@ -132,7 +133,9 @@ function AdminRKView({ user, showT, isMobile }) {
     {k:"pending_rk",       l:"Baru Masuk"},
     {k:"pending_kasubbag", l:"Diteruskan"},
     {k:"rejected",         l:"Ditolak"},
+    {k:"all",              l:"🔎 Lacak Semua"},
   ];
+  var shown = tab==="all" ? filterByQuery(guests, q) : guests;
 
   return (
     <div style={{flex:1,overflowY:"auto",background:"#F0F4FA",paddingBottom:40}}>
@@ -156,13 +159,14 @@ function AdminRKView({ user, showT, isMobile }) {
         })}
       </div>
 
+      {tab==="all" && <TrackSearch value={q} onChange={setQ}/>}
       <MetaBar lastLoaded={lastLoaded} onRefresh={load} loading={loading}/>
 
       {/* List */}
       <div style={{padding:"12px 16px"}}>
-        {loading ? <SkeletonList/> : guests.length===0 ? <EmptyState label="Tidak ada permohonan di kategori ini"/> :
-          guests.map(function(g){
-            return <GuestCard key={g.id} guest={g} onClick={function(){setDetail(g);}}/>;
+        {loading ? <SkeletonList/> : shown.length===0 ? <EmptyState label="Tidak ada permohonan di kategori ini"/> :
+          shown.map(function(g){
+            return <GuestCard key={g.id} guest={g} onClick={function(){setDetail(g);}} showChain={tab==="all"}/>;
           })
         }
       </div>
@@ -272,6 +276,7 @@ function KasubbagView({ user, showT, isMobile }) {
   var [tab,        setTab]        = useState("pending_kasubbag");
   var [detail,     setDetail]     = useState(null);
   var [lastLoaded, setLastLoaded] = useState(null);
+  var [q,          setQ]          = useState("");
 
   var load = useCallback(function() {
     setLoading(true);
@@ -296,7 +301,9 @@ function KasubbagView({ user, showT, isMobile }) {
     {k:"pending_kasubbag", l:"Menunggu Verifikasi"},
     {k:"pending_kabag",    l:"Sudah ke Kabag"},
     {k:"rejected",         l:"Ditolak"},
+    {k:"all",              l:"🔎 Lacak Semua"},
   ];
+  var shown = tab==="all" ? filterByQuery(guests, q) : guests;
 
   return (
     <div style={{flex:1,overflowY:"auto",background:"#F0F4FA",paddingBottom:40}}>
@@ -316,12 +323,13 @@ function KasubbagView({ user, showT, isMobile }) {
         })}
       </div>
 
+      {tab==="all" && <TrackSearch value={q} onChange={setQ}/>}
       <MetaBar lastLoaded={lastLoaded} onRefresh={load} loading={loading}/>
 
       <div style={{padding:"12px 16px"}}>
-        {loading ? <SkeletonList/> : guests.length===0 ? <EmptyState label="Tidak ada permohonan"/> :
-          guests.map(function(g){
-            return <GuestCard key={g.id} guest={g} onClick={function(){setDetail(g);}}/>;
+        {loading ? <SkeletonList/> : shown.length===0 ? <EmptyState label="Tidak ada permohonan"/> :
+          shown.map(function(g){
+            return <GuestCard key={g.id} guest={g} onClick={function(){setDetail(g);}} showChain={tab==="all"}/>;
           })
         }
       </div>
@@ -496,6 +504,7 @@ function KabagView({ user, showT, isMobile }) {
   var [tab,        setTab]        = useState("pending_kabag");
   var [detail,     setDetail]     = useState(null);
   var [lastLoaded, setLastLoaded] = useState(null);
+  var [q,          setQ]          = useState("");
 
   var load = useCallback(function() {
     setLoading(true);
@@ -521,6 +530,7 @@ function KabagView({ user, showT, isMobile }) {
     {k:"pending_pimpinan", l:"Di Pimpinan"},
     {k:"approved",         l:"Disetujui"},
     {k:"rejected",         l:"Ditolak"},
+    {k:"all",              l:"🔎 Lacak Semua"},
   ];
 
   return (
@@ -541,11 +551,12 @@ function KabagView({ user, showT, isMobile }) {
         })}
       </div>
 
+      {tab==="all" && <TrackSearch value={q} onChange={setQ}/>}
       <MetaBar lastLoaded={lastLoaded} onRefresh={load} loading={loading}/>
 
       <div style={{padding:"12px 16px"}}>
-        {loading ? <SkeletonList/> : guests.length===0 ? <EmptyState label="Tidak ada permohonan"/> :
-          guests.map(function(g){
+        {loading ? <SkeletonList/> : (tab==="all"?filterByQuery(guests,q):guests).length===0 ? <EmptyState label="Tidak ada permohonan"/> :
+          (tab==="all"?filterByQuery(guests,q):guests).map(function(g){
             return <GuestCard key={g.id} guest={g} onClick={function(){setDetail(g);}} showChain/>;
           })
         }
@@ -1439,6 +1450,35 @@ function ActionBtn({ label, color, flex, outline, onClick, loading }) {
 }
 
 // Indikator "Data per HH:MM" + tombol segarkan manual
+// Filter daftar tamu berdasarkan kata kunci (nama / instansi / no WA / maksud)
+function filterByQuery(list, q) {
+  var s = String(q || "").trim().toLowerCase();
+  if (!s) return list;
+  return (list || []).filter(function (g) {
+    return [gName(g), gInstansi(g), gPhone(g), gMaksud(g), gTujuan(g)]
+      .join(" ").toLowerCase().indexOf(s) !== -1;
+  });
+}
+
+// Kotak pencarian untuk tab "Lacak Semua"
+function TrackSearch({ value, onChange }) {
+  return (
+    <div style={{ padding: "10px 16px 0" }}>
+      <input
+        className="gd-inp"
+        value={value}
+        onChange={function (e) { onChange(e.target.value); }}
+        placeholder="🔎 Cari nama, instansi, atau nomor WA…"
+        style={{
+          width: "100%", boxSizing: "border-box", padding: "10px 14px",
+          borderRadius: 12, border: "1.5px solid #D8E0EC", fontSize: 13,
+          background: "white", color: NAVY,
+        }}
+      />
+    </div>
+  );
+}
+
 function MetaBar({ lastLoaded, onRefresh, loading }) {
   var ts = lastLoaded
     ? lastLoaded.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })
