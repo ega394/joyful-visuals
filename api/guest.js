@@ -8,6 +8,13 @@ const SUPA_URL = process.env.SUPABASE_URL    || process.env.VITE_SUPABASE_URL;
 const SUPA_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 const FONNTE   = process.env.FONNTE_TOKEN;
 
+// Narahubung Admin Prokopim & footer otomatis untuk semua pesan WA
+const ADMIN_WA  = "0811-5961-116";
+const WA_FOOTER =
+  "\n\n_Bagian Prokopim Setda Kota Tarakan_" +
+  "\n📞 Narahubung Admin: " + ADMIN_WA +
+  "\n\n_🤖 Pesan ini dikirim otomatis oleh sistem #prokopimhibot dan tidak perlu dibalas._";
+
 function H(prefer) {
   var h = { "Content-Type": "application/json", "apikey": SUPA_KEY, "Authorization": "Bearer " + SUPA_KEY };
   if (prefer) h["Prefer"] = prefer;
@@ -104,7 +111,7 @@ async function actionCheckin(body) {
     preferensi_jam: body.preferred_time || null
   });
 
-  await sendWA(no_wa, "✅ *Tamu Terdaftar*\n\nYth. *" + nama + "*,\nPermohonan Anda telah diterima dan sedang diperiksa oleh *Admin RK*.\n\n_Prokopim Tarakan_");
+  await sendWA(no_wa, "✅ *Tamu Terdaftar*\n\nYth. *" + nama + "*,\nPermohonan Anda telah diterima dan sedang diperiksa oleh *Admin RK*." + WA_FOOTER);
   return { ok: true, id: created[0]?.id };
 }
 
@@ -152,8 +159,8 @@ async function actionNotifyNew(body) {
     "✅ *Permohonan Audiensi Diterima*\n\n" +
     "Yth. *" + nama + "*,\n" +
     "Permohonan audiensi Anda kepada *" + tujuan + "* telah kami terima dan sedang diproses oleh Tim Protokol.\n\n" +
-    "Anda akan menerima pemberitahuan melalui WhatsApp ini begitu ada keputusan dan penjadwalan dari pimpinan.\n\n" +
-    "_Bagian Prokopim Setda Kota Tarakan_");
+    "Anda akan menerima pemberitahuan melalui WhatsApp ini begitu ada keputusan dan penjadwalan dari pimpinan." +
+    WA_FOOTER);
   return { ok: true };
 }
 
@@ -200,8 +207,8 @@ async function actionRespond(body) {
         "Permohonan audiensi Anda kepada *" + pejabat + "* telah *DISETUJUI*." +
         jadwalStr + "\n\n" +
         "📍 Lokasi: Ruang Pimpinan, Kantor Wali Kota Tarakan.\n" +
-        "Mohon hadir 15 menit sebelum jadwal dan membawa identitas diri.\n\n" +
-        "_Bagian Prokopim Setda Kota Tarakan_";
+        "Mohon hadir 15 menit sebelum jadwal dan membawa identitas diri." +
+        WA_FOOTER;
     } else if (body.response === "rejected") {
       msg =
         "🙏 *Pemberitahuan Permohonan Audiensi*\n\n" +
@@ -209,16 +216,16 @@ async function actionRespond(body) {
         "Mohon maaf, permohonan audiensi Anda kepada *" + pejabat +
         "* belum dapat kami penuhi saat ini." +
         (updateData.alasan_tolak ? "\n\n📝 Keterangan: " + updateData.alasan_tolak : "") +
-        "\n\nAnda dipersilakan mengajukan kembali di lain waktu.\n\n" +
-        "_Bagian Prokopim Setda Kota Tarakan_";
+        "\n\nAnda dipersilakan mengajukan kembali di lain waktu." +
+        WA_FOOTER;
     } else if (body.response === "disposed") {
       msg =
         "↪️ *Permohonan Diteruskan*\n\n" +
         "Yth. *" + nama + "*,\n" +
         "Permohonan audiensi Anda telah diteruskan kepada *" +
         (updateData.disposisi_ke || "unit terkait") +
-        "* untuk ditindaklanjuti. Tim terkait akan menghubungi Anda lebih lanjut.\n\n" +
-        "_Bagian Prokopim Setda Kota Tarakan_";
+        "* untuk ditindaklanjuti. Tim terkait akan menghubungi Anda lebih lanjut." +
+        WA_FOOTER;
     }
     if (msg) await sendWA(guest.no_wa, msg);
   }

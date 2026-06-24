@@ -1,5 +1,10 @@
 import React from "react";
 
+const SUPA_URL = typeof import.meta !== "undefined" && import.meta.env
+  ? (import.meta.env.VITE_SUPABASE_URL || "") : "";
+const SUPA_KEY = typeof import.meta !== "undefined" && import.meta.env
+  ? (import.meta.env.VITE_SUPABASE_ANON_KEY || "") : "";
+
 export default function WaliKotaAudiensiDashboard({ role, user, showT, isMobile }) {
   const NAVY = "#0A1628", GREEN = "#0D6B4F", RED = "#991B1B";
   const labelPimpinan = role === "wakilwalikota" ? "Wakil Wali Kota" : "Wali Kota";
@@ -46,17 +51,50 @@ export default function WaliKotaAudiensiDashboard({ role, user, showT, isMobile 
     if (decideMode === "approve" && !tgl) { showT("Pilih tanggal jadwal dulu", "warn"); return; }
     if (decideMode === "reject" && !alasan.trim()) { showT("Isi alasan penolakan", "warn"); return; }
     setSaving(true);
+    const decidedBy = user?.username || user?.nama || labelPimpinan;
     const body = decideMode === "approve"
-      ? { id:decideId, status:"approved", jadwal_tanggal:tgl, jadwal_jam:jam||null, catatan_pimpinan:catatanPim }
-      : { id:decideId, status:"rejected", alasan_tolak:alasan };
+      ? { id:decideId, response:"approved", responded_by:decidedBy, scheduled_date:tgl, scheduled_time:jam||null }
+      : { id:decideId, response:"rejected", responded_by:decidedBy, reason:alasan };
     try {
-      const r = await fetch("/api/guest", {
-        method:"PATCH",
+      const r = await fetch("/api/guest?action=respond", {
+        method:"POST",
         headers:{"Content-Type":"application/json"},
         body: JSON.stringify(body)
       });
-      if (!r.ok) throw new Error();
-      showT(decideMode==="approve" ? "✅ Audiensi dijadwalkan!" : "Permohonan ditolak", decideMode==="approve"?"ok":"warn");
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || (j && j.error)) throw new Error(j && j.error ? j.error : "Gagal");
+
+      // Audiensi yang disetujui & terjadwal langsung masuk ke Agenda Kegiatan
+      if (decideMode==="approve" && tgl && jam && SUPA_URL && SUPA_KEY) {
+        const g = guests.find(x => x.id === decideId) || {};
+        const pejabatKey = (g.tujuan_pejabat==="Wakil Wali Kota") ? "wakilwalikota" : "walikota";
+        const nama = g.nama || g.name || "Tamu";
+        const inst = g.instansi || g.organization || "";
+        const evId = Date.now();
+        const newEvent = {
+          id: evId, tanggal: tgl, jam: jam,
+          namaAcara: "Audiensi: "+nama+(inst?" ("+inst+")":""),
+          penyelenggara: inst||nama,
+          kontak: g.no_wa || g.phone || "-",
+          buktiUndangan: "Permohonan Tamu #"+(String(decideId).slice(-6)),
+          pakaian: "Batik Lengan Panjang", jenisKegiatan:"Menghadiri",
+          lokasi: "Ruang Pimpinan, Kantor Wali Kota Tarakan",
+          untukPimpinan: [pejabatKey], alur:"disetujui",
+          catatan: "Maksud: "+(g.maksud_keperluan||g.purpose||"-")+(g.telaah_kabag?" | Telaah Kabag: "+g.telaah_kabag:""),
+          statusWK:  pejabatKey==="walikota"?"hadir":null,
+          statusWWK: pejabatKey==="wakilwalikota"?"hadir":null,
+          submittedBy: decidedBy, personil:[], evaluasi:{}, created_from:"guest_module",
+        };
+        try {
+          await fetch(SUPA_URL+"/rest/v1/jadwal",{
+            method:"POST",
+            headers:{"Content-Type":"application/json","apikey":SUPA_KEY,"Authorization":"Bearer "+SUPA_KEY,"Prefer":"return=minimal"},
+            body: JSON.stringify({id:evId, data:newEvent}),
+          });
+        } catch (_) { /* agenda gagal dibuat tidak membatalkan keputusan */ }
+      }
+
+      showT(decideMode==="approve" ? "✅ Audiensi dijadwalkan & masuk Agenda!" : "Permohonan ditolak", decideMode==="approve"?"ok":"warn");
       setDecideId(null); setMode(""); setTgl(""); setJam(""); setCatatan(""); setAlasan("");
       load();
     } catch { showT("Gagal menyimpan keputusan", "error"); }

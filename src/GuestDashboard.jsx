@@ -84,7 +84,7 @@ export default function GuestDashboard({ role, user, events, showT, isMobile }) 
     <div style={{ flex:1, display:"flex", flexDirection:"column" }}>
       <style>{GD_CSS}</style>
       {(role==="admin_rk") &&
-        <AdminRKView    user={user} showT={showT} isMobile={isMobile}/>}
+        <AdminRKView    user={user} events={events} showT={showT} isMobile={isMobile}/>}
       {(role==="kasubbag_protokol") &&
         <KasubbagView   user={user} showT={showT} isMobile={isMobile}/>}
       {(role==="kabag") &&
@@ -92,7 +92,7 @@ export default function GuestDashboard({ role, user, events, showT, isMobile }) 
       {(role==="walikota"||role==="wakilwalikota") &&
         <PimpinanView   role={role} user={user} events={events} showT={showT} isMobile={isMobile}/>}
       {(role==="ajudan_walikota"||role==="ajudan_wakilwalikota") &&
-        <AjudanView     role={role} isMobile={isMobile}/>}
+        <AjudanView     role={role} user={user} events={events} showT={showT} isMobile={isMobile}/>}
       {(role==="kasubbag_komdokpim"||role==="timkom") &&
         <ReadOnlyView   isMobile={isMobile}/>}
     </div>
@@ -102,7 +102,7 @@ export default function GuestDashboard({ role, user, events, showT, isMobile }) 
 // ══════════════════════════════════════════════════════════════
 //  VIEW 1 — ADMIN RK: Pintu Pertama
 // ══════════════════════════════════════════════════════════════
-function AdminRKView({ user, showT, isMobile }) {
+function AdminRKView({ user, events, showT, isMobile }) {
   var [guests,     setGuests]     = useState([]);
   var [loading,    setLoading]    = useState(true);
   var [tab,        setTab]        = useState("pending_rk");
@@ -121,17 +121,29 @@ function AdminRKView({ user, showT, isMobile }) {
 
   useEffect(function(){load();}, [load]);
 
-  if(detail) return (
-    <AdminRKDetail
-      guest={detail} user={user} showT={showT} isMobile={isMobile}
-      onBack={function(){setDetail(null);}}
-      onDone={function(){setGuests(function(prev){return prev.filter(function(g){return g.id!==detail.id;});}); setDetail(null);}}
-    />
-  );
+  var removeFromList = function(){setGuests(function(prev){return prev.filter(function(g){return g.id!==detail.id;});}); setDetail(null);};
+
+  if(detail) {
+    // Permohonan di tahap akhir → Admin RK boleh menetapkan jadwal
+    if(detail.status==="pending_pimpinan") return (
+      <PimpinanDetail
+        guest={detail} role="admin_rk" user={user} events={events}
+        showT={showT} isMobile={isMobile}
+        onBack={function(){setDetail(null);}} onDone={removeFromList}
+      />
+    );
+    return (
+      <AdminRKDetail
+        guest={detail} user={user} showT={showT} isMobile={isMobile}
+        onBack={function(){setDetail(null);}} onDone={removeFromList}
+      />
+    );
+  }
 
   var TABS = [
     {k:"pending_rk",       l:"Baru Masuk"},
     {k:"pending_kasubbag", l:"Diteruskan"},
+    {k:"pending_pimpinan", l:"📅 Siap Dijadwalkan"},
     {k:"rejected",         l:"Ditolak"},
     {k:"all",              l:"🔎 Lacak Semua"},
   ];
@@ -836,7 +848,10 @@ function PimpinanDetail({ guest, role, user, events, showT, isMobile, onBack, on
 
       // Jika ada jadwal, buat juga di tabel jadwal utama
       if(jadwalTgl && jadwalJam && SUPA_URL && SUPA_KEY) {
-        var pejabatKey = role==="wakilwalikota" ? "wakilwalikota" : "walikota";
+        // Pejabat tujuan diturunkan dari data tamu (bukan role), agar benar
+        // saat dijadwalkan oleh ajudan / admin RK yang menjadwalkan untuk
+        // pimpinan mana pun.
+        var pejabatKey = gTujuan(guest)==="Wakil Wali Kota" ? "wakilwalikota" : "walikota";
         var newEvent = {
           id: Date.now(),
           tanggal: jadwalTgl, jam: jadwalJam,
@@ -1060,13 +1075,18 @@ function PimpinanDetail({ guest, role, user, events, showT, isMobile, onBack, on
 // ══════════════════════════════════════════════════════════════
 //  VIEW 5 — AJUDAN: Tamu Hari Ini & Besok
 // ══════════════════════════════════════════════════════════════
-function AjudanView({ role, isMobile }) {
+function AjudanView({ role, user, events, showT, isMobile }) {
   var [guests,  setGuests]  = useState([]);
   var [loading, setLoading] = useState(true);
+  var [subtab,  setSubtab]  = useState("sambut"); // "sambut" | "jadwal"
+  var [jadwalList, setJadwalList] = useState([]);
+  var [jadwalLoading, setJadwalLoading] = useState(false);
+  var [detail,  setDetail]  = useState(null);
   var pimpinanLabel = role==="ajudan_walikota"?"Wali Kota":"Wakil Wali Kota";
   var today    = todayStr();
   var tomorrow = tomorrowStr();
 
+  // Mode penyambutan: tamu disetujui hari ini & besok
   useEffect(function() {
     setLoading(true);
     fetch(API+"?action=queue&status=approved&limit=100")
@@ -1086,6 +1106,30 @@ function AjudanView({ role, isMobile }) {
       .finally(function(){setLoading(false);});
   }, [pimpinanLabel]);
 
+  // Mode penjadwalan: permohonan tahap akhir (pending_pimpinan)
+  var loadJadwal = useCallback(function() {
+    setJadwalLoading(true);
+    fetch(API+"?action=queue&status=pending_pimpinan&limit=80")
+      .then(function(r){return r.json();})
+      .then(function(d){
+        var list = Array.isArray(d)?d:[];
+        setJadwalList(list.filter(function(g){return g.tujuan_pejabat===pimpinanLabel;}));
+      })
+      .catch(function(){setJadwalList([]);})
+      .finally(function(){setJadwalLoading(false);});
+  }, [pimpinanLabel]);
+
+  useEffect(function(){ if(subtab==="jadwal") loadJadwal(); }, [subtab, loadJadwal]);
+
+  if(detail) return (
+    <PimpinanDetail
+      guest={detail} role={role} user={user} events={events}
+      showT={showT} isMobile={isMobile}
+      onBack={function(){setDetail(null);}}
+      onDone={function(){setJadwalList(function(prev){return prev.filter(function(g){return g.id!==detail.id;});}); setDetail(null);}}
+    />
+  );
+
   var todayList    = guests.filter(g=>g.jadwal_tanggal===today);
   var tomorrowList = guests.filter(g=>g.jadwal_tanggal===tomorrow);
 
@@ -1093,38 +1137,58 @@ function AjudanView({ role, isMobile }) {
     <div style={{flex:1,overflowY:"auto",background:"#F0F4FA",paddingBottom:40}}>
       <div style={{background:"linear-gradient(135deg,"+NAVY+" 0%,#163265 100%)",padding:isMobile?"20px 16px":"28px 32px"}}>
         <div style={{color:GOLD,fontSize:10,fontWeight:700,letterSpacing:2.5,textTransform:"uppercase",marginBottom:6}}>
-          Mode Penyambutan
+          Ajudan {pimpinanLabel}
         </div>
         <div style={{color:"white",fontSize:isMobile?20:24,fontWeight:900,marginBottom:4,letterSpacing:-.3}}>
-          🤝 Tamu Disetujui Pimpinan
+          {subtab==="sambut" ? "🤝 Tamu Disetujui Pimpinan" : "📅 Penjadwalan Audiensi"}
         </div>
-        <div style={{color:"rgba(255,255,255,.5)",fontSize:12}}>{pimpinanLabel} · Hari ini &amp; Besok</div>
+        <div style={{color:"rgba(255,255,255,.5)",fontSize:12}}>
+          {subtab==="sambut" ? "Hari ini & Besok" : "Tetapkan jadwal untuk permohonan yang menunggu keputusan"}
+        </div>
       </div>
 
-      <div style={{padding:"16px"}}>
-        {loading ? <SkeletonList/> : guests.length===0 ? (
-          <EmptyState label="Belum ada tamu terjadwal untuk hari ini dan besok"/>
-        ) : (
-          <>
-            {todayList.length>0 && (
-              <div style={{marginBottom:20}}>
-                <div style={{fontSize:12,fontWeight:800,color:NAVY,textTransform:"uppercase",letterSpacing:.8,marginBottom:10,paddingBottom:6,borderBottom:"2px solid "+GOLD}}>
-                  🗓 Hari Ini — {fmtDate(today)}
-                </div>
-                {todayList.map(function(g){return <AjudanCard key={g.id} guest={g}/>;}) }
-              </div>
-            )}
-            {tomorrowList.length>0 && (
-              <div>
-                <div style={{fontSize:12,fontWeight:800,color:NAVY,textTransform:"uppercase",letterSpacing:.8,marginBottom:10,paddingBottom:6,borderBottom:"2px solid #CBD5E1"}}>
-                  🗓 Besok — {fmtDate(tomorrow)}
-                </div>
-                {tomorrowList.map(function(g){return <AjudanCard key={g.id} guest={g}/>;}) }
-              </div>
-            )}
-          </>
-        )}
+      <div style={{padding:"14px 16px 0",display:"flex",gap:6,flexWrap:"wrap"}}>
+        <TabBtn label="🤝 Penyambutan" active={subtab==="sambut"} onClick={function(){setSubtab("sambut");}}/>
+        <TabBtn label={"📅 Penjadwalan"+(jadwalList.length?" ("+jadwalList.length+")":"")} active={subtab==="jadwal"} onClick={function(){setSubtab("jadwal");}}/>
       </div>
+
+      {subtab==="jadwal" ? (
+        <>
+          <MetaBar lastLoaded={null} onRefresh={loadJadwal} loading={jadwalLoading}/>
+          <div style={{padding:"12px 16px"}}>
+            {jadwalLoading ? <SkeletonList/> : jadwalList.length===0 ? (
+              <EmptyState label="Tidak ada permohonan yang menunggu penjadwalan"/>
+            ) : jadwalList.map(function(g){
+              return <GuestCard key={g.id} guest={g} onClick={function(){setDetail(g);}} showChain premium/>;
+            })}
+          </div>
+        </>
+      ) : (
+        <div style={{padding:"16px"}}>
+          {loading ? <SkeletonList/> : guests.length===0 ? (
+            <EmptyState label="Belum ada tamu terjadwal untuk hari ini dan besok"/>
+          ) : (
+            <>
+              {todayList.length>0 && (
+                <div style={{marginBottom:20}}>
+                  <div style={{fontSize:12,fontWeight:800,color:NAVY,textTransform:"uppercase",letterSpacing:.8,marginBottom:10,paddingBottom:6,borderBottom:"2px solid "+GOLD}}>
+                    🗓 Hari Ini — {fmtDate(today)}
+                  </div>
+                  {todayList.map(function(g){return <AjudanCard key={g.id} guest={g}/>;}) }
+                </div>
+              )}
+              {tomorrowList.length>0 && (
+                <div>
+                  <div style={{fontSize:12,fontWeight:800,color:NAVY,textTransform:"uppercase",letterSpacing:.8,marginBottom:10,paddingBottom:6,borderBottom:"2px solid #CBD5E1"}}>
+                    🗓 Besok — {fmtDate(tomorrow)}
+                  </div>
+                  {tomorrowList.map(function(g){return <AjudanCard key={g.id} guest={g}/>;}) }
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }

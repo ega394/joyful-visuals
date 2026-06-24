@@ -5744,18 +5744,7 @@ function ReportingTamuModal({ user, onClose, cetakOleh, showT }) {
 
     // ── Baris tabel ──
     const rows = filtered.map((g, i) => {
-      const pc  = PRIORITY_CONFIG[gPrioritas(g)] || PRIORITY_CONFIG.biasa;
-      const sc  = STATUS_LABEL[g.status]         || { text: g.status, color:"#475569" };
       const tgl = gJadwalTgl(g) ? fmtDateLong(gJadwalTgl(g)) + (gJadwalJam(g) ? " pk. " + gJadwalJam(g) + " WITA" : "") : "-";
-
-      // Kumpulkan catatan berjenjang
-      const catatanList = [
-        gCatatanRK(g) ? "Admin RK: " + gCatatanRK(g) : "",
-        gCatatanSt(g) ? "Kasubbag: " + gCatatanSt(g) : "",
-        gTelaah(g)    ? "Kabag: "    + gTelaah(g)    : "",
-        gDisposisi(g) ? "Disposisi → " + gDisposisi(g) : "",
-        gAlasan(g)    ? "Alasan tolak: " + gAlasan(g) : "",
-      ].filter(Boolean);
 
       const isApproved = g.status === "approved";
       const isRejected = g.status === "rejected";
@@ -5769,10 +5758,8 @@ function ReportingTamuModal({ user, onClose, cetakOleh, showT }) {
         "<td style='font-size:7.5pt'>" + gPhone(g) + "</td>" +
         "<td class='c' style='font-size:8pt;font-weight:600'>" + gTujuan(g) + "</td>" +
         "<td style='font-size:8pt'>" + gMaksud(g) + "</td>" +
-        "<td class='c'><span style='background:" + pc.bg + ";color:" + pc.color + ";border-radius:4px;padding:2px 6px;font-size:7.5pt;font-weight:700'>" + pc.label + "</span></td>" +
-        "<td class='c'><span style='color:" + sc.color + ";font-weight:700;font-size:8pt'>" + sc.text + "</span></td>" +
         "<td style='font-size:7.5pt;color:#334155'>" + tgl + "</td>" +
-        "<td style='font-size:7pt;color:#475569;line-height:1.5'>" + (catatanList.join("<br>") || "—") + "</td>" +
+        "<td>&nbsp;</td>" +
         "</tr>"
       );
     }).join("");
@@ -5876,14 +5863,12 @@ function ReportingTamuModal({ user, onClose, cetakOleh, showT }) {
       <thead>
         <tr>
           <th class="c" style="width:28px">No</th>
-          <th style="width:18%">Nama / Instansi</th>
-          <th style="width:90px">WhatsApp</th>
-          <th class="c" style="width:90px">Tujuan Pimpinan</th>
-          <th style="width:20%">Maksud &amp; Keperluan</th>
-          <th class="c" style="width:65px">Prioritas</th>
-          <th class="c" style="width:110px">Status</th>
-          <th style="width:110px">Jadwal Fix</th>
-          <th style="width:18%">Catatan Berjenjang</th>
+          <th style="width:20%">Nama / Instansi</th>
+          <th style="width:100px">WhatsApp</th>
+          <th class="c" style="width:100px">Tujuan Pimpinan</th>
+          <th style="width:26%">Maksud &amp; Keperluan</th>
+          <th style="width:130px">Jadwal Fix</th>
+          <th style="width:22%">Catatan</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
