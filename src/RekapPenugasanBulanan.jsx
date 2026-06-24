@@ -6,6 +6,23 @@ const BULAN_LABEL = [
 ];
 const MEDAL = ["🥇","🥈","🥉"];
 
+// Daftar username unik yang dikreditkan untuk satu naskah sambutan yang DISAHKAN.
+function sambutanKredit(ev){
+  if(!ev||!ev.sambutanSah)return [];
+  const out=[];
+  [ev.sambutanPenyusun,ev.sambutanKasubbag,ev.sambutanKabag].forEach(u=>{
+    if(u && out.indexOf(u)===-1) out.push(u);
+  });
+  return out;
+}
+function sambutanPeran(ev, username){
+  const p=[];
+  if(ev.sambutanPenyusun===username) p.push("Penyusun");
+  if(ev.sambutanKasubbag===username) p.push("Penyelia");
+  if(ev.sambutanKabag===username)    p.push("Pengesah");
+  return p.join(" & ");
+}
+
 export default function RekapPenugasanBulanan({ events, user, isMobile, allUsers: allUsersProp }) {
   const NAVY = "#0A1628", GOLD = "#C9A84C";
 
@@ -34,7 +51,7 @@ export default function RekapPenugasanBulanan({ events, user, isMobile, allUsers
     [allUsers]
   );
   const stafKomdok = React.useMemo(
-    () => allUsers.filter(u => u.role === "timkom"),
+    () => allUsers.filter(u => u.role === "timkom" || u.role === "kasubbag_komdokpim"),
     [allUsers]
   );
 
@@ -43,10 +60,24 @@ export default function RekapPenugasanBulanan({ events, user, isMobile, allUsers
     return d.getMonth() === bulan && d.getFullYear() === tahun && e.alur === "disetujui";
   }), [events, bulan, tahun]);
 
+  // Naskah sambutan yang disahkan pada periode dipilih
+  const sambutanBulan = React.useMemo(
+    () => evBulan.filter(e => e.sambutanSah),
+    [evBulan]
+  );
+
   const buildRanking = (stafList) =>
     stafList.map(s => {
       const kegiatan = evBulan.filter(e => (e.personil || []).includes(s.username));
-      return { ...s, jumlah: kegiatan.length, kegiatan };
+      const naskah   = sambutanBulan.filter(e => sambutanKredit(e).includes(s.username));
+      return {
+        ...s,
+        jumlah: kegiatan.length + naskah.length,
+        kegiatan,
+        naskah,
+        jumlahTugas: kegiatan.length,
+        jumlahNaskah: naskah.length,
+      };
     }).sort((a, b) => b.jumlah - a.jumlah);
 
   const rankProto  = buildRanking(stafProto);
@@ -67,6 +98,114 @@ export default function RekapPenugasanBulanan({ events, user, isMobile, allUsers
       </div>
     );
   }
+
+  // ── Cetak bukti dukung per pegawai (lampiran e-Kinerja) ──
+  const cetakBukti = (s) => {
+    const periode = BULAN_LABEL[bulan] + " " + tahun;
+    const fmtTgl = (d) => {
+      try {
+        const x = new Date(d + "T00:00:00+08:00");
+        const H=["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
+        const B=["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+        return H[x.getDay()]+", "+x.getDate()+" "+B[x.getMonth()]+" "+x.getFullYear();
+      } catch(_) { return d; }
+    };
+    const rowsTugas = s.kegiatan.map((ev,i)=>(
+      "<tr><td class='c'>"+(i+1)+"</td><td>"+fmtTgl(ev.tanggal)+"</td><td>"+(ev.namaAcara||"-")+"</td>"+
+      "<td>"+(ev.penyelenggara||"-")+"</td><td class='c'>"+(ev.jam||"-")+"</td><td>"+(ev.lokasi||"-")+"</td>"+
+      "<td class='c'>"+(ev.jenisKegiatan||"-")+"</td></tr>"
+    )).join("");
+    const rowsNaskah = s.naskah.map((ev,i)=>(
+      "<tr><td class='c'>"+(i+1)+"</td><td>"+fmtTgl(ev.tanggal)+"</td><td>"+(ev.namaAcara||"-")+"</td>"+
+      "<td>"+(ev.penyelenggara||"-")+"</td><td class='c'>"+sambutanPeran(ev,s.username)+"</td>"+
+      "<td class='c'>"+(ev.sambutanSelesaiAt?new Date(ev.sambutanSelesaiAt).toLocaleDateString("id-ID",{day:"numeric",month:"short",year:"numeric"}):"-")+"</td></tr>"
+    )).join("");
+    const now = new Date();
+    const printDate = now.toLocaleDateString("id-ID",{day:"numeric",month:"long",year:"numeric"});
+    const printTime = now.toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"});
+    const jabatan = s.jabatan || (s.role||"").replace(/_/g," ");
+    const html = `<!DOCTYPE html><html lang="id"><head><meta charset="UTF-8">
+<title>Bukti Dukung Kinerja — ${s.nama||s.username}</title>
+<style>
+@page { size: A4 portrait; margin: 1.5cm 1.6cm; }
+* { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+body { font-family: Arial, sans-serif; font-size: 10pt; color: #1a1a1a; margin: 0; }
+.kop { display:flex; align-items:center; gap:14px; padding-bottom:10px; border-bottom:3px double #0B2545; margin-bottom:10px; }
+.kop img { width:58px; height:58px; object-fit:contain; }
+.kop h1 { font-size:12pt; font-weight:900; color:#0B2545; margin:0 0 2px; letter-spacing:.3px; }
+.kop h2 { font-size:10pt; font-weight:700; color:#0B2545; margin:0 0 2px; }
+.kop p  { font-size:8.5pt; color:#475569; margin:0; }
+.jdl { text-align:center; margin:14px 0 10px; }
+.jdl h3 { font-size:13pt; font-weight:900; color:#0B2545; margin:0; text-transform:uppercase; letter-spacing:1.3px; }
+.jdl .sub { font-size:9pt; color:#64748B; margin:4px 0 0; }
+.box { background:#F8FAFC; border:1px solid #CBD5E1; border-radius:6px; padding:10px 14px; margin-bottom:12px; }
+.box .row { display:flex; gap:8px; padding:3px 0; font-size:10pt; }
+.box .row b { min-width:140px; color:#475569; font-weight:600; }
+table { width:100%; border-collapse:collapse; margin-top:6px; margin-bottom:14px; }
+thead th { background:#0B2545; color:white; padding:7px; text-align:left; font-size:8.5pt; font-weight:700; border:1px solid #0B2545; }
+thead th.c { text-align:center; }
+tbody td { padding:6px 7px; border:1px solid #CBD5E1; font-size:9pt; vertical-align:top; }
+tbody tr:nth-child(even) td { background:#F8FAFC; }
+.c { text-align:center; }
+.section-title { font-size:11pt; font-weight:800; color:#0B2545; margin:14px 0 4px; border-left:4px solid #C9A84C; padding-left:8px; }
+.empty { font-size:9pt; color:#94A3B8; font-style:italic; padding:8px; }
+.ttd { margin-top:24px; display:flex; justify-content:flex-end; }
+.ttd-box { text-align:center; min-width:240px; }
+.ttd-box .kota-tgl { font-size:10pt; color:#334155; margin:0 0 3px; }
+.ttd-box .jabatan { font-size:10pt; font-weight:700; color:#0B2545; margin:0 0 54px; }
+.ttd-box .nama { font-size:10.5pt; font-weight:900; color:#0B2545; text-decoration:underline; margin:0 0 2px; }
+.ttd-box .nip { font-size:8.5pt; color:#475569; margin:0; }
+.foot { margin-top:12px; font-size:7.5pt; color:#94A3B8; text-align:center; border-top:1px solid #E2E8F0; padding-top:5px; }
+</style></head><body>
+<div class="kop">
+  <img src="/logo_tarakan.png" alt="Logo Pemkot Tarakan" onerror="this.style.display='none'"/>
+  <div>
+    <h1>PEMERINTAH KOTA TARAKAN</h1>
+    <h2>BAGIAN PROTOKOL DAN KOMUNIKASI PIMPINAN</h2>
+    <p>Sekretariat Daerah Kota Tarakan</p>
+  </div>
+</div>
+<div class="jdl">
+  <h3>Bukti Dukung Kinerja Pegawai</h3>
+  <p class="sub">Periode: <b>${periode}</b></p>
+</div>
+<div class="box">
+  <div class="row"><b>Nama Pegawai</b><span>: ${s.nama||s.username}</span></div>
+  <div class="row"><b>Jabatan</b><span>: ${jabatan}</span></div>
+  <div class="row"><b>Periode</b><span>: ${periode}</span></div>
+  <div class="row"><b>Total Penugasan Lapangan</b><span>: ${s.jumlahTugas} kegiatan</span></div>
+  <div class="row"><b>Total Naskah Sambutan</b><span>: ${s.jumlahNaskah} naskah (disahkan Kabag)</span></div>
+</div>
+
+<div class="section-title">A. Penugasan Lapangan</div>
+${s.jumlahTugas>0
+  ? `<table><thead><tr><th class="c" style="width:30px">No</th><th style="width:130px">Tanggal</th><th>Nama Acara</th><th>Penyelenggara</th><th class="c" style="width:55px">Jam</th><th>Lokasi</th><th class="c" style="width:90px">Jenis</th></tr></thead><tbody>${rowsTugas}</tbody></table>`
+  : `<div class="empty">Tidak ada penugasan lapangan pada periode ini.</div>`
+}
+
+<div class="section-title">B. Naskah Sambutan</div>
+${s.jumlahNaskah>0
+  ? `<table><thead><tr><th class="c" style="width:30px">No</th><th style="width:130px">Tanggal Acara</th><th>Nama Acara</th><th>Penyelenggara</th><th class="c" style="width:120px">Peran</th><th class="c" style="width:100px">Disahkan</th></tr></thead><tbody>${rowsNaskah}</tbody></table>`
+  : `<div class="empty">Tidak ada naskah sambutan yang disahkan pada periode ini.</div>`
+}
+
+<div class="ttd">
+  <div class="ttd-box">
+    <p class="kota-tgl">Tarakan, ${printDate}</p>
+    <p class="jabatan">Kepala Bagian Protokol dan Komunikasi Pimpinan</p>
+    <p class="nama">Anugrah Yega Pranatha, M.Si.</p>
+    <p class="nip">NIP. 198811032007011003</p>
+  </div>
+</div>
+
+<p class="foot">Dokumen ini dicetak otomatis oleh Sistem Prokopim Hibot pada ${printDate} ${printTime} WITA · sebagai lampiran bukti dukung e-Kinerja.</p>
+</body></html>`;
+    const w = window.open("","_blank");
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    setTimeout(()=>w.print(), 600);
+  };
 
   // ── Kartu ranking ──
   const RankCard = ({ s, rank }) => {
@@ -119,15 +258,38 @@ export default function RekapPenugasanBulanan({ events, user, isMobile, allUsers
 
         {open && s.jumlah > 0 && (
           <div style={{ borderTop: "1px solid #F1F5F9", padding: "10px 14px 12px 58px", background: "#FAFBFF" }}>
-            <div style={{ fontSize: 10, fontWeight: 800, color: "#94A3B8", textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>
-              Kegiatan bulan ini
-            </div>
-            {s.kegiatan.map((ev, i) => (
-              <div key={i} style={{ fontSize: 12, color: "#374151", marginBottom: 3, display: "flex", gap: 6 }}>
-                <span style={{ color: "#CBD5E1", flexShrink: 0 }}>·</span>
-                <span>{ev.namaAcara} <span style={{ color: "#94A3B8" }}>— {ev.tanggal}</span></span>
-              </div>
-            ))}
+            {s.jumlahTugas > 0 && (
+              <>
+                <div style={{ fontSize: 10, fontWeight: 800, color: "#94A3B8", textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>
+                  Penugasan ({s.jumlahTugas})
+                </div>
+                {s.kegiatan.map((ev, i) => (
+                  <div key={"t"+i} style={{ fontSize: 12, color: "#374151", marginBottom: 3, display: "flex", gap: 6 }}>
+                    <span style={{ color: "#CBD5E1", flexShrink: 0 }}>·</span>
+                    <span>{ev.namaAcara} <span style={{ color: "#94A3B8" }}>— {ev.tanggal}</span></span>
+                  </div>
+                ))}
+              </>
+            )}
+            {s.jumlahNaskah > 0 && (
+              <>
+                <div style={{ fontSize: 10, fontWeight: 800, color: "#7C3AED", textTransform: "uppercase", letterSpacing: 1, margin: s.jumlahTugas>0?"10px 0 6px":"0 0 6px" }}>
+                  🎤 Naskah Sambutan ({s.jumlahNaskah})
+                </div>
+                {s.naskah.map((ev, i) => (
+                  <div key={"n"+i} style={{ fontSize: 12, color: "#374151", marginBottom: 3, display: "flex", gap: 6 }}>
+                    <span style={{ color: "#C4B5FD", flexShrink: 0 }}>·</span>
+                    <span>{ev.namaAcara} <span style={{ color: "#94A3B8" }}>— {ev.tanggal} · {sambutanPeran(ev, s.username)}</span></span>
+                  </div>
+                ))}
+              </>
+            )}
+            <button
+              onClick={(e)=>{ e.stopPropagation(); cetakBukti(s); }}
+              style={{ marginTop: 10, padding: "7px 12px", borderRadius: 8, border: "1.5px solid #CBD5E1", background: "white", color: NAVY, cursor: "pointer", fontSize: 11, fontWeight: 800 }}
+            >
+              🖨️ Cetak Bukti Dukung Kinerja
+            </button>
           </div>
         )}
       </div>
@@ -180,9 +342,11 @@ export default function RekapPenugasanBulanan({ events, user, isMobile, allUsers
       <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
         {[
           { val: evBulan.length,                lbl: "Total Kegiatan",    c: NAVY      },
-          { val: totalTugas,                     lbl: "Total Penugasan",   c: "#1D4ED8" },
-          { val: sudahTugas,                     lbl: "Personil Bertugas", c: "#059669" },
-          { val: activeRank.length - sudahTugas, lbl: "Belum Ditugaskan",  c: "#94A3B8" },
+          { val: totalTugas,                     lbl: "Total Skor Tim",    c: "#1D4ED8" },
+          { val: sudahTugas,                     lbl: "Personil Aktif",    c: "#059669" },
+          ...(timTab==="komdok"
+            ? [{ val: sambutanBulan.length, lbl: "Naskah Disahkan", c: "#7C3AED" }]
+            : [{ val: activeRank.length - sudahTugas, lbl: "Belum Aktif", c: "#94A3B8" }]),
         ].map((s, i) => (
           <div key={i} style={{ flex: 1, minWidth: 80, background: "white", borderRadius: 12, padding: "12px 14px", border: "1px solid #E2E8F0", textAlign: "center" }}>
             <div style={{ fontSize: 22, fontWeight: 900, color: s.c, lineHeight: 1, marginBottom: 2 }}>{s.val}</div>
@@ -205,9 +369,10 @@ export default function RekapPenugasanBulanan({ events, user, isMobile, allUsers
           activeRank.map((s, i) => <RankCard key={s.username} s={s} rank={i} />)
         )}
 
-        <div style={{ marginTop: 12, padding: "8px 12px", background: "#F1F5F9", borderRadius: 8, fontSize: 11, color: "#94A3B8", lineHeight: 1.5 }}>
-          ℹ️ Ranking berdasarkan jumlah penugasan — bukan penilaian kinerja.
-          Data hanya dapat diakses oleh Kabag dan Kasubbag.
+        <div style={{ marginTop: 12, padding: "8px 12px", background: "#F1F5F9", borderRadius: 8, fontSize: 11, color: "#64748B", lineHeight: 1.6 }}>
+          ℹ️ Skor = jumlah penugasan lapangan + jumlah naskah sambutan yang disahkan Kabag.
+          Setiap naskah dihitung 1 untuk penyusun, Kasubbag Komdokpim, dan Kabag (dedup jika satu orang merangkap).
+          Klik baris pegawai untuk melihat rinciannya & mencetak bukti dukung kinerja.
         </div>
       </div>
     </div>
