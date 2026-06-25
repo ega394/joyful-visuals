@@ -136,7 +136,6 @@ export default function WaliKotaAudiensiDashboard({ role, user, showT, isMobile 
         const exp = expanded === g.id;
         const notes = [
           g.catatan_rk   ? { label:"Admin RK",      c:"#0369A1", bg:"#E0F2FE", val:g.catatan_rk }   : null,
-          g.telaah_kabag ? { label:"Telaahan Staf", c:"#92400E", bg:"#FEF3C7", val:g.telaah_kabag } : null,
         ].filter(Boolean);
 
         return (
@@ -171,6 +170,16 @@ export default function WaliKotaAudiensiDashboard({ role, user, showT, isMobile 
                     {g.maksud_keperluan||g.purpose||"-"}
                   </div>
                 </div>
+
+                {/* Telaahan Staf — ditonjolkan untuk pimpinan */}
+                {g.telaah_kabag && (
+                  <div style={{marginBottom:12}}>
+                    <div style={{fontSize:10,fontWeight:800,color:"#7C3AED",textTransform:"uppercase",letterSpacing:1,marginBottom:4}}>⚖️ Telaahan Staf</div>
+                    <div style={{fontSize:13,color:"#3B0764",lineHeight:1.6,background:"#F5F3FF",borderRadius:8,padding:"10px 12px",border:"1.5px solid #DDD6FE",whiteSpace:"pre-wrap"}}>
+                      {g.telaah_kabag}
+                    </div>
+                  </div>
+                )}
 
                 {/* Info kontak */}
                 <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>

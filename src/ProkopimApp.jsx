@@ -5850,7 +5850,7 @@ function ReportingTamuModal({ user, onClose, cetakOleh, showT }) {
         "<td style='font-size:8pt'>" + gMaksud(g) + "</td>" +
         "<td class='c' style='font-size:7.5pt;color:" + sc.color + ";font-weight:700'>" + sc.text + "</td>" +
         "<td style='font-size:7.5pt;color:#334155'>" + tgl + "</td>" +
-        "<td>&nbsp;</td>" +
+        "<td style='font-size:7.5pt;color:#475569;line-height:1.4'>" + (gTelaah(g) || "&nbsp;") + "</td>" +
         "</tr>"
       );
     }).join("");
@@ -5960,7 +5960,7 @@ function ReportingTamuModal({ user, onClose, cetakOleh, showT }) {
           <th style="width:22%">Maksud &amp; Keperluan</th>
           <th class="c" style="width:115px">Posisi Saat Ini</th>
           <th style="width:120px">Jadwal Fix</th>
-          <th style="width:18%">Catatan</th>
+          <th style="width:18%">Telaahan Staf</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>

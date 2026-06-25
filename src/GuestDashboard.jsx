@@ -642,7 +642,7 @@ function KabagDetail({ guest, user, showT, isMobile, onBack, onDone }) {
   }
 
   async function kembalikan() {
-    if(!instruksi.trim()) { showT("⚠ Isi instruksi untuk Kasubbag Protokol"); setKonfirm(null); return; }
+    if(!instruksi.trim()) { showT("⚠ Isi instruksi untuk Kasubbag Protokol"); return; }
     setLoading(true);
     try {
       await apiPost("return_to_kasubbag", {
@@ -724,16 +724,6 @@ function KabagDetail({ guest, user, showT, isMobile, onBack, onDone }) {
               ⚠ Wajib diisi sebelum meneruskan ke Pimpinan
             </div>
           </CardSection>
-
-          {/* Instruksi Kembalikan ke Kasubbag */}
-          <CardSection title="↩ Instruksi untuk Kasubbag Protokol" accent="#F59E0B">
-            <textarea className="gd-inp" value={instruksi} onChange={function(e){setInstruksi(e.target.value);}}
-              rows={3} placeholder="Cth: Mohon klarifikasi keperluan audiensi & pastikan ada surat rekomendasi resmi sebelum diteruskan kembali..."
-              style={inpStyle}/>
-            <div style={{fontSize:11,color:"#94A3B8",marginTop:4}}>
-              ℹ Diisi hanya jika permohonan akan dikembalikan ke Kasubbag Protokol untuk klarifikasi.
-            </div>
-          </CardSection>
         </>
       )}
 
@@ -756,12 +746,42 @@ function KabagDetail({ guest, user, showT, isMobile, onBack, onDone }) {
         />
       )}
       {konfirm==="kembali" && (
-        <KonfirmasiBox
-          pesan={instruksi.trim()
-            ? "Kembalikan ke Kasubbag Protokol dengan instruksi yang sudah ditulis? Kasubbag akan menerima notifikasi WA."
-            : "⚠ Isi dulu kolom 'Instruksi untuk Kasubbag Protokol' di atas sebelum mengembalikan."}
-          onYa={kembalikan} onBatal={function(){setKonfirm(null);}} loading={loading} warna="#F59E0B"
-        />
+        <div style={{position:"fixed",inset:0,zIndex:9000,background:"rgba(15,23,42,0.55)",backdropFilter:"blur(3px)",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}
+          onClick={function(){ if(!loading) setKonfirm(null); }}>
+          <div style={{background:"white",borderRadius:18,width:"100%",maxWidth:440,boxShadow:"0 24px 60px rgba(0,0,0,0.3)",overflow:"hidden"}}
+            onClick={function(e){e.stopPropagation();}}>
+            <div style={{background:"linear-gradient(135deg,#F59E0B,#D97706)",padding:"16px 20px"}}>
+              <div style={{color:"white",fontSize:16,fontWeight:900}}>↩ Kembalikan ke Kasubbag Protokol</div>
+              <div style={{color:"rgba(255,255,255,0.85)",fontSize:12,marginTop:2}}>Permohonan a.n. {gName(guest)}</div>
+            </div>
+            <div style={{padding:"18px 20px"}}>
+              <div style={{fontSize:13,fontWeight:700,color:"#92400E",marginBottom:6}}>
+                Instruksi untuk Kasubbag Protokol *
+              </div>
+              <textarea className="gd-inp" value={instruksi} autoFocus
+                onChange={function(e){setInstruksi(e.target.value);}}
+                rows={4}
+                placeholder="Cth: Mohon klarifikasi keperluan audiensi & pastikan ada surat rekomendasi resmi sebelum diteruskan kembali..."
+                style={inpStyle}/>
+              <div style={{fontSize:11,color:"#94A3B8",marginTop:6,lineHeight:1.5}}>
+                ℹ Instruksi ini wajib diisi. Kasubbag Protokol akan menerima permohonan ini kembali beserta instruksi Anda dan notifikasi WhatsApp.
+              </div>
+              <div style={{display:"flex",gap:10,marginTop:16}}>
+                <button onClick={function(){setKonfirm(null);}} disabled={loading}
+                  style={{flex:1,padding:"12px",borderRadius:11,border:"1.5px solid #E2E8F0",background:"white",color:"#64748B",cursor:"pointer",fontSize:13,fontWeight:700}}>
+                  Batal
+                </button>
+                <button onClick={kembalikan} disabled={loading||!instruksi.trim()}
+                  style={{flex:2,padding:"12px",borderRadius:11,border:"none",
+                    background:instruksi.trim()?"linear-gradient(135deg,#F59E0B,#D97706)":"#E2E8F0",
+                    color:instruksi.trim()?"white":"#94A3B8",
+                    cursor:instruksi.trim()&&!loading?"pointer":"default",fontSize:13,fontWeight:800}}>
+                  {loading?"Mengirim...":"↩ Kembalikan & Kirim Instruksi"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {!konfirm && guest.status==="pending_kabag" && (
