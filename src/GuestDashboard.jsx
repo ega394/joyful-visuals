@@ -417,6 +417,18 @@ function KasubbagDetail({ guest, user, showT, isMobile, onBack, onDone }) {
     >
       <DataTamu guest={guest}/>
 
+      {/* Instruksi Kabag — tampil mencolok bila dikembalikan untuk klarifikasi */}
+      {guest.status==="pending_kasubbag" && guest.telaah_kabag && (
+        <div style={{background:"linear-gradient(135deg,#FEF3C7,#FDE68A)",border:"2px solid #F59E0B",borderRadius:12,padding:"14px 16px",marginBottom:14}}>
+          <div style={{fontSize:11,fontWeight:800,color:"#92400E",letterSpacing:1,textTransform:"uppercase",marginBottom:6}}>
+            ↩ Dikembalikan oleh Kabag — Mohon Ditindaklanjuti
+          </div>
+          <div style={{fontSize:14,color:"#78350F",lineHeight:1.55,fontWeight:600,whiteSpace:"pre-wrap"}}>
+            {guest.telaah_kabag}
+          </div>
+        </div>
+      )}
+
       {/* Catatan Admin RK */}
       {guest.catatan_rk && (
         <CatatanBox label="📋 Catatan Admin RK" isi={guest.catatan_rk} color="#3B82F6" bg="#EFF6FF"/>
@@ -581,6 +593,7 @@ function KabagDetail({ guest, user, showT, isMobile, onBack, onDone }) {
   var done = onDone || onBack;
   var [priority,   setPriority]   = useState(gPrioritas(guest));
   var [telaah,     setTelaah]     = useState(guest.telaah_kabag || "");
+  var [instruksi,  setInstruksi]  = useState("");
   var [loading,    setLoading]    = useState(false);
   var [konfirm,    setKonfirm]    = useState(null);
 
@@ -601,14 +614,15 @@ function KabagDetail({ guest, user, showT, isMobile, onBack, onDone }) {
   }
 
   async function kembalikan() {
+    if(!instruksi.trim()) { showT("⚠ Isi instruksi untuk Kasubbag Protokol"); setKonfirm(null); return; }
     setLoading(true);
     try {
-      await apiPost("return_to_staff", {
+      await apiPost("return_to_kasubbag", {
         id: guest.id,
-        kabag_notes: telaah.trim() || "(Dikembalikan oleh Kabag untuk klarifikasi)",
+        instruksi: instruksi.trim(),
         returned_by: user?.username,
       });
-      showT("Dikembalikan ke Kasubbag");
+      showT("↩ Dikembalikan ke Kasubbag Protokol");
       done();
     } catch(e) { showT("❌ "+e.message); }
     finally { setLoading(false); setKonfirm(null); }
@@ -682,6 +696,16 @@ function KabagDetail({ guest, user, showT, isMobile, onBack, onDone }) {
               ⚠ Wajib diisi sebelum meneruskan ke Pimpinan
             </div>
           </CardSection>
+
+          {/* Instruksi Kembalikan ke Kasubbag */}
+          <CardSection title="↩ Instruksi untuk Kasubbag Protokol" accent="#F59E0B">
+            <textarea className="gd-inp" value={instruksi} onChange={function(e){setInstruksi(e.target.value);}}
+              rows={3} placeholder="Cth: Mohon klarifikasi keperluan audiensi & pastikan ada surat rekomendasi resmi sebelum diteruskan kembali..."
+              style={inpStyle}/>
+            <div style={{fontSize:11,color:"#94A3B8",marginTop:4}}>
+              ℹ Diisi hanya jika permohonan akan dikembalikan ke Kasubbag Protokol untuk klarifikasi.
+            </div>
+          </CardSection>
         </>
       )}
 
@@ -705,7 +729,9 @@ function KabagDetail({ guest, user, showT, isMobile, onBack, onDone }) {
       )}
       {konfirm==="kembali" && (
         <KonfirmasiBox
-          pesan="Kembalikan ke Kasubbag untuk klarifikasi tambahan?"
+          pesan={instruksi.trim()
+            ? "Kembalikan ke Kasubbag Protokol dengan instruksi yang sudah ditulis? Kasubbag akan menerima notifikasi WA."
+            : "⚠ Isi dulu kolom 'Instruksi untuk Kasubbag Protokol' di atas sebelum mengembalikan."}
           onYa={kembalikan} onBatal={function(){setKonfirm(null);}} loading={loading} warna="#F59E0B"
         />
       )}

@@ -128,10 +128,11 @@ async function actionVerifyRK(body) {
 // 4. POST: screen (Kasubbag -> Kabag)
 async function actionScreen(body) {
   if (!body.id) throw new Error("id wajib");
+  var prio = body.prioritas || body.priority || "Sedang";
   await sbPatch(body.id, {
-    prioritas: body.prioritas || "Sedang", // Menyesuaikan check constraint ['Tinggi', 'Sedang', 'Rendah']
-    catatan_staf: body.catatan_staf || "",
-    dikurasi_oleh: body.dikurasi_oleh || "",
+    prioritas: prio, // Menyesuaikan check constraint ['Tinggi', 'Sedang', 'Rendah']
+    catatan_staf: body.catatan_staf || body.staff_notes || "",
+    dikurasi_oleh: body.dikurasi_oleh || body.screened_by || "",
     status: "pending_kabag"
   });
   return { ok: true };
@@ -141,11 +142,40 @@ async function actionScreen(body) {
 async function actionForward(body) {
   if (!body.id) throw new Error("id wajib");
   await sbPatch(body.id, {
-    telaah_kabag: body.telaah_kabag || "",
-    ditelaah_oleh: body.ditelaah_oleh || "",
+    telaah_kabag: body.telaah_kabag || body.kabag_notes || "",
+    ditelaah_oleh: body.ditelaah_oleh || body.forwarded_by || "",
     status: "pending_pimpinan"
   });
   return { ok: true };
+}
+
+// 5b. POST: return_to_kasubbag (Kabag -> Kasubbag Protokol untuk klarifikasi)
+async function actionReturnToKasubbag(body) {
+  if (!body.id) throw new Error("id wajib");
+  var instruksi = (body.instruksi || body.kabag_notes || body.notes || "").trim();
+  if (!instruksi) throw new Error("Instruksi/catatan wajib diisi");
+
+  // Catatan dikembalikan disimpan di telaah_kabag agar Kasubbag bisa membacanya
+  await sbPatch(body.id, {
+    telaah_kabag: instruksi,
+    ditelaah_oleh: body.returned_by || "",
+    status: "pending_kasubbag"
+  });
+
+  // Notifikasi WA ke Kasubbag Protokol (best-effort) — ambil nomor dari tabel users
+  try {
+    var rows = await sbGet("users?role=eq.kasubbag_protokol&select=nama,no_wa,noWA");
+    var pesanWA =
+      "↩️ *Permohonan Tamu Dikembalikan*\n\n" +
+      "Permohonan tamu (#" + String(body.id).slice(-6) + ") dikembalikan oleh Kabag untuk ditindaklanjuti.\n\n" +
+      "📝 *Instruksi Kabag:*\n" + instruksi + WA_FOOTER;
+    for (var i=0; i<(rows||[]).length; i++) {
+      var no = rows[i].no_wa || rows[i].noWA;
+      if (no) await sendWA(no, pesanWA);
+    }
+  } catch (e) { /* notif gagal tak membatalkan aksi */ }
+
+  return { ok: true, message: "Dikembalikan ke Kasubbag Protokol" };
 }
 
 // Notifikasi WA konfirmasi penerimaan permohonan (dipanggil dari form publik)
@@ -246,6 +276,7 @@ export default async function handler(req, res) {
       else if (action === "verify_rk")  result = await actionVerifyRK(req.body);
       else if (action === "screen")     result = await actionScreen(req.body);
       else if (action === "forward")    result = await actionForward(req.body);
+      else if (action === "return_to_kasubbag") result = await actionReturnToKasubbag(req.body);
       else if (action === "respond")    result = await actionRespond(req.body);
       else throw new Error("Action " + action + " tidak dikenal");
     }
