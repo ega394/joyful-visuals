@@ -135,9 +135,8 @@ export default function WaliKotaAudiensiDashboard({ role, user, showT, isMobile 
         const pr  = PRIORITY[g.prioritas||"biasa"] || PRIORITY.biasa;
         const exp = expanded === g.id;
         const notes = [
-          g.catatan_rk   ? { label:"Admin RK",     c:"#0369A1", bg:"#E0F2FE", val:g.catatan_rk }   : null,
-          g.catatan_staf ? { label:"Kasubbag",      c:"#5B21B6", bg:"#EDE9FE", val:g.catatan_staf } : null,
-          g.telaah_kabag ? { label:"Telaah Kabag",  c:"#92400E", bg:"#FEF3C7", val:g.telaah_kabag } : null,
+          g.catatan_rk   ? { label:"Admin RK",      c:"#0369A1", bg:"#E0F2FE", val:g.catatan_rk }   : null,
+          g.telaah_kabag ? { label:"Telaahan Staf", c:"#92400E", bg:"#FEF3C7", val:g.telaah_kabag } : null,
         ].filter(Boolean);
 
         return (

@@ -5834,6 +5834,7 @@ function ReportingTamuModal({ user, onClose, cetakOleh, showT }) {
     // ── Baris tabel ──
     const rows = filtered.map((g, i) => {
       const tgl = gJadwalTgl(g) ? fmtDateLong(gJadwalTgl(g)) + (gJadwalJam(g) ? " pk. " + gJadwalJam(g) + " WITA" : "") : "-";
+      const sc  = STATUS_LABEL[g.status] || { text: g.status, color:"#475569" };
 
       const isApproved = g.status === "approved";
       const isRejected = g.status === "rejected";
@@ -5847,6 +5848,7 @@ function ReportingTamuModal({ user, onClose, cetakOleh, showT }) {
         "<td style='font-size:7.5pt'>" + gPhone(g) + "</td>" +
         "<td class='c' style='font-size:8pt;font-weight:600'>" + gTujuan(g) + "</td>" +
         "<td style='font-size:8pt'>" + gMaksud(g) + "</td>" +
+        "<td class='c' style='font-size:7.5pt;color:" + sc.color + ";font-weight:700'>" + sc.text + "</td>" +
         "<td style='font-size:7.5pt;color:#334155'>" + tgl + "</td>" +
         "<td>&nbsp;</td>" +
         "</tr>"
@@ -5952,12 +5954,13 @@ function ReportingTamuModal({ user, onClose, cetakOleh, showT }) {
       <thead>
         <tr>
           <th class="c" style="width:28px">No</th>
-          <th style="width:20%">Nama / Instansi</th>
-          <th style="width:100px">WhatsApp</th>
-          <th class="c" style="width:100px">Tujuan Pimpinan</th>
-          <th style="width:26%">Maksud &amp; Keperluan</th>
-          <th style="width:130px">Jadwal Fix</th>
-          <th style="width:22%">Catatan</th>
+          <th style="width:18%">Nama / Instansi</th>
+          <th style="width:95px">WhatsApp</th>
+          <th class="c" style="width:90px">Tujuan Pimpinan</th>
+          <th style="width:22%">Maksud &amp; Keperluan</th>
+          <th class="c" style="width:115px">Posisi Saat Ini</th>
+          <th style="width:120px">Jadwal Fix</th>
+          <th style="width:18%">Catatan</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>

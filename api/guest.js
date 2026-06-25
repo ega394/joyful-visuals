@@ -125,6 +125,49 @@ async function actionVerifyRK(body) {
   return { ok: true, message: "Diteruskan ke Kasubbag" };
 }
 
+// 3b. POST: return_to_rk (Kasubbag -> Admin RK untuk verifikasi ulang/perbaikan)
+async function actionReturnToRK(body) {
+  if (!body.id) throw new Error("id wajib");
+  var instruksi = (body.instruksi || body.catatan_staf || body.notes || "").trim();
+  if (!instruksi) throw new Error("Instruksi/catatan wajib diisi");
+  await sbPatch(body.id, {
+    catatan_staf: instruksi,
+    dikurasi_oleh: body.returned_by || "",
+    status: "pending_rk"
+  });
+  // Notifikasi WA ke Admin RK (best-effort)
+  try {
+    var rows = await sbGet("users?role=eq.admin_rk&select=nama,no_wa,noWA");
+    var pesan =
+      "↩️ *Permohonan Tamu Dikembalikan*\n\n" +
+      "Permohonan (#" + String(body.id).slice(-6) + ") dikembalikan oleh Kasubbag Protokol untuk ditindaklanjuti.\n\n" +
+      "📝 *Instruksi:*\n" + instruksi + WA_FOOTER;
+    for (var i=0; i<(rows||[]).length; i++) {
+      var no = rows[i].no_wa || rows[i].noWA;
+      if (no) await sendWA(no, pesan);
+    }
+  } catch (e) {}
+  return { ok: true, message: "Dikembalikan ke Admin RK" };
+}
+
+// 3c. POST: verify_wa (Kasubbag mengirim WA verifikasi data ke pemohon)
+async function actionVerifyWA(body) {
+  if (!body.id) throw new Error("id wajib");
+  var rows = await sbGet("permohonan_tamu?id=eq." + body.id +
+    "&select=nama,no_wa,tujuan_pejabat,maksud_keperluan&limit=1");
+  var g = (rows && rows[0]) || {};
+  if (!g.no_wa) return { ok: false, skipped: true, message: "Nomor WA tidak ada" };
+  var msg =
+    "🔍 *Verifikasi Data Permohonan*\n\n" +
+    "Yth. *" + (g.nama || "Pemohon") + "*,\n" +
+    "Tim Protokol sedang memverifikasi permohonan audiensi Anda kepada *" + (g.tujuan_pejabat || "Pimpinan") + "*.\n\n" +
+    "📝 Maksud: " + (g.maksud_keperluan || "-") + "\n\n" +
+    "Mohon balas pesan ini bila ada informasi tambahan, atau tunggu kabar selanjutnya dari kami." +
+    WA_FOOTER;
+  await sendWA(g.no_wa, msg);
+  return { ok: true, message: "WA verifikasi terkirim" };
+}
+
 // 4. POST: screen (Kasubbag -> Kabag)
 async function actionScreen(body) {
   if (!body.id) throw new Error("id wajib");
@@ -147,6 +190,43 @@ async function actionForward(body) {
     status: "pending_pimpinan"
   });
   return { ok: true };
+}
+
+// 5a. POST: recall_from_pimpinan (Kabag/Admin RK mencabut dari meja Pimpinan)
+// Permohonan dikembalikan ke tahap Kabag untuk diperbaiki/dihapus.
+async function actionRecallFromPimpinan(body) {
+  if (!body.id) throw new Error("id wajib");
+  var alasan = (body.alasan || body.reason || body.notes || "").trim();
+  if (!alasan) throw new Error("Alasan pencabutan wajib diisi");
+
+  // Pastikan permohonan masih di Pimpinan (belum diputuskan)
+  var rows = await sbGet("permohonan_tamu?id=eq." + body.id + "&select=status,nama,no_wa,tujuan_pejabat&limit=1");
+  var g = (rows && rows[0]) || {};
+  if (g.status !== "pending_pimpinan") {
+    throw new Error("Hanya bisa mencabut permohonan yang masih di meja Pimpinan");
+  }
+
+  // Kembalikan ke tahap Kabag; simpan alasan pencabutan di telaah_kabag
+  await sbPatch(body.id, {
+    status: "pending_kabag",
+    telaah_kabag: "[DICABUT DARI PIMPINAN] " + alasan,
+    ditelaah_oleh: body.recalled_by || ""
+  });
+
+  // Notifikasi WA ke Kabag (best-effort)
+  try {
+    var krows = await sbGet("users?role=eq.kabag&select=nama,no_wa,noWA");
+    var pesan =
+      "🔄 *Permohonan Tamu Dicabut dari Pimpinan*\n\n" +
+      "Permohonan a.n. *" + (g.nama || "-") + "* (#" + String(body.id).slice(-6) + ") telah dicabut dari meja Pimpinan dan dikembalikan ke tahap Kabag untuk diperbaiki atau dihapus.\n\n" +
+      "📝 *Alasan:*\n" + alasan + WA_FOOTER;
+    for (var i=0; i<(krows||[]).length; i++) {
+      var no = krows[i].no_wa || krows[i].noWA;
+      if (no) await sendWA(no, pesan);
+    }
+  } catch (e) {}
+
+  return { ok: true, message: "Permohonan dicabut dari Pimpinan" };
 }
 
 // 5b. POST: return_to_kasubbag (Kabag -> Kasubbag Protokol untuk klarifikasi)
@@ -274,9 +354,12 @@ export default async function handler(req, res) {
       if      (action === "checkin")    result = await actionCheckin(req.body);
       else if (action === "notify_new") result = await actionNotifyNew(req.body);
       else if (action === "verify_rk")  result = await actionVerifyRK(req.body);
+      else if (action === "return_to_rk") result = await actionReturnToRK(req.body);
+      else if (action === "verify_wa")  result = await actionVerifyWA(req.body);
       else if (action === "screen")     result = await actionScreen(req.body);
       else if (action === "forward")    result = await actionForward(req.body);
       else if (action === "return_to_kasubbag") result = await actionReturnToKasubbag(req.body);
+      else if (action === "recall_from_pimpinan") result = await actionRecallFromPimpinan(req.body);
       else if (action === "respond")    result = await actionRespond(req.body);
       else throw new Error("Action " + action + " tidak dikenal");
     }

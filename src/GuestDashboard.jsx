@@ -229,6 +229,18 @@ function AdminRKDetail({ guest, user, showT, isMobile, onBack, onDone }) {
     >
       <DataTamu guest={guest}/>
 
+      {/* Catatan/Instruksi dari Kasubbag — tampil mencolok bila dikembalikan */}
+      {guest.status==="pending_rk" && guest.catatan_staf && (
+        <div style={{background:"linear-gradient(135deg,#FEF3C7,#FDE68A)",border:"2px solid #F59E0B",borderRadius:12,padding:"14px 16px",marginBottom:14}}>
+          <div style={{fontSize:11,fontWeight:800,color:"#92400E",letterSpacing:1,textTransform:"uppercase",marginBottom:6}}>
+            ↩ Catatan Kasubbag — Mohon Ditindaklanjuti
+          </div>
+          <div style={{fontSize:14,color:"#78350F",lineHeight:1.55,fontWeight:600,whiteSpace:"pre-wrap"}}>
+            {guest.catatan_staf}
+          </div>
+        </div>
+      )}
+
       <CardSection title="📝 Catatan Admin RK" accent="#3B82F6">
         <textarea
           className="gd-inp"
@@ -594,8 +606,24 @@ function KabagDetail({ guest, user, showT, isMobile, onBack, onDone }) {
   var [priority,   setPriority]   = useState(gPrioritas(guest));
   var [telaah,     setTelaah]     = useState(guest.telaah_kabag || "");
   var [instruksi,  setInstruksi]  = useState("");
+  var [alasanCabut,setAlasanCabut]= useState("");
   var [loading,    setLoading]    = useState(false);
   var [konfirm,    setKonfirm]    = useState(null);
+
+  async function cabutDariPimpinan() {
+    if(!alasanCabut.trim()) { showT("⚠ Isi alasan pencabutan dulu"); setKonfirm(null); return; }
+    setLoading(true);
+    try {
+      await apiPost("recall_from_pimpinan", {
+        id: guest.id,
+        alasan: alasanCabut.trim(),
+        recalled_by: user?.username,
+      });
+      showT("🔄 Permohonan dicabut dari Pimpinan");
+      done();
+    } catch(e) { showT("❌ "+e.message); }
+    finally { setLoading(false); setKonfirm(null); }
+  }
 
   async function teruskanPimpinan() {
     if(!telaah.trim()) { showT("⚠ Isi telaah untuk Pimpinan terlebih dahulu"); return; }
@@ -749,6 +777,30 @@ function KabagDetail({ guest, user, showT, isMobile, onBack, onDone }) {
       {guest.status!=="pending_kabag" && (
         <InfoBox type="info" msg={"Status: "+STATUS_CFG[guest.status]?.label}/>
       )}
+
+      {/* Cabut dari Pimpinan — hanya saat status pending_pimpinan */}
+      {guest.status==="pending_pimpinan" && (
+        <CardSection title="🔄 Cabut dari Meja Pimpinan" accent="#DC2626">
+          <div style={{fontSize:12,color:"#64748B",marginBottom:8,lineHeight:1.5}}>
+            Gunakan jika permohonan ini perlu diperbaiki atau dihapus.
+            Permohonan akan kembali ke tahap Kabag.
+          </div>
+          <textarea className="gd-inp" value={alasanCabut}
+            onChange={function(e){setAlasanCabut(e.target.value);}}
+            rows={2} placeholder="Alasan pencabutan (wajib)..."
+            style={inpStyle}/>
+          {konfirm==="cabut" ? (
+            <KonfirmasiBox
+              pesan="Cabut permohonan ini dari meja Pimpinan? Status kembali ke Kabag."
+              onYa={cabutDariPimpinan} onBatal={function(){setKonfirm(null);}}
+              loading={loading} warna="#DC2626"
+            />
+          ) : (
+            <ActionBtn label="🔄 Cabut dari Pimpinan" color="#DC2626"
+              onClick={function(){setKonfirm("cabut");}}/>
+          )}
+        </CardSection>
+      )}
     </DetailLayout>
   );
 }
@@ -839,11 +891,29 @@ function PimpinanView({ role, user, events, showT, isMobile }) {
 function PimpinanDetail({ guest, role, user, events, showT, isMobile, onBack, onDone }) {
   var done = onDone || onBack;
   var [loading,    setLoading]    = useState(false);
-  var [mode,       setMode]       = useState(null); // "jadwal"|"tolak"|"disposisi"
+  var [mode,       setMode]       = useState(null); // "jadwal"|"tolak"|"disposisi"|"cabut"
   var [jadwalTgl,  setJadwalTgl]  = useState(guest.preferensi_tanggal || "");
   var [jadwalJam,  setJadwalJam]  = useState(guest.preferensi_jam     || "");
   var [alasan,     setAlasan]     = useState("");
   var [disposisiKe,setDisposisiKe]= useState("");
+  var [alasanCabut,setAlasanCabut]= useState("");
+
+  // Kabag & Admin RK bisa mencabut permohonan dari Pimpinan untuk perbaikan
+  var dapatCabut = role==="kabag" || role==="admin_rk";
+
+  async function cabutDariPimpinan() {
+    if(!alasanCabut.trim()) { showT("⚠ Isi alasan pencabutan dulu"); return; }
+    setLoading(true);
+    try {
+      await apiPost("recall_from_pimpinan", {
+        id: guest.id, alasan: alasanCabut.trim(),
+        recalled_by: user?.username,
+      });
+      showT("🔄 Permohonan dicabut dari Pimpinan");
+      done();
+    } catch(e) { showT("❌ "+e.message); }
+    finally { setLoading(false); setMode(null); }
+  }
 
   // Deteksi konflik agenda
   var konflikAgenda = useMemo(function() {
@@ -958,15 +1028,12 @@ function PimpinanDetail({ guest, role, user, events, showT, isMobile, onBack, on
 
       <DataTamu guest={guest}/>
 
-      {/* Riwayat Lengkap */}
+      {/* Riwayat Lengkap — hanya Admin RK + Telaahan Staf (tidak menampilkan catatan kasubbag agar tidak membingungkan Pimpinan) */}
       {guest.catatan_rk && (
         <CatatanBox label="📋 Catatan Admin RK" isi={guest.catatan_rk} color="#3B82F6" bg="#EFF6FF"/>
       )}
-      {guest.catatan_staf && (
-        <CatatanBox label="🔍 Catatan Kasubbag" isi={guest.catatan_staf} color="#F59E0B" bg="#FFFBEB"/>
-      )}
       {guest.telaah_kabag && (
-        <CatatanBox label="⚖️ Telaah Kabag Prokopim" isi={guest.telaah_kabag} color="#7C3AED" bg="#EDE9FE"/>
+        <CatatanBox label="⚖️ Telaahan Staf" isi={guest.telaah_kabag} color="#7C3AED" bg="#EDE9FE"/>
       )}
 
       {guest.status==="pending_pimpinan" && (
@@ -1080,6 +1147,35 @@ function PimpinanDetail({ guest, role, user, events, showT, isMobile, onBack, on
                 <span style={{fontSize:22}}>❌</span>Tolak
               </button>
             </div>
+          )}
+
+          {/* Mode: Cabut dari Pimpinan (Kabag & Admin RK) */}
+          {mode==="cabut" && (
+            <CardSection title="🔄 Cabut Permohonan dari Pimpinan" accent="#DC2626">
+              <div style={{fontSize:12,color:"#64748B",marginBottom:8,lineHeight:1.5}}>
+                Permohonan akan dikembalikan ke tahap Kabag untuk diperbaiki atau dihapus.
+                Kabag akan menerima notifikasi WA.
+              </div>
+              <textarea className="gd-inp" value={alasanCabut}
+                onChange={function(e){setAlasanCabut(e.target.value);}}
+                rows={3} placeholder="Alasan pencabutan (wajib diisi)..."
+                style={inpStyle}/>
+              <div style={{display:"flex",gap:8,marginTop:10}}>
+                <ActionBtn label="Batal" color="#64748B" outline flex={1}
+                  onClick={function(){setMode(null);}}/>
+                <ActionBtn label="🔄 Cabut Sekarang" color="#DC2626" flex={2}
+                  onClick={cabutDariPimpinan} loading={loading}/>
+              </div>
+            </CardSection>
+          )}
+
+          {/* Tombol pemicu cabut untuk Kabag & Admin RK */}
+          {dapatCabut && mode==null && (
+            <button onClick={function(){setMode("cabut");}} style={{
+              width:"100%",marginTop:12,padding:"12px",borderRadius:12,
+              border:"1.5px dashed #DC2626",background:"white",
+              color:"#DC2626",cursor:"pointer",fontSize:13,fontWeight:700,
+            }}>🔄 Cabut Permohonan dari Pimpinan</button>
           )}
         </>
       )}
