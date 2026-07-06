@@ -302,7 +302,7 @@ export default function TamuPage() {
       var checkUrl = SUPA_URL
         + "/rest/v1/permohonan_tamu"
         + "?no_wa=eq." + encodeURIComponent(noWaNormal)
-        + "&status=in.(\"pending_kasubbag\",\"pending_kabag\",\"pending_pimpinan\")"
+        + "&status=in.(\"pending_rk\",\"pending_kasubbag\",\"pending_kabag\",\"pending_pimpinan\")"
         + "&select=id"
         + "&limit=1";
 
@@ -346,7 +346,7 @@ export default function TamuPage() {
         no_wa:                  noWaNormal,
         tujuan_pejabat:         pejabatLabel,   // "Wali Kota" | "Wakil Wali Kota"
         maksud_keperluan:       form.purpose.trim(),
-        status:                 "pending_kasubbag",
+        status:                 "pending_rk",   // intake masuk Admin RK dulu
         pesan:                  form.message.trim() || null,
         preferensi_tanggal:     form.preferred_date || null,
         preferensi_jam:         form.preferred_time || null,
@@ -400,7 +400,7 @@ export default function TamuPage() {
         no_wa:           insertPayload.no_wa,
         tujuan_pejabat:  pejabatLabel,
         maksud_keperluan:insertPayload.maksud_keperluan,
-        status:          "pending_kasubbag",
+        status:          "pending_rk",
       });
       try { localStorage.removeItem(DRAFT_KEY); } catch (_) {}
       setStep("success");

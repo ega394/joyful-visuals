@@ -366,6 +366,26 @@ if(typeof document!=="undefined"&&!document.getElementById("prokopim-anim")){
 
 const PAKAIAN=["PDH","PDH Batik Tarakan","Batik Lengan Panjang","Batik Korpri","Pakaian Muslim","PSL","PSR","PSH","PDUB","Pakaian Lapangan","Olahraga","Bebas Rapi","Lainnya"];
 const JENIS=["Menghadiri","Sambutan","Sambutan membuka acara","Pengarahan"];
+
+// ── Sambutan: deteksi acara butuh naskah & kredit kinerja ──
+const SAMBUTAN_JENIS=["Sambutan","Sambutan membuka acara"];
+function needsSambutan(ev){return SAMBUTAN_JENIS.includes(ev&&ev.jenisKegiatan);}
+// Daftar username unik yang dikreditkan untuk satu naskah yang DISAHKAN
+// (penyusun, kasubbag, kabag — dedup bila satu orang merangkap).
+function sambutanKredit(ev){
+  if(!ev||!ev.sambutanSah)return [];
+  const out=[];
+  [ev.sambutanPenyusun,ev.sambutanKasubbag,ev.sambutanKabag].forEach(u=>{if(u&&out.indexOf(u)===-1)out.push(u);});
+  return out;
+}
+// Peran seseorang pada sebuah naskah (untuk label bukti)
+function sambutanPeran(ev,username){
+  const p=[];
+  if(ev.sambutanPenyusun===username)p.push("Penyusun");
+  if(ev.sambutanKasubbag===username)p.push("Penyelia");
+  if(ev.sambutanKabag===username)p.push("Pengesah");
+  return p.join(" & ");
+}
 const PEJABAT=["Sekda","Asisten Pemerintahan dan Kesra","Asisten Perekonomian dan Pembangunan","Asisten Administrasi Umum"];
 const ROLES_WITH_REPORT=["staf","admin_rk","kasubbag_protokol","kasubbag_komdokpim","kabag","timkom"];
 const STAF_ROLES=["staf","admin_rk","timkom"];
@@ -5102,11 +5122,79 @@ async function generateAndShareAgendaCard(ev) {
     setTimeout(()=>URL.revokeObjectURL(url),5000);
   },"image/png");
 }
+// ==================== KINERJA SAMBUTAN ====================
+// Pencatat siapa menyusun / menyelia / mengesahkan naskah sambutan.
+// Pemeriksaan substansi tetap manual; sistem hanya mencatat & menghitung.
+function SambutanKinerja({ev}){
+  const {role,user,updAndSync,showT,getNamaByUsername}=React.useContext(AppCtx);
+  const isKomdok=role==="kasubbag_komdokpim";
+  const isKabag=role==="kabag";
+  const penyusun=ev.sambutanPenyusun||"";
+  const sah=!!ev.sambutanSah;
+
+  // Kandidat penyusun: anggota timkom + Kasubbag Komdokpim sendiri
+  const kandidat=React.useMemo(()=>{
+    const arr=loadUsers().filter(u=>u.role==="timkom");
+    const self=loadUsers().find(u=>u.role==="kasubbag_komdokpim");
+    if(self&&!arr.find(u=>u.username===self.username))arr.push(self);
+    return arr;
+  },[]);
+
+  const setPenyusun=(un)=>{
+    updAndSync(ev.id,{sambutanPenyusun:un||null,sambutanKasubbag:un?(user&&user.username)||null:(ev.sambutanKasubbag||null)});
+    showT(un?("Penyusun ditunjuk: "+getNamaByUsername(un)):"Penyusun dikosongkan");
+  };
+  const sahkan=()=>{
+    updAndSync(ev.id,{sambutanKabag:(user&&user.username)||null,sambutanSah:true,sambutanSelesaiAt:new Date().toISOString()});
+    showT("✅ Naskah sambutan disahkan & tercatat di kinerja");
+  };
+  const batalSah=()=>{
+    updAndSync(ev.id,{sambutanSah:false,sambutanKabag:null,sambutanSelesaiAt:null});
+    showT("Pengesahan dibatalkan","warn");
+  };
+
+  const Pill=({txt,ok})=>(
+    <span style={{fontSize:11,fontWeight:700,padding:"3px 9px",borderRadius:20,
+      background:ok?"#EDE9FE":"#F1F5F9",color:ok?"#6D28D9":"#94A3B8"}}>{txt}</span>
+  );
+
+  return <div style={{marginTop:10,background:"#FAF5FF",border:"1.5px solid #E9D5FF",borderRadius:12,padding:"11px 13px"}}>
+    <div style={{fontSize:11,fontWeight:800,color:"#7C3AED",letterSpacing:1,textTransform:"uppercase",marginBottom:8}}>🎤 Kinerja Sambutan</div>
+
+    <div style={{marginBottom:8}}>
+      <div style={{fontSize:11,fontWeight:700,color:"#6B21A8",marginBottom:4}}>Penyusun Naskah</div>
+      {isKomdok&&!sah
+        ?<select value={penyusun} onChange={e=>setPenyusun(e.target.value)} style={{width:"100%",padding:"9px 11px",borderRadius:9,border:"1.5px solid #D8B4FE",fontSize:13,color:"#1e293b",background:"white",fontWeight:600}}>
+            <option value="">— Pilih penyusun —</option>
+            {kandidat.map(u=><option key={u.username} value={u.username}>{(u.nama||u.username)+(u.role==="kasubbag_komdokpim"?" (Kasubbag)":"")}</option>)}
+          </select>
+        :<div style={{fontSize:13,fontWeight:700,color:penyusun?"#5B21B6":"#94A3B8"}}>{penyusun?getNamaByUsername(penyusun):"Belum ditunjuk"}</div>
+      }
+    </div>
+
+    <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:(isKabag&&ev.sambutanFile)||sah?8:0}}>
+      <Pill txt={ev.sambutanFile?"Naskah final terunggah":"Naskah belum diunggah"} ok={!!ev.sambutanFile}/>
+      {sah&&<Pill txt={"Disahkan: "+getNamaByUsername(ev.sambutanKabag)} ok/>}
+    </div>
+
+    {isKabag&&ev.sambutanFile&&!sah&&(
+      <button onClick={sahkan} style={{width:"100%",padding:"10px",borderRadius:9,border:"none",background:"#7C3AED",color:"white",cursor:"pointer",fontSize:13,fontWeight:800}}>✅ Sahkan Naskah Final</button>
+    )}
+    {isKabag&&!ev.sambutanFile&&!sah&&(
+      <div style={{fontSize:11,color:"#94A3B8",fontStyle:"italic"}}>Naskah final belum diunggah — pengesahan tersedia setelah ada naskah.</div>
+    )}
+    {isKabag&&sah&&(
+      <button onClick={batalSah} style={{width:"100%",padding:"8px",borderRadius:9,border:"1.5px solid #E9D5FF",background:"white",color:"#7C3AED",cursor:"pointer",fontSize:12,fontWeight:700}}>Batalkan Pengesahan</button>
+    )}
+    {sah&&<div style={{marginTop:6,fontSize:11,color:"#7C3AED"}}>Tercatat sebagai kinerja: {sambutanKredit(ev).map(getNamaByUsername).join(" · ")}</div>}
+  </div>;
+}
+
 // ==================== EXPANDED DETAIL ====================
 function ExpandedDetail({ev,hariEv}){
   const {role,user,isMobile,handleUndanganUpload,handleSambutanDocx,handleSambutanUpload,updAndSync,storageDelete,showT,upd,setDelegTarget,setTab,setForm,setEditId,setPenugasanEv,setEvaluasiEv,rejectTexts,setRT,askConfirm,deleteAndSync,makeICS,getNamaByUsername,setExp}=React.useContext(AppCtx);
   return <div>
-    <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":ev.jenisKegiatan==="Sambutan"?"1fr 1fr":"1fr",gap:"0 24px",marginBottom:14}}>
+    <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":needsSambutan(ev)?"1fr 1fr":"1fr",gap:"0 24px",marginBottom:14}}>
       <div>
         <div style={{display:"flex",flexDirection:"column",gap:5}}>
           {[{i:"Tgl",l:"Tanggal",v:hariEv+", "+fmt(ev.tanggal)},{i:"Jam",l:"Waktu",v:ev.jam+" WITA"},{i:"Org",l:"Penyelenggara",v:ev.penyelenggara},{i:"Tel",l:"Kontak",v:ev.kontak},{i:"No",l:"Bukti Undangan",v:ev.buktiUndangan},{i:"Bj",l:"Pakaian",v:ev.pakaian},{i:"Ket",l:"Catatan",v:ev.catatan}].filter(f=>f.v).map(f=>(
@@ -5160,8 +5248,9 @@ function ExpandedDetail({ev,hariEv}){
           </button>
         </div>
       </div>
-      {ev.jenisKegiatan==="Sambutan"&&<div>
-        <SambutanBlock ev={ev} canUpload={role==="timkom"||role==="kasubbag_komdokpim"} onUploadDocx={(f)=>handleSambutanDocx(ev.id,f,ev)} onUploadPdf={(f,name)=>handleSambutanUpload(ev.id,f,name).then(()=>showT("Naskah sambutan (PDF) diupload"))} onRemove={()=>{if(ev.sambutanFile&&!ev.sambutanFile.startsWith("data:"))storageDelete("sambutan",ev.sambutanFile).catch(e=>console.warn("Sync:",e?.message||e));if(ev.sambutanDocx&&!ev.sambutanDocx.startsWith("data:")&&!ev.sambutanDocx.startsWith("blob:"))storageDelete("sambutan",ev.sambutanDocx).catch(e=>console.warn("Sync:",e?.message||e));updAndSync(ev.id,{sambutanFile:null,sambutanNama:"",sambutanDocx:null,sambutanDocxNama:""});showT("Naskah sambutan dihapus","warn");}}/>
+      {needsSambutan(ev)&&<div>
+        <SambutanBlock ev={ev} canUpload={role==="timkom"||role==="kasubbag_komdokpim"||(ev.sambutanPenyusun&&user&&ev.sambutanPenyusun===user.username)} onUploadDocx={(f)=>handleSambutanDocx(ev.id,f,ev)} onUploadPdf={(f,name)=>handleSambutanUpload(ev.id,f,name).then(()=>showT("Naskah sambutan (PDF) diupload"))} onRemove={()=>{if(ev.sambutanFile&&!ev.sambutanFile.startsWith("data:"))storageDelete("sambutan",ev.sambutanFile).catch(e=>console.warn("Sync:",e?.message||e));if(ev.sambutanDocx&&!ev.sambutanDocx.startsWith("data:")&&!ev.sambutanDocx.startsWith("blob:"))storageDelete("sambutan",ev.sambutanDocx).catch(e=>console.warn("Sync:",e?.message||e));updAndSync(ev.id,{sambutanFile:null,sambutanNama:"",sambutanDocx:null,sambutanDocxNama:"",sambutanSah:false,sambutanKabag:null,sambutanSelesaiAt:null});showT("Naskah sambutan dihapus","warn");}}/>
+        {["kasubbag_komdokpim","kabag","timkom"].includes(role)&&ev.alur==="disetujui"&&<SambutanKinerja ev={ev}/>}
       </div>}
     </div>
 
@@ -5744,18 +5833,8 @@ function ReportingTamuModal({ user, onClose, cetakOleh, showT }) {
 
     // ── Baris tabel ──
     const rows = filtered.map((g, i) => {
-      const pc  = PRIORITY_CONFIG[gPrioritas(g)] || PRIORITY_CONFIG.biasa;
-      const sc  = STATUS_LABEL[g.status]         || { text: g.status, color:"#475569" };
       const tgl = gJadwalTgl(g) ? fmtDateLong(gJadwalTgl(g)) + (gJadwalJam(g) ? " pk. " + gJadwalJam(g) + " WITA" : "") : "-";
-
-      // Kumpulkan catatan berjenjang
-      const catatanList = [
-        gCatatanRK(g) ? "Admin RK: " + gCatatanRK(g) : "",
-        gCatatanSt(g) ? "Kasubbag: " + gCatatanSt(g) : "",
-        gTelaah(g)    ? "Kabag: "    + gTelaah(g)    : "",
-        gDisposisi(g) ? "Disposisi → " + gDisposisi(g) : "",
-        gAlasan(g)    ? "Alasan tolak: " + gAlasan(g) : "",
-      ].filter(Boolean);
+      const sc  = STATUS_LABEL[g.status] || { text: g.status, color:"#475569" };
 
       const isApproved = g.status === "approved";
       const isRejected = g.status === "rejected";
@@ -5769,10 +5848,9 @@ function ReportingTamuModal({ user, onClose, cetakOleh, showT }) {
         "<td style='font-size:7.5pt'>" + gPhone(g) + "</td>" +
         "<td class='c' style='font-size:8pt;font-weight:600'>" + gTujuan(g) + "</td>" +
         "<td style='font-size:8pt'>" + gMaksud(g) + "</td>" +
-        "<td class='c'><span style='background:" + pc.bg + ";color:" + pc.color + ";border-radius:4px;padding:2px 6px;font-size:7.5pt;font-weight:700'>" + pc.label + "</span></td>" +
-        "<td class='c'><span style='color:" + sc.color + ";font-weight:700;font-size:8pt'>" + sc.text + "</span></td>" +
+        "<td class='c' style='font-size:7.5pt;color:" + sc.color + ";font-weight:700'>" + sc.text + "</td>" +
         "<td style='font-size:7.5pt;color:#334155'>" + tgl + "</td>" +
-        "<td style='font-size:7pt;color:#475569;line-height:1.5'>" + (catatanList.join("<br>") || "—") + "</td>" +
+        "<td style='font-size:7.5pt;color:#475569;line-height:1.4'>" + (gTelaah(g) || "&nbsp;") + "</td>" +
         "</tr>"
       );
     }).join("");
@@ -5877,13 +5955,12 @@ function ReportingTamuModal({ user, onClose, cetakOleh, showT }) {
         <tr>
           <th class="c" style="width:28px">No</th>
           <th style="width:18%">Nama / Instansi</th>
-          <th style="width:90px">WhatsApp</th>
+          <th style="width:95px">WhatsApp</th>
           <th class="c" style="width:90px">Tujuan Pimpinan</th>
-          <th style="width:20%">Maksud &amp; Keperluan</th>
-          <th class="c" style="width:65px">Prioritas</th>
-          <th class="c" style="width:110px">Status</th>
-          <th style="width:110px">Jadwal Fix</th>
-          <th style="width:18%">Catatan Berjenjang</th>
+          <th style="width:22%">Maksud &amp; Keperluan</th>
+          <th class="c" style="width:115px">Posisi Saat Ini</th>
+          <th style="width:120px">Jadwal Fix</th>
+          <th style="width:18%">Telaahan Staf</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
