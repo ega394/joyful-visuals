@@ -83,7 +83,7 @@ export default function WaliKotaAudiensiDashboard({ role, user, showT, isMobile 
           catatan: "Maksud: "+(g.maksud_keperluan||g.purpose||"-")+(g.telaah_kabag?" | Telaah Kabag: "+g.telaah_kabag:""),
           statusWK:  pejabatKey==="walikota"?"hadir":null,
           statusWWK: pejabatKey==="wakilwalikota"?"hadir":null,
-          submittedBy: decidedBy, personil:[], evaluasi:{}, created_from:"guest_module",
+          submittedBy: decidedBy, personil:[], evaluasi:{}, created_from:"guest_module", guest_id: decideId,
         };
         try {
           await fetch(SUPA_URL+"/rest/v1/jadwal",{

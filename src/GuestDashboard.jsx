@@ -63,6 +63,53 @@ async function apiPost(action, body) {
   return data;
 }
 
+// ── Sinkronisasi Tamu → Agenda ────────────────────────────────
+// Bangun objek agenda dari data tamu (dipakai auto-sync & tombol sinkron manual)
+function buildAgendaFromGuest(guest, byUsername) {
+  var pejabatKey = gTujuan(guest)==="Wakil Wali Kota" ? "wakilwalikota" : "walikota";
+  var evId = Date.now();
+  return {
+    id: evId,
+    tanggal: guest.jadwal_tanggal || guest.scheduled_date || "",
+    jam: guest.jadwal_jam || guest.scheduled_time || "",
+    namaAcara: "Audiensi: "+gName(guest)+(gInstansi(guest)!=="–"?" ("+gInstansi(guest)+")":""),
+    penyelenggara: gInstansi(guest)||gName(guest),
+    kontak: gPhone(guest)||"-",
+    buktiUndangan: "Permohonan Tamu #"+(String(guest.id).slice(-6)),
+    pakaian: "Batik Lengan Panjang", jenisKegiatan:"Menghadiri",
+    lokasi: "Ruang Pimpinan, Kantor Wali Kota Tarakan",
+    untukPimpinan: [pejabatKey], alur:"disetujui",
+    catatan: "Maksud: "+gMaksud(guest)+(guest.telaah_kabag?" | Telaah Kabag: "+guest.telaah_kabag:""),
+    statusWK:  pejabatKey==="walikota"?"hadir":null,
+    statusWWK: pejabatKey==="wakilwalikota"?"hadir":null,
+    submittedBy: byUsername||"pimpinan",
+    personil:[], evaluasi:{}, created_from:"guest_module", guest_id: guest.id,
+  };
+}
+
+// Cek apakah tamu SUDAH punya agenda (anti-duplikat) — diturunkan dari daftar events
+function isGuestSynced(guest, events) {
+  if(!guest) return false;
+  var idStr = String(guest.id);
+  var last6 = idStr.slice(-6);
+  return (events||[]).some(function(ev){
+    if(ev.created_from!=="guest_module") return false;
+    return String(ev.guest_id||"")===idStr || (ev.buktiUndangan||"").indexOf(last6)>=0;
+  });
+}
+
+// Kirim agenda ke Supabase (dipakai auto-sync saat approve & tombol sinkron manual)
+async function pushAgenda(ev) {
+  if(!(SUPA_URL && SUPA_KEY)) throw new Error("Konfigurasi sistem belum lengkap");
+  var r = await fetch(SUPA_URL+"/rest/v1/jadwal",{
+    method:"POST",
+    headers:{"Content-Type":"application/json","apikey":SUPA_KEY,"Authorization":"Bearer "+SUPA_KEY,"Prefer":"return=minimal"},
+    body: JSON.stringify({id:ev.id, data:ev}),
+  });
+  if(!r.ok) throw new Error("Gagal membuat agenda (HTTP "+r.status+")");
+  return ev.id;
+}
+
 // ══════════════════════════════════════════════════════════════
 //  GLOBAL CSS
 // ══════════════════════════════════════════════════════════════
@@ -134,7 +181,7 @@ function AdminRKView({ user, events, showT, isMobile }) {
     );
     return (
       <AdminRKDetail
-        guest={detail} user={user} showT={showT} isMobile={isMobile}
+        guest={detail} user={user} events={events} showT={showT} isMobile={isMobile}
         onBack={function(){setDetail(null);}} onDone={removeFromList}
       />
     );
@@ -144,6 +191,7 @@ function AdminRKView({ user, events, showT, isMobile }) {
     {k:"pending_rk",       l:"Baru Masuk"},
     {k:"pending_kasubbag", l:"Diteruskan"},
     {k:"pending_pimpinan", l:"📅 Siap Dijadwalkan"},
+    {k:"approved",         l:"✅ Disetujui"},
     {k:"rejected",         l:"Ditolak"},
     {k:"all",              l:"🔎 Lacak Semua"},
   ];
@@ -186,7 +234,7 @@ function AdminRKView({ user, events, showT, isMobile }) {
   );
 }
 
-function AdminRKDetail({ guest, user, showT, isMobile, onBack, onDone }) {
+function AdminRKDetail({ guest, user, events, showT, isMobile, onBack, onDone }) {
   var [catatan, setCatatan] = useState(guest.catatan_rk || "");
   var [loading, setLoading] = useState(false);
   var [konfirm, setKonfirm] = useState(null); // "teruskan"|"tolak"
@@ -284,7 +332,18 @@ function AdminRKDetail({ guest, user, showT, isMobile, onBack, onDone }) {
           />
         </div>
       )}
-      {guest.status!=="pending_rk" && (
+      {guest.status==="approved" && (
+        <>
+          <InfoBox type="success" msg={"✅ Disetujui"+(guest.jadwal_tanggal?" — "+fmtDate(guest.jadwal_tanggal)+(guest.jadwal_jam?" pk "+guest.jadwal_jam+" WITA":""):"")}/>
+          {guest.diputuskan_oleh && (
+            <div style={{fontSize:12,color:"#475569",margin:"6px 2px 10px",lineHeight:1.5}}>
+              🖊 Diputuskan oleh: <b>{guest.diputuskan_oleh}</b>
+            </div>
+          )}
+          <SyncAgendaBox guest={guest} events={events} user={user} showT={showT}/>
+        </>
+      )}
+      {guest.status!=="pending_rk" && guest.status!=="approved" && (
         <InfoBox type="info" msg={"Permohonan ini sudah "+STATUS_CFG[guest.status]?.label+". Tidak ada aksi lebih lanjut di level ini."}/>
       )}
     </DetailLayout>
@@ -908,6 +967,46 @@ function PimpinanView({ role, user, events, showT, isMobile }) {
   );
 }
 
+// Kotak status sinkronisasi agenda + tombol cadangan (anti-duplikat)
+function SyncAgendaBox({ guest, events, user, showT }) {
+  var [busy, setBusy] = useState(false);
+  var [doneLocal, setDoneLocal] = useState(false);
+  var punyaJadwal = !!(guest.jadwal_tanggal || guest.scheduled_date);
+  var synced = doneLocal || isGuestSynced(guest, events);
+
+  async function sinkron() {
+    setBusy(true);
+    try {
+      if(isGuestSynced(guest, events)) { setDoneLocal(true); showT("Tamu ini sudah ada di Agenda"); return; }
+      var ev = buildAgendaFromGuest(guest, user?.username);
+      await pushAgenda(ev);
+      setDoneLocal(true);
+      showT("✅ Tamu disinkronkan ke Agenda");
+    } catch(e) { showT("❌ "+e.message); }
+    finally { setBusy(false); }
+  }
+
+  if(!punyaJadwal) return null;
+
+  if(synced) return (
+    <div style={{background:"#F0FDF4",border:"1.5px solid #86EFAC",borderRadius:11,padding:"11px 13px",display:"flex",alignItems:"center",gap:9,marginTop:4}}>
+      <span style={{fontSize:18}}>✓</span>
+      <div style={{fontSize:13,fontWeight:700,color:"#065F46"}}>Sudah masuk Agenda Kegiatan</div>
+    </div>
+  );
+
+  return (
+    <div style={{background:"#FFFBEB",border:"1.5px solid #FDE68A",borderRadius:11,padding:"11px 13px",marginTop:4}}>
+      <div style={{fontSize:12,color:"#92400E",marginBottom:8,lineHeight:1.5}}>
+        ⚠ Tamu ini sudah dijadwalkan tetapi <b>belum tercatat di Agenda Kegiatan</b>.
+      </div>
+      <button onClick={sinkron} disabled={busy} style={{width:"100%",padding:"11px",borderRadius:10,border:"none",background:busy?"#94A3B8":"#0A1628",color:"white",cursor:busy?"default":"pointer",fontSize:13,fontWeight:800}}>
+        {busy?"Menyinkronkan...":"🔄 Sinkronkan ke Agenda"}
+      </button>
+    </div>
+  );
+}
+
 function PimpinanDetail({ guest, role, user, events, showT, isMobile, onBack, onDone }) {
   var done = onDone || onBack;
   var [loading,    setLoading]    = useState(false);
@@ -917,9 +1016,12 @@ function PimpinanDetail({ guest, role, user, events, showT, isMobile, onBack, on
   var [alasan,     setAlasan]     = useState("");
   var [disposisiKe,setDisposisiKe]= useState("");
   var [alasanCabut,setAlasanCabut]= useState("");
+  var [atasArahan, setAtasArahan] = useState(false);
 
   // Kabag & Admin RK bisa mencabut permohonan dari Pimpinan untuk perbaikan
   var dapatCabut = role==="kabag" || role==="admin_rk";
+  // Admin RK boleh mengonfirmasi manual atas arahan pimpinan (mis. instruksi lisan)
+  var konfirmatorManual = role==="admin_rk";
 
   async function cabutDariPimpinan() {
     if(!alasanCabut.trim()) { showT("⚠ Isi alasan pencabutan dulu"); return; }
@@ -952,43 +1054,31 @@ function PimpinanDetail({ guest, role, user, events, showT, isMobile, onBack, on
   async function setujui() {
     setLoading(true);
     try {
+      // Jejak keputusan. Bila Admin RK konfirmasi atas arahan pimpinan,
+      // catat deskriptif di diputuskan_oleh untuk akuntabilitas.
+      var pemutus = user?.nama || user?.username || "";
+      if(konfirmatorManual && atasArahan) {
+        var tgl = new Date().toLocaleDateString("id-ID",{day:"numeric",month:"short",year:"numeric"});
+        pemutus = (user?.nama||user?.username||"Admin RK")+" (Admin RK) — atas arahan pimpinan, "+tgl;
+      }
+
       var bodyResp = {
         id: guest.id,
         response: "approved",
-        responded_by: user?.username,
+        responded_by: pemutus,
       };
       if(jadwalTgl) bodyResp.scheduled_date = jadwalTgl;
       if(jadwalJam) bodyResp.scheduled_time = jadwalJam;
 
       await apiPost("respond", bodyResp);
 
-      // Jika ada jadwal, buat juga di tabel jadwal utama
-      if(jadwalTgl && jadwalJam && SUPA_URL && SUPA_KEY) {
-        // Pejabat tujuan diturunkan dari data tamu (bukan role), agar benar
-        // saat dijadwalkan oleh ajudan / admin RK yang menjadwalkan untuk
-        // pimpinan mana pun.
-        var pejabatKey = gTujuan(guest)==="Wakil Wali Kota" ? "wakilwalikota" : "walikota";
-        var newEvent = {
-          id: Date.now(),
-          tanggal: jadwalTgl, jam: jadwalJam,
-          namaAcara: "Audiensi: "+gName(guest)+(gInstansi(guest)!=="–"?" ("+gInstansi(guest)+")":""),
-          penyelenggara: gInstansi(guest)||gName(guest),
-          kontak: gPhone(guest)||"-",
-          buktiUndangan: "Permohonan Tamu #"+(String(guest.id).slice(-6)),
-          pakaian: "Batik Lengan Panjang", jenisKegiatan:"Menghadiri",
-          lokasi: "Ruang Pimpinan, Kantor Wali Kota Tarakan",
-          untukPimpinan: [pejabatKey], alur:"disetujui",
-          catatan: "Maksud: "+gMaksud(guest)+(guest.telaah_kabag?" | Telaah Kabag: "+guest.telaah_kabag:""),
-          statusWK:  pejabatKey==="walikota"?"hadir":null,
-          statusWWK: pejabatKey==="wakilwalikota"?"hadir":null,
-          submittedBy: user?.username||"pimpinan",
-          personil:[], evaluasi:{}, created_from:"guest_module",
-        };
-        await fetch(SUPA_URL+"/rest/v1/jadwal",{
-          method:"POST",
-          headers:{"Content-Type":"application/json","apikey":SUPA_KEY,"Authorization":"Bearer "+SUPA_KEY,"Prefer":"return=minimal"},
-          body: JSON.stringify({id:newEvent.id, data:newEvent}),
-        });
+      // Auto-sync ke Agenda — hanya jika ada jadwal & belum pernah disinkron
+      if(jadwalTgl && jadwalJam && !isGuestSynced(guest, events)) {
+        var ev = buildAgendaFromGuest(
+          Object.assign({}, guest, {jadwal_tanggal:jadwalTgl, jadwal_jam:jadwalJam}),
+          user?.username
+        );
+        await pushAgenda(ev);
       }
 
       showT("✅ Permohonan disetujui"+(jadwalTgl?" & masuk ke Agenda":""));
@@ -1099,6 +1189,20 @@ function PimpinanDetail({ guest, role, user, events, showT, isMobile, onBack, on
                 </div>
               )}
 
+              {/* Konfirmasi manual atas arahan pimpinan (Admin RK) */}
+              {konfirmatorManual && (
+                <label style={{display:"flex",alignItems:"flex-start",gap:9,background:atasArahan?"#EFF6FF":"#F8FAFC",border:"1.5px solid "+(atasArahan?"#3B82F6":"#E2E8F0"),borderRadius:11,padding:"11px 13px",marginBottom:12,cursor:"pointer"}}>
+                  <input type="checkbox" checked={atasArahan} onChange={function(e){setAtasArahan(e.target.checked);}}
+                    style={{marginTop:2,width:16,height:16,cursor:"pointer",accentColor:"#2563EB"}}/>
+                  <div>
+                    <div style={{fontSize:13,fontWeight:700,color:atasArahan?"#1D4ED8":"#334155"}}>Konfirmasi atas arahan pimpinan</div>
+                    <div style={{fontSize:11,color:"#64748B",marginTop:2,lineHeight:1.5}}>
+                      Centang bila jadwal ini ditetapkan berdasarkan arahan/instruksi lisan pimpinan (bukan lewat aplikasi). Akan dicatat: nama Anda + waktu, sebagai bukti akuntabilitas.
+                    </div>
+                  </div>
+                </label>
+              )}
+
               <div style={{display:"flex",gap:8}}>
                 <ActionBtn
                   label={konflikAgenda.length>0 ? "⚠ Tetap Konfirmasi Jadwal" : "✅ Konfirmasi & Buat Agenda"}
@@ -1202,7 +1306,15 @@ function PimpinanDetail({ guest, role, user, events, showT, isMobile, onBack, on
 
       {/* Keputusan yang sudah diambil */}
       {guest.status==="approved" && (
-        <InfoBox type="success" msg={"✅ Disetujui"+(guest.jadwal_tanggal?" — "+fmtDate(guest.jadwal_tanggal)+(guest.jadwal_jam?" pk "+guest.jadwal_jam+" WITA":""):"")}/>
+        <>
+          <InfoBox type="success" msg={"✅ Disetujui"+(guest.jadwal_tanggal?" — "+fmtDate(guest.jadwal_tanggal)+(guest.jadwal_jam?" pk "+guest.jadwal_jam+" WITA":""):"")}/>
+          {guest.diputuskan_oleh && (
+            <div style={{fontSize:12,color:"#475569",margin:"6px 2px 10px",lineHeight:1.5}}>
+              🖊 Diputuskan oleh: <b>{guest.diputuskan_oleh}</b>
+            </div>
+          )}
+          <SyncAgendaBox guest={guest} events={events} user={user} showT={showT}/>
+        </>
       )}
       {guest.status==="rejected" && (
         <InfoBox type="error" msg={"❌ Ditolak"+(guest.alasan_tolak?" — "+guest.alasan_tolak:"")}/>
