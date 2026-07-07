@@ -280,6 +280,34 @@ async function actionReturnToKasubbag(body) {
   return { ok: true, message: "Dikembalikan ke Kasubbag Protokol" };
 }
 
+// 5e. POST: update_jadwal (WK/ajudan/Admin RK mengubah jam & tempat audiensi disetujui)
+async function actionUpdateJadwal(body) {
+  if (!body.id) throw new Error("id wajib");
+  var patch = {};
+  if (body.scheduled_date) patch.jadwal_tanggal = body.scheduled_date;
+  if (body.scheduled_time) patch.jadwal_jam     = body.scheduled_time;
+  if (Object.keys(patch).length === 0 && !body.tempat) throw new Error("Tidak ada perubahan");
+  if (Object.keys(patch).length) await sbPatch(body.id, patch);
+
+  // Notifikasi WA pembaruan jadwal ke pemohon (best-effort)
+  try {
+    var rows = await sbGet("permohonan_tamu?id=eq." + body.id + "&select=nama,no_wa,tujuan_pejabat&limit=1");
+    var g = (rows && rows[0]) || {};
+    if (g.no_wa) {
+      var msg =
+        "🔄 *Pembaruan Jadwal Audiensi*\n\n" +
+        "Yth. *" + (g.nama || "Pemohon") + "*,\n" +
+        "Jadwal audiensi Anda kepada *" + (g.tujuan_pejabat || "Pimpinan") + "* telah diperbarui:\n" +
+        (body.scheduled_date ? "🗓️ " + fmtTanggalWA(body.scheduled_date) + (body.scheduled_time ? ", pukul " + String(body.scheduled_time).slice(0,5) + " WITA" : "") : "") +
+        (body.tempat ? "\n📍 Tempat: " + body.tempat : "") +
+        "\n\nMohon menyesuaikan. Terima kasih." + WA_FOOTER;
+      await sendWA(g.no_wa, msg);
+    }
+  } catch (e) {}
+
+  return { ok: true, message: "Jadwal diperbarui" };
+}
+
 // Notifikasi WA konfirmasi penerimaan permohonan (dipanggil dari form publik)
 async function actionNotifyNew(body) {
   var nama   = body.nama || body.name || "Pemohon";
@@ -333,12 +361,13 @@ async function actionRespond(body) {
         jadwalStr = "\n🗓️ *Jadwal:* " + fmtTanggalWA(updateData.jadwal_tanggal) +
           (updateData.jadwal_jam ? ", pukul " + String(updateData.jadwal_jam).slice(0,5) + " WITA" : "");
       }
+      var lokasiWA = (body.tempat && String(body.tempat).trim()) || "Ruang Kerja";
       msg =
         "✅ *Audiensi Disetujui*\n\n" +
         "Yth. *" + nama + "*,\n" +
         "Permohonan audiensi Anda kepada *" + pejabat + "* telah *DISETUJUI*." +
         jadwalStr + "\n\n" +
-        "📍 Lokasi: Ruang Pimpinan, Kantor Wali Kota Tarakan.\n" +
+        "📍 Tempat: " + lokasiWA + ".\n" +
         "Mohon hadir 15 menit sebelum jadwal dan membawa identitas diri." +
         WA_FOOTER;
     } else if (body.response === "rejected") {
@@ -383,6 +412,7 @@ export default async function handler(req, res) {
       else if (action === "return_to_kasubbag") result = await actionReturnToKasubbag(req.body);
       else if (action === "recall_from_pimpinan") result = await actionRecallFromPimpinan(req.body);
       else if (action === "mark_selesai") result = await actionMarkSelesai(req.body);
+      else if (action === "update_jadwal") result = await actionUpdateJadwal(req.body);
       else if (action === "respond")    result = await actionRespond(req.body);
       else throw new Error("Action " + action + " tidak dikenal");
     }

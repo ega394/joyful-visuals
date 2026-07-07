@@ -16,6 +16,7 @@ export default function WaliKotaAudiensiDashboard({ role, user, showT, isMobile 
   const [decideMode, setMode]    = React.useState("");
   const [tgl, setTgl]            = React.useState("");
   const [jam, setJam]            = React.useState("");
+  const [tempat, setTempat]      = React.useState("Ruang Kerja");
   const [catatanPim, setCatatan] = React.useState("");
   const [alasan, setAlasan]      = React.useState("");
   const [saving, setSaving]      = React.useState(false);
@@ -52,8 +53,9 @@ export default function WaliKotaAudiensiDashboard({ role, user, showT, isMobile 
     if (decideMode === "reject" && !alasan.trim()) { showT("Isi alasan penolakan", "warn"); return; }
     setSaving(true);
     const decidedBy = user?.username || user?.nama || labelPimpinan;
+    const tempatFinal = String(tempat||"").trim() || "Ruang Kerja";
     const body = decideMode === "approve"
-      ? { id:decideId, response:"approved", responded_by:decidedBy, scheduled_date:tgl, scheduled_time:jam||null }
+      ? { id:decideId, response:"approved", responded_by:decidedBy, scheduled_date:tgl, scheduled_time:jam||null, tempat:tempatFinal }
       : { id:decideId, response:"rejected", responded_by:decidedBy, reason:alasan };
     try {
       const r = await fetch("/api/guest?action=respond", {
@@ -78,7 +80,7 @@ export default function WaliKotaAudiensiDashboard({ role, user, showT, isMobile 
           kontak: g.no_wa || g.phone || "-",
           buktiUndangan: "Permohonan Tamu #"+(String(decideId).slice(-6)),
           pakaian: "Batik Lengan Panjang", jenisKegiatan:"Menghadiri",
-          lokasi: "Ruang Pimpinan, Kantor Wali Kota Tarakan",
+          lokasi: tempatFinal,
           untukPimpinan: [pejabatKey], alur:"disetujui",
           catatan: "Maksud: "+(g.maksud_keperluan||g.purpose||"-")+(g.telaah_kabag?" | Telaah Kabag: "+g.telaah_kabag:""),
           statusWK:  pejabatKey==="walikota"?"hadir":null,
@@ -95,7 +97,7 @@ export default function WaliKotaAudiensiDashboard({ role, user, showT, isMobile 
       }
 
       showT(decideMode==="approve" ? "✅ Audiensi dijadwalkan & masuk Agenda!" : "Permohonan ditolak", decideMode==="approve"?"ok":"warn");
-      setDecideId(null); setMode(""); setTgl(""); setJam(""); setCatatan(""); setAlasan("");
+      setDecideId(null); setMode(""); setTgl(""); setJam(""); setTempat("Ruang Kerja"); setCatatan(""); setAlasan("");
       load();
     } catch { showT("Gagal menyimpan keputusan", "error"); }
     finally { setSaving(false); }
@@ -103,7 +105,7 @@ export default function WaliKotaAudiensiDashboard({ role, user, showT, isMobile 
 
   const openDecide = (id, mode) => {
     setDecideId(id); setMode(mode);
-    setTgl(""); setJam(""); setCatatan(""); setAlasan("");
+    setTgl(""); setJam(""); setTempat("Ruang Kerja"); setCatatan(""); setAlasan("");
   };
 
   return (
@@ -234,6 +236,25 @@ export default function WaliKotaAudiensiDashboard({ role, user, showT, isMobile 
                           <input type="time" value={jam} onChange={e=>setJam(e.target.value)}
                             style={{width:"100%",padding:"9px 10px",borderRadius:8,border:"1.5px solid #CBD5E1",fontSize:13,boxSizing:"border-box"}}/>
                         </div>
+                      </div>
+                      <div style={{marginBottom:10}}>
+                        <label style={{display:"block",fontSize:10,fontWeight:700,color:"#64748B",marginBottom:4}}>Tempat</label>
+                        <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                          {[["Rumah Jabatan","🏠"],["Ruang Kerja","🏢"]].map(o=>{
+                            const act = tempat===o[0];
+                            return <button key={o[0]} type="button" onClick={()=>setTempat(o[0])}
+                              style={{flex:1,minWidth:100,padding:"9px 6px",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700,
+                                border:"1.5px solid "+(act?NAVY:"#CBD5E1"),background:act?"#EEF2FF":"white",color:act?NAVY:"#64748B"}}>{o[1]} {o[0]}</button>;
+                          })}
+                          <button type="button" onClick={()=>setTempat("")}
+                            style={{flex:1,minWidth:100,padding:"9px 6px",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700,
+                              border:"1.5px solid "+((tempat!=="Rumah Jabatan"&&tempat!=="Ruang Kerja")?NAVY:"#CBD5E1"),background:(tempat!=="Rumah Jabatan"&&tempat!=="Ruang Kerja")?"#EEF2FF":"white",color:(tempat!=="Rumah Jabatan"&&tempat!=="Ruang Kerja")?NAVY:"#64748B"}}>✏️ Lainnya</button>
+                        </div>
+                        {(tempat!=="Rumah Jabatan"&&tempat!=="Ruang Kerja") && (
+                          <input type="text" value={tempat} onChange={e=>setTempat(e.target.value)}
+                            placeholder="Tulis tempat, mis. Pendopo / Ruang Rapat Lt.2..."
+                            style={{width:"100%",marginTop:6,padding:"9px 10px",borderRadius:8,border:"1.5px solid #CBD5E1",fontSize:13,boxSizing:"border-box"}}/>
+                        )}
                       </div>
                       <div style={{marginBottom:10}}>
                         <label style={{display:"block",fontSize:10,fontWeight:700,color:"#64748B",marginBottom:4}}>Catatan Khusus Pimpinan (opsional)</label>
