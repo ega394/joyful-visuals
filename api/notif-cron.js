@@ -263,6 +263,70 @@ async function notifAjudan(jadwal, users) {
 }
 
 /**
+ * PIMPINAN (06:30 WITA) — briefing agenda HARI INI langsung ke pimpinan
+ * Penerima: Wali Kota & Wakil Wali Kota (nomor pribadi)
+ * Nada ringan, informatif, tanpa perlu dibalas.
+ */
+async function notifPimpinan(jadwal, users) {
+  const today    = localDateWITA(0);
+  const todayEvs = jadwal
+    .filter(e => e.tanggal === today)
+    .sort((a, b) => (a.jam || "").localeCompare(b.jam || ""));
+
+  const FOOTER_ADA =
+    `\n━━━━━━━━━━━━━━\n` +
+    `🤖 Dikirim otomatis oleh sistem *#ProkopimHibot*.\n` +
+    `📌 Jadwal dapat berubah sewaktu-waktu — untuk informasi terkini, silakan buka aplikasi Prokopim.`;
+  const FOOTER_KOSONG =
+    `\n━━━━━━━━━━━━━━\n` +
+    `🤖 Dikirim otomatis oleh sistem *#ProkopimHibot*.\n` +
+    `📌 Jika ada perubahan, informasi terkini dapat dilihat langsung di aplikasi Prokopim.`;
+
+  const pimpinanList = [
+    { role: "walikota",      sapaan: "Bapak Wali Kota",       label: "Wali Kota" },
+    { role: "wakilwalikota", sapaan: "Bapak Wakil Wali Kota", label: "Wakil Wali Kota" },
+  ];
+
+  for (const p of pimpinanList) {
+    const orang = users.filter(u => u.role === p.role && u.noWA);
+    if (orang.length === 0) continue;
+
+    const myEvs = todayEvs.filter(e =>
+      p.role === "walikota"
+        ? (e.untukPimpinan || []).includes("walikota")
+        : (e.untukPimpinan || []).includes("wakilwalikota") || e.delegasiKeWWK
+    );
+
+    let msg;
+    if (myEvs.length === 0) {
+      msg =
+        `🌅 *Selamat Pagi, ${p.sapaan}*\n\n` +
+        `Tidak ada agenda resmi terjadwal hari ini.` +
+        FOOTER_KOSONG;
+    } else {
+      const daftar = myEvs.map(e => {
+        const jam   = (e.jam || "").slice(0, 5);
+        const isSambutan = e.jenisKegiatan === "Sambutan" || e.jenisKegiatan === "Sambutan membuka acara";
+        const info  = isSambutan ? "🎤 Ada sambutan" : `👔 ${e.pakaian || "-"}`;
+        return `🕐 ${jam} · *${e.namaAcara}*\n📍 ${e.lokasi || e.penyelenggara || "-"}  ·  ${info}`;
+      }).join("\n\n");
+
+      msg =
+        `🌅 *Selamat Pagi, ${p.sapaan}*\n\n` +
+        `Agenda ${p.label} hari ini — ${fmtTgl(today)} (${myEvs.length} kegiatan):\n\n` +
+        daftar +
+        `\n\nSelamat beraktivitas, Bapak. Sukses untuk seluruh agenda hari ini.` +
+        FOOTER_ADA;
+    }
+
+    for (const u of orang) {
+      await sendWA(u.noWA, msg);
+      console.log(`[PIMPINAN] Terkirim → ${u.nama} (${p.role})`);
+    }
+  }
+}
+
+/**
  * PERSONIL — DINONAKTIFKAN (notifikasi penugasan dimatikan global)
  */
 async function notifPersonil(jadwal, users) {
@@ -356,6 +420,7 @@ export default async function handler(req, res) {
     console.log(`[CRON] Data: ${jadwal.length} jadwal, ${users.length} users`);
 
     if      (type === "pagi")     await notifPagi(jadwal, users);
+    else if (type === "pimpinan") await notifPimpinan(jadwal, users);
     else if (type === "reminder") await notifReminder(jadwal, users);
     else if (type === "ajudan")   await notifAjudan(jadwal, users);
     else if (type === "personil") await notifPersonil(jadwal, users);
