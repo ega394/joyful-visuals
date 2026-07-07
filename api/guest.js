@@ -192,6 +192,18 @@ async function actionForward(body) {
   return { ok: true };
 }
 
+// 5d. POST: mark_selesai (Kabag/Admin RK menandai audiensi telah dilaksanakan → arsip)
+async function actionMarkSelesai(body) {
+  if (!body.id) throw new Error("id wajib");
+  var rows = await sbGet("permohonan_tamu?id=eq." + body.id + "&select=status&limit=1");
+  var g = (rows && rows[0]) || {};
+  if (g.status !== "approved") {
+    throw new Error("Hanya audiensi yang sudah disetujui/dijadwalkan yang dapat ditandai telah dilaksanakan");
+  }
+  await sbPatch(body.id, { status: "selesai" });
+  return { ok: true, message: "Ditandai telah dilaksanakan & diarsipkan" };
+}
+
 // 5a. POST: recall_from_pimpinan (Kabag/Admin RK mencabut dari meja Pimpinan)
 // Permohonan dikembalikan ke tahap Kabag untuk diperbaiki/dihapus.
 async function actionRecallFromPimpinan(body) {
@@ -360,6 +372,7 @@ export default async function handler(req, res) {
       else if (action === "forward")    result = await actionForward(req.body);
       else if (action === "return_to_kasubbag") result = await actionReturnToKasubbag(req.body);
       else if (action === "recall_from_pimpinan") result = await actionRecallFromPimpinan(req.body);
+      else if (action === "mark_selesai") result = await actionMarkSelesai(req.body);
       else if (action === "respond")    result = await actionRespond(req.body);
       else throw new Error("Action " + action + " tidak dikenal");
     }
