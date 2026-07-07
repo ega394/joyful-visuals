@@ -70,8 +70,11 @@ async function apiPost(action, body) {
 }
 
 // ── Sinkronisasi Tamu → Agenda ────────────────────────────────
+var TEMPAT_OPTIONS = ["Rumah Jabatan", "Ruang Kerja", "Lainnya"];
+var TEMPAT_DEFAULT = "Ruang Kerja";
+
 // Bangun objek agenda dari data tamu (dipakai auto-sync & tombol sinkron manual)
-function buildAgendaFromGuest(guest, byUsername) {
+function buildAgendaFromGuest(guest, byUsername, lokasi) {
   var pejabatKey = gTujuan(guest)==="Wakil Wali Kota" ? "wakilwalikota" : "walikota";
   var evId = Date.now();
   return {
@@ -83,7 +86,7 @@ function buildAgendaFromGuest(guest, byUsername) {
     kontak: gPhone(guest)||"-",
     buktiUndangan: "Permohonan Tamu #"+(String(guest.id).slice(-6)),
     pakaian: "Batik Lengan Panjang", jenisKegiatan:"Menghadiri",
-    lokasi: "Ruang Pimpinan, Kantor Wali Kota Tarakan",
+    lokasi: lokasi || TEMPAT_DEFAULT,
     untukPimpinan: [pejabatKey], alur:"disetujui",
     catatan: "Maksud: "+gMaksud(guest)+(guest.telaah_kabag?" | Telaah Kabag: "+guest.telaah_kabag:""),
     statusWK:  pejabatKey==="walikota"?"hadir":null,
@@ -91,6 +94,17 @@ function buildAgendaFromGuest(guest, byUsername) {
     submittedBy: byUsername||"pimpinan",
     personil:[], evaluasi:{}, created_from:"guest_module", guest_id: guest.id,
   };
+}
+
+// Cari entri agenda yang tertaut ke tamu (untuk edit/baca lokasi)
+function findGuestAgenda(guest, events) {
+  if(!guest) return null;
+  var idStr = String(guest.id);
+  var last6 = idStr.slice(-6);
+  return (events||[]).find(function(ev){
+    if(ev.created_from!=="guest_module") return false;
+    return String(ev.guest_id||"")===idStr || (ev.buktiUndangan||"").indexOf(last6)>=0;
+  }) || null;
 }
 
 // Cek apakah tamu SUDAH punya agenda (anti-duplikat) — diturunkan dari daftar events
@@ -348,6 +362,7 @@ function AdminRKDetail({ guest, user, events, showT, isMobile, onBack, onDone })
             </div>
           )}
           <SyncAgendaBox guest={guest} events={events} user={user} showT={showT}/>
+          <EditJadwalTempat guest={guest} events={events} user={user} showT={showT} onDone={done}/>
           <MarkSelesaiButton guest={guest} user={user} showT={showT} onDone={done}/>
         </>
       )}
@@ -873,6 +888,7 @@ function KabagDetail({ guest, user, events, showT, isMobile, onBack, onDone }) {
             </div>
           )}
           <SyncAgendaBox guest={guest} events={events} user={user} showT={showT}/>
+          <EditJadwalTempat guest={guest} events={events} user={user} showT={showT} onDone={done}/>
           <MarkSelesaiButton guest={guest} user={user} showT={showT} onDone={done}/>
         </>
       )}
@@ -1062,6 +1078,98 @@ function MarkSelesaiButton({ guest, user, showT, onDone }) {
   );
 }
 
+// Pemilih tempat: Rumah Jabatan / Ruang Kerja / Lainnya (isi bebas)
+function TempatField({ value, onChange }) {
+  var isPreset = value === "Rumah Jabatan" || value === "Ruang Kerja";
+  var isLain = !isPreset; // termasuk "" dan teks bebas
+  return (
+    <div>
+      <div style={{display:"flex",gap:8,marginBottom:isLain?8:0,flexWrap:"wrap"}}>
+        {[["Rumah Jabatan","🏠"],["Ruang Kerja","🏢"]].map(function(o){
+          var act = value===o[0];
+          return <button key={o[0]} type="button" onClick={function(){onChange(o[0]);}}
+            style={{flex:1,minWidth:110,padding:"11px 8px",borderRadius:11,cursor:"pointer",fontSize:12.5,fontWeight:700,
+              border:"2px solid "+(act?NAVY:"#E2E8F0"),background:act?"#EEF2FF":"white",color:act?NAVY:"#64748B"}}>
+            {o[1]} {o[0]}
+          </button>;
+        })}
+        <button type="button" onClick={function(){ if(isPreset) onChange(""); }}
+          style={{flex:1,minWidth:110,padding:"11px 8px",borderRadius:11,cursor:"pointer",fontSize:12.5,fontWeight:700,
+            border:"2px solid "+(isLain?NAVY:"#E2E8F0"),background:isLain?"#EEF2FF":"white",color:isLain?NAVY:"#64748B"}}>
+          ✏️ Lainnya
+        </button>
+      </div>
+      {isLain && (
+        <input className="gd-inp" value={value}
+          onChange={function(e){onChange(e.target.value);}}
+          placeholder="Tulis tempat, mis. Ruang Rapat Lt.2 / Pendopo..."
+          style={inpStyle}/>
+      )}
+    </div>
+  );
+}
+
+// Edit jadwal & tempat pada tamu yang sudah disetujui (sinkron ke agenda + WA)
+function EditJadwalTempat({ guest, events, user, showT, onDone }) {
+  var linked = findGuestAgenda(guest, events);
+  var [open, setOpen]     = useState(false);
+  var [tgl, setTgl]       = useState(guest.jadwal_tanggal || "");
+  var [jam, setJam]       = useState(guest.jadwal_jam || "");
+  var [tempat, setTempat] = useState((linked && linked.lokasi) || TEMPAT_DEFAULT);
+  var [busy, setBusy]     = useState(false);
+
+  async function simpan() {
+    if(!tgl || !jam) { showT("⚠ Tanggal & jam wajib diisi"); return; }
+    if(!String(tempat).trim()) { showT("⚠ Tempat wajib diisi"); return; }
+    setBusy(true);
+    try {
+      await apiPost("update_jadwal", {
+        id: guest.id, scheduled_date: tgl, scheduled_time: jam,
+        tempat: String(tempat).trim(), updated_by: user?.username,
+      });
+      if(SUPA_URL && SUPA_KEY) {
+        if(linked) {
+          var merged = Object.assign({}, linked, {tanggal:tgl, jam:jam, lokasi:String(tempat).trim()});
+          await fetch(SUPA_URL+"/rest/v1/jadwal?id=eq."+linked.id, {
+            method:"PATCH",
+            headers:{"Content-Type":"application/json","apikey":SUPA_KEY,"Authorization":"Bearer "+SUPA_KEY,"Prefer":"return=minimal"},
+            body: JSON.stringify({data: merged}),
+          });
+        } else {
+          var ev = buildAgendaFromGuest(Object.assign({}, guest, {jadwal_tanggal:tgl, jadwal_jam:jam}), user?.username, String(tempat).trim());
+          await pushAgenda(ev);
+        }
+      }
+      showT("✅ Jadwal & tempat diperbarui");
+      if(onDone) onDone();
+    } catch(e) { showT("❌ "+e.message); }
+    finally { setBusy(false); setOpen(false); }
+  }
+
+  if(!open) return (
+    <button onClick={function(){setOpen(true);}}
+      style={{width:"100%",marginTop:10,padding:"11px",borderRadius:11,border:"1.5px solid #CBD5E1",background:"white",color:NAVY,cursor:"pointer",fontSize:13,fontWeight:800}}>
+      ✏️ Edit Jadwal &amp; Tempat
+    </button>
+  );
+
+  return (
+    <div style={{marginTop:10,background:"#F8FAFC",border:"1.5px solid #CBD5E1",borderRadius:12,padding:"13px"}}>
+      <div style={{fontSize:12,fontWeight:800,color:NAVY,marginBottom:10,textTransform:"uppercase",letterSpacing:.5}}>✏️ Edit Jadwal &amp; Tempat</div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+        <div><div style={subLabel}>Tanggal</div><input type="date" className="gd-inp" value={tgl} onChange={function(e){setTgl(e.target.value);}} style={inpStyle}/></div>
+        <div><div style={subLabel}>Jam (WITA)</div><input type="time" className="gd-inp" value={jam} onChange={function(e){setJam(e.target.value);}} style={inpStyle}/></div>
+      </div>
+      <div style={subLabel}>Tempat</div>
+      <div style={{marginTop:4,marginBottom:12}}><TempatField value={tempat} onChange={setTempat}/></div>
+      <div style={{display:"flex",gap:8}}>
+        <ActionBtn label="Batal" color="#64748B" outline flex={1} onClick={function(){setOpen(false);}}/>
+        <ActionBtn label={busy?"Menyimpan...":"💾 Simpan Perubahan"} color="#059669" flex={2} onClick={simpan} loading={busy}/>
+      </div>
+    </div>
+  );
+}
+
 function PimpinanDetail({ guest, role, user, events, showT, isMobile, onBack, onDone }) {
   var done = onDone || onBack;
   var [loading,    setLoading]    = useState(false);
@@ -1072,6 +1180,7 @@ function PimpinanDetail({ guest, role, user, events, showT, isMobile, onBack, on
   var [disposisiKe,setDisposisiKe]= useState("");
   var [alasanCabut,setAlasanCabut]= useState("");
   var [atasArahan, setAtasArahan] = useState(false);
+  var [tempat,     setTempat]     = useState(TEMPAT_DEFAULT);
 
   // Kabag & Admin RK bisa mencabut permohonan dari Pimpinan untuk perbaikan
   var dapatCabut = role==="kabag" || role==="admin_rk";
@@ -1117,10 +1226,12 @@ function PimpinanDetail({ guest, role, user, events, showT, isMobile, onBack, on
         pemutus = (user?.nama||user?.username||"Admin RK")+" (Admin RK) — atas arahan pimpinan, "+tgl;
       }
 
+      var lokasiFinal = String(tempat||"").trim() || TEMPAT_DEFAULT;
       var bodyResp = {
         id: guest.id,
         response: "approved",
         responded_by: pemutus,
+        tempat: lokasiFinal,
       };
       if(jadwalTgl) bodyResp.scheduled_date = jadwalTgl;
       if(jadwalJam) bodyResp.scheduled_time = jadwalJam;
@@ -1131,7 +1242,7 @@ function PimpinanDetail({ guest, role, user, events, showT, isMobile, onBack, on
       if(jadwalTgl && jadwalJam && !isGuestSynced(guest, events)) {
         var ev = buildAgendaFromGuest(
           Object.assign({}, guest, {jadwal_tanggal:jadwalTgl, jadwal_jam:jadwalJam}),
-          user?.username
+          user?.username, lokasiFinal
         );
         await pushAgenda(ev);
       }
@@ -1217,6 +1328,12 @@ function PimpinanDetail({ guest, role, user, events, showT, isMobile, onBack, on
                   <input type="time" className="gd-inp" value={jadwalJam}
                     onChange={function(e){setJadwalJam(e.target.value);}} style={inpStyle}/>
                 </div>
+              </div>
+
+              {/* Tempat pertemuan */}
+              <div style={{marginBottom:12}}>
+                <div style={subLabel}>Tempat</div>
+                <div style={{marginTop:4}}><TempatField value={tempat} onChange={setTempat}/></div>
               </div>
 
               {/* Peringatan konflik */}
@@ -1369,6 +1486,7 @@ function PimpinanDetail({ guest, role, user, events, showT, isMobile, onBack, on
             </div>
           )}
           <SyncAgendaBox guest={guest} events={events} user={user} showT={showT}/>
+          <EditJadwalTempat guest={guest} events={events} user={user} showT={showT} onDone={done}/>
         </>
       )}
       {guest.status==="rejected" && (
@@ -1483,7 +1601,7 @@ function AjudanView({ role, user, events, showT, isMobile }) {
                   <div style={{fontSize:12,fontWeight:800,color:NAVY,textTransform:"uppercase",letterSpacing:.8,marginBottom:10,paddingBottom:6,borderBottom:"2px solid "+GOLD}}>
                     🗓 Hari Ini — {fmtDate(today)}
                   </div>
-                  {todayList.map(function(g){return <AjudanCard key={g.id} guest={g}/>;}) }
+                  {todayList.map(function(g){return <AjudanCard key={g.id} guest={g} onClick={function(){setDetail(g);}}/>;}) }
                 </div>
               )}
               {tomorrowList.length>0 && (
@@ -1491,7 +1609,7 @@ function AjudanView({ role, user, events, showT, isMobile }) {
                   <div style={{fontSize:12,fontWeight:800,color:NAVY,textTransform:"uppercase",letterSpacing:.8,marginBottom:10,paddingBottom:6,borderBottom:"2px solid #CBD5E1"}}>
                     🗓 Besok — {fmtDate(tomorrow)}
                   </div>
-                  {tomorrowList.map(function(g){return <AjudanCard key={g.id} guest={g}/>;}) }
+                  {tomorrowList.map(function(g){return <AjudanCard key={g.id} guest={g} onClick={function(){setDetail(g);}}/>;}) }
                 </div>
               )}
             </>
@@ -1502,11 +1620,11 @@ function AjudanView({ role, user, events, showT, isMobile }) {
   );
 }
 
-function AjudanCard({ guest }) {
+function AjudanCard({ guest, onClick }) {
   var pc = PRIORITY_CFG[gPrioritas(guest)]||PRIORITY_CFG.biasa;
   return (
-    <div className="gd-card" style={{
-      background:"white",borderRadius:18,marginBottom:12,overflow:"hidden",
+    <div className="gd-card" onClick={onClick} style={{
+      background:"white",borderRadius:18,marginBottom:12,overflow:"hidden",cursor:onClick?"pointer":"default",
       boxShadow:"0 3px 14px rgba(10,22,40,0.08)",border:"1.5px solid "+pc.color+"30",
     }}>
       <div style={{background:"linear-gradient(135deg,"+NAVY+","+NAVY_MID+")",padding:"10px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
