@@ -51,7 +51,13 @@ function gPhone(g)    { return g.no_wa    || g.phone        || "–"; }
 function gTujuan(g)   { return g.tujuan_pejabat || "–"; }
 function gMaksud(g)   { return g.maksud_keperluan || g.purpose || "–"; }
 function gPesan(g)    { return g.pesan   || g.message      || ""; }
-function gPrioritas(g){ return g.prioritas|| g.priority     || "biasa"; }
+function gPrioritas(g){
+  var v = String(g.prioritas || g.priority || "biasa").toLowerCase();
+  if (v === "tinggi") return "mendesak";   // normalisasi nilai DB (Tinggi/Sedang/Rendah)
+  if (v === "sedang") return "penting";
+  if (v === "rendah") return "biasa";
+  return v;                                 // sudah lowercase: mendesak/penting/biasa
+}
 
 async function apiPost(action, body) {
   var r = await fetch(API+"?action="+action, {
