@@ -168,12 +168,22 @@ async function actionVerifyWA(body) {
   return { ok: true, message: "WA verifikasi terkirim" };
 }
 
+// Normalisasi prioritas ke nilai yang diizinkan check constraint DB
+// (['Tinggi','Sedang','Rendah']). Aplikasi memakai mendesak/penting/biasa,
+// sehingga perlu dipetakan agar tidak melanggar constraint.
+function normPrioritas(v) {
+  var s = String(v || "").toLowerCase();
+  if (s === "mendesak" || s === "tinggi") return "Tinggi";
+  if (s === "penting"  || s === "sedang") return "Sedang";
+  if (s === "biasa"    || s === "rendah") return "Rendah";
+  return "Sedang";
+}
+
 // 4. POST: screen (Kasubbag -> Kabag)
 async function actionScreen(body) {
   if (!body.id) throw new Error("id wajib");
-  var prio = body.prioritas || body.priority || "Sedang";
   await sbPatch(body.id, {
-    prioritas: prio, // Menyesuaikan check constraint ['Tinggi', 'Sedang', 'Rendah']
+    prioritas: normPrioritas(body.prioritas || body.priority),
     catatan_staf: body.catatan_staf || body.staff_notes || "",
     dikurasi_oleh: body.dikurasi_oleh || body.screened_by || "",
     status: "pending_kabag"
