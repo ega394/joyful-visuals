@@ -20,6 +20,7 @@ export default function WaliKotaAudiensiDashboard({ role, user, showT, isMobile 
   const [catatanPim, setCatatan] = React.useState("");
   const [alasan, setAlasan]      = React.useState("");
   const [saving, setSaving]      = React.useState(false);
+  const [viewTab, setViewTab]    = React.useState("pending"); // "pending" | "terjadwal"
 
   const BULAN = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Ags","Sep","Okt","Nov","Des"];
   const fmtTs = s => {
@@ -123,6 +124,17 @@ export default function WaliKotaAudiensiDashboard({ role, user, showT, isMobile 
         </div>
       </div>
 
+      {/* Tab: Menunggu Keputusan | Terjadwal */}
+      <div style={{display:"flex",gap:6,marginBottom:14,background:"white",padding:5,borderRadius:12,border:"1px solid #E2E8F0"}}>
+        {[["pending","🕐 Menunggu Keputusan"],["terjadwal","📅 Terjadwal"]].map(t=>{
+          const act = viewTab===t[0];
+          return <button key={t[0]} onClick={()=>setViewTab(t[0])} style={{flex:1,padding:"9px 8px",borderRadius:9,border:"none",cursor:"pointer",fontSize:12.5,fontWeight:800,background:act?NAVY:"transparent",color:act?"white":"#64748B"}}>{t[1]}</button>;
+        })}
+      </div>
+
+      {viewTab==="terjadwal" && <TerjadwalPimpinan labelPimpinan={labelPimpinan} user={user} showT={showT} PRIORITY={PRIORITY} fmtTs={fmtTs}/>}
+
+      {viewTab==="pending" && <>
       {loading && <div style={{textAlign:"center",padding:"40px",color:"#94A3B8"}}>⏳ Mengambil data...</div>}
 
       {!loading && guests.length === 0 && (
@@ -283,6 +295,134 @@ export default function WaliKotaAudiensiDashboard({ role, user, showT, isMobile 
                 )}
               </div>
             )}
+          </div>
+        );
+      })}
+      </>}
+    </div>
+  );
+}
+
+// ── Terjadwal: WK/Wakil mengedit jam & tempat audiensi yang sudah disetujui ──
+function TerjadwalPimpinan({ labelPimpinan, user, showT, PRIORITY, fmtTs }) {
+  const NAVY = "#0A1628", GREEN = "#0D6B4F";
+  const [list, setList]       = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [editId, setEditId]   = React.useState(null);
+  const [eTgl, setETgl]       = React.useState("");
+  const [eJam, setEJam]       = React.useState("");
+  const [eTempat, setETempat] = React.useState("Ruang Kerja");
+  const [saving, setSaving]   = React.useState(false);
+
+  const load = () => {
+    setLoading(true);
+    fetch("/api/guest?action=queue&status=approved&limit=100")
+      .then(r => r.json())
+      .then(d => setList((Array.isArray(d)?d:[]).filter(g => g.tujuan_pejabat===labelPimpinan)
+        .sort((a,b)=>((a.jadwal_tanggal||"")+(a.jadwal_jam||"")).localeCompare((b.jadwal_tanggal||"")+(b.jadwal_jam||"")))))
+      .catch(() => setList([]))
+      .finally(() => setLoading(false));
+  };
+  React.useEffect(load, [labelPimpinan]);
+
+  const openEdit = (g) => {
+    setEditId(g.id);
+    setETgl(g.jadwal_tanggal || "");
+    setEJam(g.jadwal_jam || "");
+    setETempat("Ruang Kerja");
+  };
+
+  const simpan = async (g) => {
+    if(!eTgl || !eJam){ showT("Isi tanggal & jam", "warn"); return; }
+    const tempatFinal = String(eTempat||"").trim() || "Ruang Kerja";
+    setSaving(true);
+    try {
+      const r = await fetch("/api/guest?action=update_jadwal", {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ id:g.id, scheduled_date:eTgl, scheduled_time:eJam, tempat:tempatFinal, updated_by:user?.username }),
+      });
+      const j = await r.json().catch(()=>({}));
+      if(!r.ok || (j && j.error)) throw new Error(j && j.error ? j.error : "Gagal");
+      // Perbarui entri agenda terkait (jika ada)
+      if(SUPA_URL && SUPA_KEY){
+        const rows = await fetch(SUPA_URL+"/rest/v1/jadwal?select=id,data&data->>guest_id=eq."+g.id, {
+          headers:{ apikey:SUPA_KEY, Authorization:"Bearer "+SUPA_KEY }
+        }).then(x=>x.json()).catch(()=>[]);
+        if(Array.isArray(rows) && rows[0]){
+          const merged = Object.assign({}, rows[0].data, { tanggal:eTgl, jam:eJam, lokasi:tempatFinal });
+          await fetch(SUPA_URL+"/rest/v1/jadwal?id=eq."+rows[0].id, {
+            method:"PATCH",
+            headers:{ "Content-Type":"application/json", apikey:SUPA_KEY, Authorization:"Bearer "+SUPA_KEY, Prefer:"return=minimal" },
+            body: JSON.stringify({ data: merged }),
+          });
+        }
+      }
+      showT("✅ Jadwal & tempat diperbarui", "ok");
+      setEditId(null);
+      load();
+    } catch(e){ showT("Gagal: "+e.message, "error"); }
+    finally { setSaving(false); }
+  };
+
+  const inp = { width:"100%", padding:"9px 10px", borderRadius:8, border:"1.5px solid #CBD5E1", fontSize:13, boxSizing:"border-box" };
+  const isLain = (v) => v!=="Rumah Jabatan" && v!=="Ruang Kerja";
+
+  if(loading) return <div style={{textAlign:"center",padding:"40px",color:"#94A3B8"}}>⏳ Mengambil data...</div>;
+  if(list.length===0) return (
+    <div style={{textAlign:"center",padding:"50px 20px",background:"white",borderRadius:16,border:"1px solid #E2E8F0"}}>
+      <div style={{fontSize:36,marginBottom:8}}>📅</div>
+      <div style={{fontWeight:700,color:"#475569"}}>Belum ada audiensi terjadwal</div>
+    </div>
+  );
+
+  return (
+    <div>
+      {list.map(g => {
+        const pr = PRIORITY[g.prioritas||"biasa"] || PRIORITY.biasa;
+        const ed = editId===g.id;
+        return (
+          <div key={g.id} style={{background:"white",borderRadius:14,marginBottom:12,border:"1.5px solid #E2E8F0",overflow:"hidden",borderLeft:`4px solid ${pr.c}`}}>
+            <div style={{padding:"14px 16px"}}>
+              <div style={{fontWeight:800,fontSize:14,color:"#0F172A",marginBottom:3}}>{g.nama||g.name||"-"}</div>
+              <div style={{fontSize:12,color:"#64748B",marginBottom:6}}>🏛 {g.instansi||g.organization||"Perorangan"}</div>
+              <div style={{fontSize:13,color:GREEN,fontWeight:700}}>
+                🗓️ {g.jadwal_tanggal ? fmtTs(g.jadwal_tanggal+"T00:00:00") : "-"}{g.jadwal_jam?" · "+g.jadwal_jam+" WITA":""}
+              </div>
+
+              {!ed ? (
+                <button onClick={()=>openEdit(g)} style={{marginTop:10,padding:"9px 14px",borderRadius:9,border:"1.5px solid #CBD5E1",background:"white",color:NAVY,cursor:"pointer",fontSize:12.5,fontWeight:800}}>
+                  ✏️ Edit Jam &amp; Tempat
+                </button>
+              ) : (
+                <div style={{marginTop:12,background:"#F8FAFC",border:"1px solid #E2E8F0",borderRadius:10,padding:"12px"}}>
+                  <div style={{display:"flex",gap:8,marginBottom:8}}>
+                    <div style={{flex:2}}>
+                      <label style={{display:"block",fontSize:10,fontWeight:700,color:"#64748B",marginBottom:4}}>Tanggal</label>
+                      <input type="date" value={eTgl} onChange={e=>setETgl(e.target.value)} style={inp}/>
+                    </div>
+                    <div style={{flex:1}}>
+                      <label style={{display:"block",fontSize:10,fontWeight:700,color:"#64748B",marginBottom:4}}>Jam WITA</label>
+                      <input type="time" value={eJam} onChange={e=>setEJam(e.target.value)} style={inp}/>
+                    </div>
+                  </div>
+                  <label style={{display:"block",fontSize:10,fontWeight:700,color:"#64748B",marginBottom:4}}>Tempat</label>
+                  <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:isLain(eTempat)?6:0}}>
+                    {[["Rumah Jabatan","🏠"],["Ruang Kerja","🏢"]].map(o=>{
+                      const act = eTempat===o[0];
+                      return <button key={o[0]} type="button" onClick={()=>setETempat(o[0])} style={{flex:1,minWidth:100,padding:"9px 6px",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700,border:"1.5px solid "+(act?NAVY:"#CBD5E1"),background:act?"#EEF2FF":"white",color:act?NAVY:"#64748B"}}>{o[1]} {o[0]}</button>;
+                    })}
+                    <button type="button" onClick={()=>setETempat("")} style={{flex:1,minWidth:100,padding:"9px 6px",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700,border:"1.5px solid "+(isLain(eTempat)?NAVY:"#CBD5E1"),background:isLain(eTempat)?"#EEF2FF":"white",color:isLain(eTempat)?NAVY:"#64748B"}}>✏️ Lainnya</button>
+                  </div>
+                  {isLain(eTempat) && (
+                    <input type="text" value={eTempat} onChange={e=>setETempat(e.target.value)} placeholder="Tulis tempat..." style={{...inp, marginBottom:0}}/>
+                  )}
+                  <div style={{display:"flex",gap:8,marginTop:10}}>
+                    <button onClick={()=>setEditId(null)} style={{flex:1,padding:"9px",borderRadius:8,border:"1.5px solid #E2E8F0",background:"white",color:"#64748B",cursor:"pointer",fontWeight:700,fontSize:12.5}}>Batal</button>
+                    <button onClick={()=>simpan(g)} disabled={saving} style={{flex:2,padding:"9px",borderRadius:8,border:"none",background:GREEN,color:"white",cursor:"pointer",fontWeight:800,fontSize:12.5,opacity:saving?0.6:1}}>{saving?"Menyimpan...":"💾 Simpan Perubahan"}</button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         );
       })}
