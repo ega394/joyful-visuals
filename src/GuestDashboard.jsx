@@ -135,7 +135,7 @@ export default function GuestDashboard({ role, user, events, showT, isMobile }) 
       {(role==="kasubbag_protokol") &&
         <KasubbagView   user={user} showT={showT} isMobile={isMobile}/>}
       {(role==="kabag") &&
-        <KabagView      user={user} showT={showT} isMobile={isMobile}/>}
+        <KabagView      user={user} events={events} showT={showT} isMobile={isMobile}/>}
       {(role==="walikota"||role==="wakilwalikota") &&
         <PimpinanView   role={role} user={user} events={events} showT={showT} isMobile={isMobile}/>}
       {(role==="ajudan_walikota"||role==="ajudan_wakilwalikota") &&
@@ -192,6 +192,7 @@ function AdminRKView({ user, events, showT, isMobile }) {
     {k:"pending_kasubbag", l:"Diteruskan"},
     {k:"pending_pimpinan", l:"📅 Siap Dijadwalkan"},
     {k:"approved",         l:"✅ Disetujui"},
+    {k:"selesai",          l:"🗄 Arsip"},
     {k:"rejected",         l:"Ditolak"},
     {k:"all",              l:"🔎 Lacak Semua"},
   ];
@@ -341,9 +342,13 @@ function AdminRKDetail({ guest, user, events, showT, isMobile, onBack, onDone })
             </div>
           )}
           <SyncAgendaBox guest={guest} events={events} user={user} showT={showT}/>
+          <MarkSelesaiButton guest={guest} user={user} showT={showT} onDone={done}/>
         </>
       )}
-      {guest.status!=="pending_rk" && guest.status!=="approved" && (
+      {guest.status==="selesai" && (
+        <InfoBox type="info" msg={"🗄 Audiensi telah dilaksanakan & diarsipkan"+(guest.jadwal_tanggal?" — "+fmtDate(guest.jadwal_tanggal):"")}/>
+      )}
+      {guest.status!=="pending_rk" && guest.status!=="approved" && guest.status!=="selesai" && (
         <InfoBox type="info" msg={"Permohonan ini sudah "+STATUS_CFG[guest.status]?.label+". Tidak ada aksi lebih lanjut di level ini."}/>
       )}
     </DetailLayout>
@@ -593,7 +598,7 @@ function KasubbagDetail({ guest, user, showT, isMobile, onBack, onDone }) {
 // ══════════════════════════════════════════════════════════════
 //  VIEW 3 — KABAG PROKOPIM: Gatekeeper Eksekutif
 // ══════════════════════════════════════════════════════════════
-function KabagView({ user, showT, isMobile }) {
+function KabagView({ user, events, showT, isMobile }) {
   var [guests,     setGuests]     = useState([]);
   var [loading,    setLoading]    = useState(true);
   var [tab,        setTab]        = useState("pending_kabag");
@@ -614,7 +619,7 @@ function KabagView({ user, showT, isMobile }) {
 
   if(detail) return (
     <KabagDetail
-      guest={detail} user={user} showT={showT} isMobile={isMobile}
+      guest={detail} user={user} events={events} showT={showT} isMobile={isMobile}
       onBack={function(){setDetail(null);}}
       onDone={function(){setGuests(function(prev){return prev.filter(function(g){return g.id!==detail.id;});}); setDetail(null);}}
     />
@@ -624,6 +629,7 @@ function KabagView({ user, showT, isMobile }) {
     {k:"pending_kabag",    l:"Menunggu Telaah Anda"},
     {k:"pending_pimpinan", l:"Di Pimpinan"},
     {k:"approved",         l:"Disetujui"},
+    {k:"selesai",          l:"🗄 Arsip"},
     {k:"rejected",         l:"Ditolak"},
     {k:"all",              l:"🔎 Lacak Semua"},
   ];
@@ -660,7 +666,7 @@ function KabagView({ user, showT, isMobile }) {
   );
 }
 
-function KabagDetail({ guest, user, showT, isMobile, onBack, onDone }) {
+function KabagDetail({ guest, user, events, showT, isMobile, onBack, onDone }) {
   var done = onDone || onBack;
   var [priority,   setPriority]   = useState(gPrioritas(guest));
   var [telaah,     setTelaah]     = useState(guest.telaah_kabag || "");
@@ -853,7 +859,21 @@ function KabagDetail({ guest, user, showT, isMobile, onBack, onDone }) {
             onClick={function(){setKonfirm("tolak");}}/>
         </div>
       )}
-      {guest.status!=="pending_kabag" && (
+      {guest.status==="approved" && (
+        <>
+          {guest.diputuskan_oleh && (
+            <div style={{fontSize:12,color:"#475569",margin:"2px 2px 10px",lineHeight:1.5}}>
+              🖊 Diputuskan oleh: <b>{guest.diputuskan_oleh}</b>
+            </div>
+          )}
+          <SyncAgendaBox guest={guest} events={events} user={user} showT={showT}/>
+          <MarkSelesaiButton guest={guest} user={user} showT={showT} onDone={done}/>
+        </>
+      )}
+      {guest.status==="selesai" && (
+        <InfoBox type="info" msg={"🗄 Audiensi telah dilaksanakan & diarsipkan"+(guest.jadwal_tanggal?" — "+fmtDate(guest.jadwal_tanggal):"")}/>
+      )}
+      {guest.status!=="pending_kabag" && guest.status!=="approved" && guest.status!=="pending_pimpinan" && guest.status!=="selesai" && (
         <InfoBox type="info" msg={"Status: "+STATUS_CFG[guest.status]?.label}/>
       )}
 
@@ -1004,6 +1024,35 @@ function SyncAgendaBox({ guest, events, user, showT }) {
         {busy?"Menyinkronkan...":"🔄 Sinkronkan ke Agenda"}
       </button>
     </div>
+  );
+}
+
+// Tombol "Telah Dilaksanakan" → arsipkan (Kabag & Admin RK)
+function MarkSelesaiButton({ guest, user, showT, onDone }) {
+  var [busy, setBusy] = useState(false);
+  var [konfirm, setKonfirm] = useState(false);
+
+  async function tandai() {
+    setBusy(true);
+    try {
+      await apiPost("mark_selesai", { id: guest.id, by: user?.username });
+      showT("🗄 Ditandai telah dilaksanakan & diarsipkan");
+      if(onDone) onDone();
+    } catch(e) { showT("❌ "+e.message); }
+    finally { setBusy(false); setKonfirm(false); }
+  }
+
+  if(konfirm) return (
+    <KonfirmasiBox
+      pesan={"Tandai audiensi a.n. "+gName(guest)+" sebagai TELAH DILAKSANAKAN? Permohonan akan diarsipkan & keluar dari daftar aktif."}
+      onYa={tandai} onBatal={function(){setKonfirm(false);}} loading={busy} warna="#334155"
+    />
+  );
+  return (
+    <button onClick={function(){setKonfirm(true);}}
+      style={{width:"100%",marginTop:10,padding:"12px",borderRadius:11,border:"1.5px solid #CBD5E1",background:"white",color:"#334155",cursor:"pointer",fontSize:13,fontWeight:800}}>
+      🗄 Tandai Telah Dilaksanakan &amp; Arsipkan
+    </button>
   );
 }
 

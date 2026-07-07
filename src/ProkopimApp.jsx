@@ -5762,6 +5762,7 @@ function ReportingTamuModal({ user, onClose, cetakOleh, showT }) {
     approved:         { text:"Disetujui / Dijadwalkan",  color:"#065F46" },
     rejected:         { text:"Ditolak",                  color:"#991B1B" },
     disposed:         { text:"Didisposisi",              color:"#475569" },
+    selesai:          { text:"Telah Dilaksanakan",       color:"#334155" },
   };
 
   const PRIORITY_CONFIG = {
@@ -6021,6 +6022,7 @@ function ReportingTamuModal({ user, onClose, cetakOleh, showT }) {
                   <option value="pending_kabag">Di Kabag Prokopim</option>
                   <option value="pending_pimpinan">Di Meja Pimpinan</option>
                   <option value="approved">Telah Disetujui / Dijadwalkan</option>
+                  <option value="selesai">Telah Dilaksanakan (Arsip)</option>
                   <option value="rejected">Ditolak</option>
                   <option value="disposed">Didisposisi</option>
                 </select>

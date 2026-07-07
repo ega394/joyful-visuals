@@ -10,6 +10,7 @@ export const SEMANTIC = {
   review:   { color: "#5B21B6", bg: "#EDE9FE", bar: "#7C3AED", border: "#DDD6FE" },
   approved: { color: "#065F46", bg: "#D1FAE5", bar: "#10B981", border: "#A7F3D0" },
   rejected: { color: "#991B1B", bg: "#FEE2E2", bar: "#EF4444", border: "#FECACA" },
+  done:     { color: "#334155", bg: "#E2E8F0", bar: "#64748B", border: "#CBD5E1" },
 };
 
 // Status workflow jadwal (ProkopimApp): draft → menunggu_kasubbag → menunggu_kabag → disetujui/ditolak
@@ -30,6 +31,7 @@ export const TAMU_STATUS = {
   approved:         { label: "Disetujui",    ...SEMANTIC.approved },
   rejected:         { label: "Ditolak",      ...SEMANTIC.rejected },
   disposed:         { label: "Didisposisi",  ...SEMANTIC.draft },
+  selesai:          { label: "Telah Dilaksanakan", ...SEMANTIC.done },
 };
 
 export const PRIORITY_COLORS = {
