@@ -712,6 +712,45 @@ function appendTimelineEntries(prevEv, patch, actor) {
     out.push({ ...base, action: "upload_sambutan", note: patch.sambutanNama || "" });
   }
 
+  // ── FASE PELAKSANAAN (setelah disetujui) ──────────────────────
+  const _kehadiran = (prefix, status, wakil) => {
+    let a = prefix + "_update";
+    if (status === "hadir") a = prefix + "_hadir";
+    else if (status === "tidak_hadir") a = prefix + "_tidak_hadir";
+    else if (status === "diwakilkan" || status === "delegasi" || status === "diwakili") a = prefix + "_diwakilkan";
+    return { ...base, action: a, to: status, note: wakil || null };
+  };
+
+  // 4. Konfirmasi kehadiran WK / WWK
+  if (patch.statusWK !== undefined && patch.statusWK && patch.statusWK !== prevEv.statusWK) {
+    out.push(_kehadiran("wk", patch.statusWK, patch.perwakilanWK || prevEv.perwakilanWK));
+  }
+  if (patch.statusWWK !== undefined && patch.statusWWK && patch.statusWWK !== prevEv.statusWWK) {
+    out.push(_kehadiran("wwk", patch.statusWWK, patch.perwakilanWWK || prevEv.perwakilanWWK));
+  }
+
+  // 5. Disposisi WWK ke jajaran
+  if (patch.delegasiWWKJajaran === true && !prevEv.delegasiWWKJajaran) {
+    out.push({ ...base, action: "delegasi_jajaran" });
+  }
+
+  // 6. Penugasan personil
+  if (patch.personil !== undefined &&
+      JSON.stringify(patch.personil || []) !== JSON.stringify(prevEv.personil || [])) {
+    out.push({ ...base, action: "penugasan_personil", note: (patch.personil || []).length + " personil" });
+  }
+
+  // 7. Naskah sambutan disahkan
+  if (patch.sambutanSah === true && !prevEv.sambutanSah) {
+    out.push({ ...base, action: "sambutan_disahkan" });
+  }
+
+  // 8. Evaluasi pasca kegiatan
+  if (patch.evaluasi !== undefined &&
+      JSON.stringify(patch.evaluasi || {}) !== JSON.stringify(prevEv.evaluasi || {})) {
+    out.push({ ...base, action: "evaluasi_diisi" });
+  }
+
   return out.length ? out : null;
 }
 
@@ -732,6 +771,27 @@ const TIMELINE_LABEL = {
   upload_undangan:    { label: "Berkas undangan diunggah",           color: "#1E40AF", icon: "📎" },
   upload_sambutan:    { label: "Berkas sambutan diunggah",           color: "#1E40AF", icon: "📄" },
   update_alur:        { label: "Status alur diperbarui",             color: "#475569", icon: "•" },
+  // ── Fase pelaksanaan ──
+  wk_hadir:           { label: "Wali Kota dikonfirmasi Hadir",       color: "#047857", icon: "✅" },
+  wk_tidak_hadir:     { label: "Wali Kota Tidak Hadir",              color: "#B91C1C", icon: "🚫" },
+  wk_diwakilkan:      { label: "Wali Kota Diwakilkan",               color: "#7C3AED", icon: "👥" },
+  wk_update:          { label: "Kehadiran Wali Kota diperbarui",     color: "#475569", icon: "•" },
+  wwk_hadir:          { label: "Wakil Wali Kota dikonfirmasi Hadir", color: "#047857", icon: "✅" },
+  wwk_tidak_hadir:    { label: "Wakil Wali Kota Tidak Hadir",        color: "#B91C1C", icon: "🚫" },
+  wwk_diwakilkan:     { label: "Wakil Wali Kota Diwakilkan",         color: "#7C3AED", icon: "👥" },
+  wwk_update:         { label: "Kehadiran Wakil WK diperbarui",      color: "#475569", icon: "•" },
+  delegasi_jajaran:   { label: "Didisposisi ke jajaran",            color: "#7C3AED", icon: "🎯" },
+  penugasan_personil: { label: "Penugasan personil",                color: "#1E40AF", icon: "👤" },
+  sambutan_disahkan:  { label: "Naskah sambutan disahkan",          color: "#047857", icon: "🎤" },
+  evaluasi_diisi:     { label: "Evaluasi pasca kegiatan diisi",     color: "#0D6B4F", icon: "📝" },
+};
+
+// Action yang termasuk FASE PELAKSANAAN (setelah agenda disetujui)
+const TIMELINE_PELAKSANAAN = {
+  wk_hadir:1, wk_tidak_hadir:1, wk_diwakilkan:1, wk_update:1,
+  wwk_hadir:1, wwk_tidak_hadir:1, wwk_diwakilkan:1, wwk_update:1,
+  delegasi_to_wwk:1, cancel_delegasi:1, delegasi_jajaran:1,
+  penugasan_personil:1, sambutan_disahkan:1, evaluasi_diisi:1,
 };
 
 function fmtTimelineAt(iso) {
@@ -772,10 +832,18 @@ function AuditTimeline({ ev, compact }) {
         🕓 RIWAYAT ALUR ({items.length})
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        {items.map((it, i) => {
+        {(() => { const firstExecIdx = items.findIndex(x => TIMELINE_PELAKSANAAN[x.action]); return items.map((it, i) => {
           const meta = TIMELINE_LABEL[it.action] || TIMELINE_LABEL.update_alur;
           return (
-            <div key={i} style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+            <React.Fragment key={i}>
+            {i === firstExecIdx && (
+              <div style={{ display:"flex", alignItems:"center", gap:8, margin:"4px 0 2px" }}>
+                <div style={{ flex:1, height:1, background:"#E2E8F0" }}/>
+                <div style={{ fontSize:9.5, fontWeight:800, color:"#94A3B8", letterSpacing:1, textTransform:"uppercase" }}>Fase Pelaksanaan</div>
+                <div style={{ flex:1, height:1, background:"#E2E8F0" }}/>
+              </div>
+            )}
+            <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
               <div style={{ fontSize: 14, lineHeight: "18px", flexShrink: 0, width: 18, textAlign: "center" }}>{meta.icon}</div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: meta.color }}>{meta.label}</div>
@@ -790,8 +858,9 @@ function AuditTimeline({ ev, compact }) {
                 )}
               </div>
             </div>
+            </React.Fragment>
           );
-        })}
+        }); })()}
       </div>
     </div>
   );
