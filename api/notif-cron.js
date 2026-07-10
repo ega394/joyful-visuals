@@ -273,18 +273,27 @@ async function notifPimpinan(jadwal, users) {
     .filter(e => e.tanggal === today)
     .sort((a, b) => (a.jam || "").localeCompare(b.jam || ""));
 
-  const FOOTER_ADA =
+  const FOOTER =
     `\n━━━━━━━━━━━━━━\n` +
-    `🤖 Dikirim otomatis oleh sistem *#ProkopimHibot*.\n` +
-    `📌 Jadwal dapat berubah sewaktu-waktu — untuk informasi terkini, silakan buka aplikasi Prokopim.`;
-  const FOOTER_KOSONG =
-    `\n━━━━━━━━━━━━━━\n` +
-    `🤖 Dikirim otomatis oleh sistem *#ProkopimHibot*.\n` +
-    `📌 Jika ada perubahan, informasi terkini dapat dilihat langsung di aplikasi Prokopim.`;
+    `🤖 Pesan ini dikirim secara otomatis dan tidak perlu dibalas\n` +
+    `📌 Jadwal secara realtime dapat diakses di aplikasi *#ProkopimHibot*`;
+  const FOOTER_ADA = FOOTER;
+  const FOOTER_KOSONG = FOOTER;
+
+  // Format satu baris kegiatan: waktu, nama, lokasi, pakaian (+ tanda sambutan)
+  const fmtItem = (e) => {
+    const jam   = (e.jam || "").slice(0, 5);
+    const isSambutan = e.jenisKegiatan === "Sambutan" || e.jenisKegiatan === "Sambutan membuka acara";
+    let s = `🕐 ${jam} · *${e.namaAcara}*\n   📍 ${e.lokasi || e.penyelenggara || "-"}\n   👔 ${e.pakaian || "-"}`;
+    if (isSambutan) s += " · 🎤 Ada sambutan";
+    return s;
+  };
 
   const pimpinanList = [
-    { role: "walikota",      sapaan: "Bapak Wali Kota",       label: "Wali Kota" },
-    { role: "wakilwalikota", sapaan: "Bapak Wakil Wali Kota", label: "Wakil Wali Kota" },
+    { role: "walikota",      key: "walikota",      sapaan: "Bapak Wali Kota",       label: "Wali Kota",
+      statusF: "statusWK",  wakilF: "perwakilanWK" },
+    { role: "wakilwalikota", key: "wakilwalikota", sapaan: "Bapak Wakil Wali Kota", label: "Wakil Wali Kota",
+      statusF: "statusWWK", wakilF: "perwakilanWWK" },
   ];
 
   for (const p of pimpinanList) {
@@ -292,10 +301,26 @@ async function notifPimpinan(jadwal, users) {
     if (orang.length === 0) continue;
 
     const myEvs = todayEvs.filter(e =>
-      p.role === "walikota"
+      p.key === "walikota"
         ? (e.untukPimpinan || []).includes("walikota")
         : (e.untukPimpinan || []).includes("wakilwalikota") || e.delegasiKeWWK
     );
+
+    // Kelompokkan: Dihadiri Langsung / Diwakilkan / Menunggu Konfirmasi.
+    // "Tidak Hadir" sengaja tidak ditampilkan pada briefing pimpinan.
+    const hadir = [], wakil = [], nunggu = [];
+    for (const e of myEvs) {
+      const status = e[p.statusF];
+      let diwakilkanKe = null;
+      if (p.key === "walikota" && e.delegasiKeWWK) diwakilkanKe = "Wakil Wali Kota";
+      else if (p.key === "wakilwalikota" && e.delegasiWWKJajaran) diwakilkanKe = e.perwakilanWWK || "pejabat yang ditunjuk";
+      else if (status === "diwakilkan") diwakilkanKe = e[p.wakilF] || "pejabat yang ditunjuk";
+
+      if (diwakilkanKe) wakil.push({ e, ke: diwakilkanKe });
+      else if (status === "hadir") hadir.push(e);
+      else if (status === "tidak_hadir") { /* tidak ditampilkan */ }
+      else nunggu.push(e); // belum dikonfirmasi
+    }
 
     let msg;
     if (myEvs.length === 0) {
@@ -304,19 +329,21 @@ async function notifPimpinan(jadwal, users) {
         `Tidak ada agenda resmi terjadwal hari ini.` +
         FOOTER_KOSONG;
     } else {
-      const daftar = myEvs.map(e => {
-        const jam   = (e.jam || "").slice(0, 5);
-        const isSambutan = e.jenisKegiatan === "Sambutan" || e.jenisKegiatan === "Sambutan membuka acara";
-        const info  = isSambutan ? "🎤 Ada sambutan" : `👔 ${e.pakaian || "-"}`;
-        return `🕐 ${jam} · *${e.namaAcara}*\n📍 ${e.lokasi || e.penyelenggara || "-"}  ·  ${info}`;
-      }).join("\n\n");
-
-      msg =
-        `🌅 *Selamat Pagi, ${p.sapaan}*\n\n` +
-        `Agenda ${p.label} hari ini — ${fmtTgl(today)} (${myEvs.length} kegiatan):\n\n` +
-        daftar +
-        `\n\nSelamat beraktivitas, Bapak. Sukses untuk seluruh agenda hari ini.` +
-        FOOTER_ADA;
+      let body = `🌅 *Selamat Pagi, ${p.sapaan}*\n\nAgenda ${p.label} hari ini — ${fmtTgl(today)}:\n`;
+      if (hadir.length) {
+        body += `\n✅ *Dihadiri Langsung* (${hadir.length})\n` + hadir.map(fmtItem).join("\n");
+      }
+      if (wakil.length) {
+        body += `\n\n👥 *Diwakilkan* (${wakil.length})\n` +
+          wakil.map(w => fmtItem(w.e) + `\n   ↩️ Diwakilkan kepada: *${w.ke}*`).join("\n");
+      }
+      if (nunggu.length) {
+        body += `\n\n🕓 *Menunggu Konfirmasi* (${nunggu.length})\n` + nunggu.map(fmtItem).join("\n");
+      }
+      if (!hadir.length && !wakil.length && !nunggu.length) {
+        body += `\nTidak ada agenda yang memerlukan perhatian Bapak hari ini.`;
+      }
+      msg = body + FOOTER_ADA;
     }
 
     for (const u of orang) {
