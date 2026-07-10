@@ -273,14 +273,12 @@ async function notifPimpinan(jadwal, users) {
     .filter(e => e.tanggal === today)
     .sort((a, b) => (a.jam || "").localeCompare(b.jam || ""));
 
-  const FOOTER_ADA =
+  const FOOTER =
     `\n━━━━━━━━━━━━━━\n` +
-    `🤖 Dikirim otomatis oleh sistem *#ProkopimHibot*.\n` +
-    `📌 Jadwal dapat berubah sewaktu-waktu — untuk informasi terkini, silakan buka aplikasi Prokopim.`;
-  const FOOTER_KOSONG =
-    `\n━━━━━━━━━━━━━━\n` +
-    `🤖 Dikirim otomatis oleh sistem *#ProkopimHibot*.\n` +
-    `📌 Jika ada perubahan, informasi terkini dapat dilihat langsung di aplikasi Prokopim.`;
+    `🤖 Pesan ini dikirim secara otomatis dan tidak perlu dibalas\n` +
+    `📌 Jadwal secara realtime dapat diakses di aplikasi *#ProkopimHibot*`;
+  const FOOTER_ADA = FOOTER;
+  const FOOTER_KOSONG = FOOTER;
 
   // Format satu baris kegiatan: waktu, nama, lokasi, pakaian (+ tanda sambutan)
   const fmtItem = (e) => {
