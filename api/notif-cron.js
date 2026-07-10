@@ -429,17 +429,21 @@ export default async function handler(req, res) {
   }
 
   const type = req.query.type || "pagi";
+  // ?force=1 melewati deduplikasi harian — khusus untuk uji manual.
+  const force = req.query.force === "1" || req.query.force === "true";
 
-  console.log(`[CRON] Mulai: type=${type}, time=${new Date().toISOString()}`);
+  console.log(`[CRON] Mulai: type=${type}, force=${force}, time=${new Date().toISOString()}`);
 
   // ── DEDUPLICATION CHECK ──────────────────────────────────────
-  const duplikat = await isDuplicate(type);
-  if (duplikat) {
-    return res.status(200).json({
-      ok: true,
-      skipped: true,
-      reason: `Notifikasi '${type}' sudah terkirim hari ini`,
-    });
+  if (!force) {
+    const duplikat = await isDuplicate(type);
+    if (duplikat) {
+      return res.status(200).json({
+        ok: true,
+        skipped: true,
+        reason: `Notifikasi '${type}' sudah terkirim hari ini (pakai &force=1 untuk uji)`,
+      });
+    }
   }
 
   try {
