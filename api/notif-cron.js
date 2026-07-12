@@ -99,8 +99,11 @@ const BULAN = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov"
 
 function fmtTgl(str) {
   if (!str) return str;
-  const d = new Date(str + "T00:00:00+08:00");
-  return `${HARI[d.getDay()]}, ${d.getDate()} ${BULAN[d.getMonth()]}`;
+  // Baca komponen tanggal dalam UTC agar konsisten dengan input (YYYY-MM-DD)
+  // dan tidak bergantung zona waktu server (Vercel = UTC). Memakai +08:00 lalu
+  // getDate() membuat tanggal mundur 1 hari.
+  const d = new Date(str + "T00:00:00Z");
+  return `${HARI[d.getUTCDay()]}, ${d.getUTCDate()} ${BULAN[d.getUTCMonth()]}`;
 }
 
 function localDateWITA(offsetDays = 0) {
