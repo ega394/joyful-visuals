@@ -367,10 +367,25 @@ function AdminRKDetail({ guest, user, events, showT, isMobile, onBack, onDone })
         </>
       )}
       {guest.status==="selesai" && (
-        <InfoBox type="info" msg={"🗄 Audiensi telah dilaksanakan & diarsipkan"+(guest.jadwal_tanggal?" — "+fmtDate(guest.jadwal_tanggal):"")}/>
+        <InfoBox type="info" msg={"🗄 Permohonan telah diterima & diarsipkan"+(guest.jadwal_tanggal?" — "+fmtDate(guest.jadwal_tanggal):"")}/>
       )}
       {guest.status!=="pending_rk" && guest.status!=="approved" && guest.status!=="selesai" && (
-        <InfoBox type="info" msg={"Permohonan ini sudah "+STATUS_CFG[guest.status]?.label+". Tidak ada aksi lebih lanjut di level ini."}/>
+        <InfoBox type="info" msg={"Status saat ini: "+(STATUS_CFG[guest.status]?.label||guest.status)+"."}/>
+      )}
+
+      {/* Kewenangan Admin RK: tandai diterima & arsipkan dari tahap mana pun */}
+      {guest.status!=="selesai" && guest.status!=="approved" && (
+        <div style={{marginTop:14,paddingTop:12,borderTop:"1px dashed #E2E8F0"}}>
+          <div style={{fontSize:11,color:"#94A3B8",marginBottom:2,lineHeight:1.5}}>
+            🗄 Kewenangan Admin RK — tutup & arsipkan permohonan ini tanpa menunggu seluruh tahapan.
+          </div>
+          <MarkSelesaiButton
+            guest={guest} user={user} showT={showT} onDone={done}
+            label="🗄 Tandai Diterima & Arsipkan"
+            sukses="🗄 Tamu ditandai diterima & diarsipkan"
+            pesan={"Tandai permohonan a.n. "+gName(guest)+" sebagai DITERIMA & ARSIPKAN? Permohonan akan keluar dari daftar aktif — terlepas dari tahap saat ini."}
+          />
+        </div>
       )}
     </DetailLayout>
   );
@@ -1050,7 +1065,7 @@ function SyncAgendaBox({ guest, events, user, showT }) {
 }
 
 // Tombol "Telah Dilaksanakan" → arsipkan (Kabag & Admin RK)
-function MarkSelesaiButton({ guest, user, showT, onDone }) {
+function MarkSelesaiButton({ guest, user, showT, onDone, label, pesan, sukses }) {
   var [busy, setBusy] = useState(false);
   var [konfirm, setKonfirm] = useState(false);
 
@@ -1058,7 +1073,7 @@ function MarkSelesaiButton({ guest, user, showT, onDone }) {
     setBusy(true);
     try {
       await apiPost("mark_selesai", { id: guest.id, by: user?.username });
-      showT("🗄 Ditandai telah dilaksanakan & diarsipkan");
+      showT(sukses || "🗄 Ditandai telah dilaksanakan & diarsipkan");
       if(onDone) onDone();
     } catch(e) { showT("❌ "+e.message); }
     finally { setBusy(false); setKonfirm(false); }
@@ -1066,14 +1081,14 @@ function MarkSelesaiButton({ guest, user, showT, onDone }) {
 
   if(konfirm) return (
     <KonfirmasiBox
-      pesan={"Tandai audiensi a.n. "+gName(guest)+" sebagai TELAH DILAKSANAKAN? Permohonan akan diarsipkan & keluar dari daftar aktif."}
+      pesan={pesan || ("Tandai audiensi a.n. "+gName(guest)+" sebagai TELAH DILAKSANAKAN? Permohonan akan diarsipkan & keluar dari daftar aktif.")}
       onYa={tandai} onBatal={function(){setKonfirm(false);}} loading={busy} warna="#334155"
     />
   );
   return (
     <button onClick={function(){setKonfirm(true);}}
       style={{width:"100%",marginTop:10,padding:"12px",borderRadius:11,border:"1.5px solid #CBD5E1",background:"white",color:"#334155",cursor:"pointer",fontSize:13,fontWeight:800}}>
-      🗄 Tandai Telah Dilaksanakan &amp; Arsipkan
+      {label || "🗄 Tandai Telah Dilaksanakan & Arsipkan"}
     </button>
   );
 }
@@ -1472,6 +1487,16 @@ function PimpinanDetail({ guest, role, user, events, showT, isMobile, onBack, on
               border:"1.5px dashed #DC2626",background:"white",
               color:"#DC2626",cursor:"pointer",fontSize:13,fontWeight:700,
             }}>🔄 Cabut Permohonan dari Pimpinan</button>
+          )}
+
+          {/* Kewenangan Admin RK: langsung tandai diterima & arsipkan */}
+          {role==="admin_rk" && mode==null && (
+            <MarkSelesaiButton
+              guest={guest} user={user} showT={showT} onDone={done}
+              label="🗄 Tandai Diterima & Arsipkan"
+              sukses="🗄 Tamu ditandai diterima & diarsipkan"
+              pesan={"Tandai permohonan a.n. "+gName(guest)+" sebagai DITERIMA & ARSIPKAN? Permohonan akan keluar dari daftar aktif — terlepas dari tahap saat ini."}
+            />
           )}
         </>
       )}

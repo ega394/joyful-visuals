@@ -202,16 +202,18 @@ async function actionForward(body) {
   return { ok: true };
 }
 
-// 5d. POST: mark_selesai (Kabag/Admin RK menandai audiensi telah dilaksanakan → arsip)
+// 5d. POST: mark_selesai (Admin RK/Kabag menandai tamu diterima & diarsipkan)
+// Admin RK boleh mengarsipkan dari tahap mana pun (terlepas sudah disetujui
+// atau belum). Idempoten bila sudah diarsipkan.
 async function actionMarkSelesai(body) {
   if (!body.id) throw new Error("id wajib");
   var rows = await sbGet("permohonan_tamu?id=eq." + body.id + "&select=status&limit=1");
   var g = (rows && rows[0]) || {};
-  if (g.status !== "approved") {
-    throw new Error("Hanya audiensi yang sudah disetujui/dijadwalkan yang dapat ditandai telah dilaksanakan");
+  if (g.status === "selesai") {
+    return { ok: true, message: "Permohonan sudah diarsipkan" };
   }
   await sbPatch(body.id, { status: "selesai" });
-  return { ok: true, message: "Ditandai telah dilaksanakan & diarsipkan" };
+  return { ok: true, message: "Tamu ditandai diterima & diarsipkan" };
 }
 
 // 5a. POST: recall_from_pimpinan (Kabag/Admin RK mencabut dari meja Pimpinan)
