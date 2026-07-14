@@ -3530,8 +3530,8 @@ function PenugasanModal({ev, onClose, onSave, currentUser, allUsers, allEvents})
 
 function FormView({form,setForm,editId,isMobile,onSubmit,onCancel,onOpenAI,onUndanganUpload,showT,canUploadUndangan=false}){
   const todayMin=new Date().toISOString().split("T")[0];
-  // Batas 60 hari ke depan agar jadwal pimpinan tidak bisa diinput untuk jangka terlalu jauh
-  const maxMax=new Date(Date.now()+60*86400000).toISOString().split("T")[0];
+  // Batas 180 hari ke depan agar jadwal pimpinan tidak bisa diinput untuk jangka terlalu jauh
+  const maxMax=new Date(Date.now()+180*86400000).toISOString().split("T")[0];
 const fld=(k,l,type="text",full=false)=>(
   <div key={k} style={{marginBottom:12,gridColumn:full?"1 / -1":"auto"}}>
     <label style={{display:"block",fontSize:12,color:"#475569",fontWeight:600,marginBottom:4}}>{l}</label>
@@ -3546,7 +3546,7 @@ const fld=(k,l,type="text",full=false)=>(
       {k==="tanggal"&&<div style={{marginTop:4,fontSize:12,color:form.tanggal?"#0B2545":"#94A3B8",fontWeight:form.tanggal?700:500}}>
         {form.tanggal
           ? <>📅 {getHari(form.tanggal)}, {fmt(form.tanggal)}</>
-          : <>Format: DD/MM/YYYY — minimum hari ini, maksimum 60 hari ke depan</>}
+          : <>Format: DD/MM/YYYY — minimum hari ini, maksimum 180 hari ke depan</>}
       </div>}
     </div>
   );
@@ -6842,9 +6842,9 @@ const submit = async () => {
     setGlobalLoading(true);
     if(!form.namaAcara||!form.tanggal||!form.jam){showT("Nama acara, tanggal & jam wajib diisi.","error");setGlobalLoading(false);return;}
     const _todayStr=new Date().toISOString().split("T")[0];
-    const _maxStr=new Date(Date.now()+60*86400000).toISOString().split("T")[0];
+    const _maxStr=new Date(Date.now()+180*86400000).toISOString().split("T")[0];
     if(form.tanggal<_todayStr){showT("Tanggal tidak boleh lebih kecil dari hari ini.","error");setGlobalLoading(false);return;}
-    if(form.tanggal>_maxStr){showT("Tanggal maksimum 60 hari ke depan. Untuk jadwal lebih jauh, hubungi Kabag.","error");setGlobalLoading(false);return;}
+    if(form.tanggal>_maxStr){showT("Tanggal maksimum 180 hari ke depan. Untuk jadwal lebih jauh, hubungi Kabag.","error");setGlobalLoading(false);return;}
     if(!form.untukPimpinan||!form.untukPimpinan.length){showT("Pilih tujuan undangan (Wali Kota dan/atau Wakil Wali Kota) sebelum menyimpan.","error");setGlobalLoading(false);return;}
     
     const evId = editId || Date.now();
