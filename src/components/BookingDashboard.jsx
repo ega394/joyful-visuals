@@ -27,7 +27,13 @@ const SESSION_INFO = {
 
 function formatTgl(dateStr) {
   if (!dateStr) return "-";
-  const d = new Date(dateStr + "T00:00:00");
+  // Ambil bagian tanggal YYYY-MM-DD di awal — berlaku untuk tanggal polos maupun
+  // timestamp lengkap Supabase (mis. "2026-07-09T08:14:53.721273+00"), sehingga
+  // tidak menghasilkan "Invalid Date".
+  const s = String(dateStr);
+  const m = s.match(/^(\d{4}-\d{2}-\d{2})/);
+  const d = m ? new Date(m[1] + "T00:00:00") : new Date(s);
+  if (isNaN(d.getTime())) return "-";
   return d.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
 }
 
