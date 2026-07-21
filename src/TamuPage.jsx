@@ -192,8 +192,10 @@ export default function TamuPage() {
   }, [form]);
 
   var setF = useCallback(function(k, v) {
+    // Simpan nilai mentah — jangan sanitasi tiap ketikan (merusak "&", "'", dsb).
+    // React sudah meng-escape saat render; sanitasi cukup saat membangun HTML/print.
     setForm(function(p) {
-      return Object.assign({}, p, { [k]: typeof v === "string" ? sanitize(v) : v });
+      return Object.assign({}, p, { [k]: v });
     });
   }, []);
 
@@ -427,7 +429,7 @@ export default function TamuPage() {
       document.head.appendChild(l);
     }
     var meta = document.querySelector("meta[name=viewport]");
-    if (meta) meta.content = "width=device-width,initial-scale=1,maximum-scale=1";
+    if (meta) meta.content = "width=device-width,initial-scale=1,viewport-fit=cover"; // izinkan zoom (aksesibilitas)
   }, []);
 
   return (

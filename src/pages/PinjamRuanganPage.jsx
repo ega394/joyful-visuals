@@ -73,7 +73,7 @@ function fmtTgl(s, short=false) {
 
 // ── Slot cell in calendar ─────────────────────────────────────
 function SlotCell({ session, booking, highlighted, onClick, weekend }) {
-  if (weekend) return <div style={{height:10,borderRadius:2,background:"#F3F4F6"}}/>;
+  if (weekend) return <div style={{height:22,borderRadius:3,background:"#F3F4F6"}}/>;
 
   if (!booking) {
     return (
@@ -81,7 +81,7 @@ function SlotCell({ session, booking, highlighted, onClick, weekend }) {
         onClick={onClick}
         title={onClick ? `Klik untuk ajukan sesi ${session}` : undefined}
         style={{
-          height:10, borderRadius:2,
+          height:22, borderRadius:3,
           background: highlighted ? "#BFDBFE" : "#D1FAE5",
           border: `1px solid ${highlighted ? "#93C5FD" : "#A7F3D0"}`,
           cursor: onClick ? "pointer" : "default",
@@ -95,12 +95,12 @@ function SlotCell({ session, booking, highlighted, onClick, weekend }) {
   const approved = booking.status==="Approved";
   return (
     <div style={{
-      height:10, borderRadius:2,
+      height:22, borderRadius:3,
       background: approved?"#FEE2E2":"#FEF3C7",
       border:`1px solid ${approved?"#FCA5A5":"#FCD34D"}`,
       color: approved?"#991B1B":"#92400E",
-      fontSize:7, fontWeight:800, letterSpacing:0.3,
-      textAlign:"center", lineHeight:"9px", textTransform:"uppercase",
+      fontSize:9, fontWeight:800, letterSpacing:0.3,
+      textAlign:"center", lineHeight:"20px", textTransform:"uppercase",
     }}>
       {approved?"Terisi":"Proses"}
     </div>
