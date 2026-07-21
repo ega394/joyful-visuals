@@ -679,6 +679,28 @@ function AdminCalendar({ bookings, rooms, year, month, roomFilter, onBookingClic
     return { bg:"#F3F4F6", border:"#D1D5DB", text:"#374151" };
   };
 
+  // Chip sesi ringkas — hanya label sesi; detail (judul + instansi) tampil saat
+  // hover (title) atau klik (buka detail). Menjaga sel kalender tetap seragam.
+  const SessionChip = (label, list) => {
+    if (!list.length) return null;
+    const c = colorFor(list.some(b => b.status === "Approved") ? "Approved" : "Pending");
+    const titleText = list
+      .map(b => `${label} — ${b.event_name} · ${b.instansi} (${b.status === "Approved" ? "Disetujui" : "Menunggu"})`)
+      .join("\n");
+    return (
+      <button type="button" onClick={() => onBookingClick(list[0])} title={titleText}
+        style={{
+          display:"flex", alignItems:"center", justifyContent:"space-between", gap:4,
+          width:"100%", minWidth:0, background:c.bg, color:c.text,
+          border:`1px solid ${c.border}`, borderRadius:5, padding:"3px 6px",
+          fontSize:10, fontWeight:800, cursor:"pointer", lineHeight:1.3,
+        }}>
+        <span style={{overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>{label}</span>
+        {list.length > 1 && <span style={{flexShrink:0, opacity:0.75}}>×{list.length}</span>}
+      </button>
+    );
+  };
+
   return (
     <div style={{display:"flex",flexDirection:"column",gap:24}}>
       {filteredRooms.map(room => (
@@ -708,73 +730,19 @@ function AdminCalendar({ bookings, rooms, year, month, roomFilter, onBookingClic
                   return (
                     <div key={dateStr} style={{
                       border:`2px solid ${isToday?GOLD:"#E5E7EB"}`,
-                      borderRadius:8,padding:"5px 4px",minHeight:90,
+                      borderRadius:8,padding:"5px 4px",height:82,minWidth:0,
                       background:isPast?"#FAFAFA":"white",
                       opacity:isPast?0.6:1,
-                      display:"flex",flexDirection:"column",gap:3,
+                      display:"flex",flexDirection:"column",gap:3,overflow:"hidden",
                     }}>
                       <div style={{
                         fontSize:12,fontWeight:isToday?900:600,
-                        color:isToday?NAVY:"#374151",textAlign:"center",
+                        color:isToday?NAVY:"#374151",textAlign:"center",flexShrink:0,
                       }}>{parseInt(dateStr.slice(8))}</div>
 
-                      {/* Render booking entries */}
-                      {pagi.length > 0 && (
-                        <div>
-                          <div style={{fontSize:8,color:GRAY,fontWeight:700,marginBottom:1,letterSpacing:0.5}}>PAGI</div>
-                          {pagi.slice(0,2).map(b => {
-                            const c = colorFor(b.status);
-                            return (
-                              <button key={b.id+"_p"} type="button"
-                                onClick={()=>onBookingClick(b)}
-                                title={`${b.event_name} (${b.instansi})`}
-                                style={{
-                                  display:"block",width:"100%",
-                                  background:c.bg,color:c.text,
-                                  border:`1px solid ${c.border}`,
-                                  borderRadius:4,padding:"2px 4px",
-                                  fontSize:9,fontWeight:700,textAlign:"left",
-                                  cursor:"pointer",lineHeight:1.2,
-                                  overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",
-                                  marginBottom:2,
-                                }}>
-                                {b.event_name}
-                              </button>
-                            );
-                          })}
-                          {pagi.length > 2 && (
-                            <div style={{fontSize:8,color:GRAY,fontStyle:"italic"}}>+{pagi.length-2} lagi</div>
-                          )}
-                        </div>
-                      )}
-                      {siang.length > 0 && (
-                        <div>
-                          <div style={{fontSize:8,color:GRAY,fontWeight:700,marginBottom:1,letterSpacing:0.5}}>SIANG</div>
-                          {siang.slice(0,2).map(b => {
-                            const c = colorFor(b.status);
-                            return (
-                              <button key={b.id+"_s"} type="button"
-                                onClick={()=>onBookingClick(b)}
-                                title={`${b.event_name} (${b.instansi})`}
-                                style={{
-                                  display:"block",width:"100%",
-                                  background:c.bg,color:c.text,
-                                  border:`1px solid ${c.border}`,
-                                  borderRadius:4,padding:"2px 4px",
-                                  fontSize:9,fontWeight:700,textAlign:"left",
-                                  cursor:"pointer",lineHeight:1.2,
-                                  overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",
-                                  marginBottom:2,
-                                }}>
-                                {b.event_name}
-                              </button>
-                            );
-                          })}
-                          {siang.length > 2 && (
-                            <div style={{fontSize:8,color:GRAY,fontStyle:"italic"}}>+{siang.length-2} lagi</div>
-                          )}
-                        </div>
-                      )}
+                      {/* Chip sesi ringkas — detail muncul saat hover/klik */}
+                      {SessionChip("Pagi", pagi)}
+                      {SessionChip("Siang", siang)}
                     </div>
                   );
                 })}
