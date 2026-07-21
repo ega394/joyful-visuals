@@ -6603,8 +6603,9 @@ export default function App(){
       if(diff>90&&!pullRefreshing){
         pulling=false;setPullRefreshing(true);
         (async()=>{
-          try{if(SUPA_OK){const rows=await dbLoadAll();if(rows&&rows.length>0)setEvents(rows);}}catch{}
-          setTimeout(()=>{setPullRefreshing(false);showT("Data diperbarui ✓");},600);
+          let ok=true;
+          try{if(SUPA_OK){const rows=await dbLoadAll();if(rows&&rows.length>0)setEvents(rows);}}catch(e){ok=false;console.error(e);}
+          setTimeout(()=>{setPullRefreshing(false);showT(ok?"Data diperbarui ✓":"⚠ Gagal memperbarui — periksa koneksi",ok?"ok":"error");},600);
         })();
       }
     };
@@ -6638,7 +6639,7 @@ export default function App(){
     return ()=>clearInterval(interval);
   },[user]);
 
-  const showT=(msg,type="ok")=>{if(type==="ok")haptic(40);else if(type==="warn")haptic(80);else if(type==="error")haptic([50,30,50]);setToast({msg,type});setTimeout(()=>setToast(null),type==="error"?5000:type==="warn"?4000:3000);};
+  const showT=useCallback((msg,type="ok")=>{if(type==="ok")haptic(40);else if(type==="warn")haptic(80);else if(type==="error")haptic([50,30,50]);setToast({msg,type});setTimeout(()=>setToast(null),type==="error"?5000:type==="warn"?4000:3000);},[]);
   _toast.fn=showT; // bridge for components without showT prop
   const updAndSync=useCallback((id,patch)=>{
     setEvents(p=>{
@@ -6650,7 +6651,7 @@ export default function App(){
       }
       const next=p.map(e=>e.id===id?{...e,...finalPatch}:e);
       const ev=next.find(e=>e.id===id);
-      if(ev)dbUpsert(ev).catch(console.error);
+      if(ev)dbUpsert(ev).catch(e=>{console.error(e);if(_toast.fn)_toast.fn("⚠ Gagal menyimpan ke server — perubahan mungkin belum tersimpan. Periksa koneksi.","error");});
       return next;
     });
   },[user]);
@@ -6658,7 +6659,7 @@ export default function App(){
     setConfirmDlg({title,body,onConfirm,confirmLabel,confirmColor});
   };
 
-  const deleteAndSync=useCallback((id)=>{setEvents(p=>{const ev=p.find(e=>e.id===id);if(ev?.sambutanFile&&!ev.sambutanFile.startsWith("data:"))storageDelete("sambutan",ev.sambutanFile).catch(e=>console.warn("Sync:",e?.message||e));if(ev?.undanganFile&&!ev.undanganFile.startsWith("data:"))storageDelete("undangan",ev.undanganFile).catch(e=>console.warn("Sync:",e?.message||e));dbDelete(id).catch(console.error);return p.filter(e=>e.id!==id);});},[]);
+  const deleteAndSync=useCallback((id)=>{setEvents(p=>{const ev=p.find(e=>e.id===id);if(ev?.sambutanFile&&!ev.sambutanFile.startsWith("data:"))storageDelete("sambutan",ev.sambutanFile).catch(e=>console.warn("Sync:",e?.message||e));if(ev?.undanganFile&&!ev.undanganFile.startsWith("data:"))storageDelete("undangan",ev.undanganFile).catch(e=>console.warn("Sync:",e?.message||e));dbDelete(id).catch(e=>{console.error(e);if(_toast.fn)_toast.fn("⚠ Gagal menghapus di server — coba lagi.","error");});return p.filter(e=>e.id!==id);});},[]);
   const upd=(id,patch)=>updAndSync(id,patch);
   const getNamaByUsername=un=>loadUsers().find(u=>u.username===un)?.nama||un;
 
@@ -10793,6 +10794,11 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
     <style>{CSS}</style>
     {toast&&<Toast msg={toast.msg} type={toast.type}/>}
     <GlobalLoadingBar active={globalLoading}/>
+
+    {/* Banner persisten bila gagal memuat data dari server (mencegah data contoh dikira asli) */}
+    {dbError&&<div onClick={()=>window.location.reload()} style={{position:"fixed",top:0,left:0,right:0,zIndex:9998,background:"#B91C1C",color:"white",padding:"8px 14px",fontSize:12.5,fontWeight:700,textAlign:"center",cursor:"pointer",boxShadow:"0 2px 8px rgba(0,0,0,0.3)"}}>
+      ⚠ Gagal memuat data dari server — yang tampil mungkin data contoh/terakhir. Ketuk untuk muat ulang.
+    </div>}
 
     {/* ── Pull-to-refresh indicator ── */}
     {pullRefreshing&&<div className="pull-refresh-bar">

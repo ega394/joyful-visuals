@@ -36,7 +36,7 @@ export default function WaliKotaAudiensiDashboard({ role, user, showT, isMobile 
 
   const load = () => {
     setLoading(true);
-    fetch("/api/guest?action=queue&status=pending_pimpinan&limit=100")
+    fetch("/api/guest?action=queue&status=pending_pimpinan&limit=100&pimpinan="+role)
       .then(r => r.json())
       .then(d => setGuests(Array.isArray(d) ? d.sort((a,b) => {
         const po = { mendesak:0, penting:1, biasa:2 };
@@ -68,6 +68,7 @@ export default function WaliKotaAudiensiDashboard({ role, user, showT, isMobile 
       if (!r.ok || (j && j.error)) throw new Error(j && j.error ? j.error : "Gagal");
 
       // Audiensi yang disetujui & terjadwal langsung masuk ke Agenda Kegiatan
+      let agendaOk = true;
       if (decideMode==="approve" && tgl && jam && SUPA_URL && SUPA_KEY) {
         const g = guests.find(x => x.id === decideId) || {};
         const pejabatKey = (g.tujuan_pejabat==="Wakil Wali Kota") ? "wakilwalikota" : "walikota";
@@ -89,15 +90,21 @@ export default function WaliKotaAudiensiDashboard({ role, user, showT, isMobile 
           submittedBy: decidedBy, personil:[], evaluasi:{}, created_from:"guest_module", guest_id: decideId,
         };
         try {
-          await fetch(SUPA_URL+"/rest/v1/jadwal",{
+          const ra = await fetch(SUPA_URL+"/rest/v1/jadwal",{
             method:"POST",
             headers:{"Content-Type":"application/json","apikey":SUPA_KEY,"Authorization":"Bearer "+SUPA_KEY,"Prefer":"return=minimal"},
             body: JSON.stringify({id:evId, data:newEvent}),
           });
-        } catch (_) { /* agenda gagal dibuat tidak membatalkan keputusan */ }
+          if(!ra.ok) agendaOk = false;
+        } catch (_) { agendaOk = false; /* keputusan tetap tersimpan */ }
       }
 
-      showT(decideMode==="approve" ? "✅ Audiensi dijadwalkan & masuk Agenda!" : "Permohonan ditolak", decideMode==="approve"?"ok":"warn");
+      showT(
+        decideMode!=="approve" ? "Permohonan ditolak"
+          : agendaOk ? "✅ Audiensi dijadwalkan & masuk Agenda!"
+          : "✅ Audiensi dijadwalkan — ⚠ gagal masuk Agenda, sinkronkan manual.",
+        decideMode==="approve" ? (agendaOk?"ok":"warn") : "warn"
+      );
       setDecideId(null); setMode(""); setTgl(""); setJam(""); setTempat("Ruang Kerja"); setCatatan(""); setAlasan("");
       load();
     } catch { showT("Gagal menyimpan keputusan", "error"); }
@@ -316,7 +323,7 @@ function TerjadwalPimpinan({ labelPimpinan, user, showT, PRIORITY, fmtTs }) {
 
   const load = () => {
     setLoading(true);
-    fetch("/api/guest?action=queue&status=approved&limit=100")
+    fetch("/api/guest?action=queue&status=approved&limit=100&pimpinan="+(labelPimpinan==="Wakil Wali Kota"?"wakilwalikota":"walikota"))
       .then(r => r.json())
       .then(d => setList((Array.isArray(d)?d:[]).filter(g => g.tujuan_pejabat===labelPimpinan)
         .sort((a,b)=>((a.jadwal_tanggal||"")+(a.jadwal_jam||"")).localeCompare((b.jadwal_tanggal||"")+(b.jadwal_jam||"")))))

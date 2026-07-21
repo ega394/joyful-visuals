@@ -1541,7 +1541,7 @@ function AjudanView({ role, user, events, showT, isMobile }) {
   // Mode penyambutan: tamu disetujui hari ini & besok
   useEffect(function() {
     setLoading(true);
-    fetch(API+"?action=queue&status=approved&limit=100")
+    fetch(API+"?action=queue&status=approved&limit=100&pimpinan="+(role==="ajudan_walikota"?"walikota":"wakilwalikota"))
       .then(function(r){return r.json();})
       .then(function(d){
         var list = Array.isArray(d)?d:[];
@@ -1561,7 +1561,7 @@ function AjudanView({ role, user, events, showT, isMobile }) {
   // Mode penjadwalan: permohonan tahap akhir (pending_pimpinan)
   var loadJadwal = useCallback(function() {
     setJadwalLoading(true);
-    fetch(API+"?action=queue&status=pending_pimpinan&limit=80")
+    fetch(API+"?action=queue&status=pending_pimpinan&limit=80&pimpinan="+(role==="ajudan_walikota"?"walikota":"wakilwalikota"))
       .then(function(r){return r.json();})
       .then(function(d){
         var list = Array.isArray(d)?d:[];
