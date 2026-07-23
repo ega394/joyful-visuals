@@ -984,6 +984,27 @@ function StatusTracker() {
     setCan(false);
   };
 
+  // Booking yang sudah disetujui → ajukan pembatalan (butuh persetujuan peninjau)
+  const doRequestCancel = async (code) => {
+    const reason = window.prompt("Alasan pengajuan pembatalan (wajib diisi):");
+    if(reason===null) return;
+    if(!reason.trim()){ alert("Alasan pembatalan wajib diisi."); return; }
+    setCan(true);
+    try{
+      const r=await fetch(`/api/room-booking?op=request_cancel`,{
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ booking_code:code, reason:reason.trim() }),
+      });
+      const d=await r.json();
+      if(!r.ok) throw new Error(d.error||"Gagal");
+      alert(d.already
+        ? "Permintaan pembatalan sudah tercatat & sedang diproses."
+        : "Permintaan pembatalan terkirim. Menunggu konfirmasi peninjau permohonan.");
+      search();
+    }catch(e){alert("Gagal: "+e.message);}
+    setCan(false);
+  };
+
   const statusCfg={
     Pending:  {label:"Menunggu Konfirmasi",color:YELLOW,bg:YELLOW_BG,border:YELLOW_BORDER},
     Approved: {label:"Disetujui",          color:GREEN, bg:GREEN_BG, border:GREEN_BORDER},
@@ -1063,13 +1084,25 @@ function StatusTracker() {
                         ); })}
                       </div>
                     </div>
-                    {h.notes&&<div style={{margin:"0 14px 12px",padding:"8px 12px",background:"white",borderRadius:8,fontSize:13,color:h.status==="Rejected"?RED:GRAY,border:`1px solid ${BORDER}`}}><b>Keterangan:</b> {h.notes}</div>}
-                    {(h.status==="Pending"||h.status==="Approved")&&(
-                      <div style={{padding:"0 14px 14px",display:"flex",gap:8,flexWrap:"wrap"}}>
-                        {h.status==="Pending"&&<button onClick={()=>doCancel(h.booking_code)} disabled={cancelling} style={{padding:"8px 18px",borderRadius:8,border:`1.5px solid ${RED}`,background:"white",color:RED,fontWeight:700,fontSize:13,cursor:cancelling?"not-allowed":"pointer"}}>Batalkan Pengajuan</button>}
-                        {h.status==="Approved"&&<button onClick={()=>printBookingPublic(h,sorted)} style={{padding:"8px 18px",borderRadius:8,border:"none",background:NAVY,color:"white",fontWeight:700,fontSize:13,cursor:"pointer"}}>🖨️ Cetak Surat Konfirmasi</button>}
-                      </div>
-                    )}
+                    {(()=>{
+                      const reqPending=String(h.notes||"").startsWith("[MINTA BATAL]");
+                      const reqReason=reqPending?String(h.notes).replace(/^\[MINTA BATAL\]\s*/,"").trim():"";
+                      const today=new Date(Date.now()+8*3600000).toISOString().slice(0,10);
+                      const maxEnd=sorted.reduce((m,s)=>((s.end_date||s.start_date)>m?(s.end_date||s.start_date):m),"");
+                      const lewat=maxEnd&&maxEnd<today;
+                      return (<>
+                        {reqPending
+                          ?<div style={{margin:"0 14px 12px",padding:"10px 12px",background:"#FEF3C7",borderRadius:8,fontSize:13,color:"#92400E",border:"1px solid #FCD34D"}}>⏳ <b>Permintaan pembatalan sedang diproses.</b> Menunggu konfirmasi peninjau permohonan.{reqReason&&<div style={{marginTop:4,color:"#78350F"}}>Alasan: {reqReason}</div>}</div>
+                          :(h.notes&&<div style={{margin:"0 14px 12px",padding:"8px 12px",background:"white",borderRadius:8,fontSize:13,color:h.status==="Rejected"?RED:GRAY,border:`1px solid ${BORDER}`}}><b>Keterangan:</b> {h.notes}</div>)}
+                        {(h.status==="Pending"||h.status==="Approved")&&(
+                          <div style={{padding:"0 14px 14px",display:"flex",gap:8,flexWrap:"wrap"}}>
+                            {h.status==="Pending"&&<button onClick={()=>doCancel(h.booking_code)} disabled={cancelling} style={{padding:"8px 18px",borderRadius:8,border:`1.5px solid ${RED}`,background:"white",color:RED,fontWeight:700,fontSize:13,cursor:cancelling?"not-allowed":"pointer"}}>Batalkan Pengajuan</button>}
+                            {h.status==="Approved"&&<button onClick={()=>printBookingPublic(h,sorted)} style={{padding:"8px 18px",borderRadius:8,border:"none",background:NAVY,color:"white",fontWeight:700,fontSize:13,cursor:"pointer"}}>🖨️ Cetak Surat Konfirmasi</button>}
+                            {h.status==="Approved"&&!reqPending&&!lewat&&<button onClick={()=>doRequestCancel(h.booking_code)} disabled={cancelling} style={{padding:"8px 18px",borderRadius:8,border:`1.5px solid ${RED}`,background:"white",color:RED,fontWeight:700,fontSize:13,cursor:cancelling?"not-allowed":"pointer"}}>Ajukan Pembatalan</button>}
+                          </div>
+                        )}
+                      </>);
+                    })()}
                   </div>
                 );
               })}

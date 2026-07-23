@@ -172,6 +172,8 @@ function BookingRow({ booking, onAction, isMobile }) {
     : `${slots.length} slot · ${formatTgl(slots[0].start_date)} – ${formatTgl(slots[slots.length-1].start_date)}`;
   const age = daysSince(booking.created_at);
   const isSlaWarning = booking.status === "Pending" && age >= 1;
+  const cancelReq = booking.status === "Approved" && String(booking.notes || "").startsWith("[MINTA BATAL]");
+  const cancelReason = cancelReq ? String(booking.notes).replace(/^\[MINTA BATAL\]\s*/, "").trim() : "";
 
   return (
     <div style={{
@@ -277,7 +279,7 @@ function BookingRow({ booking, onAction, isMobile }) {
                 </a>
               </div>
             )}
-            {booking.notes && (
+            {booking.notes && !cancelReq && (
               <div style={{ gridColumn: "1/-1" }}>
                 <div style={{ color: GRAY, fontSize: 11, fontWeight: 600 }}>Catatan</div>
                 <div style={{ color: booking.status === "Rejected" ? RED : "#374151" }}>
@@ -286,6 +288,16 @@ function BookingRow({ booking, onAction, isMobile }) {
               </div>
             )}
           </div>
+
+          {cancelReq && (
+            <div style={{
+              background: "#FEF3C7", border: "1.5px solid #FCD34D", color: "#92400E",
+              borderRadius: 10, padding: "11px 13px", fontSize: 13, marginBottom: 14,
+            }}>
+              <div style={{ fontWeight: 800, marginBottom: 3 }}>⏳ Pemohon mengajukan pembatalan</div>
+              <div style={{ color: "#78350F" }}>Alasan: {cancelReason || "—"}</div>
+            </div>
+          )}
 
           {/* Tombol aksi */}
           {booking.status === "Pending" && (
@@ -319,14 +331,34 @@ function BookingRow({ booking, onAction, isMobile }) {
           )}
           {booking.status === "Approved" && (
             <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-              <button onClick={() => onAction(booking, "Cancelled")}
-                style={{
-                  padding: "7px 14px", borderRadius: 8,
-                  border: `1.5px solid ${YELLOW}`, background: "white",
-                  color: YELLOW, fontWeight: 600, fontSize: 13, cursor: "pointer",
-                }}>
-                Batalkan
-              </button>
+              {cancelReq ? (
+                <>
+                  <button onClick={() => onAction(booking, "Cancelled")}
+                    style={{
+                      padding: "7px 14px", borderRadius: 8, border: "none",
+                      background: RED, color: "white", fontWeight: 700, fontSize: 13, cursor: "pointer",
+                    }}>
+                    ✓ Setujui Pembatalan
+                  </button>
+                  <button onClick={() => onAction(booking, "Approved")}
+                    style={{
+                      padding: "7px 14px", borderRadius: 8,
+                      border: `1.5px solid ${GREEN}`, background: "white",
+                      color: GREEN, fontWeight: 700, fontSize: 13, cursor: "pointer",
+                    }}>
+                    ✕ Tolak Pembatalan (Tetap Disetujui)
+                  </button>
+                </>
+              ) : (
+                <button onClick={() => onAction(booking, "Cancelled")}
+                  style={{
+                    padding: "7px 14px", borderRadius: 8,
+                    border: `1.5px solid ${YELLOW}`, background: "white",
+                    color: YELLOW, fontWeight: 600, fontSize: 13, cursor: "pointer",
+                  }}>
+                  Batalkan
+                </button>
+              )}
               <button onClick={() => printSingleBooking(booking, slots)}
                 style={{
                   padding: "7px 14px", borderRadius: 8,
@@ -780,6 +812,8 @@ function AdminCalendar({ bookings, rooms, year, month, roomFilter, onBookingClic
 function BookingDetailModal({ booking, slots, onClose, onAction }) {
   if (!booking) return null;
   const cfg = STATUS_CFG[booking.status] || STATUS_CFG.Pending;
+  const cancelReq = booking.status === "Approved" && String(booking.notes || "").startsWith("[MINTA BATAL]");
+  const cancelReason = cancelReq ? String(booking.notes).replace(/^\[MINTA BATAL\]\s*/, "").trim() : "";
   const allSlots = (slots && slots.length ? slots : [booking])
     .slice().sort((a,b)=> a.start_date.localeCompare(b.start_date) || (SES_ORDER[a.session]||9)-(SES_ORDER[b.session]||9));
 
@@ -854,10 +888,16 @@ function BookingDetailModal({ booking, slots, onClose, onAction }) {
               </a>
             </div>
           )}
-          {booking.notes && (
+          {booking.notes && !cancelReq && (
             <div style={{gridColumn:"1/-1"}}>
               <div style={{color:GRAY,fontSize:11,fontWeight:600}}>Catatan</div>
               <div style={{color:booking.status==="Rejected"?RED:"#374151"}}>{booking.notes}</div>
+            </div>
+          )}
+          {cancelReq && (
+            <div style={{gridColumn:"1/-1",background:"#FEF3C7",border:"1.5px solid #FCD34D",color:"#92400E",borderRadius:10,padding:"11px 13px"}}>
+              <div style={{fontWeight:800,marginBottom:3}}>⏳ Pemohon mengajukan pembatalan</div>
+              <div style={{color:"#78350F"}}>Alasan: {cancelReason || "—"}</div>
             </div>
           )}
           <div style={{gridColumn:"1/-1",fontSize:11,color:GRAY,paddingTop:8,borderTop:"1px solid #F3F4F6"}}>
@@ -894,6 +934,20 @@ function BookingDetailModal({ booking, slots, onClose, onAction }) {
                 style={{padding:"9px 18px",borderRadius:9,border:`1.5px solid #D1D5DB`,
                   background:"white",color:"#374151",fontWeight:600,fontSize:13,cursor:"pointer"}}>
                 Batalkan
+              </button>
+            </>
+          )}
+          {cancelReq && (
+            <>
+              <button onClick={()=>{onAction(booking,"Cancelled");onClose();}}
+                style={{padding:"9px 18px",borderRadius:9,border:"none",
+                  background:RED,color:"white",fontWeight:700,fontSize:13,cursor:"pointer"}}>
+                ✓ Setujui Pembatalan
+              </button>
+              <button onClick={()=>{onAction(booking,"Approved");onClose();}}
+                style={{padding:"9px 18px",borderRadius:9,border:`1.5px solid ${GREEN}`,
+                  background:"white",color:GREEN,fontWeight:700,fontSize:13,cursor:"pointer"}}>
+                ✕ Tolak Pembatalan
               </button>
             </>
           )}
