@@ -223,6 +223,45 @@ export default async function handler(req, res) {
     // ── POST — submit pengajuan publik (multi-slot) ────────────
     if (method === "POST") {
 
+      // ── op=request_cancel → pemohon mengajukan pembatalan booking Approved ──
+      if (query.op === "request_cancel") {
+        const { booking_code, reason } = body || {};
+        if (!booking_code) return res.status(400).json({ error: "Kode booking wajib ada" });
+        if (!reason || !String(reason).trim())
+          return res.status(400).json({ error: "Alasan pembatalan wajib diisi" });
+        const code = String(booking_code).toUpperCase();
+        const rows = await sbGet(`room_bookings?booking_code=eq.${code}&select=*&order=start_date.asc`);
+        if (!rows?.length) return res.status(404).json({ error: "Booking tidak ditemukan" });
+        if (rows.some(r => r.status !== "Approved"))
+          return res.status(400).json({ error: "Hanya peminjaman yang sudah disetujui yang dapat diajukan pembatalan." });
+        const today = new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 10); // WITA
+        const maxEnd = rows.reduce((m, r) => (r.end_date > m ? r.end_date : m), "");
+        if (maxEnd && maxEnd < today)
+          return res.status(400).json({ error: "Acara sudah berlalu — pembatalan tidak dapat diajukan." });
+        if (String(rows[0].notes || "").startsWith("[MINTA BATAL]"))
+          return res.status(200).json({ ok: true, already: true, message: "Permintaan pembatalan sudah tercatat & sedang diproses." });
+
+        await sbPatch(`room_bookings?booking_code=eq.${code}`, { notes: "[MINTA BATAL] " + String(reason).trim() });
+
+        const head = rows[0];
+        try {
+          const [managers, kabagList] = await Promise.all([
+            sbGet("users?can_manage_rooms=eq.true&select=noWA"),
+            sbGet("users?role=eq.kabag&select=noWA"),
+          ]);
+          const targets = [...(managers || []), ...(kabagList || [])].filter(
+            (u, i, a) => u.noWA && a.findIndex(x => x.noWA === u.noWA) === i
+          );
+          const msg =
+            `*[PERMINTAAN PEMBATALAN RUANGAN]*\nKode *${code}* — ${head.event_name}\n` +
+            `Instansi: ${head.instansi} · PIC: ${head.pic_name}\n` +
+            `Alasan: ${String(reason).trim()}\n\nMohon ditinjau di dashboard peminjaman ruangan.`;
+          for (const u of targets) await sendWA(u.noWA, msg);
+        } catch (_) {}
+
+        return res.status(200).json({ ok: true, booking_code: code });
+      }
+
       // ── op=auth → tukar (username + hash password) dgn token sesi ──
       if (query.op === "auth") {
         const { username, pass } = body || {};
