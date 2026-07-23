@@ -684,8 +684,11 @@ function AdminCalendar({ bookings, rooms, year, month, roomFilter, onBookingClic
   const SessionChip = (label, list) => {
     if (!list.length) return null;
     const c = colorFor(list.some(b => b.status === "Approved") ? "Approved" : "Pending");
+    // Label chip = nama instansi peminjam (fallback PIC/nama acara). Sesi & detail
+    // lengkap tetap tampil saat hover/klik.
+    const nama = list[0].instansi || list[0].pic_name || list[0].event_name || label;
     const titleText = list
-      .map(b => `${label} — ${b.event_name} · ${b.instansi} (${b.status === "Approved" ? "Disetujui" : "Menunggu"})`)
+      .map(b => `${label} — ${b.instansi || "-"} · ${b.event_name} (${b.status === "Approved" ? "Disetujui" : "Menunggu"})`)
       .join("\n");
     return (
       <button type="button" onClick={() => onBookingClick(list[0])} title={titleText}
@@ -693,9 +696,9 @@ function AdminCalendar({ bookings, rooms, year, month, roomFilter, onBookingClic
           display:"flex", alignItems:"center", justifyContent:"space-between", gap:4,
           width:"100%", minWidth:0, background:c.bg, color:c.text,
           border:`1px solid ${c.border}`, borderRadius:5, padding:"3px 6px",
-          fontSize:10, fontWeight:800, cursor:"pointer", lineHeight:1.3,
+          fontSize:9.5, fontWeight:700, cursor:"pointer", lineHeight:1.25,
         }}>
-        <span style={{overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>{label}</span>
+        <span style={{overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>{nama}</span>
         {list.length > 1 && <span style={{flexShrink:0, opacity:0.75}}>×{list.length}</span>}
       </button>
     );
