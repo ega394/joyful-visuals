@@ -83,6 +83,41 @@ function relativeDate(dateStr){
 function haptic(ms=50){try{navigator?.vibrate?.(ms);}catch{}}
 
 // ═══════════════════════════════════════════════════════
+// UTIL: Ekstrak nomor telepon dari teks narahubung
+// ═══════════════════════════════════════════════════════
+// Field `kontak` berupa teks bebas ("Budi 0812-3456-7890"), jadi nomornya
+// dipisahkan dgn regex. Mengembalikan "" bila tidak ada nomor yang valid,
+// sehingga tombol telepon/WA cukup disembunyikan (bukan tombol mati).
+function extractPhone(s){
+  const m=String(s||"").match(/(?:\+62|62|0)[\d\s().-]{7,17}\d/);
+  if(!m)return"";
+  let d=m[0].replace(/[^\d]/g,"");
+  if(d.startsWith("62"))d="0"+d.slice(2);
+  return /^0\d{8,13}$/.test(d)?d:"";
+}
+// 0812… → 62812… (format wa.me)
+function waNumber(tel){return tel?"62"+tel.slice(1):"";}
+// Seluler Indonesia selalu diawali "08"; selain itu telepon kabel (0551, 021, …)
+// → tombol WA disembunyikan karena tidak akan berfungsi.
+function isMobileNumber(tel){return /^08/.test(tel||"");}
+
+// Tombol 📞 Telepon + 💬 WA — dipakai di semua tampilan narahubung
+function KontakActions({kontak,size="sm"}){
+  const tel=extractPhone(kontak);
+  if(!tel)return null;
+  const pad=size==="sm"?"3px 8px":"5px 10px";
+  const fs =size==="sm"?11:13;
+  const st ={padding:pad,borderRadius:7,textDecoration:"none",fontSize:fs,fontWeight:700,flexShrink:0,whiteSpace:"nowrap",lineHeight:1.4};
+  return <span style={{display:"inline-flex",gap:5,alignItems:"center",flexShrink:0}}>
+    <a href={"tel:"+tel} onClick={e=>e.stopPropagation()} title={"Telepon "+tel}
+      style={{...st,background:"#1D4ED8",color:"white"}}>📞 Telepon</a>
+    {isMobileNumber(tel)&&<a href={"https://wa.me/"+waNumber(tel)} target="_blank" rel="noopener noreferrer"
+      onClick={e=>e.stopPropagation()} title={"WhatsApp "+tel}
+      style={{...st,background:"#16A34A",color:"white"}}>💬 WA</a>}
+  </span>;
+}
+
+// ═══════════════════════════════════════════════════════
 // iOS Push Support Helper
 // ═══════════════════════════════════════════════════════
 // PushManager tidak ada di window di iOS Safari — harus cek via SW registration
@@ -2601,7 +2636,7 @@ function ApprovalQueueView({events,role,upd,showT,askConfirm,isMobile}){
             </div>}
             {ev.jenisKegiatan&&<div style={{fontSize:13,color:"#475569"}}><span style={{color:"#94A3B8",fontWeight:600}}>Jenis: </span>{ev.jenisKegiatan}</div>}
             {ev.pakaian&&<div style={{fontSize:13,color:"#475569"}}><span style={{color:"#94A3B8",fontWeight:600}}>Pakaian: </span>{ev.pakaian}</div>}
-            {ev.kontak&&<div style={{fontSize:13,color:"#475569"}}><span style={{color:"#94A3B8",fontWeight:600}}>Kontak: </span>{ev.kontak}</div>}
+            {ev.kontak&&<div style={{fontSize:13,color:"#475569",display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}><span><span style={{color:"#94A3B8",fontWeight:600}}>Kontak: </span>{ev.kontak}</span><KontakActions kontak={ev.kontak}/></div>}
             {ev.buktiUndangan&&<div style={{fontSize:13,color:"#475569"}}><span style={{color:"#94A3B8",fontWeight:600}}>No. Surat: </span>{ev.buktiUndangan}</div>}
             {ev.catatan&&<div style={{fontSize:13,color:"#475569",gridColumn:"1/-1"}}><span style={{color:"#94A3B8",fontWeight:600}}>Catatan: </span>{ev.catatan}</div>}
           </div>
@@ -2867,9 +2902,10 @@ function MitraKerjaView({events,isMobile}){
               </div>
             </div>}
             {[{l:"Pakaian",v:ev.pakaian},{l:"Catatan",v:ev.catatan},{l:"Kontak",v:ev.kontak}].filter(f=>f.v).map(f=>(
-              <div key={f.l} style={{display:"flex",gap:8,padding:"4px 0",fontSize:12}}>
+              <div key={f.l} style={{display:"flex",gap:8,padding:"4px 0",fontSize:12,alignItems:"center",flexWrap:"wrap"}}>
                 <span style={{minWidth:70,color:"#94A3B8",fontWeight:600}}>{f.l}</span>
                 <span style={{color:"#1E293B"}}>{f.v}</span>
+                {f.l==="Kontak"&&<KontakActions kontak={ev.kontak}/>}
               </div>
             ))}
             {timList.length===0&&hadirList.length===0&&<div style={{fontSize:13,color:"#CBD5E1",fontStyle:"italic",marginBottom:8}}>Belum ada data kehadiran & penugasan</div>}
@@ -5267,9 +5303,10 @@ function ExpandedDetail({ev,hariEv}){
       <div>
         <div style={{display:"flex",flexDirection:"column",gap:5}}>
           {[{i:"Tgl",l:"Tanggal",v:hariEv+", "+fmt(ev.tanggal)},{i:"Jam",l:"Waktu",v:ev.jam+" WITA"},{i:"Org",l:"Penyelenggara",v:ev.penyelenggara},{i:"Tel",l:"Kontak",v:ev.kontak},{i:"No",l:"Bukti Undangan",v:ev.buktiUndangan},{i:"Bj",l:"Pakaian",v:ev.pakaian},{i:"Ket",l:"Catatan",v:ev.catatan}].filter(f=>f.v).map(f=>(
-            <div key={f.l} style={{display:"flex",gap:8,padding:"6px 10px",background:"#f8fafc",borderRadius:8}}>
+            <div key={f.l} style={{display:"flex",gap:8,padding:"6px 10px",background:"#f8fafc",borderRadius:8,alignItems:"center"}}>
               <div style={{minWidth:80,fontSize:12,color:"#94a3b8",fontWeight:700,textTransform:"uppercase"}}>{f.l}</div>
               <div style={{fontSize:12,color:"#1e293b",flex:1}}>{f.v}</div>
+              {f.l==="Kontak"&&<KontakActions kontak={ev.kontak}/>}
             </div>
           ))}
           {ev.lokasi&&<div style={{display:"flex",gap:8,padding:"6px 10px",background:"#f0f9ff",borderRadius:8,border:"1px solid #bae6fd",alignItems:"center"}}>
@@ -9951,6 +9988,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
               <div key={f.l} style={{gridColumn:f.l==="Tanggal"||f.l==="Catatan"||f.l==="Penyelenggara"?"span 2":"span 1"}}>
                 <div style={{fontSize:12,color:"#94A3B8",fontWeight:700,textTransform:"uppercase",letterSpacing:0.5,marginBottom:2}}>{f.l}</div>
                 <div style={{fontSize:13,color:"#0F172A",fontWeight:600}}>{f.v}</div>
+                {f.l==="Kontak"&&<div style={{marginTop:5}}><KontakActions kontak={ev.kontak}/></div>}
               </div>
             ))}
           </div>
