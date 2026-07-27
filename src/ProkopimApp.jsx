@@ -101,7 +101,15 @@ function waNumber(tel){return tel?"62"+tel.slice(1):"";}
 // → tombol WA disembunyikan karena tidak akan berfungsi.
 function isMobileNumber(tel){return /^08/.test(tel||"");}
 
-// Tombol 📞 Telepon + 💬 WA — dipakai di semua tampilan narahubung
+// Logo WhatsApp (inline SVG, mengikuti warna teks tombol via currentColor)
+function WaGlyph({size=13}){
+  return <svg viewBox="0 0 24 24" width={size} height={size} fill="currentColor"
+    aria-hidden="true" focusable="false" style={{display:"block",flexShrink:0}}>
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/>
+  </svg>;
+}
+
+// Tombol 📞 Telepon + WhatsApp — dipakai di semua tampilan narahubung
 function KontakActions({kontak,size="sm"}){
   const tel=extractPhone(kontak);
   if(!tel)return null;
@@ -112,8 +120,9 @@ function KontakActions({kontak,size="sm"}){
     <a href={"tel:"+tel} onClick={e=>e.stopPropagation()} title={"Telepon "+tel}
       style={{...st,background:"#1D4ED8",color:"white"}}>📞 Telepon</a>
     {isMobileNumber(tel)&&<a href={"https://wa.me/"+waNumber(tel)} target="_blank" rel="noopener noreferrer"
-      onClick={e=>e.stopPropagation()} title={"WhatsApp "+tel}
-      style={{...st,background:"#16A34A",color:"white"}}>💬 WA</a>}
+      onClick={e=>e.stopPropagation()} title={"WhatsApp "+tel} aria-label={"WhatsApp "+tel}
+      style={{...st,background:"#25D366",color:"white",display:"inline-flex",alignItems:"center",gap:4}}>
+      <WaGlyph size={size==="sm"?12:14}/>WA</a>}
   </span>;
 }
 
@@ -2636,7 +2645,7 @@ function ApprovalQueueView({events,role,upd,showT,askConfirm,isMobile}){
             </div>}
             {ev.jenisKegiatan&&<div style={{fontSize:13,color:"#475569"}}><span style={{color:"#94A3B8",fontWeight:600}}>Jenis: </span>{ev.jenisKegiatan}</div>}
             {ev.pakaian&&<div style={{fontSize:13,color:"#475569"}}><span style={{color:"#94A3B8",fontWeight:600}}>Pakaian: </span>{ev.pakaian}</div>}
-            {ev.kontak&&<div style={{fontSize:13,color:"#475569",display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}><span><span style={{color:"#94A3B8",fontWeight:600}}>Kontak: </span>{ev.kontak}</span><KontakActions kontak={ev.kontak}/></div>}
+            {ev.kontak&&<div style={{fontSize:13,color:"#475569",display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}><span style={{minWidth:0,overflowWrap:"anywhere"}}><span style={{color:"#94A3B8",fontWeight:600}}>Kontak: </span>{ev.kontak}</span><KontakActions kontak={ev.kontak}/></div>}
             {ev.buktiUndangan&&<div style={{fontSize:13,color:"#475569"}}><span style={{color:"#94A3B8",fontWeight:600}}>No. Surat: </span>{ev.buktiUndangan}</div>}
             {ev.catatan&&<div style={{fontSize:13,color:"#475569",gridColumn:"1/-1"}}><span style={{color:"#94A3B8",fontWeight:600}}>Catatan: </span>{ev.catatan}</div>}
           </div>
@@ -2903,8 +2912,8 @@ function MitraKerjaView({events,isMobile}){
             </div>}
             {[{l:"Pakaian",v:ev.pakaian},{l:"Catatan",v:ev.catatan},{l:"Kontak",v:ev.kontak}].filter(f=>f.v).map(f=>(
               <div key={f.l} style={{display:"flex",gap:8,padding:"4px 0",fontSize:12,alignItems:"center",flexWrap:"wrap"}}>
-                <span style={{minWidth:70,color:"#94A3B8",fontWeight:600}}>{f.l}</span>
-                <span style={{color:"#1E293B"}}>{f.v}</span>
+                <span style={{minWidth:70,flexShrink:0,color:"#94A3B8",fontWeight:600}}>{f.l}</span>
+                <span style={{color:"#1E293B",flex:"1 1 120px",minWidth:0,overflowWrap:"anywhere"}}>{f.v}</span>
                 {f.l==="Kontak"&&<KontakActions kontak={ev.kontak}/>}
               </div>
             ))}
@@ -5303,15 +5312,15 @@ function ExpandedDetail({ev,hariEv}){
       <div>
         <div style={{display:"flex",flexDirection:"column",gap:5}}>
           {[{i:"Tgl",l:"Tanggal",v:hariEv+", "+fmt(ev.tanggal)},{i:"Jam",l:"Waktu",v:ev.jam+" WITA"},{i:"Org",l:"Penyelenggara",v:ev.penyelenggara},{i:"Tel",l:"Kontak",v:ev.kontak},{i:"No",l:"Bukti Undangan",v:ev.buktiUndangan},{i:"Bj",l:"Pakaian",v:ev.pakaian},{i:"Ket",l:"Catatan",v:ev.catatan}].filter(f=>f.v).map(f=>(
-            <div key={f.l} style={{display:"flex",gap:8,padding:"6px 10px",background:"#f8fafc",borderRadius:8,alignItems:"center"}}>
-              <div style={{minWidth:80,fontSize:12,color:"#94a3b8",fontWeight:700,textTransform:"uppercase"}}>{f.l}</div>
-              <div style={{fontSize:12,color:"#1e293b",flex:1}}>{f.v}</div>
+            <div key={f.l} style={{display:"flex",gap:8,padding:"6px 10px",background:"#f8fafc",borderRadius:8,alignItems:"center",flexWrap:"wrap"}}>
+              <div style={{minWidth:80,flexShrink:0,fontSize:12,color:"#94a3b8",fontWeight:700,textTransform:"uppercase"}}>{f.l}</div>
+              <div style={{fontSize:12,color:"#1e293b",flex:"1 1 120px",minWidth:0,overflowWrap:"anywhere"}}>{f.v}</div>
               {f.l==="Kontak"&&<KontakActions kontak={ev.kontak}/>}
             </div>
           ))}
-          {ev.lokasi&&<div style={{display:"flex",gap:8,padding:"6px 10px",background:"#f0f9ff",borderRadius:8,border:"1px solid #bae6fd",alignItems:"center"}}>
-            <div style={{minWidth:80,fontSize:12,color:"#0284c7",fontWeight:700,textTransform:"uppercase"}}>Lokasi</div>
-            <div style={{flex:1,fontSize:12,color:"#0c4a6e",fontWeight:600}}>{ev.lokasi}</div>
+          {ev.lokasi&&<div style={{display:"flex",gap:8,padding:"6px 10px",background:"#f0f9ff",borderRadius:8,border:"1px solid #bae6fd",alignItems:"center",flexWrap:"wrap"}}>
+            <div style={{minWidth:80,flexShrink:0,fontSize:12,color:"#0284c7",fontWeight:700,textTransform:"uppercase"}}>Lokasi</div>
+            <div style={{flex:"1 1 120px",minWidth:0,overflowWrap:"anywhere",fontSize:12,color:"#0c4a6e",fontWeight:600}}>{ev.lokasi}</div>
             <a href={"https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(ev.lokasi)} target="_blank" rel="noopener noreferrer" style={{padding:"5px 10px",borderRadius:7,background:"#1a73e8",color:"white",textDecoration:"none",fontSize:13,fontWeight:700,flexShrink:0}}>Maps</a>
           </div>}
           <div style={{marginTop:4}}>
@@ -9985,9 +9994,9 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
               ev.kontak?{l:"Kontak",v:ev.kontak}:null,
               ev.catatan?{l:"Catatan",v:ev.catatan}:null,
             ].filter(Boolean).map(f=>(
-              <div key={f.l} style={{gridColumn:f.l==="Tanggal"||f.l==="Catatan"||f.l==="Penyelenggara"?"span 2":"span 1"}}>
+              <div key={f.l} style={{gridColumn:f.l==="Tanggal"||f.l==="Catatan"||f.l==="Penyelenggara"?"span 2":"span 1",minWidth:0}}>
                 <div style={{fontSize:12,color:"#94A3B8",fontWeight:700,textTransform:"uppercase",letterSpacing:0.5,marginBottom:2}}>{f.l}</div>
-                <div style={{fontSize:13,color:"#0F172A",fontWeight:600}}>{f.v}</div>
+                <div style={{fontSize:13,color:"#0F172A",fontWeight:600,overflowWrap:"anywhere"}}>{f.v}</div>
                 {f.l==="Kontak"&&<div style={{marginTop:5}}><KontakActions kontak={ev.kontak}/></div>}
               </div>
             ))}
