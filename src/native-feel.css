@@ -88,6 +88,21 @@ img, a {
   -webkit-overflow-scrolling: touch;
 }
 
+/* ── 5b. CEGAH KONTEN TERPOTONG DI LAYAR SEMPIT ─────────────
+   #root memakai overflow-x:hidden (lihat atas), jadi konten yang melebar
+   TERPOTONG — bukan bisa di-scroll. Teks panjang tanpa spasi (nomor surat,
+   URL, alamat email, catatan panjang) dulu mendorong tombol di sebelahnya
+   sampai keluar layar. Properti ini diwariskan ke seluruh anak elemen.
+*/
+body {
+  overflow-wrap: break-word;
+}
+
+/* Media & tabel jangan pernah melebihi lebar induknya */
+img, svg, video, canvas, table {
+  max-width: 100%;
+}
+
 /* ── 6. BOTTOM NAVIGATION SAFE AREA ─────────────────────────
    Navbar bawah harus naik setinggi home indicator iPhone.
    Pakai class ini pada elemen navbar bawah.

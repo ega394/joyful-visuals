@@ -2645,7 +2645,7 @@ function ApprovalQueueView({events,role,upd,showT,askConfirm,isMobile}){
             </div>}
             {ev.jenisKegiatan&&<div style={{fontSize:13,color:"#475569"}}><span style={{color:"#94A3B8",fontWeight:600}}>Jenis: </span>{ev.jenisKegiatan}</div>}
             {ev.pakaian&&<div style={{fontSize:13,color:"#475569"}}><span style={{color:"#94A3B8",fontWeight:600}}>Pakaian: </span>{ev.pakaian}</div>}
-            {ev.kontak&&<div style={{fontSize:13,color:"#475569",display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}><span><span style={{color:"#94A3B8",fontWeight:600}}>Kontak: </span>{ev.kontak}</span><KontakActions kontak={ev.kontak}/></div>}
+            {ev.kontak&&<div style={{fontSize:13,color:"#475569",display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}><span style={{minWidth:0,overflowWrap:"anywhere"}}><span style={{color:"#94A3B8",fontWeight:600}}>Kontak: </span>{ev.kontak}</span><KontakActions kontak={ev.kontak}/></div>}
             {ev.buktiUndangan&&<div style={{fontSize:13,color:"#475569"}}><span style={{color:"#94A3B8",fontWeight:600}}>No. Surat: </span>{ev.buktiUndangan}</div>}
             {ev.catatan&&<div style={{fontSize:13,color:"#475569",gridColumn:"1/-1"}}><span style={{color:"#94A3B8",fontWeight:600}}>Catatan: </span>{ev.catatan}</div>}
           </div>
@@ -2912,8 +2912,8 @@ function MitraKerjaView({events,isMobile}){
             </div>}
             {[{l:"Pakaian",v:ev.pakaian},{l:"Catatan",v:ev.catatan},{l:"Kontak",v:ev.kontak}].filter(f=>f.v).map(f=>(
               <div key={f.l} style={{display:"flex",gap:8,padding:"4px 0",fontSize:12,alignItems:"center",flexWrap:"wrap"}}>
-                <span style={{minWidth:70,color:"#94A3B8",fontWeight:600}}>{f.l}</span>
-                <span style={{color:"#1E293B"}}>{f.v}</span>
+                <span style={{minWidth:70,flexShrink:0,color:"#94A3B8",fontWeight:600}}>{f.l}</span>
+                <span style={{color:"#1E293B",flex:"1 1 120px",minWidth:0,overflowWrap:"anywhere"}}>{f.v}</span>
                 {f.l==="Kontak"&&<KontakActions kontak={ev.kontak}/>}
               </div>
             ))}
@@ -5312,15 +5312,15 @@ function ExpandedDetail({ev,hariEv}){
       <div>
         <div style={{display:"flex",flexDirection:"column",gap:5}}>
           {[{i:"Tgl",l:"Tanggal",v:hariEv+", "+fmt(ev.tanggal)},{i:"Jam",l:"Waktu",v:ev.jam+" WITA"},{i:"Org",l:"Penyelenggara",v:ev.penyelenggara},{i:"Tel",l:"Kontak",v:ev.kontak},{i:"No",l:"Bukti Undangan",v:ev.buktiUndangan},{i:"Bj",l:"Pakaian",v:ev.pakaian},{i:"Ket",l:"Catatan",v:ev.catatan}].filter(f=>f.v).map(f=>(
-            <div key={f.l} style={{display:"flex",gap:8,padding:"6px 10px",background:"#f8fafc",borderRadius:8,alignItems:"center"}}>
-              <div style={{minWidth:80,fontSize:12,color:"#94a3b8",fontWeight:700,textTransform:"uppercase"}}>{f.l}</div>
-              <div style={{fontSize:12,color:"#1e293b",flex:1}}>{f.v}</div>
+            <div key={f.l} style={{display:"flex",gap:8,padding:"6px 10px",background:"#f8fafc",borderRadius:8,alignItems:"center",flexWrap:"wrap"}}>
+              <div style={{minWidth:80,flexShrink:0,fontSize:12,color:"#94a3b8",fontWeight:700,textTransform:"uppercase"}}>{f.l}</div>
+              <div style={{fontSize:12,color:"#1e293b",flex:"1 1 120px",minWidth:0,overflowWrap:"anywhere"}}>{f.v}</div>
               {f.l==="Kontak"&&<KontakActions kontak={ev.kontak}/>}
             </div>
           ))}
-          {ev.lokasi&&<div style={{display:"flex",gap:8,padding:"6px 10px",background:"#f0f9ff",borderRadius:8,border:"1px solid #bae6fd",alignItems:"center"}}>
-            <div style={{minWidth:80,fontSize:12,color:"#0284c7",fontWeight:700,textTransform:"uppercase"}}>Lokasi</div>
-            <div style={{flex:1,fontSize:12,color:"#0c4a6e",fontWeight:600}}>{ev.lokasi}</div>
+          {ev.lokasi&&<div style={{display:"flex",gap:8,padding:"6px 10px",background:"#f0f9ff",borderRadius:8,border:"1px solid #bae6fd",alignItems:"center",flexWrap:"wrap"}}>
+            <div style={{minWidth:80,flexShrink:0,fontSize:12,color:"#0284c7",fontWeight:700,textTransform:"uppercase"}}>Lokasi</div>
+            <div style={{flex:"1 1 120px",minWidth:0,overflowWrap:"anywhere",fontSize:12,color:"#0c4a6e",fontWeight:600}}>{ev.lokasi}</div>
             <a href={"https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(ev.lokasi)} target="_blank" rel="noopener noreferrer" style={{padding:"5px 10px",borderRadius:7,background:"#1a73e8",color:"white",textDecoration:"none",fontSize:13,fontWeight:700,flexShrink:0}}>Maps</a>
           </div>}
           <div style={{marginTop:4}}>
@@ -9994,9 +9994,9 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
               ev.kontak?{l:"Kontak",v:ev.kontak}:null,
               ev.catatan?{l:"Catatan",v:ev.catatan}:null,
             ].filter(Boolean).map(f=>(
-              <div key={f.l} style={{gridColumn:f.l==="Tanggal"||f.l==="Catatan"||f.l==="Penyelenggara"?"span 2":"span 1"}}>
+              <div key={f.l} style={{gridColumn:f.l==="Tanggal"||f.l==="Catatan"||f.l==="Penyelenggara"?"span 2":"span 1",minWidth:0}}>
                 <div style={{fontSize:12,color:"#94A3B8",fontWeight:700,textTransform:"uppercase",letterSpacing:0.5,marginBottom:2}}>{f.l}</div>
-                <div style={{fontSize:13,color:"#0F172A",fontWeight:600}}>{f.v}</div>
+                <div style={{fontSize:13,color:"#0F172A",fontWeight:600,overflowWrap:"anywhere"}}>{f.v}</div>
                 {f.l==="Kontak"&&<div style={{marginTop:5}}><KontakActions kontak={ev.kontak}/></div>}
               </div>
             ))}
