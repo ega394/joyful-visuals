@@ -47,15 +47,28 @@ async function sbPatch(id, body) {
   return true;
 }
 
-// Patch/delete generik (sbPatch di atas khusus tabel permohonan_tamu)
+// Patch/delete generik (sbPatch di atas khusus tabel permohonan_tamu).
+//
+// PENTING: memakai return=representation, BUKAN return=minimal. Dengan
+// return=minimal PostgREST membalas 204 No Content walaupun filternya tidak
+// cocok dengan satu baris pun (mis. baris tersaring RLS) — sehingga r.ok
+// bernilai true dan penulisan yang sebenarnya gagal terlihat seperti sukses.
+// Dengan representation kita bisa memastikan barisnya benar-benar tersentuh.
 async function sbPatchRow(table, id, body) {
   var r = await fetch(SUPA_URL + "/rest/v1/" + table + "?id=eq." + encodeURIComponent(id), {
     method: "PATCH",
-    headers: H("return=minimal"),
+    headers: H("return=representation"),
     body: JSON.stringify(body),
   });
-  if (!r.ok) throw new Error(await r.text());
-  return true;
+  var txt = await r.text();
+  if (!r.ok) throw new Error("PATCH " + table + " gagal (HTTP " + r.status + "): " + txt.slice(0, 200));
+  var out = [];
+  try { out = JSON.parse(txt); } catch (e) {}
+  if (!Array.isArray(out) || out.length === 0) {
+    throw new Error("PATCH " + table + " tidak mengenai baris mana pun (id=" + id +
+      "). Kemungkinan baris tersaring RLS atau kunci API tidak berwenang menulis.");
+  }
+  return out[0];
 }
 
 async function sbDeleteRow(table, id) {
@@ -108,11 +121,18 @@ function buildAgendaRow(g, tempat) {
 async function sbInsertRow(table, body) {
   var r = await fetch(SUPA_URL + "/rest/v1/" + table, {
     method: "POST",
-    headers: H("return=minimal"),
+    headers: H("return=representation"),   // lihat catatan di sbPatchRow
     body: JSON.stringify(body),
   });
-  if (!r.ok) throw new Error(await r.text());
-  return true;
+  var txt = await r.text();
+  if (!r.ok) throw new Error("INSERT " + table + " gagal (HTTP " + r.status + "): " + txt.slice(0, 200));
+  var out = [];
+  try { out = JSON.parse(txt); } catch (e) {}
+  if (!Array.isArray(out) || out.length === 0) {
+    throw new Error("INSERT " + table + " tidak menghasilkan baris. " +
+      "Kemungkinan tertahan RLS atau kunci API tidak berwenang menulis.");
+  }
+  return out[0];
 }
 
 // Cari seluruh baris agenda yang tertaut ke satu tamu (urut: terlama dulu)
@@ -168,11 +188,15 @@ async function syncAgendaJadwal(guestId, agendaPatch, opts) {
     var row = buildAgendaRow(g, opts.tempat);
     Object.assign(row, agendaPatch || {});           // hormati tanggal/jam/tempat terbaru
     await sbInsertRow("jadwal", { id: row.id, data: row });
-    return { linked: 0, updated: 0, removed: 0, created: 1, agenda_id: row.id };
+    return {
+      linked: 0, updated: 0, removed: 0, created: 1, agenda_id: row.id,
+      tanggal: row.tanggal, jam: row.jam, lokasi: row.lokasi,
+    };
   }
 
   var keep = rows[0];
-  await sbPatchRow("jadwal", keep.id, { data: Object.assign({}, keep.data, agendaPatch) });
+  var hasil = Object.assign({}, keep.data, agendaPatch);
+  await sbPatchRow("jadwal", keep.id, { data: hasil });
 
   // Bereskan agenda ganda yang terlanjur dibuat oleh alur lama
   var removed = 0;
@@ -180,17 +204,26 @@ async function syncAgendaJadwal(guestId, agendaPatch, opts) {
     try { await sbDeleteRow("jadwal", rows[i].id); removed++; } catch (e) {}
   }
 
-  return { linked: rows.length, updated: 1, removed: removed, created: 0, agenda_id: keep.id };
+  return {
+    linked: rows.length, updated: 1, removed: removed, created: 0, agenda_id: keep.id,
+    tanggal: hasil.tanggal, jam: hasil.jam, lokasi: hasil.lokasi,
+  };
 }
 
 // POST: sync_agenda — tombol "Tambahkan ke Agenda" (buat bila belum ada,
 // perbarui + rapikan duplikat bila sudah ada)
 async function actionSyncAgenda(body) {
   if (!body.id) throw new Error("id wajib");
-  var patch = {};
-  if (body.scheduled_date) patch.tanggal = body.scheduled_date;
-  if (body.scheduled_time) patch.jam     = body.scheduled_time;
-  if (body.tempat)         patch.lokasi  = String(body.tempat).trim();
+
+  // Jadwal diambil dari database, bukan dari salinan di browser yang bisa
+  // basi — tombol "Selaraskan" harus mengikuti kondisi terkini tamu.
+  var g = (await sbGet("permohonan_tamu?id=eq." + encodeURIComponent(body.id) + "&select=*&limit=1"))[0];
+  if (!g) throw new Error("Data tamu tidak ditemukan");
+  if (!g.jadwal_tanggal) throw new Error("Tamu ini belum punya tanggal audiensi — tetapkan jadwalnya dulu");
+
+  var patch = { tanggal: g.jadwal_tanggal };
+  if (g.jadwal_jam)  patch.jam    = g.jadwal_jam;
+  if (body.tempat)   patch.lokasi = String(body.tempat).trim();
 
   var agenda = await syncAgendaJadwal(body.id, patch, {
     createIfMissing: true,
