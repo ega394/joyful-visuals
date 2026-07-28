@@ -47,6 +47,74 @@ async function sbPatch(id, body) {
   return true;
 }
 
+// Patch/delete generik (sbPatch di atas khusus tabel permohonan_tamu)
+async function sbPatchRow(table, id, body) {
+  var r = await fetch(SUPA_URL + "/rest/v1/" + table + "?id=eq." + encodeURIComponent(id), {
+    method: "PATCH",
+    headers: H("return=minimal"),
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return true;
+}
+
+async function sbDeleteRow(table, id) {
+  var r = await fetch(SUPA_URL + "/rest/v1/" + table + "?id=eq." + encodeURIComponent(id), {
+    method: "DELETE",
+    headers: H("return=minimal"),
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return true;
+}
+
+/**
+ * Sinkronkan perubahan jadwal tamu ke entri Agenda yang sudah dibuat.
+ *
+ * Sebelumnya pekerjaan ini dilakukan di browser (dua tempat, dua cara berbeda)
+ * sehingga rapuh: hasil PATCH tidak pernah diperiksa, dan bila agenda tertaut
+ * tidak ketemu di memori klien maka justru dibuatkan agenda BARU (duplikat).
+ * Di sini pencarian dilakukan langsung ke database sehingga hasilnya pasti.
+ *
+ * Hanya tanggal/jam/lokasi yang ditimpa — judul acara, kontak, dan catatan
+ * dibiarkan apa adanya supaya suntingan manual petugas di agenda tidak hilang.
+ */
+async function syncAgendaJadwal(guestId, agendaPatch) {
+  var idStr = String(guestId);
+  var last6 = idStr.slice(-6);
+
+  var rows = [];
+  try {
+    rows = await sbGet("jadwal?select=id,data&data->>guest_id=eq." + encodeURIComponent(idStr));
+  } catch (e) { rows = []; }
+
+  // Agenda lama dibuat sebelum field guest_id ada → cocokkan lewat buktiUndangan
+  if (!rows || !rows.length) {
+    try {
+      var all = await sbGet("jadwal?select=id,data&data->>created_from=eq.guest_module");
+      rows = (all || []).filter(function (r) {
+        var d = r.data || {};
+        return String(d.guest_id || "") === idStr ||
+               String(d.buktiUndangan || "").indexOf(last6) >= 0;
+      });
+    } catch (e) { rows = []; }
+  }
+  if (!rows || !rows.length) return { linked: 0, updated: 0, removed: 0 };
+
+  // id terkecil = agenda yang paling dulu dibuat → itu yang dipertahankan
+  rows.sort(function (a, b) { return String(a.id).localeCompare(String(b.id)); });
+
+  var keep = rows[0];
+  await sbPatchRow("jadwal", keep.id, { data: Object.assign({}, keep.data, agendaPatch) });
+
+  // Bereskan agenda ganda yang terlanjur dibuat oleh alur lama
+  var removed = 0;
+  for (var i = 1; i < rows.length; i++) {
+    try { await sbDeleteRow("jadwal", rows[i].id); removed++; } catch (e) {}
+  }
+
+  return { linked: rows.length, updated: 1, removed: removed };
+}
+
 async function sendWA(to, message) {
   if (!FONNTE || !to) return;
   try {
@@ -291,6 +359,22 @@ async function actionUpdateJadwal(body) {
   if (Object.keys(patch).length === 0 && !body.tempat) throw new Error("Tidak ada perubahan");
   if (Object.keys(patch).length) await sbPatch(body.id, patch);
 
+  // Agenda yang sudah terjadwal ikut disesuaikan di sini (bukan lagi dari browser)
+  var agendaPatch = {};
+  if (body.scheduled_date) agendaPatch.tanggal = body.scheduled_date;
+  if (body.scheduled_time) agendaPatch.jam     = body.scheduled_time;
+  if (body.tempat)         agendaPatch.lokasi  = String(body.tempat).trim();
+
+  var agenda = { linked: 0, updated: 0, removed: 0, error: null };
+  if (Object.keys(agendaPatch).length) {
+    try {
+      agenda = await syncAgendaJadwal(body.id, agendaPatch);
+    } catch (e) {
+      // Jadwal tamu sudah tersimpan — kegagalan agenda dilaporkan, tidak ditelan
+      agenda = { linked: 0, updated: 0, removed: 0, error: e.message || "Gagal menyesuaikan agenda" };
+    }
+  }
+
   // Notifikasi WA pembaruan jadwal ke pemohon (best-effort)
   try {
     var rows = await sbGet("permohonan_tamu?id=eq." + body.id + "&select=nama,no_wa,tujuan_pejabat&limit=1");
@@ -307,7 +391,7 @@ async function actionUpdateJadwal(body) {
     }
   } catch (e) {}
 
-  return { ok: true, message: "Jadwal diperbarui" };
+  return { ok: true, message: "Jadwal diperbarui", agenda: agenda };
 }
 
 // Notifikasi WA konfirmasi penerimaan permohonan (dipanggil dari form publik)

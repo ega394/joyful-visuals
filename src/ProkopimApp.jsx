@@ -6638,6 +6638,14 @@ export default function App(){
     return()=>clearInterval(t);
   },[lockSeconds]);
 
+  // Muat ulang agenda dari server — dipakai modul Tamu setelah jadwal diubah,
+  // agar tab Agenda langsung menampilkan jam/tanggal baru tanpa pull-refresh
+  const reloadEvents=useCallback(async()=>{
+    if(!SUPA_OK)return;
+    try{const rows=await dbLoadAll();if(rows&&rows.length>0)setEvents(rows);}
+    catch(e){console.warn("reloadEvents:",e?.message||e);}
+  },[]);
+
   // ── UX: Pull-to-refresh (mobile) ──
   useEffect(()=>{
     if(!user||!isMobile)return;
@@ -10702,7 +10710,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
 
       /* 2b. Manajemen Tamu (GuestDashboard) */
       :tab==="tamu"&&(role==="walikota"||role==="wakilwalikota")
-        ?<WaliKotaAudiensiDashboard role={role} user={user} showT={showT} isMobile={isMobile}/>
+        ?<WaliKotaAudiensiDashboard role={role} user={user} showT={showT} isMobile={isMobile} reloadEvents={reloadEvents}/>
       :tab==="tamu"
         ?<React.Suspense fallback={<_LazyFallback />}>
           <GuestDashboard
@@ -10711,6 +10719,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
             events={events}
             showT={showT}
             isMobile={isMobile}
+            reloadEvents={reloadEvents}
           />
         </React.Suspense>
 

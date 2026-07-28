@@ -5,7 +5,7 @@ const SUPA_URL = typeof import.meta !== "undefined" && import.meta.env
 const SUPA_KEY = typeof import.meta !== "undefined" && import.meta.env
   ? (import.meta.env.VITE_SUPABASE_ANON_KEY || "") : "";
 
-export default function WaliKotaAudiensiDashboard({ role, user, showT, isMobile }) {
+export default function WaliKotaAudiensiDashboard({ role, user, showT, isMobile, reloadEvents }) {
   const NAVY = "#0A1628", GREEN = "#0D6B4F", RED = "#991B1B";
   const labelPimpinan = role === "wakilwalikota" ? "Wakil Wali Kota" : "Wali Kota";
 
@@ -139,7 +139,7 @@ export default function WaliKotaAudiensiDashboard({ role, user, showT, isMobile 
         })}
       </div>
 
-      {viewTab==="terjadwal" && <TerjadwalPimpinan labelPimpinan={labelPimpinan} user={user} showT={showT} PRIORITY={PRIORITY} fmtTs={fmtTs}/>}
+      {viewTab==="terjadwal" && <TerjadwalPimpinan labelPimpinan={labelPimpinan} user={user} showT={showT} PRIORITY={PRIORITY} fmtTs={fmtTs} reloadEvents={reloadEvents}/>}
 
       {viewTab==="pending" && <>
       {loading && <div style={{textAlign:"center",padding:"40px",color:"#94A3B8"}}>⏳ Mengambil data...</div>}
@@ -311,7 +311,7 @@ export default function WaliKotaAudiensiDashboard({ role, user, showT, isMobile 
 }
 
 // ── Terjadwal: WK/Wakil mengedit jam & tempat audiensi yang sudah disetujui ──
-function TerjadwalPimpinan({ labelPimpinan, user, showT, PRIORITY, fmtTs }) {
+function TerjadwalPimpinan({ labelPimpinan, user, showT, PRIORITY, fmtTs, reloadEvents }) {
   const NAVY = "#0A1628", GREEN = "#0D6B4F";
   const [list, setList]       = React.useState([]);
   const [loading, setLoading] = React.useState(true);
@@ -350,21 +350,14 @@ function TerjadwalPimpinan({ labelPimpinan, user, showT, PRIORITY, fmtTs }) {
       });
       const j = await r.json().catch(()=>({}));
       if(!r.ok || (j && j.error)) throw new Error(j && j.error ? j.error : "Gagal");
-      // Perbarui entri agenda terkait (jika ada)
-      if(SUPA_URL && SUPA_KEY){
-        const rows = await fetch(SUPA_URL+"/rest/v1/jadwal?select=id,data&data->>guest_id=eq."+g.id, {
-          headers:{ apikey:SUPA_KEY, Authorization:"Bearer "+SUPA_KEY }
-        }).then(x=>x.json()).catch(()=>[]);
-        if(Array.isArray(rows) && rows[0]){
-          const merged = Object.assign({}, rows[0].data, { tanggal:eTgl, jam:eJam, lokasi:tempatFinal });
-          await fetch(SUPA_URL+"/rest/v1/jadwal?id=eq."+rows[0].id, {
-            method:"PATCH",
-            headers:{ "Content-Type":"application/json", apikey:SUPA_KEY, Authorization:"Bearer "+SUPA_KEY, Prefer:"return=minimal" },
-            body: JSON.stringify({ data: merged }),
-          });
-        }
-      }
-      showT("✅ Jadwal & tempat diperbarui", "ok");
+
+      // Agenda kini disesuaikan oleh backend — di sini cukup laporkan hasilnya
+      const ag = (j && j.agenda) || {};
+      if(ag.error)       showT("✅ Jadwal tamu tersimpan — ⚠ agenda gagal disesuaikan, sinkronkan manual", "warn");
+      else if(!ag.linked) showT("✅ Jadwal & tempat diperbarui — belum ada agenda tertaut", "warn");
+      else                showT("✅ Jadwal, tempat & agenda diperbarui"+(ag.removed?" ("+ag.removed+" agenda ganda dirapikan)":""), "ok");
+
+      if(reloadEvents) reloadEvents();   // agar tab Agenda langsung ikut berubah
       setEditId(null);
       load();
     } catch(e){ showT("Gagal: "+e.message, "error"); }

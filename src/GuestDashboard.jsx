@@ -146,20 +146,20 @@ var GD_CSS = `
 // ══════════════════════════════════════════════════════════════
 //  ROOT ROUTER
 // ══════════════════════════════════════════════════════════════
-export default function GuestDashboard({ role, user, events, showT, isMobile }) {
+export default function GuestDashboard({ role, user, events, showT, isMobile, reloadEvents }) {
   return (
     <div style={{ flex:1, display:"flex", flexDirection:"column" }}>
       <style>{GD_CSS}</style>
       {(role==="admin_rk") &&
-        <AdminRKView    user={user} events={events} showT={showT} isMobile={isMobile}/>}
+        <AdminRKView    user={user} events={events} showT={showT} isMobile={isMobile} reloadEvents={reloadEvents}/>}
       {(role==="kasubbag_protokol") &&
         <KasubbagView   user={user} showT={showT} isMobile={isMobile}/>}
       {(role==="kabag") &&
-        <KabagView      user={user} events={events} showT={showT} isMobile={isMobile}/>}
+        <KabagView      user={user} events={events} showT={showT} isMobile={isMobile} reloadEvents={reloadEvents}/>}
       {(role==="walikota"||role==="wakilwalikota") &&
-        <PimpinanView   role={role} user={user} events={events} showT={showT} isMobile={isMobile}/>}
+        <PimpinanView   role={role} user={user} events={events} showT={showT} isMobile={isMobile} reloadEvents={reloadEvents}/>}
       {(role==="ajudan_walikota"||role==="ajudan_wakilwalikota") &&
-        <AjudanView     role={role} user={user} events={events} showT={showT} isMobile={isMobile}/>}
+        <AjudanView     role={role} user={user} events={events} showT={showT} isMobile={isMobile} reloadEvents={reloadEvents}/>}
       {(role==="kasubbag_komdokpim"||role==="timkom") &&
         <ReadOnlyView   isMobile={isMobile}/>}
     </div>
@@ -169,7 +169,7 @@ export default function GuestDashboard({ role, user, events, showT, isMobile }) 
 // ══════════════════════════════════════════════════════════════
 //  VIEW 1 — ADMIN RK: Pintu Pertama
 // ══════════════════════════════════════════════════════════════
-function AdminRKView({ user, events, showT, isMobile }) {
+function AdminRKView({ user, events, showT, isMobile, reloadEvents }) {
   var [guests,     setGuests]     = useState([]);
   var [loading,    setLoading]    = useState(true);
   var [tab,        setTab]        = useState("pending_rk");
@@ -195,13 +195,13 @@ function AdminRKView({ user, events, showT, isMobile }) {
     if(detail.status==="pending_pimpinan") return (
       <PimpinanDetail
         guest={detail} role="admin_rk" user={user} events={events}
-        showT={showT} isMobile={isMobile}
+        showT={showT} isMobile={isMobile} reloadEvents={reloadEvents}
         onBack={function(){setDetail(null);}} onDone={removeFromList}
       />
     );
     return (
       <AdminRKDetail
-        guest={detail} user={user} events={events} showT={showT} isMobile={isMobile}
+        guest={detail} user={user} events={events} showT={showT} isMobile={isMobile} reloadEvents={reloadEvents}
         onBack={function(){setDetail(null);}} onDone={removeFromList}
       />
     );
@@ -255,7 +255,7 @@ function AdminRKView({ user, events, showT, isMobile }) {
   );
 }
 
-function AdminRKDetail({ guest, user, events, showT, isMobile, onBack, onDone }) {
+function AdminRKDetail({ guest, user, events, showT, isMobile, onBack, onDone, reloadEvents }) {
   var [catatan, setCatatan] = useState(guest.catatan_rk || "");
   var [loading, setLoading] = useState(false);
   var [konfirm, setKonfirm] = useState(null); // "teruskan"|"tolak"
@@ -362,7 +362,7 @@ function AdminRKDetail({ guest, user, events, showT, isMobile, onBack, onDone })
             </div>
           )}
           <SyncAgendaBox guest={guest} events={events} user={user} showT={showT}/>
-          <EditJadwalTempat guest={guest} events={events} user={user} showT={showT} onDone={done}/>
+          <EditJadwalTempat guest={guest} events={events} user={user} showT={showT} onDone={done} reloadEvents={reloadEvents}/>
           <MarkSelesaiButton guest={guest} user={user} showT={showT} onDone={done}/>
         </>
       )}
@@ -634,7 +634,7 @@ function KasubbagDetail({ guest, user, showT, isMobile, onBack, onDone }) {
 // ══════════════════════════════════════════════════════════════
 //  VIEW 3 — KABAG PROKOPIM: Gatekeeper Eksekutif
 // ══════════════════════════════════════════════════════════════
-function KabagView({ user, events, showT, isMobile }) {
+function KabagView({ user, events, showT, isMobile, reloadEvents }) {
   var [guests,     setGuests]     = useState([]);
   var [loading,    setLoading]    = useState(true);
   var [tab,        setTab]        = useState("pending_kabag");
@@ -655,7 +655,7 @@ function KabagView({ user, events, showT, isMobile }) {
 
   if(detail) return (
     <KabagDetail
-      guest={detail} user={user} events={events} showT={showT} isMobile={isMobile}
+      guest={detail} user={user} events={events} showT={showT} isMobile={isMobile} reloadEvents={reloadEvents}
       onBack={function(){setDetail(null);}}
       onDone={function(){setGuests(function(prev){return prev.filter(function(g){return g.id!==detail.id;});}); setDetail(null);}}
     />
@@ -702,7 +702,7 @@ function KabagView({ user, events, showT, isMobile }) {
   );
 }
 
-function KabagDetail({ guest, user, events, showT, isMobile, onBack, onDone }) {
+function KabagDetail({ guest, user, events, showT, isMobile, onBack, onDone, reloadEvents }) {
   var done = onDone || onBack;
   var [priority,   setPriority]   = useState(gPrioritas(guest));
   var [telaah,     setTelaah]     = useState(guest.telaah_kabag || "");
@@ -903,7 +903,7 @@ function KabagDetail({ guest, user, events, showT, isMobile, onBack, onDone }) {
             </div>
           )}
           <SyncAgendaBox guest={guest} events={events} user={user} showT={showT}/>
-          <EditJadwalTempat guest={guest} events={events} user={user} showT={showT} onDone={done}/>
+          <EditJadwalTempat guest={guest} events={events} user={user} showT={showT} onDone={done} reloadEvents={reloadEvents}/>
           <MarkSelesaiButton guest={guest} user={user} showT={showT} onDone={done}/>
         </>
       )}
@@ -944,7 +944,7 @@ function KabagDetail({ guest, user, events, showT, isMobile, onBack, onDone }) {
 // ══════════════════════════════════════════════════════════════
 //  VIEW 4 — PIMPINAN: Keputusan Akhir + Penjadwalan
 // ══════════════════════════════════════════════════════════════
-function PimpinanView({ role, user, events, showT, isMobile }) {
+function PimpinanView({ role, user, events, showT, isMobile, reloadEvents }) {
   var [guests,     setGuests]     = useState([]);
   var [loading,    setLoading]    = useState(true);
   var [tab,        setTab]        = useState("pending_pimpinan");
@@ -976,7 +976,7 @@ function PimpinanView({ role, user, events, showT, isMobile }) {
   if(detail) return (
     <PimpinanDetail
       guest={detail} role={role} user={user} events={events}
-      showT={showT} isMobile={isMobile}
+      showT={showT} isMobile={isMobile} reloadEvents={reloadEvents}
       onBack={function(){setDetail(null);}}
       onDone={function(){setGuests(function(prev){return prev.filter(function(g){return g.id!==detail.id;});}); setDetail(null);}}
     />
@@ -1125,7 +1125,7 @@ function TempatField({ value, onChange }) {
 }
 
 // Edit jadwal & tempat pada tamu yang sudah disetujui (sinkron ke agenda + WA)
-function EditJadwalTempat({ guest, events, user, showT, onDone }) {
+function EditJadwalTempat({ guest, events, user, showT, onDone, reloadEvents }) {
   var linked = findGuestAgenda(guest, events);
   var [open, setOpen]     = useState(false);
   var [tgl, setTgl]       = useState(guest.jadwal_tanggal || "");
@@ -1138,24 +1138,30 @@ function EditJadwalTempat({ guest, events, user, showT, onDone }) {
     if(!String(tempat).trim()) { showT("⚠ Tempat wajib diisi"); return; }
     setBusy(true);
     try {
-      await apiPost("update_jadwal", {
+      // Backend sekaligus menyesuaikan agenda terkait & merapikan duplikat,
+      // lalu melaporkan hasilnya lewat res.agenda
+      var res = await apiPost("update_jadwal", {
         id: guest.id, scheduled_date: tgl, scheduled_time: jam,
         tempat: String(tempat).trim(), updated_by: user?.username,
       });
-      if(SUPA_URL && SUPA_KEY) {
-        if(linked) {
-          var merged = Object.assign({}, linked, {tanggal:tgl, jam:jam, lokasi:String(tempat).trim()});
-          await fetch(SUPA_URL+"/rest/v1/jadwal?id=eq."+linked.id, {
-            method:"PATCH",
-            headers:{"Content-Type":"application/json","apikey":SUPA_KEY,"Authorization":"Bearer "+SUPA_KEY,"Prefer":"return=minimal"},
-            body: JSON.stringify({data: merged}),
-          });
-        } else {
+      var ag = (res && res.agenda) || {};
+
+      if(ag.error) {
+        showT("✅ Jadwal tamu tersimpan — ⚠ agenda gagal disesuaikan, sinkronkan manual");
+      } else if(!ag.linked) {
+        // Database memastikan belum ada agenda tertaut → aman untuk dibuatkan
+        if(SUPA_URL && SUPA_KEY) {
           var ev = buildAgendaFromGuest(Object.assign({}, guest, {jadwal_tanggal:tgl, jadwal_jam:jam}), user?.username, String(tempat).trim());
           await pushAgenda(ev);
+          showT("✅ Jadwal diperbarui & agenda dibuat");
+        } else {
+          showT("✅ Jadwal tamu tersimpan — agenda belum tertaut");
         }
+      } else {
+        showT("✅ Jadwal, tempat & agenda diperbarui"+(ag.removed?" ("+ag.removed+" agenda ganda dirapikan)":""));
       }
-      showT("✅ Jadwal & tempat diperbarui");
+
+      if(reloadEvents) reloadEvents();   // agar tab Agenda langsung ikut berubah
       if(onDone) onDone();
     } catch(e) { showT("❌ "+e.message); }
     finally { setBusy(false); setOpen(false); }
@@ -1185,7 +1191,7 @@ function EditJadwalTempat({ guest, events, user, showT, onDone }) {
   );
 }
 
-function PimpinanDetail({ guest, role, user, events, showT, isMobile, onBack, onDone }) {
+function PimpinanDetail({ guest, role, user, events, showT, isMobile, onBack, onDone, reloadEvents }) {
   var done = onDone || onBack;
   var [loading,    setLoading]    = useState(false);
   var [mode,       setMode]       = useState(null); // "jadwal"|"tolak"|"disposisi"|"cabut"
@@ -1511,7 +1517,7 @@ function PimpinanDetail({ guest, role, user, events, showT, isMobile, onBack, on
             </div>
           )}
           <SyncAgendaBox guest={guest} events={events} user={user} showT={showT}/>
-          <EditJadwalTempat guest={guest} events={events} user={user} showT={showT} onDone={done}/>
+          <EditJadwalTempat guest={guest} events={events} user={user} showT={showT} onDone={done} reloadEvents={reloadEvents}/>
         </>
       )}
       {guest.status==="rejected" && (
@@ -1527,7 +1533,7 @@ function PimpinanDetail({ guest, role, user, events, showT, isMobile, onBack, on
 // ══════════════════════════════════════════════════════════════
 //  VIEW 5 — AJUDAN: Tamu Hari Ini & Besok
 // ══════════════════════════════════════════════════════════════
-function AjudanView({ role, user, events, showT, isMobile }) {
+function AjudanView({ role, user, events, showT, isMobile, reloadEvents }) {
   var [guests,  setGuests]  = useState([]);
   var [loading, setLoading] = useState(true);
   var [subtab,  setSubtab]  = useState("sambut"); // "sambut" | "jadwal"
@@ -1576,7 +1582,7 @@ function AjudanView({ role, user, events, showT, isMobile }) {
   if(detail) return (
     <PimpinanDetail
       guest={detail} role={role} user={user} events={events}
-      showT={showT} isMobile={isMobile}
+      showT={showT} isMobile={isMobile} reloadEvents={reloadEvents}
       onBack={function(){setDetail(null);}}
       onDone={function(){setJadwalList(function(prev){return prev.filter(function(g){return g.id!==detail.id;});}); setDetail(null);}}
     />
