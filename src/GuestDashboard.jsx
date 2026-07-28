@@ -361,7 +361,7 @@ function AdminRKDetail({ guest, user, events, showT, isMobile, onBack, onDone, r
               🖊 Diputuskan oleh: <b>{guest.diputuskan_oleh}</b>
             </div>
           )}
-          <SyncAgendaBox guest={guest} events={events} user={user} showT={showT}/>
+          <SyncAgendaBox guest={guest} events={events} user={user} showT={showT} reloadEvents={reloadEvents}/>
           <EditJadwalTempat guest={guest} events={events} user={user} showT={showT} onDone={done} reloadEvents={reloadEvents}/>
           <MarkSelesaiButton guest={guest} user={user} showT={showT} onDone={done}/>
         </>
@@ -902,7 +902,7 @@ function KabagDetail({ guest, user, events, showT, isMobile, onBack, onDone, rel
               🖊 Diputuskan oleh: <b>{guest.diputuskan_oleh}</b>
             </div>
           )}
-          <SyncAgendaBox guest={guest} events={events} user={user} showT={showT}/>
+          <SyncAgendaBox guest={guest} events={events} user={user} showT={showT} reloadEvents={reloadEvents}/>
           <EditJadwalTempat guest={guest} events={events} user={user} showT={showT} onDone={done} reloadEvents={reloadEvents}/>
           <MarkSelesaiButton guest={guest} user={user} showT={showT} onDone={done}/>
         </>
@@ -1025,40 +1025,45 @@ function PimpinanView({ role, user, events, showT, isMobile, reloadEvents }) {
 }
 
 // Kotak status sinkronisasi agenda + tombol cadangan (anti-duplikat)
-function SyncAgendaBox({ guest, events, user, showT }) {
+function SyncAgendaBox({ guest, events, user, showT, reloadEvents }) {
   var [busy, setBusy] = useState(false);
-  var [doneLocal, setDoneLocal] = useState(false);
+  var [hasil, setHasil] = useState(null);   // hasil terakhir dari server
   var punyaJadwal = !!(guest.jadwal_tanggal || guest.scheduled_date);
-  var synced = doneLocal || isGuestSynced(guest, events);
+  // Perkiraan awal dari data di memori — hanya untuk memilih teks tombol.
+  // Kepastiannya ada di server, jadi tombol TIDAK pernah disembunyikan.
+  var mungkinSudah = hasil ? true : isGuestSynced(guest, events);
 
   async function sinkron() {
     setBusy(true);
     try {
-      if(isGuestSynced(guest, events)) { setDoneLocal(true); showT("Tamu ini sudah ada di Agenda"); return; }
-      var ev = buildAgendaFromGuest(guest, user?.username);
-      await pushAgenda(ev);
-      setDoneLocal(true);
-      showT("✅ Tamu disinkronkan ke Agenda");
+      var linked = findGuestAgenda(guest, events);
+      var res = await apiPost("sync_agenda", {
+        id: guest.id,
+        scheduled_date: guest.jadwal_tanggal || guest.scheduled_date || "",
+        scheduled_time: guest.jadwal_jam || guest.scheduled_time || "",
+        tempat: (linked && linked.lokasi) || TEMPAT_DEFAULT,
+      });
+      var ag = (res && res.agenda) || {};
+      setHasil(ag);
+      showT(ag.created ? "✅ Agenda dibuat untuk tamu ini"
+        : "✅ Agenda diperbarui"+(ag.removed?" ("+ag.removed+" agenda ganda dirapikan)":""));
+      if(reloadEvents) reloadEvents();
     } catch(e) { showT("❌ "+e.message); }
     finally { setBusy(false); }
   }
 
   if(!punyaJadwal) return null;
 
-  if(synced) return (
-    <div style={{background:"#F0FDF4",border:"1.5px solid #86EFAC",borderRadius:11,padding:"11px 13px",display:"flex",alignItems:"center",gap:9,marginTop:4}}>
-      <span style={{fontSize:18}}>✓</span>
-      <div style={{fontSize:13,fontWeight:700,color:"#065F46"}}>Sudah masuk Agenda Kegiatan</div>
-    </div>
-  );
-
   return (
-    <div style={{background:"#FFFBEB",border:"1.5px solid #FDE68A",borderRadius:11,padding:"11px 13px",marginTop:4}}>
-      <div style={{fontSize:12,color:"#92400E",marginBottom:8,lineHeight:1.5}}>
-        ⚠ Tamu ini sudah dijadwalkan tetapi <b>belum tercatat di Agenda Kegiatan</b>.
+    <div style={{background:mungkinSudah?"#F0FDF4":"#FFFBEB",border:"1.5px solid "+(mungkinSudah?"#86EFAC":"#FDE68A"),borderRadius:11,padding:"11px 13px",marginTop:4}}>
+      <div style={{fontSize:12,color:mungkinSudah?"#065F46":"#92400E",marginBottom:8,lineHeight:1.5}}>
+        {mungkinSudah
+          ? <>✓ Tamu ini <b>sudah tercatat di Agenda Kegiatan</b>. Tekan tombol di bawah bila agendanya perlu diselaraskan ulang.</>
+          : <>⚠ Tamu ini sudah dijadwalkan tetapi <b>belum tercatat di Agenda Kegiatan</b>.</>}
       </div>
-      <button onClick={sinkron} disabled={busy} style={{width:"100%",padding:"11px",borderRadius:10,border:"none",background:busy?"#94A3B8":"#0A1628",color:"white",cursor:busy?"default":"pointer",fontSize:13,fontWeight:800}}>
-        {busy?"Menyinkronkan...":"🔄 Sinkronkan ke Agenda"}
+      <button onClick={sinkron} disabled={busy}
+        style={{width:"100%",padding:"11px",borderRadius:10,border:"none",background:busy?"#94A3B8":"#0A1628",color:"white",cursor:busy?"default":"pointer",fontSize:13,fontWeight:800}}>
+        {busy ? "Memproses..." : (mungkinSudah ? "🔄 Selaraskan Agenda" : "➕ Tambahkan ke Agenda")}
       </button>
     </div>
   );
@@ -1146,20 +1151,10 @@ function EditJadwalTempat({ guest, events, user, showT, onDone, reloadEvents }) 
       });
       var ag = (res && res.agenda) || {};
 
-      if(ag.error) {
-        showT("✅ Jadwal tamu tersimpan — ⚠ agenda gagal disesuaikan, sinkronkan manual");
-      } else if(!ag.linked) {
-        // Database memastikan belum ada agenda tertaut → aman untuk dibuatkan
-        if(SUPA_URL && SUPA_KEY) {
-          var ev = buildAgendaFromGuest(Object.assign({}, guest, {jadwal_tanggal:tgl, jadwal_jam:jam}), user?.username, String(tempat).trim());
-          await pushAgenda(ev);
-          showT("✅ Jadwal diperbarui & agenda dibuat");
-        } else {
-          showT("✅ Jadwal tamu tersimpan — agenda belum tertaut");
-        }
-      } else {
-        showT("✅ Jadwal, tempat & agenda diperbarui"+(ag.removed?" ("+ag.removed+" agenda ganda dirapikan)":""));
-      }
+      // Pembuatan/pembaruan agenda kini sepenuhnya dikerjakan backend
+      if(ag.error)        showT("✅ Jadwal tamu tersimpan — ⚠ agenda gagal disesuaikan: "+ag.error);
+      else if(ag.created) showT("✅ Jadwal diperbarui & agenda dibuat");
+      else                showT("✅ Jadwal, tempat & agenda diperbarui"+(ag.removed?" ("+ag.removed+" agenda ganda dirapikan)":""));
 
       if(reloadEvents) reloadEvents();   // agar tab Agenda langsung ikut berubah
       if(onDone) onDone();
@@ -1259,16 +1254,23 @@ function PimpinanDetail({ guest, role, user, events, showT, isMobile, onBack, on
 
       await apiPost("respond", bodyResp);
 
-      // Auto-sync ke Agenda — hanya jika ada jadwal & belum pernah disinkron
-      if(jadwalTgl && jadwalJam && !isGuestSynced(guest, events)) {
-        var ev = buildAgendaFromGuest(
-          Object.assign({}, guest, {jadwal_tanggal:jadwalTgl, jadwal_jam:jadwalJam}),
-          user?.username, lokasiFinal
-        );
-        await pushAgenda(ev);
+      // Auto-sync ke Agenda lewat backend (anti-duplikat, tidak bergantung
+      // pada kunci Supabase di browser). Kegagalannya dilaporkan, bukan ditelan.
+      var agendaMsg = "";
+      if(jadwalTgl) {
+        try {
+          var rs = await apiPost("sync_agenda", {
+            id: guest.id, scheduled_date: jadwalTgl,
+            scheduled_time: jadwalJam || "", tempat: lokasiFinal,
+          });
+          agendaMsg = (rs && rs.agenda && rs.agenda.created) ? " & masuk ke Agenda" : " & Agenda diselaraskan";
+        } catch(e) {
+          agendaMsg = " — ⚠ gagal masuk Agenda, pakai tombol 'Tambahkan ke Agenda'";
+        }
       }
 
-      showT("✅ Permohonan disetujui"+(jadwalTgl?" & masuk ke Agenda":""));
+      showT("✅ Permohonan disetujui"+agendaMsg);
+      if(reloadEvents) reloadEvents();
       done();
     } catch(e) { showT("❌ "+e.message); }
     finally { setLoading(false); }
@@ -1516,7 +1518,7 @@ function PimpinanDetail({ guest, role, user, events, showT, isMobile, onBack, on
               🖊 Diputuskan oleh: <b>{guest.diputuskan_oleh}</b>
             </div>
           )}
-          <SyncAgendaBox guest={guest} events={events} user={user} showT={showT}/>
+          <SyncAgendaBox guest={guest} events={events} user={user} showT={showT} reloadEvents={reloadEvents}/>
           <EditJadwalTempat guest={guest} events={events} user={user} showT={showT} onDone={done} reloadEvents={reloadEvents}/>
         </>
       )}
