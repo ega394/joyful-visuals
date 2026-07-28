@@ -78,7 +78,45 @@ async function sbDeleteRow(table, id) {
  * Hanya tanggal/jam/lokasi yang ditimpa — judul acara, kontak, dan catatan
  * dibiarkan apa adanya supaya suntingan manual petugas di agenda tidak hilang.
  */
-async function syncAgendaJadwal(guestId, agendaPatch) {
+// Bangun entri Agenda dari baris permohonan_tamu (kembaran buildAgendaFromGuest
+// di frontend, tapi dijalankan di server memakai service key)
+function buildAgendaRow(g, tempat) {
+  var pejabatKey = (g.tujuan_pejabat === "Wakil Wali Kota") ? "wakilwalikota" : "walikota";
+  var nama = g.nama || g.name || "Tamu";
+  var inst = g.instansi || g.organization || "";
+  var evId = Date.now();
+  return {
+    id: evId,
+    tanggal: g.jadwal_tanggal || "",
+    jam: g.jadwal_jam || "",
+    namaAcara: "Audiensi: " + nama + (inst ? " (" + inst + ")" : ""),
+    penyelenggara: inst || nama,
+    kontak: g.no_wa || g.phone || "-",
+    buktiUndangan: "Permohonan Tamu #" + String(g.id).slice(-6),
+    pakaian: "Batik Lengan Panjang", jenisKegiatan: "Menghadiri",
+    lokasi: tempat || "Ruang Kerja",
+    untukPimpinan: [pejabatKey], alur: "disetujui",
+    catatan: "Maksud: " + (g.maksud_keperluan || g.purpose || "-") +
+             (g.telaah_kabag ? " | Telaah Kabag: " + g.telaah_kabag : ""),
+    statusWK:  pejabatKey === "walikota"      ? "hadir" : null,
+    statusWWK: pejabatKey === "wakilwalikota" ? "hadir" : null,
+    submittedBy: g.diputuskan_oleh || "pimpinan",
+    personil: [], evaluasi: {}, created_from: "guest_module", guest_id: g.id,
+  };
+}
+
+async function sbInsertRow(table, body) {
+  var r = await fetch(SUPA_URL + "/rest/v1/" + table, {
+    method: "POST",
+    headers: H("return=minimal"),
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return true;
+}
+
+// Cari seluruh baris agenda yang tertaut ke satu tamu (urut: terlama dulu)
+async function findAgendaRows(guestId) {
   var idStr = String(guestId);
   var last6 = idStr.slice(-6);
 
@@ -98,10 +136,40 @@ async function syncAgendaJadwal(guestId, agendaPatch) {
       });
     } catch (e) { rows = []; }
   }
-  if (!rows || !rows.length) return { linked: 0, updated: 0, removed: 0 };
+  if (!rows || !rows.length) return [];
 
   // id terkecil = agenda yang paling dulu dibuat → itu yang dipertahankan
   rows.sort(function (a, b) { return String(a.id).localeCompare(String(b.id)); });
+  return rows;
+}
+
+/**
+ * Pastikan tamu punya SATU entri agenda yang benar.
+ *
+ * Bila sudah ada  → perbarui tanggal/jam/lokasi, hapus duplikatnya.
+ * Bila belum ada  → buatkan agendanya di sini (dulu pembuatan dilakukan dari
+ *                   browser, sehingga bergantung pada kunci Supabase di klien
+ *                   dan bisa gagal tanpa pesan yang jelas).
+ *
+ * Hanya tanggal/jam/lokasi yang ditimpa saat memperbarui — judul acara,
+ * kontak, dan catatan dibiarkan agar suntingan manual petugas tidak hilang.
+ */
+async function syncAgendaJadwal(guestId, agendaPatch, opts) {
+  opts = opts || {};
+  var rows = await findAgendaRows(guestId);
+
+  if (!rows.length) {
+    if (!opts.createIfMissing) return { linked: 0, updated: 0, removed: 0, created: 0 };
+
+    var g = (await sbGet("permohonan_tamu?id=eq." + encodeURIComponent(guestId) + "&select=*&limit=1"))[0];
+    if (!g) throw new Error("Data tamu tidak ditemukan");
+    if (!g.jadwal_tanggal) throw new Error("Tamu ini belum punya tanggal audiensi");
+
+    var row = buildAgendaRow(g, opts.tempat);
+    Object.assign(row, agendaPatch || {});           // hormati tanggal/jam/tempat terbaru
+    await sbInsertRow("jadwal", { id: row.id, data: row });
+    return { linked: 0, updated: 0, removed: 0, created: 1, agenda_id: row.id };
+  }
 
   var keep = rows[0];
   await sbPatchRow("jadwal", keep.id, { data: Object.assign({}, keep.data, agendaPatch) });
@@ -112,7 +180,29 @@ async function syncAgendaJadwal(guestId, agendaPatch) {
     try { await sbDeleteRow("jadwal", rows[i].id); removed++; } catch (e) {}
   }
 
-  return { linked: rows.length, updated: 1, removed: removed };
+  return { linked: rows.length, updated: 1, removed: removed, created: 0, agenda_id: keep.id };
+}
+
+// POST: sync_agenda — tombol "Tambahkan ke Agenda" (buat bila belum ada,
+// perbarui + rapikan duplikat bila sudah ada)
+async function actionSyncAgenda(body) {
+  if (!body.id) throw new Error("id wajib");
+  var patch = {};
+  if (body.scheduled_date) patch.tanggal = body.scheduled_date;
+  if (body.scheduled_time) patch.jam     = body.scheduled_time;
+  if (body.tempat)         patch.lokasi  = String(body.tempat).trim();
+
+  var agenda = await syncAgendaJadwal(body.id, patch, {
+    createIfMissing: true,
+    tempat: body.tempat ? String(body.tempat).trim() : "",
+  });
+
+  return {
+    ok: true,
+    agenda: agenda,
+    message: agenda.created ? "Agenda dibuat"
+      : "Agenda diperbarui" + (agenda.removed ? " (" + agenda.removed + " duplikat dirapikan)" : ""),
+  };
 }
 
 async function sendWA(to, message) {
@@ -365,10 +455,15 @@ async function actionUpdateJadwal(body) {
   if (body.scheduled_time) agendaPatch.jam     = body.scheduled_time;
   if (body.tempat)         agendaPatch.lokasi  = String(body.tempat).trim();
 
-  var agenda = { linked: 0, updated: 0, removed: 0, error: null };
+  var agenda = { linked: 0, updated: 0, removed: 0, created: 0, error: null };
   if (Object.keys(agendaPatch).length) {
     try {
-      agenda = await syncAgendaJadwal(body.id, agendaPatch);
+      // createIfMissing: agenda dibuat di server bila tamu ini belum punya,
+      // supaya tidak lagi bergantung pada kunci Supabase di browser
+      agenda = await syncAgendaJadwal(body.id, agendaPatch, {
+        createIfMissing: true,
+        tempat: body.tempat ? String(body.tempat).trim() : "",
+      });
     } catch (e) {
       // Jadwal tamu sudah tersimpan — kegagalan agenda dilaporkan, tidak ditelan
       agenda = { linked: 0, updated: 0, removed: 0, error: e.message || "Gagal menyesuaikan agenda" };
@@ -499,6 +594,7 @@ export default async function handler(req, res) {
       else if (action === "recall_from_pimpinan") result = await actionRecallFromPimpinan(req.body);
       else if (action === "mark_selesai") result = await actionMarkSelesai(req.body);
       else if (action === "update_jadwal") result = await actionUpdateJadwal(req.body);
+      else if (action === "sync_agenda")  result = await actionSyncAgenda(req.body);
       else if (action === "respond")    result = await actionRespond(req.body);
       else throw new Error("Action " + action + " tidak dikenal");
     }

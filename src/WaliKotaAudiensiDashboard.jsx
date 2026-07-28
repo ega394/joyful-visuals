@@ -351,15 +351,36 @@ function TerjadwalPimpinan({ labelPimpinan, user, showT, PRIORITY, fmtTs, reload
       const j = await r.json().catch(()=>({}));
       if(!r.ok || (j && j.error)) throw new Error(j && j.error ? j.error : "Gagal");
 
-      // Agenda kini disesuaikan oleh backend — di sini cukup laporkan hasilnya
+      // Agenda kini dibuat/disesuaikan oleh backend — di sini cukup laporkan
       const ag = (j && j.agenda) || {};
-      if(ag.error)       showT("✅ Jadwal tamu tersimpan — ⚠ agenda gagal disesuaikan, sinkronkan manual", "warn");
-      else if(!ag.linked) showT("✅ Jadwal & tempat diperbarui — belum ada agenda tertaut", "warn");
+      if(ag.error)        showT("✅ Jadwal tamu tersimpan — ⚠ agenda gagal disesuaikan: "+ag.error, "warn");
+      else if(ag.created) showT("✅ Jadwal diperbarui & agenda dibuat", "ok");
       else                showT("✅ Jadwal, tempat & agenda diperbarui"+(ag.removed?" ("+ag.removed+" agenda ganda dirapikan)":""), "ok");
 
       if(reloadEvents) reloadEvents();   // agar tab Agenda langsung ikut berubah
       setEditId(null);
       load();
+    } catch(e){ showT("Gagal: "+e.message, "error"); }
+    finally { setSaving(false); }
+  };
+
+  // Tombol manual: buat agenda bila belum ada, atau selaraskan bila sudah ada
+  const tambahKeAgenda = async (g) => {
+    setSaving(true);
+    try {
+      const r = await fetch("/api/guest?action=sync_agenda", {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({
+          id:g.id, scheduled_date:g.jadwal_tanggal||"", scheduled_time:g.jadwal_jam||"",
+          tempat:"Ruang Kerja",
+        }),
+      });
+      const j = await r.json().catch(()=>({}));
+      if(!r.ok || (j && j.error)) throw new Error(j && j.error ? j.error : "Gagal");
+      const ag = (j && j.agenda) || {};
+      showT(ag.created ? "✅ Agenda dibuat untuk tamu ini"
+        : "✅ Agenda diperbarui"+(ag.removed?" ("+ag.removed+" agenda ganda dirapikan)":""), "ok");
+      if(reloadEvents) reloadEvents();
     } catch(e){ showT("Gagal: "+e.message, "error"); }
     finally { setSaving(false); }
   };
@@ -390,9 +411,14 @@ function TerjadwalPimpinan({ labelPimpinan, user, showT, PRIORITY, fmtTs, reload
               </div>
 
               {!ed ? (
-                <button onClick={()=>openEdit(g)} style={{marginTop:10,padding:"9px 14px",borderRadius:9,border:"1.5px solid #CBD5E1",background:"white",color:NAVY,cursor:"pointer",fontSize:12.5,fontWeight:800}}>
-                  ✏️ Edit Jam &amp; Tempat
-                </button>
+                <div style={{marginTop:10,display:"flex",gap:8,flexWrap:"wrap"}}>
+                  <button onClick={()=>openEdit(g)} style={{padding:"9px 14px",borderRadius:9,border:"1.5px solid #CBD5E1",background:"white",color:NAVY,cursor:"pointer",fontSize:12.5,fontWeight:800}}>
+                    ✏️ Edit Jam &amp; Tempat
+                  </button>
+                  <button onClick={()=>tambahKeAgenda(g)} disabled={saving} style={{padding:"9px 14px",borderRadius:9,border:"none",background:saving?"#94A3B8":NAVY,color:"white",cursor:saving?"default":"pointer",fontSize:12.5,fontWeight:800}}>
+                    ➕ Tambahkan ke Agenda
+                  </button>
+                </div>
               ) : (
                 <div style={{marginTop:12,background:"#F8FAFC",border:"1px solid #E2E8F0",borderRadius:10,padding:"12px"}}>
                   <div style={{display:"flex",gap:8,marginBottom:8}}>
