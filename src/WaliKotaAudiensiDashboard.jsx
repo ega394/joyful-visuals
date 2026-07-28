@@ -378,8 +378,9 @@ function TerjadwalPimpinan({ labelPimpinan, user, showT, PRIORITY, fmtTs, reload
       const j = await r.json().catch(()=>({}));
       if(!r.ok || (j && j.error)) throw new Error(j && j.error ? j.error : "Gagal");
       const ag = (j && j.agenda) || {};
-      showT(ag.created ? "✅ Agenda dibuat untuk tamu ini"
-        : "✅ Agenda diperbarui"+(ag.removed?" ("+ag.removed+" agenda ganda dirapikan)":""), "ok");
+      const kapan = ag.tanggal ? " → "+ag.tanggal+(ag.jam?" pk "+ag.jam:"") : "";
+      showT((ag.created ? "✅ Agenda dibuat" : "✅ Agenda diperbarui")+kapan
+        +(ag.removed?" ("+ag.removed+" agenda ganda dirapikan)":""), "ok");
       if(reloadEvents) reloadEvents();
     } catch(e){ showT("Gagal: "+e.message, "error"); }
     finally { setSaving(false); }

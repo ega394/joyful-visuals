@@ -1045,8 +1045,11 @@ function SyncAgendaBox({ guest, events, user, showT, reloadEvents }) {
       });
       var ag = (res && res.agenda) || {};
       setHasil(ag);
-      showT(ag.created ? "✅ Agenda dibuat untuk tamu ini"
-        : "✅ Agenda diperbarui"+(ag.removed?" ("+ag.removed+" agenda ganda dirapikan)":""));
+      // Tampilkan tanggal hasilnya agar langsung terlihat apakah agendanya
+      // benar-benar pindah ke jadwal terbaru
+      var kapan = ag.tanggal ? " → "+fmtDate(ag.tanggal)+(ag.jam?" pk "+ag.jam:"") : "";
+      showT((ag.created ? "✅ Agenda dibuat" : "✅ Agenda diperbarui")+kapan
+        +(ag.removed?" ("+ag.removed+" agenda ganda dirapikan)":""));
       if(reloadEvents) reloadEvents();
     } catch(e) { showT("❌ "+e.message); }
     finally { setBusy(false); }
