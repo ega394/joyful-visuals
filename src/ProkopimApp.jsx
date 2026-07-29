@@ -434,6 +434,9 @@ const PEJABAT=["Sekda","Asisten Pemerintahan dan Kesra","Asisten Perekonomian da
 const ROLES_WITH_REPORT=["staf","admin_rk","kasubbag_protokol","kasubbag_komdokpim","kabag","timkom"];
 const STAF_ROLES=["staf","admin_rk","timkom"];
 const KASUBBAG_ROLES=["kasubbag_protokol","kasubbag_komdokpim"];
+// Peran yang boleh membuka rekap kinerja DIRINYA SENDIRI + cetak bukti dukung.
+// Staf hanya melihat datanya sendiri — papan peringkat tim tetap milik Kabag/Kasubbag.
+const REKAP_SAYA_ROLES=["staf","admin_rk","timkom","kasubbag_protokol","kasubbag_komdokpim","kabag"];
 
 // ==================== USERS ====================
 // ══ HASH ENGINE (SHA-256 via Web Crypto, tidak butuh library) ══
@@ -1063,7 +1066,7 @@ function UndanganBlock({ev,canEdit,onUpload,onRemove}){
 }
 
 // ==================== SAMBUTAN BLOCK (DOCX→PDF) ====================
-function SambutanBlock({ev,canUpload,onUploadDocx,onUploadPdf,onRemove}){
+function SambutanBlock({ev,canUpload,onUploadDocx,onUploadPdf,onRemove,onCommit,onDiscard}){
   const NAVY_="#0A1628",GREEN_="#0D6B4F",GOLD_="#C9A84C";
   const ref=useRef();
   const[step,setStep]=React.useState("idle");
@@ -1072,6 +1075,10 @@ function SambutanBlock({ev,canUpload,onUploadDocx,onUploadPdf,onRemove}){
   const[errMsg,setErrMsg]=React.useState("");
   const[viewPdf,setViewPdf]=React.useState(false);
   const[drag,setDrag]=React.useState(false);
+  // Naskah yang sudah diproses tapi BELUM dicatat ke agenda — menunggu
+  // konfirmasi "Simpan Naskah" dari pengunggah.
+  const[pending,setPending]=React.useState(null);
+  const[saving,setSaving]=React.useState(false);
 
   const DOCX_MIME="application/vnd.openxmlformats-officedocument.wordprocessingml.document";
   const PDF_MIME="application/pdf";
@@ -1084,7 +1091,12 @@ function SambutanBlock({ev,canUpload,onUploadDocx,onUploadPdf,onRemove}){
     if(f.size>10*1024*1024){globalToast("Ukuran file maksimal 10MB.");return;}
     if(isPdf){
       setStep("processing");setErrMsg("");setProgress("Mengupload PDF...");
-      try{await onUploadPdf(f,f.name);setStep("done");setProgress("");}
+      try{
+        const res=await onUploadPdf(f,f.name);
+        setPdfPreview(res?.pdfUrl||null);
+        setPending({patch:res?.patch,nama:f.name});
+        setStep("review");setProgress("");
+      }
       catch(e){setStep("error");setErrMsg(e.message||"Gagal upload PDF");}
       return;
     }
@@ -1096,8 +1108,29 @@ function SambutanBlock({ev,canUpload,onUploadDocx,onUploadPdf,onRemove}){
       setProgress("Membuat PDF resmi...");
       const result=await onUploadDocx(f);
       if(result?.pdfBase64)setPdfPreview("data:application/pdf;base64,"+result.pdfBase64);
-      setStep("done");setProgress("");
+      else if(result?.pdfUrl)setPdfPreview(result.pdfUrl);
+      setPending({patch:result?.patch,nama:f.name});
+      setStep("review");setProgress("");
     }catch(e){setStep("error");setErrMsg(e.message||"Gagal memproses file");}
+  };
+
+  // Konfirmasi: baru di sinilah naskah tercatat di agenda
+  const simpanNaskah=async()=>{
+    if(!pending?.patch)return;
+    setSaving(true);
+    try{
+      await onCommit(pending.patch);
+      setPending(null);setStep("done");
+      globalToast("✅ Naskah sambutan tersimpan");
+    }catch(e){setStep("error");setErrMsg(e.message||"Gagal menyimpan naskah");}
+    finally{setSaving(false);}
+  };
+
+  const batalNaskah=async()=>{
+    const p=pending;
+    setPending(null);setPdfPreview(null);setStep("idle");
+    if(ref.current)ref.current.value="";
+    if(p?.patch&&onDiscard)onDiscard(p.patch);
   };
 
   const handleDrop=e=>{e.preventDefault();setDrag(false);handleFile(e.dataTransfer.files[0]);};
@@ -1161,6 +1194,26 @@ function SambutanBlock({ev,canUpload,onUploadDocx,onUploadPdf,onRemove}){
             <div style={{fontSize:28,marginBottom:6}}>❌</div>
             <div style={{fontSize:13,fontWeight:700,color:"#DC2626",marginBottom:4}}>{errMsg}</div>
             <button onClick={()=>{setStep("idle");setErrMsg("");}} style={{padding:"8px 18px",borderRadius:8,border:"1.5px solid #94A3B8",background:"white",color:"#475569",cursor:"pointer",fontSize:12,fontWeight:600}}>Coba Lagi</button>
+          </>
+          :step==="review"
+          ?<>
+            <div style={{fontSize:28,marginBottom:6}}>👀</div>
+            <div style={{fontSize:13,fontWeight:800,color:"#4F46E5",marginBottom:3}}>Periksa Naskah Sebelum Disimpan</div>
+            <div style={{fontSize:12,color:"#6B7280",marginBottom:10,wordBreak:"break-all"}}>{pending?.nama}</div>
+            {pdfPreview&&<div style={{height:260,borderRadius:10,overflow:"hidden",border:"1.5px solid #C7D2FE",marginBottom:10,background:"#1a1a2e"}}>
+              <iframe src={pdfPreview+"#toolbar=1&navpanes=0"} title="Pratinjau Naskah" style={{width:"100%",height:"100%",border:"none"}}/>
+            </div>}
+            <div style={{fontSize:11.5,color:"#92400E",background:"#FEF9C3",borderRadius:8,padding:"7px 10px",marginBottom:10,fontWeight:600}}>
+              ⚠ Naskah belum tercatat. Tekan <b>Simpan Naskah</b> untuk mengonfirmasi.
+            </div>
+            <div style={{display:"flex",gap:8,justifyContent:"center",flexWrap:"wrap"}}>
+              <button onClick={batalNaskah} disabled={saving}
+                style={{padding:"10px 18px",borderRadius:9,border:"1.5px solid #CBD5E1",background:"white",color:"#475569",cursor:saving?"default":"pointer",fontSize:13,fontWeight:700}}>Batal</button>
+              <button onClick={simpanNaskah} disabled={saving}
+                style={{padding:"10px 24px",borderRadius:9,border:"none",background:saving?"#94A3B8":"linear-gradient(135deg,#059669,#047857)",color:"white",cursor:saving?"default":"pointer",fontSize:13,fontWeight:800,boxShadow:"0 3px 10px rgba(5,150,105,0.3)"}}>
+                {saving?"Menyimpan...":"💾 Simpan Naskah"}
+              </button>
+            </div>
           </>
           :<>
             <div style={{fontSize:32,marginBottom:8}}>📝</div>
@@ -4398,7 +4451,7 @@ const AppCtx = React.createContext({});
 
 // ==================== EVENT CARD (mobile) ====================
 function EventCard({ev}){
-  const {expandedId,setExp,role,user,isMobile,getHari,fmt,fmtShort,todayStr,handleUndanganUpload,handleSambutanDocx,handleSambutanUpload,updAndSync,storageDelete,showT,upd,setDelegTarget,setTab,setForm,setEditId,setPenugasanEv,setEvaluasiEv,rejectTexts,setRT,askConfirm,deleteAndSync,makeICS,PersonilBanner,cabutPersonilSatu}=React.useContext(AppCtx);
+  const {expandedId,setExp,role,user,isMobile,getHari,fmt,fmtShort,todayStr,handleUndanganUpload,handleSambutanDocx,handleSambutanUpload,commitSambutan,discardSambutan,updAndSync,storageDelete,showT,upd,setDelegTarget,setTab,setForm,setEditId,setPenugasanEv,setEvaluasiEv,rejectTexts,setRT,askConfirm,deleteAndSync,makeICS,PersonilBanner,cabutPersonilSatu}=React.useContext(AppCtx);
   const exp=expandedId===ev.id;const hariEv=getHari(ev.tanggal);const isToday=ev.tanggal===todayStr();
   const ALUR_STEPS=[
     {key:"draft",           label:"Draft",    color:"#94A3B8"},
@@ -4569,7 +4622,7 @@ function GroupedEventList({ evList, isMobile, viewMode }) {
 
 // ==================== DESKTOP TABLE ROW ====================
 function TableView({evList}){
-  const {expandedId,setExp,role,user,isMobile,getHari,fmt,fmtShort,todayStr,handleUndanganUpload,handleSambutanDocx,handleSambutanUpload,updAndSync,storageDelete,showT,upd,setDelegTarget,setTab,setForm,setEditId,setPenugasanEv,setEvaluasiEv,rejectTexts,setRT,askConfirm,deleteAndSync,makeICS,PersonilBanner}=React.useContext(AppCtx);
+  const {expandedId,setExp,role,user,isMobile,getHari,fmt,fmtShort,todayStr,handleUndanganUpload,handleSambutanDocx,handleSambutanUpload,commitSambutan,discardSambutan,updAndSync,storageDelete,showT,upd,setDelegTarget,setTab,setForm,setEditId,setPenugasanEv,setEvaluasiEv,rejectTexts,setRT,askConfirm,deleteAndSync,makeICS,PersonilBanner}=React.useContext(AppCtx);
   return <div style={{background:"white",borderRadius:12,boxShadow:"0 1px 8px rgba(0,0,0,0.07)",overflow:"hidden"}}>
   <table className="ev-table">
     <thead><tr>
@@ -5306,7 +5359,7 @@ function SambutanKinerja({ev}){
 
 // ==================== EXPANDED DETAIL ====================
 function ExpandedDetail({ev,hariEv}){
-  const {role,user,isMobile,handleUndanganUpload,handleSambutanDocx,handleSambutanUpload,updAndSync,storageDelete,showT,upd,setDelegTarget,setTab,setForm,setEditId,setPenugasanEv,setEvaluasiEv,rejectTexts,setRT,askConfirm,deleteAndSync,makeICS,getNamaByUsername,setExp}=React.useContext(AppCtx);
+  const {role,user,isMobile,handleUndanganUpload,handleSambutanDocx,handleSambutanUpload,commitSambutan,discardSambutan,updAndSync,storageDelete,showT,upd,setDelegTarget,setTab,setForm,setEditId,setPenugasanEv,setEvaluasiEv,rejectTexts,setRT,askConfirm,deleteAndSync,makeICS,getNamaByUsername,setExp}=React.useContext(AppCtx);
   return <div>
     <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":needsSambutan(ev)?"1fr 1fr":"1fr",gap:"0 24px",marginBottom:14}}>
       <div>
@@ -5364,7 +5417,7 @@ function ExpandedDetail({ev,hariEv}){
         </div>
       </div>
       {needsSambutan(ev)&&<div>
-        <SambutanBlock ev={ev} canUpload={role==="timkom"||role==="kasubbag_komdokpim"||(ev.sambutanPenyusun&&user&&ev.sambutanPenyusun===user.username)} onUploadDocx={(f)=>handleSambutanDocx(ev.id,f,ev)} onUploadPdf={(f,name)=>handleSambutanUpload(ev.id,f,name).then(()=>showT("Naskah sambutan (PDF) diupload"))} onRemove={()=>{if(ev.sambutanFile&&!ev.sambutanFile.startsWith("data:"))storageDelete("sambutan",ev.sambutanFile).catch(e=>console.warn("Sync:",e?.message||e));if(ev.sambutanDocx&&!ev.sambutanDocx.startsWith("data:")&&!ev.sambutanDocx.startsWith("blob:"))storageDelete("sambutan",ev.sambutanDocx).catch(e=>console.warn("Sync:",e?.message||e));updAndSync(ev.id,{sambutanFile:null,sambutanNama:"",sambutanDocx:null,sambutanDocxNama:"",sambutanSah:false,sambutanKabag:null,sambutanSelesaiAt:null});showT("Naskah sambutan dihapus","warn");}}/>
+        <SambutanBlock ev={ev} canUpload={role==="timkom"||role==="kasubbag_komdokpim"||(ev.sambutanPenyusun&&user&&ev.sambutanPenyusun===user.username)} onUploadDocx={(f)=>handleSambutanDocx(ev.id,f,ev)} onUploadPdf={(f,name)=>handleSambutanUpload(ev.id,f,name)} onCommit={(patch)=>commitSambutan(ev.id,patch)} onDiscard={(patch)=>discardSambutan(patch)} onRemove={()=>{if(ev.sambutanFile&&!ev.sambutanFile.startsWith("data:"))storageDelete("sambutan",ev.sambutanFile).catch(e=>console.warn("Sync:",e?.message||e));if(ev.sambutanDocx&&!ev.sambutanDocx.startsWith("data:")&&!ev.sambutanDocx.startsWith("blob:"))storageDelete("sambutan",ev.sambutanDocx).catch(e=>console.warn("Sync:",e?.message||e));updAndSync(ev.id,{sambutanFile:null,sambutanNama:"",sambutanDocx:null,sambutanDocxNama:"",sambutanSah:false,sambutanKabag:null,sambutanSelesaiAt:null});showT("Naskah sambutan dihapus","warn");}}/>
         {["kasubbag_komdokpim","kabag","timkom"].includes(role)&&ev.alur==="disetujui"&&<SambutanKinerja ev={ev}/>}
       </div>}
     </div>
@@ -6458,7 +6511,7 @@ export default function App(){
   const[showAI,setShowAI]=useState(false);const[showReport,setShowReport]=useState(false);const[showReportTamu,setShowReportTamu]=useState(false);const[showSummary,setShowSummary]=useState(false);const[showAdmin,setShowAdmin]=useState(false);const[showProfile,setShowProfile]=useState(false);const[showLaporan,setShowLaporan]=useState(false);const[showBroadcast,setShowBroadcast]=useState(false);const[showArsip,setShowArsip]=useState(false);const[showUndanganTool,setShowUndanganTool]=useState(false);
   const[showForgot,setShowForgot]=useState(false);const[showRegister,setShowRegister]=useState(false);const[pendingRegs,setPendingRegs]=useState(()=>loadPendingRegs());
   const[loginLoading,setLoginLoading]=useState(false);const[loginPhase,setLoginPhase]=useState("");
-  const[delegTarget,setDelegTarget]= useState(null);const[expandedId,setExp]=useState(null);const[rejectTexts,setRT]=useState({});const[catatanInput,setCatatanInput]=useState({});const[penugasanEv,setPenugasanEv]=useState(null);const[notifPenugasan,setNotifPenugasan]=useState([]);const[evaluasiEv,setEvaluasiEv]=useState(null);const[showMobMenu,setMobMenu]=useState(false);const[showNotifCenter,setShowNotifCenter]=useState(false);
+  const[delegTarget,setDelegTarget]= useState(null);const[expandedId,setExp]=useState(null);const[rejectTexts,setRT]=useState({});const[catatanInput,setCatatanInput]=useState({});const[penugasanEv,setPenugasanEv]=useState(null);const[notifPenugasan,setNotifPenugasan]=useState([]);const[notifSambutan,setNotifSambutan]=useState([]);const[evaluasiEv,setEvaluasiEv]=useState(null);const[showMobMenu,setMobMenu]=useState(false);const[showNotifCenter,setShowNotifCenter]=useState(false);
   const undanganRef=useRef({});
   // ── UX & Security States ──
   const[sessionWarn,setSessionWarn]=useState(false);
@@ -6745,20 +6798,37 @@ export default function App(){
     // Fallback ke data-URI jika storage belum aktif
     if(!pdfUrl) pdfUrl="data:application/pdf;base64,"+pdfBase64;
     if(!docxUrl) docxUrl=URL.createObjectURL(file);
-    updAndSync(evId,{sambutanFile:pdfUrl,sambutanNama:pdfName,sambutanDocx:docxUrl,sambutanDocxNama:docxName});
-    return {pdfBase64,pdfUrl};
-  },[updAndSync]);
+    // Tidak langsung disimpan — pengunggah memeriksa pratinjau dulu, lalu menekan
+    // "Simpan Naskah" (commitSambutan) atau "Batal" (discardSambutan).
+    const patch={sambutanFile:pdfUrl,sambutanNama:pdfName,sambutanDocx:docxUrl,sambutanDocxNama:docxName};
+    return {pdfBase64,pdfUrl,patch};
+  },[]);
 
   const handleSambutanUpload = useCallback(async (evId, file, name) => {
     // Upload naskah sambutan ke Supabase Storage
     if(SUPA_OK){
       const url=await storageUpload("sambutan",evId,file);
-      if(url){updAndSync(evId,{sambutanFile:url,sambutanNama:name});return;}
+      if(url) return {pdfUrl:url,patch:{sambutanFile:url,sambutanNama:name}};
     }
     // Fallback: simpan sebagai Base64
     const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=rej;r.readAsDataURL(file);});
-    updAndSync(evId,{sambutanFile:b64,sambutanNama:name});
-  }, [updAndSync]);
+    return {pdfUrl:b64,patch:{sambutanFile:b64,sambutanNama:name}};
+  }, []);
+
+  // Tahap 2: naskah baru tercatat di agenda setelah dikonfirmasi pengunggah
+  const commitSambutan=useCallback((evId,patch)=>{
+    updAndSync(evId,patch);
+  },[updAndSync]);
+
+  // Batal → bersihkan berkas yatim di storage (best-effort)
+  const discardSambutan=useCallback(async(patch)=>{
+    if(!patch)return;
+    for(const url of [patch.sambutanFile,patch.sambutanDocx]){
+      if(url&&!url.startsWith("data:")&&!url.startsWith("blob:")){
+        await storageDelete("sambutan",url).catch(e=>console.warn("Sync:",e?.message||e));
+      }
+    }
+  },[]);
 
   // ── Simpan penugasan personil ──
   // ── Simpan evaluasi pasca kegiatan ──
@@ -6805,6 +6875,13 @@ export default function App(){
     });
     setNotifPenugasan(unassigned);
   },[events,role]);
+
+  // ── Tugas penyusunan naskah sambutan untuk pengguna ini (badge lonceng) ──
+  React.useEffect(()=>{
+    if(!user||!["timkom","kasubbag_komdokpim"].includes(role)){setNotifSambutan([]);return;}
+    setNotifSambutan(events.filter(ev=>
+      ev.alur==="disetujui"&&ev.sambutanPenyusun===user.username&&!ev.sambutanSah));
+  },[events,role,user]);
 
   const handleUndanganUpload=useCallback(async(evId,file,name)=>{
     if(SUPA_OK){const url=await storageUpload("undangan",evId,file,name);if(url){updAndSync(evId,{undanganFile:url,undanganNama:name});return;}}
@@ -7441,6 +7518,7 @@ const TH={
     ...(canReport?[{key:"action:laporan",icon:"📊",label:"Laporan Mingguan/Bulanan"}]:[]),
     ...((KASUBBAG_ROLES.includes(role)||role==="kabag")?[{key:"penugasan",icon:"📈",label:"Rekap Evaluasi Kinerja"}]:[]),
     ...((KASUBBAG_ROLES.includes(role)||role==="kabag")?[{key:"rekap_penugasan",icon:"🏆",label:"Rekap Penugasan Bulanan"}]:[]),
+    ...(REKAP_SAYA_ROLES.includes(role)?[{key:"rekap_saya",icon:"🏅",label:"Rekap Kinerja Saya"}]:[]),
     ...(role==="admin_rk"||role==="kabag"?[{key:"action:arsip",icon:"📦",label:"Unduh Arsip Berkas"}]:[]),
     ...(!["walikota","wakilwalikota","ajudan_walikota","ajudan_wakilwalikota","admin_undangan","mitra_kerja"].includes(role)?[{key:"ekinerja",icon:"📊",label:"E-Kinerja"}]:[]),
     ...(["kabag","kasubbag_protokol","staf","admin_rk"].includes(role)?[{key:"action:undangan",icon:"📋",label:"Generator Undangan"}]:[]),
@@ -7580,7 +7658,7 @@ const TH={
         </button>}
         <button aria-label="Notifikasi" onClick={()=>setShowNotifCenter(true)} style={{position:"relative",width:32,height:32,borderRadius:9,border:"1px solid rgba(255,255,255,0.2)",background:"rgba(255,255,255,0.1)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>
           🔔
-          {notifPenugasan.length>0&&<span style={{position:"absolute",top:-3,right:-3,background:"#EF4444",color:"white",borderRadius:"50%",width:14,height:14,display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,fontWeight:900}}>{notifPenugasan.length}</span>}
+          {(notifPenugasan.length+notifSambutan.length)>0&&<span style={{position:"absolute",top:-3,right:-3,background:"#EF4444",color:"white",borderRadius:"50%",width:14,height:14,display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,fontWeight:900}}>{notifPenugasan.length+notifSambutan.length}</span>}
         </button>
         <div title={SUPA_OK?"Terhubung ke Database":"Mode Lokal"} style={{width:8,height:8,borderRadius:"50%",background:SUPA_OK?"#34D399":"#F87171",flexShrink:0,boxShadow:SUPA_OK?"0 0 6px rgba(52,211,153,0.6)":"none"}}/>
       </div>
@@ -7624,6 +7702,7 @@ const TH={
               ...(canReport?[{icon:"📊",label:"Laporan",action:()=>{setShowLaporan(true);setMobMenu(false);}}]:[]),
               ...((KASUBBAG_ROLES.includes(role)||role==="kabag")?[{icon:"📈",label:"Rekap Evaluasi",action:()=>{setTab("penugasan");setMobMenu(false);}}]:[]),
               ...((KASUBBAG_ROLES.includes(role)||role==="kabag")?[{icon:"🏆",label:"Rekap Penugasan",action:()=>{setTab("rekap_penugasan");setMobMenu(false);}}]:[]),
+              ...(REKAP_SAYA_ROLES.includes(role)?[{icon:"🏅",label:"Rekap Kinerja Saya",action:()=>{setTab("rekap_saya");setMobMenu(false);}}]:[]),
               {icon:"👤",label:"Profil",action:()=>{setShowProfile(true);setMobMenu(false);}},
               ...(role==="kabag"?[{icon:"⚙️",label:"Kelola User"+(loadPendingRegs().length>0?" ("+loadPendingRegs().length+")":""),action:()=>{setShowAdmin(true);setMobMenu(false);}}]:[]),
               ...(role==="kabag"?[{icon:"📢",label:"Kirim Pengumuman",action:()=>{setShowBroadcast(true);setMobMenu(false);}}]:[]),
@@ -8295,6 +8374,23 @@ function NotifCenter({events, user, onClose, isMobile}){
         return (e.untukPimpinan.includes("wakilwalikota")||e.delegasiKeWWK)&&!e.statusWWK;
       });
       if(belum.length>0)list.push({id:"konfirmasi-ajudan",icon:"🔔",type:"warn",title:belum.length+" Jadwal Belum Dikonfirmasi",body:"Hari ini & besok — segera konfirmasi kehadiran pimpinan"});
+    }
+
+    // Penyusun naskah sambutan: tugas dari Kasubbag Komdokpim.
+    // Turunan dari events — bertahan selama tugasnya belum tuntas.
+    if(["timkom","kasubbag_komdokpim"].includes(role)){
+      approved.filter(e=>e.sambutanPenyusun===user.username&&!e.sambutanSah).forEach(e=>{
+        const belum=!e.sambutanFile;
+        list.push({
+          id:"sambutan-"+e.id,
+          icon:"🎤",
+          type:belum?"warn":"info",
+          title:belum?"Tugas: Susun Naskah Sambutan":"Naskah Menunggu Pengesahan Kabag",
+          body:e.namaAcara+" · "+fmt(e.tanggal)+" "+e.jam+" WITA"+
+               (belum?" — naskah belum diunggah":" — sudah diunggah, menunggu Kabag"),
+          ev:e,
+        });
+      });
     }
 
     // Timkom: penugasan baru H-12
@@ -10462,7 +10558,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
   const _ctxValue={
     expandedId,setExp,role,user,isMobile,
     getHari,fmt,fmtShort,todayStr,
-    handleUndanganUpload,handleSambutanDocx,handleSambutanUpload,updAndSync,storageDelete,
+    handleUndanganUpload,handleSambutanDocx,handleSambutanUpload,commitSambutan,discardSambutan,updAndSync,storageDelete,
     showT,upd,setDelegTarget,setTab,setForm,setEditId,setPenugasanEv,setEvaluasiEv,
     rejectTexts,setRT,askConfirm,deleteAndSync,makeICS,PersonilBanner,cabutPersonilSatu,
     getNamaByUsername,
@@ -10481,7 +10577,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
       </button>}
       <button aria-label="Notifikasi" onClick={()=>setShowNotifCenter(true)} style={{position:"relative",width:38,height:38,borderRadius:10,border:"1.5px solid #E2E8F0",background:"white",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>
         🔔
-        {notifPenugasan.length>0&&<span style={{position:"absolute",top:-4,right:-4,background:"#EF4444",color:"white",borderRadius:"50%",width:16,height:16,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:900}}>{notifPenugasan.length}</span>}
+        {(notifPenugasan.length+notifSambutan.length)>0&&<span style={{position:"absolute",top:-4,right:-4,background:"#EF4444",color:"white",borderRadius:"50%",width:16,height:16,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:900}}>{notifPenugasan.length+notifSambutan.length}</span>}
       </button>
       {role==="admin_rk"&&tab==="jadwal"&&<button onClick={()=>{setTab("form");setForm(emptyForm);setEditId(null);}} className="btn-ios" style={{padding:"9px 18px",borderRadius:10,border:"none",background:"linear-gradient(135deg,"+NAVY+",#1E3254)",color:"white",cursor:"pointer",fontSize:13,fontWeight:700,boxShadow:"0 4px 14px rgba(10,22,40,0.3)"}}>+ Input Jadwal Baru</button>}
     </div>}
@@ -10697,7 +10793,9 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
       </div>}
       {/* ══ CONTENT ROUTING — setiap tab×role HARUS punya handler ══ */}
       {/* 1. Penugasan (semua role yang punya tab ini) */}
-      {tab==="rekap_penugasan"&&(role==="kabag"||KASUBBAG_ROLES.includes(role))
+      {tab==="rekap_saya"&&REKAP_SAYA_ROLES.includes(role)
+        ?<RekapPenugasanBulanan mode="saya" events={events} user={user} isMobile={isMobile} allUsers={loadUsers()}/>
+      :tab==="rekap_penugasan"&&(role==="kabag"||KASUBBAG_ROLES.includes(role))
         ?<RekapPenugasanBulanan events={events} user={user} isMobile={isMobile} allUsers={loadUsers()}/>
       :showPenugasan&&(role==="kabag"||KASUBBAG_ROLES.includes(role))
         ?<RekapEvaluasi events={events} user={user} isMobile={isMobile} allUsers={loadUsers()} RekapPenugasan={RekapPenugasanBulanan}/>
@@ -10892,6 +10990,21 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
       onConfirm={confirmDlg.onConfirm}
       onCancel={()=>setConfirmDlg(null)}
     />}
+
+    {/* Notif bar tugas menyusun naskah sambutan — untuk penyusun yang ditunjuk */}
+    {notifSambutan.filter(e=>!e.sambutanFile).length>0&&tab!=="form"&&notifPenugasan.length===0&&
+      <div style={{position:"fixed",bottom:isMobile?70:20,left:"50%",transform:"translateX(-50%)",zIndex:2000,background:"#5B21B6",color:"white",borderRadius:12,padding:"10px 18px",fontSize:13,fontWeight:700,display:"flex",alignItems:"center",gap:10,boxShadow:"0 4px 20px rgba(0,0,0,0.3)",maxWidth:380,width:"calc(100% - 32px)",cursor:"pointer"}}
+        onClick={()=>setShowNotifCenter(true)}>
+        <span style={{fontSize:18}}>🎤</span>
+        <div style={{minWidth:0}}>
+          <div>{notifSambutan.filter(e=>!e.sambutanFile).length} naskah sambutan ditugaskan ke Anda</div>
+          <div style={{fontSize:12,opacity:0.85,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+            {notifSambutan.filter(e=>!e.sambutanFile).map(e=>e.namaAcara).join(", ")}
+          </div>
+        </div>
+        <button onClick={e=>{e.stopPropagation();setNotifSambutan([]);}} style={{marginLeft:"auto",background:"rgba(255,255,255,0.2)",border:"none",color:"white",borderRadius:6,padding:"2px 8px",cursor:"pointer",fontSize:12,flexShrink:0}}>✕</button>
+      </div>
+    }
 
     {/* Notif bar jadwal belum ditugaskan (H-12) */}
     {(role==="kasubbag_protokol"||role==="kasubbag_komdokpim"||role==="timkom")&&notifPenugasan.length>0&&tab!=="form"&&

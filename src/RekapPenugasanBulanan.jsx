@@ -23,13 +23,19 @@ function sambutanPeran(ev, username){
   return p.join(" & ");
 }
 
-export default function RekapPenugasanBulanan({ events, user, isMobile, allUsers: allUsersProp }) {
+// mode "tim"  → papan peringkat satu tim (Kabag & Kasubbag)
+// mode "saya" → HANYA data pegawai yang sedang login, tanpa peringkat rekan
+export default function RekapPenugasanBulanan({ events, user, isMobile, allUsers: allUsersProp, mode = "tim" }) {
   const NAVY = "#0A1628", GOLD = "#C9A84C";
+  const selfMode = mode === "saya";
 
   const now  = new Date();
   const [bulan,  setBulan]  = React.useState(now.getMonth());
   const [tahun,  setTahun]  = React.useState(now.getFullYear());
   const [timTab, setTimTab] = React.useState("protokol");
+  const [periodeMode, setPeriodeMode] = React.useState("bulan"); // "bulan" | "rentang"
+  const [dari,   setDari]   = React.useState("");
+  const [sampai, setSampai] = React.useState("");
 
   const isKabag  = user?.role === "kabag";
   const isProto  = user?.role === "kasubbag_protokol";
@@ -55,10 +61,32 @@ export default function RekapPenugasanBulanan({ events, user, isMobile, allUsers
     [allUsers]
   );
 
-  const evBulan = React.useMemo(() => events.filter(e => {
-    const d = new Date(e.tanggal);
-    return d.getMonth() === bulan && d.getFullYear() === tahun && e.alur === "disetujui";
-  }), [events, bulan, tahun]);
+  // Perbandingan langsung pada string YYYY-MM-DD. new Date("YYYY-MM-DD")
+  // diurai sebagai UTC lalu dibaca dengan getMonth() waktu lokal, sehingga
+  // tanggal di awal/akhir bulan bisa bergeser sehari di sebagian zona waktu.
+  const inPeriode = React.useCallback((tgl) => {
+    const t = String(tgl || "").slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(t)) return false;
+    if (periodeMode === "rentang") {
+      if (!dari || !sampai) return false;
+      return t >= dari && t <= sampai;
+    }
+    return Number(t.slice(0, 4)) === tahun && Number(t.slice(5, 7)) === bulan + 1;
+  }, [periodeMode, dari, sampai, bulan, tahun]);
+
+  const evBulan = React.useMemo(
+    () => events.filter(e => e.alur === "disetujui" && inPeriode(e.tanggal)),
+    [events, inPeriode]
+  );
+
+  const fmtRingkas = (d) => {
+    const t = String(d || "").slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(t)) return t;
+    return Number(t.slice(8, 10)) + " " + BULAN_LABEL[Number(t.slice(5, 7)) - 1].slice(0, 3) + " " + t.slice(0, 4);
+  };
+  const periodeLabel = (periodeMode === "rentang" && dari && sampai)
+    ? fmtRingkas(dari) + " – " + fmtRingkas(sampai)
+    : BULAN_LABEL[bulan] + " " + tahun;
 
   // Naskah sambutan yang disahkan pada periode dipilih
   const sambutanBulan = React.useMemo(
@@ -83,6 +111,20 @@ export default function RekapPenugasanBulanan({ events, user, isMobile, allUsers
   const rankProto  = buildRanking(stafProto);
   const rankKomdok = buildRanking(stafKomdok);
 
+  // Baris kinerja pegawai yang sedang login (dipakai mode "saya")
+  const meRow = React.useMemo(() => {
+    const un = user?.username;
+    const base = allUsers.find(u => u.username === un) || user || {};
+    const kegiatan = evBulan.filter(e => (e.personil || []).includes(un));
+    const naskah   = sambutanBulan.filter(e => sambutanKredit(e).includes(un));
+    return {
+      ...base, username: un,
+      jumlah: kegiatan.length + naskah.length,
+      kegiatan, naskah,
+      jumlahTugas: kegiatan.length, jumlahNaskah: naskah.length,
+    };
+  }, [allUsers, user, evBulan, sambutanBulan]);
+
   const activeRank  = timTab === "komdok" ? rankKomdok : rankProto;
   const activeLabel = timTab === "komdok" ? "📸 Tim Kasubbag Komdokpim" : "🎗️ Tim Kasubbag Protokol";
 
@@ -91,7 +133,9 @@ export default function RekapPenugasanBulanan({ events, user, isMobile, allUsers
   const maxTugas   = activeRank.length ? activeRank[0].jumlah : 0;
 
   // ── Guard akses — setelah SEMUA hooks ──
-  if (!isKabag && !isProto && !isKomdok) {
+  // Mode "saya" terbuka untuk semua pegawai (hanya menampilkan datanya sendiri);
+  // papan peringkat tim tetap dibatasi Kabag & Kasubbag.
+  if (!selfMode && !isKabag && !isProto && !isKomdok) {
     return (
       <div style={{ padding: 40, textAlign: "center", color: "#94A3B8" }}>
         Fitur ini tersedia untuk Kabag dan Kasubbag.
@@ -101,7 +145,7 @@ export default function RekapPenugasanBulanan({ events, user, isMobile, allUsers
 
   // ── Cetak bukti dukung per pegawai (lampiran e-Kinerja) ──
   const cetakBukti = (s) => {
-    const periode = BULAN_LABEL[bulan] + " " + tahun;
+    const periode = periodeLabel;
     const fmtTgl = (d) => {
       try {
         const x = new Date(d + "T00:00:00+08:00");
@@ -302,30 +346,121 @@ ${s.jumlahNaskah>0
       {/* Header */}
       <div style={{ background: `linear-gradient(135deg,${NAVY},#1A2F50)`, borderRadius: 16, padding: "18px 20px", marginBottom: 16 }}>
         <div style={{ color: GOLD, fontSize: 11, fontWeight: 800, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 2 }}>
-          Rekap Penugasan
+          {selfMode ? "Rekap Kinerja Saya" : "Rekap Penugasan"}
         </div>
         <div style={{ color: "white", fontSize: isMobile ? 16 : 20, fontWeight: 900, marginBottom: 2 }}>
-          {BULAN_LABEL[bulan]} {tahun}
+          {selfMode ? (meRow.nama || meRow.username || "-") : periodeLabel}
         </div>
         <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11 }}>
-          {evBulan.length} kegiatan disetujui pada periode ini
+          {selfMode ? "Periode " + periodeLabel : evBulan.length + " kegiatan disetujui pada periode ini"}
         </div>
       </div>
 
-      {/* Pilih periode */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-        <select value={bulan} onChange={e => setBulan(+e.target.value)}
-          style={{ padding: "9px 12px", borderRadius: 10, border: "1.5px solid #CBD5E1", fontSize: 13, fontWeight: 600, color: NAVY, background: "white" }}>
-          {BULAN_LABEL.map((b, i) => <option key={i} value={i}>{b}</option>)}
-        </select>
-        <select value={tahun} onChange={e => setTahun(+e.target.value)}
-          style={{ padding: "9px 12px", borderRadius: 10, border: "1.5px solid #CBD5E1", fontSize: 13, fontWeight: 600, color: NAVY, background: "white" }}>
-          {tahunList.map(y => <option key={y} value={y}>{y}</option>)}
-        </select>
+      {/* Pilih periode — bulanan (bawaan) atau rentang tanggal bebas */}
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ display: "flex", gap: 4, background: "white", padding: 4, borderRadius: 12, border: "1px solid #E2E8F0", width: "fit-content", marginBottom: 8 }}>
+          {[["bulan", "📅 Bulanan"], ["rentang", "🗓️ Rentang Tanggal"]].map(([k, l]) => (
+            <button key={k} onClick={() => setPeriodeMode(k)} style={{
+              padding: "7px 14px", borderRadius: 9, border: "none",
+              background: periodeMode === k ? NAVY : "transparent",
+              color: periodeMode === k ? "white" : "#64748B",
+              cursor: "pointer", fontSize: 12, fontWeight: 700,
+            }}>{l}</button>
+          ))}
+        </div>
+
+        {periodeMode === "bulan" ? (
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <select value={bulan} onChange={e => setBulan(+e.target.value)}
+              style={{ padding: "9px 12px", borderRadius: 10, border: "1.5px solid #CBD5E1", fontSize: 13, fontWeight: 600, color: NAVY, background: "white" }}>
+              {BULAN_LABEL.map((b, i) => <option key={i} value={i}>{b}</option>)}
+            </select>
+            <select value={tahun} onChange={e => setTahun(+e.target.value)}
+              style={{ padding: "9px 12px", borderRadius: 10, border: "1.5px solid #CBD5E1", fontSize: 13, fontWeight: 600, color: NAVY, background: "white" }}>
+              {tahunList.map(y => <option key={y} value={y}>{y}</option>)}
+            </select>
+          </div>
+        ) : (
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <input type="date" value={dari} onChange={e => setDari(e.target.value)}
+              style={{ padding: "9px 12px", borderRadius: 10, border: "1.5px solid #CBD5E1", fontSize: 13, fontWeight: 600, color: NAVY, background: "white" }}/>
+            <span style={{ color: "#94A3B8", fontSize: 13, fontWeight: 700 }}>s.d.</span>
+            <input type="date" value={sampai} onChange={e => setSampai(e.target.value)}
+              style={{ padding: "9px 12px", borderRadius: 10, border: "1.5px solid #CBD5E1", fontSize: 13, fontWeight: 600, color: NAVY, background: "white" }}/>
+            {(!dari || !sampai) && (
+              <span style={{ fontSize: 11, color: "#B45309", fontWeight: 600 }}>Isi kedua tanggal untuk menampilkan data</span>
+            )}
+          </div>
+        )}
       </div>
 
+      {/* ── MODE SAYA: hanya data pegawai yang login, tanpa peringkat rekan ── */}
+      {selfMode && (
+        <>
+          <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+            {[
+              { val: meRow.jumlahTugas,  lbl: "Penugasan Lapangan", c: "#1D4ED8" },
+              { val: meRow.jumlahNaskah, lbl: "Naskah Sambutan",    c: "#7C3AED" },
+              { val: meRow.jumlah,       lbl: "Total Skor",         c: NAVY      },
+            ].map((s, i) => (
+              <div key={i} style={{ flex: 1, minWidth: 90, background: "white", borderRadius: 12, padding: "12px 14px", border: "1px solid #E2E8F0", textAlign: "center" }}>
+                <div style={{ fontSize: 22, fontWeight: 900, color: s.c, lineHeight: 1, marginBottom: 2 }}>{s.val}</div>
+                <div style={{ fontSize: 10, color: "#94A3B8", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>{s.lbl}</div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ background: "#F8FAFC", borderRadius: 14, padding: "14px 16px", border: "1px solid #E2E8F0" }}>
+            {meRow.jumlah === 0 ? (
+              <div style={{ textAlign: "center", padding: "30px", color: "#94A3B8", fontSize: 13 }}>
+                Belum ada penugasan atau naskah sambutan pada periode ini.
+              </div>
+            ) : (
+              <>
+                {meRow.jumlahTugas > 0 && (
+                  <>
+                    <div style={{ fontSize: 10, fontWeight: 800, color: "#94A3B8", textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>
+                      Penugasan Lapangan ({meRow.jumlahTugas})
+                    </div>
+                    {meRow.kegiatan.map((ev, i) => (
+                      <div key={"mt" + i} style={{ fontSize: 12.5, color: "#374151", marginBottom: 4, display: "flex", gap: 6 }}>
+                        <span style={{ color: "#CBD5E1", flexShrink: 0 }}>·</span>
+                        <span>{ev.namaAcara} <span style={{ color: "#94A3B8" }}>— {ev.tanggal}{ev.jam ? " · " + ev.jam : ""}</span></span>
+                      </div>
+                    ))}
+                  </>
+                )}
+                {meRow.jumlahNaskah > 0 && (
+                  <>
+                    <div style={{ fontSize: 10, fontWeight: 800, color: "#7C3AED", textTransform: "uppercase", letterSpacing: 1, margin: meRow.jumlahTugas > 0 ? "12px 0 6px" : "0 0 6px" }}>
+                      🎤 Naskah Sambutan ({meRow.jumlahNaskah})
+                    </div>
+                    {meRow.naskah.map((ev, i) => (
+                      <div key={"mn" + i} style={{ fontSize: 12.5, color: "#374151", marginBottom: 4, display: "flex", gap: 6 }}>
+                        <span style={{ color: "#C4B5FD", flexShrink: 0 }}>·</span>
+                        <span>{ev.namaAcara} <span style={{ color: "#94A3B8" }}>— {ev.tanggal} · {sambutanPeran(ev, meRow.username)}</span></span>
+                      </div>
+                    ))}
+                  </>
+                )}
+              </>
+            )}
+
+            <button onClick={() => cetakBukti(meRow)}
+              style={{ marginTop: 14, width: "100%", padding: "11px", borderRadius: 10, border: "none", background: NAVY, color: "white", cursor: "pointer", fontSize: 13, fontWeight: 800 }}>
+              🖨️ Cetak Bukti Dukung Kinerja Saya
+            </button>
+
+            <div style={{ marginTop: 12, padding: "8px 12px", background: "#F1F5F9", borderRadius: 8, fontSize: 11, color: "#64748B", lineHeight: 1.6 }}>
+              ℹ️ Skor = jumlah penugasan lapangan + jumlah naskah sambutan yang telah disahkan Kabag.
+              Halaman ini hanya menampilkan data Anda sendiri.
+            </div>
+          </div>
+        </>
+      )}
+
       {/* Toggle tim — hanya Kabag */}
-      {isKabag && (
+      {!selfMode && isKabag && (
         <div style={{ display: "flex", gap: 4, background: "white", padding: "4px", borderRadius: 12, border: "1px solid #E2E8F0", marginBottom: 16, width: "fit-content" }}>
           {[["protokol","🎗️ Tim Protokol"],["komdok","📸 Tim Komdokpim"]].map(([k,l]) => (
             <button key={k} onClick={() => setTimTab(k)} style={{
@@ -339,7 +474,7 @@ ${s.jumlahNaskah>0
       )}
 
       {/* Statistik */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+      {!selfMode && <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
         {[
           { val: evBulan.length,                lbl: "Total Kegiatan",    c: NAVY      },
           { val: totalTugas,                     lbl: "Total Skor Tim",    c: "#1D4ED8" },
@@ -353,10 +488,10 @@ ${s.jumlahNaskah>0
             <div style={{ fontSize: 10, color: "#94A3B8", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>{s.lbl}</div>
           </div>
         ))}
-      </div>
+      </div>}
 
       {/* Ranking */}
-      <div style={{ background: "#F8FAFC", borderRadius: 14, padding: "14px 16px", border: "1px solid #E2E8F0" }}>
+      {!selfMode && <div style={{ background: "#F8FAFC", borderRadius: 14, padding: "14px 16px", border: "1px solid #E2E8F0" }}>
         <div style={{ fontSize: 11, fontWeight: 800, color: "#94A3B8", textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>
           {activeLabel}
         </div>
@@ -374,7 +509,7 @@ ${s.jumlahNaskah>0
           Setiap naskah dihitung 1 untuk penyusun, Kasubbag Komdokpim, dan Kabag (dedup jika satu orang merangkap).
           Klik baris pegawai untuk melihat rinciannya & mencetak bukti dukung kinerja.
         </div>
-      </div>
+      </div>}
     </div>
   );
 }
