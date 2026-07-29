@@ -1083,13 +1083,17 @@ function SambutanBlock({ev,canUpload,onUploadDocx,onUploadPdf,onRemove,onCommit,
 
   const DOCX_MIME="application/vnd.openxmlformats-officedocument.wordprocessingml.document";
   const PDF_MIME="application/pdf";
+  const MAKS_SAMBUTAN=1*1024*1024;   // 1MB — naskah sambutan berupa teks, tidak perlu besar
 
   const handleFile=async(f)=>{
     if(!f)return;
     const isDocx=f.type===DOCX_MIME||f.name.toLowerCase().endsWith(".docx");
     const isPdf=f.type===PDF_MIME||f.name.toLowerCase().endsWith(".pdf");
     if(!isDocx&&!isPdf){globalToast("Format tidak didukung. Gunakan file .docx atau .pdf.");return;}
-    if(f.size>10*1024*1024){globalToast("Ukuran file maksimal 10MB.");return;}
+    if(f.size>MAKS_SAMBUTAN){
+      globalToast("Ukuran naskah maksimal 1MB. Berkas Anda "+(f.size/1048576).toFixed(1)+"MB — kecilkan dulu (mis. kompres gambar di dalamnya).");
+      return;
+    }
     if(isPdf){
       setStep("processing");setErrMsg("");setProgress("Mengupload PDF...");
       try{
@@ -1101,7 +1105,6 @@ function SambutanBlock({ev,canUpload,onUploadDocx,onUploadPdf,onRemove,onCommit,
       catch(e){setStep("error");setErrMsg(e.message||"Gagal upload PDF");}
       return;
     }
-    if(f.size>5*1024*1024){globalToast("Ukuran file DOCX maksimal 5MB.");return;}
     setStep("processing");setErrMsg("");
     try{
       setProgress("Membaca dokumen DOCX...");await new Promise(r=>setTimeout(r,300));
@@ -1224,7 +1227,7 @@ function SambutanBlock({ev,canUpload,onUploadDocx,onUploadPdf,onRemove,onCommit,
               <span style={{fontSize:12,padding:"3px 9px",borderRadius:10,background:"#E0F2FE",color:"#0369A1",fontWeight:700}}>📄 PDF Langsung</span>
             </div>
             <button onClick={()=>ref.current.click()} style={{padding:"10px 22px",borderRadius:9,border:"none",background:"linear-gradient(135deg,#6366F1,#4F46E5)",color:"white",cursor:"pointer",fontSize:13,fontWeight:700,boxShadow:"0 3px 10px rgba(99,102,241,0.35)"}}>Pilih File</button>
-            <div style={{fontSize:12,color:"#9CA3AF",marginTop:8}}>DOCX atau PDF · Maks 10MB · atau seret & lepas di sini</div>
+            <div style={{fontSize:12,color:"#9CA3AF",marginTop:8}}>DOCX atau PDF · Maks 1MB · atau seret & lepas di sini</div>
           </>
         }
       </div>
