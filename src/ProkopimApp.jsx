@@ -436,7 +436,8 @@ const STAF_ROLES=["staf","admin_rk","timkom"];
 const KASUBBAG_ROLES=["kasubbag_protokol","kasubbag_komdokpim"];
 // Peran yang boleh membuka rekap kinerja DIRINYA SENDIRI + cetak bukti dukung.
 // Staf hanya melihat datanya sendiri — papan peringkat tim tetap milik Kabag/Kasubbag.
-const REKAP_SAYA_ROLES=["staf","admin_rk","timkom","kasubbag_protokol","kasubbag_komdokpim","kabag"];
+const REKAP_SAYA_ROLES=["staf","admin_rk","timkom","kasubbag_protokol","kasubbag_komdokpim","kabag",
+  "ajudan_walikota","ajudan_wakilwalikota"];
 
 // ==================== USERS ====================
 // ══ HASH ENGINE (SHA-256 via Web Crypto, tidak butuh library) ══

@@ -41,6 +41,13 @@ export default function RekapPenugasanBulanan({ events, user, isMobile, allUsers
   const isProto  = user?.role === "kasubbag_protokol";
   const isKomdok = user?.role === "kasubbag_komdokpim";
 
+  // Ajudan tidak masuk daftar `personil`; kinerjanya adalah pendampingan
+  // pimpinan yang diikutinya, jadi dasarnya jadwal sang pimpinan.
+  const isAjudanWK  = user?.role === "ajudan_walikota";
+  const isAjudanWWK = user?.role === "ajudan_wakilwalikota";
+  const isAjudan    = isAjudanWK || isAjudanWWK;
+  const [hanyaHadir, setHanyaHadir] = React.useState(true);
+
   // ── Semua hooks WAJIB di atas, sebelum return apapun ──
   React.useEffect(() => {
     if (isKomdok) setTimTab("komdok");
@@ -115,15 +122,35 @@ export default function RekapPenugasanBulanan({ events, user, isMobile, allUsers
   const meRow = React.useMemo(() => {
     const un = user?.username;
     const base = allUsers.find(u => u.username === un) || user || {};
-    const kegiatan = evBulan.filter(e => (e.personil || []).includes(un));
-    const naskah   = sambutanBulan.filter(e => sambutanKredit(e).includes(un));
+
+    let kegiatan;
+    if (isAjudan) {
+      // Jadwal pimpinan yang didampingi. Bawaan: hanya yang benar-benar
+      // DIHADIRI pimpinan — yang diwakilkan/tidak hadir bukan pendampingan.
+      kegiatan = evBulan.filter(e => {
+        const untuk = e.untukPimpinan || [];
+        if (isAjudanWK) {
+          if (!untuk.includes("walikota") || e.delegasiKeWWK) return false;
+          return hanyaHadir ? e.statusWK === "hadir" : true;
+        }
+        if (!untuk.includes("wakilwalikota") && !e.delegasiKeWWK) return false;
+        return hanyaHadir ? e.statusWWK === "hadir" : true;
+      });
+    } else {
+      kegiatan = evBulan.filter(e => (e.personil || []).includes(un));
+    }
+
+    const naskah = sambutanBulan.filter(e => sambutanKredit(e).includes(un));
     return {
       ...base, username: un,
       jumlah: kegiatan.length + naskah.length,
       kegiatan, naskah,
       jumlahTugas: kegiatan.length, jumlahNaskah: naskah.length,
     };
-  }, [allUsers, user, evBulan, sambutanBulan]);
+  }, [allUsers, user, evBulan, sambutanBulan, isAjudan, isAjudanWK, hanyaHadir]);
+
+  // Label menyesuaikan jenis kinerja: ajudan = pendampingan, bukan penugasan
+  const labelTugas = isAjudan ? "Pendampingan Pimpinan" : "Penugasan Lapangan";
 
   const activeRank  = timTab === "komdok" ? rankKomdok : rankProto;
   const activeLabel = timTab === "komdok" ? "📸 Tim Kasubbag Komdokpim" : "🎗️ Tim Kasubbag Protokol";
@@ -217,14 +244,14 @@ tbody tr:nth-child(even) td { background:#F8FAFC; }
   <div class="row"><b>Nama Pegawai</b><span>: ${s.nama||s.username}</span></div>
   <div class="row"><b>Jabatan</b><span>: ${jabatan}</span></div>
   <div class="row"><b>Periode</b><span>: ${periode}</span></div>
-  <div class="row"><b>Total Penugasan Lapangan</b><span>: ${s.jumlahTugas} kegiatan</span></div>
+  <div class="row"><b>Total ${labelTugas}</b><span>: ${s.jumlahTugas} kegiatan</span></div>
   <div class="row"><b>Total Naskah Sambutan</b><span>: ${s.jumlahNaskah} naskah (disahkan Kabag)</span></div>
 </div>
 
-<div class="section-title">A. Penugasan Lapangan</div>
+<div class="section-title">A. ${labelTugas}</div>
 ${s.jumlahTugas>0
   ? `<table><thead><tr><th class="c" style="width:30px">No</th><th style="width:130px">Tanggal</th><th>Nama Acara</th><th>Penyelenggara</th><th class="c" style="width:55px">Jam</th><th>Lokasi</th><th class="c" style="width:90px">Jenis</th></tr></thead><tbody>${rowsTugas}</tbody></table>`
-  : `<div class="empty">Tidak ada penugasan lapangan pada periode ini.</div>`
+  : `<div class="empty">Tidak ada ${labelTugas.toLowerCase()} pada periode ini.</div>`
 }
 
 <div class="section-title">B. Naskah Sambutan</div>
@@ -397,11 +424,31 @@ ${s.jumlahNaskah>0
       {/* ── MODE SAYA: hanya data pegawai yang login, tanpa peringkat rekan ── */}
       {selfMode && (
         <>
+          {/* Ajudan: bawaan hanya jadwal yang benar-benar dihadiri pimpinan */}
+          {isAjudan && (
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ display: "flex", gap: 4, background: "white", padding: 4, borderRadius: 12, border: "1px solid #E2E8F0", width: "fit-content" }}>
+                {[[true, "✅ Hanya yang Dihadiri"], [false, "📋 Semua Jadwal Pimpinan"]].map(([v, l]) => (
+                  <button key={String(v)} onClick={() => setHanyaHadir(v)} style={{
+                    padding: "7px 14px", borderRadius: 9, border: "none",
+                    background: hanyaHadir === v ? NAVY : "transparent",
+                    color: hanyaHadir === v ? "white" : "#64748B",
+                    cursor: "pointer", fontSize: 12, fontWeight: 700,
+                  }}>{l}</button>
+                ))}
+              </div>
+              <div style={{ fontSize: 11, color: "#64748B", marginTop: 6 }}>
+                Kinerja ajudan dihitung dari pendampingan {isAjudanWK ? "Wali Kota" : "Wakil Wali Kota"}
+                {hanyaHadir ? " yang benar-benar dihadiri (yang diwakilkan/tidak hadir tidak dihitung)." : " — termasuk yang diwakilkan atau belum dikonfirmasi."}
+              </div>
+            </div>
+          )}
+
           <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
             {[
-              { val: meRow.jumlahTugas,  lbl: "Penugasan Lapangan", c: "#1D4ED8" },
-              { val: meRow.jumlahNaskah, lbl: "Naskah Sambutan",    c: "#7C3AED" },
-              { val: meRow.jumlah,       lbl: "Total Skor",         c: NAVY      },
+              { val: meRow.jumlahTugas,  lbl: labelTugas,         c: "#1D4ED8" },
+              { val: meRow.jumlahNaskah, lbl: "Naskah Sambutan",  c: "#7C3AED" },
+              { val: meRow.jumlah,       lbl: "Total Skor",       c: NAVY      },
             ].map((s, i) => (
               <div key={i} style={{ flex: 1, minWidth: 90, background: "white", borderRadius: 12, padding: "12px 14px", border: "1px solid #E2E8F0", textAlign: "center" }}>
                 <div style={{ fontSize: 22, fontWeight: 900, color: s.c, lineHeight: 1, marginBottom: 2 }}>{s.val}</div>
@@ -413,14 +460,16 @@ ${s.jumlahNaskah>0
           <div style={{ background: "#F8FAFC", borderRadius: 14, padding: "14px 16px", border: "1px solid #E2E8F0" }}>
             {meRow.jumlah === 0 ? (
               <div style={{ textAlign: "center", padding: "30px", color: "#94A3B8", fontSize: 13 }}>
-                Belum ada penugasan atau naskah sambutan pada periode ini.
+                {isAjudan
+                  ? "Belum ada pendampingan pimpinan pada periode ini."
+                  : "Belum ada penugasan atau naskah sambutan pada periode ini."}
               </div>
             ) : (
               <>
                 {meRow.jumlahTugas > 0 && (
                   <>
                     <div style={{ fontSize: 10, fontWeight: 800, color: "#94A3B8", textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>
-                      Penugasan Lapangan ({meRow.jumlahTugas})
+                      {labelTugas} ({meRow.jumlahTugas})
                     </div>
                     {meRow.kegiatan.map((ev, i) => (
                       <div key={"mt" + i} style={{ fontSize: 12.5, color: "#374151", marginBottom: 4, display: "flex", gap: 6 }}>
@@ -452,7 +501,8 @@ ${s.jumlahNaskah>0
             </button>
 
             <div style={{ marginTop: 12, padding: "8px 12px", background: "#F1F5F9", borderRadius: 8, fontSize: 11, color: "#64748B", lineHeight: 1.6 }}>
-              ℹ️ Skor = jumlah penugasan lapangan + jumlah naskah sambutan yang telah disahkan Kabag.
+              ℹ️ Skor = jumlah {labelTugas.toLowerCase()}
+              {!isAjudan && " + jumlah naskah sambutan yang telah disahkan Kabag"}.
               Halaman ini hanya menampilkan data Anda sendiri.
             </div>
           </div>
