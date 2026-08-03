@@ -51,6 +51,50 @@ function getAIProvider(){ try{return localStorage.getItem("ai_provider")||"gemin
 // Saat kartu antrian sedang dibuka/dibaca, polling realtime ditahan
 // agar tampilan tidak ter-refresh & posisi baca tidak hilang.
 let _readingFocus=false;
+// Penghitung, bukan boolean: beberapa layar bisa aktif bersamaan (mis. kartu
+// agenda terbuka + modal penugasan). Dengan boolean, layar yang tutup duluan
+// akan melepas penahan milik layar lain yang masih terbuka.
+let _holdCount=0;
+function useHoldRefresh(active){
+  React.useEffect(()=>{
+    if(!active)return;
+    _holdCount++; _readingFocus=true;
+    return()=>{ _holdCount=Math.max(0,_holdCount-1); _readingFocus=_holdCount>0; };
+  },[active]);
+}
+
+// Bandingkan satu jadwal tanpa bergantung pada urutan kunci — objek hasil
+// upd() lokal ({...e,...patch}) bisa punya urutan kunci berbeda dari server.
+function sameEvent(a,b){
+  if(a===b)return true;
+  if(!a||!b)return false;
+  const ka=Object.keys(a),kb=Object.keys(b);
+  if(ka.length!==kb.length)return false;
+  for(const k of ka){
+    const va=a[k],vb=b[k];
+    if(va===vb)continue;
+    if(va&&vb&&typeof va==="object"&&typeof vb==="object"){
+      if(JSON.stringify(va)!==JSON.stringify(vb))return false;
+    }else return false;
+  }
+  return true;
+}
+
+// Gabungkan hasil polling TANPA mengganti seluruh array: jadwal yang isinya
+// tidak berubah dipertahankan objek lamanya, sehingga React tidak merender
+// ulang barisnya dan posisi baca tidak melompat. Bila tidak ada perubahan
+// sama sekali, `prev` dikembalikan apa adanya agar tidak memicu render.
+function mergeEvents(prev,rows){
+  const lama=new Map((prev||[]).map(e=>[String(e.id),e]));
+  let berubah=(prev||[]).length!==rows.length;
+  const next=rows.map(r=>{
+    const old=lama.get(String(r.id));
+    if(old&&sameEvent(old,r))return old;
+    berubah=true;
+    return r;
+  });
+  return berubah?next:prev;
+}
 
 // ═══════════════════════════════════════════════════════
 // KEAMANAN: Input Sanitizer (anti XSS)
@@ -2486,6 +2530,7 @@ function AuditPage({events,user,role,isMobile,embedded}){
   const [filterAction,setFilterAction]=React.useState("");
   const [filterDate,setFilterDate]=React.useState("");
   const [openId,setOpenId]=React.useState(null);
+  useHoldRefresh(openId!=null);   // tahan polling selama entri riwayat dibuka
 
   // Admin RK hanya melihat jadwalnya sendiri; kasubbag & kabag lihat semua.
   const visible=React.useMemo(()=>{
@@ -2873,6 +2918,7 @@ function MitraKerjaView({events,isMobile}){
   const [filter,setFilter]=React.useState("upcoming");
   const [search,setSearch]=React.useState("");
   const [expandedMitraId,setExpandedMitra]=React.useState(null);
+  useHoldRefresh(expandedMitraId!=null);
 
   const visible=events
     .filter(e=>e.alur==="disetujui")
@@ -6695,6 +6741,11 @@ export default function App(){
     return()=>clearInterval(t);
   },[lockSeconds]);
 
+  // Tahan polling selama kartu agenda dibuka atau ada modal aktif — di layar
+  // inilah pengguna paling lama membaca, dan justru saat diam membaca ambang
+  // aktivitas 12 detik terlampaui sehingga polling ikut berjalan.
+  useHoldRefresh(expandedId!=null||penugasanEv!=null||evaluasiEv!=null||delegTarget!=null);
+
   // Muat ulang agenda dari server — dipakai modul Tamu setelah jadwal diubah,
   // agar tab Agenda langsung menampilkan jam/tanggal baru tanpa pull-refresh
   const reloadEvents=useCallback(async()=>{
@@ -6737,16 +6788,13 @@ export default function App(){
       if(Date.now()-_lastActivity < 12000) return;
       try{
         const rows=await dbLoadAll();
-        if(rows&&rows.length>0){
-          setEvents(prev=>{
-            const prevStr=JSON.stringify(prev.map(e=>e.id+e.alur+(e.alurHapus||"")));
-            const newStr=JSON.stringify(rows.map(e=>e.id+e.alur+(e.alurHapus||"")));
-            return prevStr===newStr?prev:rows;
-          });
-        }
+        // Digabung per baris. Pembanding lama hanya melihat id+alur+alurHapus,
+        // sehingga perubahan personil/catatan/kehadiran/naskah tidak pernah
+        // tampil sampai refresh manual — sekarang seluruh isi dibandingkan.
+        if(rows&&rows.length>0) setEvents(prev=>mergeEvents(prev,rows));
       }catch{}
     };
-    const interval=setInterval(poll,30000);
+    const interval=setInterval(poll,60000);
     return ()=>clearInterval(interval);
   },[user]);
 
@@ -8780,7 +8828,7 @@ function KabagDashboard({events, user, upd, showT, askConfirm, deleteAndSync, is
   const [activeTab, setActiveTab] = useState("antrian");
   const [expandedId, setExpanded] = useState(null);
   // Tahan polling realtime selama kartu dibuka agar tidak ter-refresh saat dibaca
-  React.useEffect(()=>{ _readingFocus = expandedId!=null; return ()=>{ _readingFocus=false; }; },[expandedId]);
+  useHoldRefresh(expandedId!=null);
   const [rejectTexts, setRT] = useState({});
   const [searchQ, setSearchQ] = useState("");
   // busyId: id event yang sedang diproses (cegah dobel klik Setujui & Publikasi)
@@ -9193,7 +9241,7 @@ function KasubbagDashboard({events, user, upd, showT, askConfirm, isMobile, onPe
   const [activeTab, setActiveTab] = useState("antrian");
   const [expandedId, setExpanded] = useState(null);
   // Tahan polling realtime selama kartu dibuka agar tidak ter-refresh saat dibaca
-  React.useEffect(()=>{ _readingFocus = expandedId!=null; return ()=>{ _readingFocus=false; }; },[expandedId]);
+  useHoldRefresh(expandedId!=null);
   const [rejectTexts, setRT] = useState({});
   const [cabutTarget, setCabutTarget] = useState(null); // {evId, un, nama}
   const [alasanCabut, setAlasanCabut] = useState("");
@@ -9951,6 +9999,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
   const past = myEvs.filter(e=>!isPending(e)&&new Date(e.tanggal+"T"+e.jam)<now).reverse();
 
   const [expandedId, setExpanded] = React.useState(null);
+  useHoldRefresh(expandedId!=null);
   const [catatanLocal, setCatatanLocal] = React.useState({});
   // Auto-expand dari goToPending
   React.useEffect(()=>{
