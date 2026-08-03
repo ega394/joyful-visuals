@@ -12,7 +12,24 @@ const YELLOW = "#d97706";
 const RED    = "#dc2626";
 const GRAY   = "#6b7280";
 
+// Permintaan pembatalan dari pemohon: di database status tetap "Approved"
+// (ruangan masih terpakai sampai peninjau memutuskan), penandanya ada di
+// notes. Di UI diperlakukan sebagai kategori tersendiri agar tidak tenggelam
+// di antara pengajuan yang sudah disetujui.
+const CANCEL_TAG = "[MINTA BATAL]";
+function isCancelReq(b) {
+  return b?.status === "Approved" && String(b?.notes || "").startsWith(CANCEL_TAG);
+}
+function cancelReasonOf(b) {
+  return isCancelReq(b) ? String(b.notes).slice(CANCEL_TAG.length).trim() : "";
+}
+// Kategori tampilan — tidak selalu sama dengan kolom status di database
+function viewStatus(b) {
+  return isCancelReq(b) ? "CancelReq" : b?.status;
+}
+
 const STATUS_CFG = {
+  CancelReq: { label: "Minta Batal", color: "#C2410C", bg: "#FFEDD5", dot: "#F97316" },
   Pending:   { label: "Menunggu",   color: YELLOW, bg: "#FEF3C7", dot: "#F59E0B" },
   Approved:  { label: "Disetujui", color: GREEN,  bg: "#D1FAE5", dot: "#10B981" },
   Rejected:  { label: "Ditolak",   color: RED,    bg: "#FEE2E2", dot: "#EF4444" },
@@ -165,15 +182,15 @@ function ActionModal({ booking, action, onConfirm, onCancel }) {
 
 function BookingRow({ booking, onAction, isMobile }) {
   const [expanded, setExpanded] = useState(false);
-  const cfg = STATUS_CFG[booking.status] || STATUS_CFG.Pending;
+  const cfg = STATUS_CFG[viewStatus(booking)] || STATUS_CFG.Pending;
   const slots = booking.slots || [booking];
   const tanggalStr = slots.length === 1
     ? formatTgl(slots[0].start_date)
     : `${slots.length} slot · ${formatTgl(slots[0].start_date)} – ${formatTgl(slots[slots.length-1].start_date)}`;
   const age = daysSince(booking.created_at);
   const isSlaWarning = booking.status === "Pending" && age >= 1;
-  const cancelReq = booking.status === "Approved" && String(booking.notes || "").startsWith("[MINTA BATAL]");
-  const cancelReason = cancelReq ? String(booking.notes).replace(/^\[MINTA BATAL\]\s*/, "").trim() : "";
+  const cancelReq = isCancelReq(booking);
+  const cancelReason = cancelReasonOf(booking);
 
   return (
     <div style={{
@@ -811,9 +828,9 @@ function AdminCalendar({ bookings, rooms, year, month, roomFilter, onBookingClic
 // ── Booking Detail Popover ────────────────────────────────────
 function BookingDetailModal({ booking, slots, onClose, onAction }) {
   if (!booking) return null;
-  const cfg = STATUS_CFG[booking.status] || STATUS_CFG.Pending;
-  const cancelReq = booking.status === "Approved" && String(booking.notes || "").startsWith("[MINTA BATAL]");
-  const cancelReason = cancelReq ? String(booking.notes).replace(/^\[MINTA BATAL\]\s*/, "").trim() : "";
+  const cfg = STATUS_CFG[viewStatus(booking)] || STATUS_CFG.Pending;
+  const cancelReq = isCancelReq(booking);
+  const cancelReason = cancelReasonOf(booking);
   const allSlots = (slots && slots.length ? slots : [booking])
     .slice().sort((a,b)=> a.start_date.localeCompare(b.start_date) || (SES_ORDER[a.session]||9)-(SES_ORDER[b.session]||9));
 
@@ -1014,7 +1031,18 @@ export default function BookingDashboard({ user, isMobile }) {
   // Kelompokkan per pengajuan (1 booking_code = 1 pengajuan, banyak slot)
   const allGroups = useMemo(() => groupByCode(bookings), [bookings]);
   const filteredGroups = useMemo(() => allGroups.filter(g => {
-    if (filterStatus && g.status !== filterStatus) return false;
+    const batal = isCancelReq(g);
+    // "Menunggu" mencakup pengajuan baru DAN permintaan pembatalan, karena
+    // keduanya sama-sama menunggu keputusan peninjau. Kategori dibuat saling
+    // lepas (satu pengajuan hanya masuk satu keranjang) agar angka di kartu
+    // statistik tidak terhitung ganda.
+    if (filterStatus === "Pending") {
+      if (g.status !== "Pending" && !batal) return false;
+    } else if (filterStatus === "CancelReq") {
+      if (!batal) return false;
+    } else if (filterStatus) {
+      if (g.status !== filterStatus || batal) return false;
+    }
     if (filterRoom && g.room_id !== Number(filterRoom)) return false;
     // Tanpa filter status eksplisit: sembunyikan Cancelled/Rejected
     // yang lebih lama dari 60 hari (Pending/Approved selalu tampil).
@@ -1055,9 +1083,19 @@ export default function BookingDashboard({ user, isMobile }) {
   };
 
   // Stats — dihitung per PENGAJUAN, bukan per baris slot
-  const pending   = allGroups.filter(g => g.status === "Pending").length;
-  const approved  = allGroups.filter(g => g.status === "Approved").length;
-  const slaAlert  = allGroups.filter(g => g.status === "Pending" && daysSince(g.created_at) >= 1).length;
+  const pending    = allGroups.filter(g => g.status === "Pending").length;
+  const cancelReqs = allGroups.filter(isCancelReq).length;
+  // Yang sedang diminta batal dihitung terpisah agar tidak tumpang tindih
+  const approved   = allGroups.filter(g => g.status === "Approved" && !isCancelReq(g)).length;
+
+  // Mendesak = pengajuan baru yang menggantung >24 jam, ATAU permintaan
+  // pembatalan yang acaranya tinggal 2 hari lagi. Kapan pembatalan diajukan
+  // tidak tersimpan, jadi kedekatan acara yang dipakai sebagai ukuran.
+  const batasDekat = new Date(Date.now() + 8 * 3600000 + 2 * 86400000).toISOString().slice(0, 10);
+  const slaAlert = allGroups.filter(g =>
+    (g.status === "Pending" && daysSince(g.created_at) >= 1) ||
+    (isCancelReq(g) && String(g.start_date || "").slice(0, 10) <= batasDekat)
+  ).length;
 
   return (
     <div style={{ padding: isMobile ? "12px 12px" : "20px 24px", fontFamily: "Inter, system-ui, sans-serif" }}>
@@ -1092,13 +1130,17 @@ export default function BookingDashboard({ user, isMobile }) {
         )}
 
         {/* Stat cards */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 20 }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)", gap: 10, marginBottom: 20 }}>
           {[
-            { label: "Menunggu (pengajuan)", value: pending, color: YELLOW, bg: "#FEF3C7", icon: "⏳" },
-            { label: "Disetujui (pengajuan)", value: approved, color: GREEN, bg: "#D1FAE5", icon: "✓" },
-            { label: "Perlu Segera (>24j)", value: slaAlert, color: RED, bg: "#FEE2E2", icon: "⚠" },
+            { label: "Menunggu (pengajuan)", value: pending, color: YELLOW, bg: "#FEF3C7", icon: "⏳", go: "Pending" },
+            { label: "Minta Batal", value: cancelReqs, color: "#C2410C", bg: "#FFEDD5", icon: "🚫", go: "CancelReq" },
+            { label: "Disetujui (pengajuan)", value: approved, color: GREEN, bg: "#D1FAE5", icon: "✓", go: "Approved" },
+            { label: "Perlu Segera", value: slaAlert, color: RED, bg: "#FEE2E2", icon: "⚠" },
           ].map(s => (
-            <div key={s.label} style={{
+            <div key={s.label}
+              onClick={() => { if (s.go) { setViewMode("list"); setFilterStatus(s.go); } }}
+              style={{
+              cursor: s.go ? "pointer" : "default",
               background: s.bg, borderRadius: 12,
               padding: isMobile ? "12px 10px" : "16px 18px",
               textAlign: "center",
@@ -1144,7 +1186,8 @@ export default function BookingDashboard({ user, isMobile }) {
                 fontSize: 13, outline: "none", background: "white",
               }}>
               <option value="">Semua Status</option>
-              <option value="Pending">Menunggu</option>
+              <option value="Pending">Menunggu (termasuk minta batal)</option>
+              <option value="CancelReq">🚫 Minta Batal saja</option>
               <option value="Approved">Disetujui</option>
               <option value="Rejected">Ditolak</option>
               <option value="Cancelled">Dibatalkan</option>
