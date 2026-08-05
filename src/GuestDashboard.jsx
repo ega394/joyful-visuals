@@ -70,6 +70,9 @@ async function apiPost(action, body) {
 }
 
 // ── Sinkronisasi Tamu → Agenda ────────────────────────────────
+// Peran yang boleh menayangkan ulang agenda yang ditarik Kabag. Harus sama
+// dengan BOLEH_TAYANG_ULANG di api/guest.js — server yang menegakkannya.
+var BOLEH_TAYANG_ULANG = ["kabag", "kasubbag_protokol", "admin_rk"];
 var TEMPAT_OPTIONS = ["Rumah Jabatan", "Ruang Kerja", "Lainnya"];
 var TEMPAT_DEFAULT = "Ruang Kerja";
 
@@ -1033,23 +1036,52 @@ function SyncAgendaBox({ guest, events, user, showT, reloadEvents }) {
   // Kepastiannya ada di server, jadi tombol TIDAK pernah disembunyikan.
   var mungkinSudah = hasil ? true : isGuestSynced(guest, events);
 
+  // Agenda yang "ditarik dari publikasi" barisnya tetap ada, hanya alurnya
+  // bukan lagi "disetujui" — dan tab Agenda cuma menampilkan yang disetujui.
+  // Keadaan ini ditampilkan SEBELUM tombol ditekan supaya tidak baru
+  // ketahuan sesudahnya.
+  var linkedEv  = findGuestAgenda(guest, events);
+  var ditarikUI = !!(linkedEv && linkedEv.alur && linkedEv.alur !== "disetujui");
+  var bolehTayang = BOLEH_TAYANG_ULANG.indexOf(user?.role) >= 0;
+
+  async function kirim(tayangkan) {
+    var res = await apiPost("sync_agenda", {
+      id: guest.id,
+      scheduled_date: guest.jadwal_tanggal || guest.scheduled_date || "",
+      scheduled_time: guest.jadwal_jam || guest.scheduled_time || "",
+      tempat: (linkedEv && linkedEv.lokasi) || TEMPAT_DEFAULT,
+      role: user?.role || "",
+      tayangkan: !!tayangkan,
+    });
+    return (res && res.agenda) || {};
+  }
+
   async function sinkron() {
     setBusy(true);
     try {
-      var linked = findGuestAgenda(guest, events);
-      var res = await apiPost("sync_agenda", {
-        id: guest.id,
-        scheduled_date: guest.jadwal_tanggal || guest.scheduled_date || "",
-        scheduled_time: guest.jadwal_jam || guest.scheduled_time || "",
-        tempat: (linked && linked.lokasi) || TEMPAT_DEFAULT,
-      });
-      var ag = (res && res.agenda) || {};
+      var ag = await kirim(false);
+
+      // Server yang memastikan status tayangnya, bukan data di memori
+      if (ag.ditarik && bolehTayang) {
+        var ya = window.confirm(
+          "Agenda ini sedang DITARIK dari publikasi, jadi belum tampil di tab Agenda "+
+          "meski jadwalnya sudah diperbarui.\n\nTayangkan ulang sekarang?"
+        );
+        if (ya) ag = await kirim(true);
+      }
       setHasil(ag);
+
       // Tampilkan tanggal hasilnya agar langsung terlihat apakah agendanya
       // benar-benar pindah ke jadwal terbaru
       var kapan = ag.tanggal ? " → "+fmtDate(ag.tanggal)+(ag.jam?" pk "+ag.jam:"") : "";
-      showT((ag.created ? "✅ Agenda dibuat" : "✅ Agenda diperbarui")+kapan
-        +(ag.removed?" ("+ag.removed+" agenda ganda dirapikan)":""));
+      if (ag.ditarik) {
+        showT("✅ Jadwal agenda diperbarui"+kapan+
+          " — ⚠ masih ditarik dari publikasi, belum tampil di Agenda"+
+          (bolehTayang ? "" : ". Minta Kabag/Kasubbag Protokol menayangkannya."));
+      } else {
+        showT((ag.created ? "✅ Agenda dibuat" : "✅ Agenda diperbarui")+kapan
+          +(ag.removed?" ("+ag.removed+" agenda ganda dirapikan)":""));
+      }
       if(reloadEvents) reloadEvents();
     } catch(e) { showT("❌ "+e.message); }
     finally { setBusy(false); }
@@ -1057,10 +1089,19 @@ function SyncAgendaBox({ guest, events, user, showT, reloadEvents }) {
 
   if(!punyaJadwal) return null;
 
+  var bg = ditarikUI ? "#FFF1F2" : mungkinSudah ? "#F0FDF4" : "#FFFBEB";
+  var bd = ditarikUI ? "#FECDD3" : mungkinSudah ? "#86EFAC" : "#FDE68A";
+  var fg = ditarikUI ? "#B91C1C" : mungkinSudah ? "#065F46" : "#92400E";
+
   return (
-    <div style={{background:mungkinSudah?"#F0FDF4":"#FFFBEB",border:"1.5px solid "+(mungkinSudah?"#86EFAC":"#FDE68A"),borderRadius:11,padding:"11px 13px",marginTop:4}}>
-      <div style={{fontSize:12,color:mungkinSudah?"#065F46":"#92400E",marginBottom:8,lineHeight:1.5}}>
-        {mungkinSudah
+    <div style={{background:bg,border:"1.5px solid "+bd,borderRadius:11,padding:"11px 13px",marginTop:4}}>
+      <div style={{fontSize:12,color:fg,marginBottom:8,lineHeight:1.5}}>
+        {ditarikUI
+          ? <>🚫 Agenda tertaut sedang <b>ditarik dari publikasi</b>, sehingga belum tampil di tab Agenda.
+              Menyelaraskan hanya memperbarui tanggal/jam{bolehTayang
+                ? <> — Anda akan ditanya apakah sekaligus menayangkannya ulang.</>
+                : <>. Penayangan ulang dilakukan oleh Kabag, Kasubbag Protokol, atau Admin RK.</>}</>
+          : mungkinSudah
           ? <>✓ Tamu ini <b>sudah tercatat di Agenda Kegiatan</b>. Tekan tombol di bawah bila agendanya perlu diselaraskan ulang.</>
           : <>⚠ Tamu ini sudah dijadwalkan tetapi <b>belum tercatat di Agenda Kegiatan</b>.</>}
       </div>
