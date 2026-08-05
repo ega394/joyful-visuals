@@ -6561,7 +6561,7 @@ export default function App(){
   const[showAI,setShowAI]=useState(false);const[showReport,setShowReport]=useState(false);const[showReportTamu,setShowReportTamu]=useState(false);const[showSummary,setShowSummary]=useState(false);const[showAdmin,setShowAdmin]=useState(false);const[showProfile,setShowProfile]=useState(false);const[showLaporan,setShowLaporan]=useState(false);const[showBroadcast,setShowBroadcast]=useState(false);const[showArsip,setShowArsip]=useState(false);const[showUndanganTool,setShowUndanganTool]=useState(false);
   const[showForgot,setShowForgot]=useState(false);const[showRegister,setShowRegister]=useState(false);const[pendingRegs,setPendingRegs]=useState(()=>loadPendingRegs());
   const[loginLoading,setLoginLoading]=useState(false);const[loginPhase,setLoginPhase]=useState("");
-  const[delegTarget,setDelegTarget]= useState(null);const[expandedId,setExp]=useState(null);const[rejectTexts,setRT]=useState({});const[catatanInput,setCatatanInput]=useState({});const[penugasanEv,setPenugasanEv]=useState(null);const[notifPenugasan,setNotifPenugasan]=useState([]);const[notifSambutan,setNotifSambutan]=useState([]);const[evaluasiEv,setEvaluasiEv]=useState(null);const[showMobMenu,setMobMenu]=useState(false);const[showNotifCenter,setShowNotifCenter]=useState(false);
+  const[delegTarget,setDelegTarget]= useState(null);const[expandedId,setExp]=useState(null);const[rejectTexts,setRT]=useState({});const[catatanInput,setCatatanInput]=useState({});const[penugasanEv,setPenugasanEv]=useState(null);const[notifPenugasan,setNotifPenugasan]=useState([]);const[notifSambutan,setNotifSambutan]=useState([]);const[notifSahkan,setNotifSahkan]=useState([]);const[evaluasiEv,setEvaluasiEv]=useState(null);const[showMobMenu,setMobMenu]=useState(false);const[showNotifCenter,setShowNotifCenter]=useState(false);
   const undanganRef=useRef({});
   // ── UX & Security States ──
   const[sessionWarn,setSessionWarn]=useState(false);
@@ -6927,6 +6927,15 @@ export default function App(){
     });
     setNotifPenugasan(unassigned);
   },[events,role]);
+
+  // ── Naskah sambutan yang menunggu pengesahan Kabag (badge lonceng) ──
+  React.useEffect(()=>{
+    if(!user||role!=="kabag"){setNotifSahkan([]);return;}
+    const hariIni=localDateStr(new Date());
+    setNotifSahkan(events.filter(ev=>
+      ev.alur==="disetujui"&&needsSambutan(ev)&&!ev.sambutanSah&&
+      ev.sambutanFile&&ev.tanggal>=hariIni));
+  },[events,role,user]);
 
   // ── Tugas penyusunan naskah sambutan untuk pengguna ini (badge lonceng) ──
   React.useEffect(()=>{
@@ -7710,7 +7719,7 @@ const TH={
         </button>}
         <button aria-label="Notifikasi" onClick={()=>setShowNotifCenter(true)} style={{position:"relative",width:32,height:32,borderRadius:9,border:"1px solid rgba(255,255,255,0.2)",background:"rgba(255,255,255,0.1)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>
           🔔
-          {(notifPenugasan.length+notifSambutan.length)>0&&<span style={{position:"absolute",top:-3,right:-3,background:"#EF4444",color:"white",borderRadius:"50%",width:14,height:14,display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,fontWeight:900}}>{notifPenugasan.length+notifSambutan.length}</span>}
+          {(notifPenugasan.length+notifSambutan.length+notifSahkan.length)>0&&<span style={{position:"absolute",top:-3,right:-3,background:"#EF4444",color:"white",borderRadius:"50%",width:14,height:14,display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,fontWeight:900}}>{notifPenugasan.length+notifSambutan.length+notifSahkan.length}</span>}
         </button>
         <div title={SUPA_OK?"Terhubung ke Database":"Mode Lokal"} style={{width:8,height:8,borderRadius:"50%",background:SUPA_OK?"#34D399":"#F87171",flexShrink:0,boxShadow:SUPA_OK?"0 0 6px rgba(52,211,153,0.6)":"none"}}/>
       </div>
@@ -8413,6 +8422,53 @@ function NotifCenter({events, user, onClose, isMobile}){
       if(antrianKabag.length>0)list.push({id:"antrian-kabag",icon:"✅",type:"warn",title:antrianKabag.length+" Jadwal Menunggu Persetujuan Anda",body:antrianKabag.map(e=>e.namaAcara).join(", ")});
       const hapus=events.filter(e=>e.alurHapus==="menunggu_kabag");
       if(hapus.length>0)list.push({id:"hapus-kabag",icon:"🗑️",type:"error",title:hapus.length+" Permintaan Batal Tayang",body:hapus.map(e=>e.namaAcara).join(", ")});
+    }
+
+    // ── Naskah sambutan: pengesahan Kabag & kesiapan naskah ──
+    // Bertingkat menurut kedekatan acara. Kalau semua tampil dengan bobot
+    // sama, permintaan yang acaranya masih lama menumpuk dan yang genting
+    // ikut tenggelam. H-1 = acara hari ini atau besok.
+    const besokS = localDateStr(new Date(now.getTime() + 86400000));
+    const perluSambutan = approved.filter(e =>
+      needsSambutan(e) && !e.sambutanSah && e.tanggal >= todayS);
+
+    if(role==="kabag"){
+      // Naskah sudah diunggah → tinggal disahkan
+      perluSambutan.filter(e=>e.sambutanFile).forEach(e=>{
+        const genting = e.tanggal <= besokS;
+        list.push({
+          id:"sahkan-"+e.id, icon:"🎤",
+          type: genting?"error":"info",
+          title: genting?"Segera Sahkan Naskah Sambutan":"Naskah Menunggu Pengesahan Anda",
+          body: e.namaAcara+" · "+fmt(e.tanggal)+" "+e.jam+" WITA"+(genting?" — acara sudah dekat":""),
+          ev:e,
+        });
+      });
+      // Acara tinggal sehari tapi naskahnya belum ada sama sekali
+      const belumSiap = perluSambutan.filter(e=>!e.sambutanFile && e.tanggal<=besokS);
+      if(belumSiap.length>0) list.push({
+        id:"sambutan-belum-siap", icon:"⚠️", type:"error",
+        title:belumSiap.length+" Naskah Sambutan Belum Siap (H-1)",
+        body:belumSiap.map(e=>e.namaAcara+(e.sambutanPenyusun?"":" — penyusun belum ditunjuk")).join(", "),
+      });
+    }
+
+    // Kasubbag Komdokpim yang menunjuk penyusun, jadi celah "belum ditunjuk"
+    // dialamatkan ke dia — Kabag tidak bisa menindaklanjutinya.
+    if(role==="kasubbag_komdokpim"){
+      const tanpaPenyusun = perluSambutan.filter(e=>!e.sambutanPenyusun);
+      if(tanpaPenyusun.length>0) list.push({
+        id:"sambutan-tanpa-penyusun", icon:"🖊️",
+        type: tanpaPenyusun.some(e=>e.tanggal<=besokS)?"error":"warn",
+        title:tanpaPenyusun.length+" Acara Belum Ada Penyusun Naskah",
+        body:tanpaPenyusun.map(e=>e.namaAcara+" ("+fmt(e.tanggal)+")").join(", "),
+      });
+      const belumUnggah = perluSambutan.filter(e=>e.sambutanPenyusun&&!e.sambutanFile&&e.tanggal<=besokS);
+      if(belumUnggah.length>0) list.push({
+        id:"sambutan-belum-unggah", icon:"⚠️", type:"error",
+        title:belumUnggah.length+" Naskah Belum Diunggah (H-1)",
+        body:belumUnggah.map(e=>e.namaAcara).join(", "),
+      });
     }
 
     // Ajudan: belum konfirmasi kehadiran (hari ini + besok)
@@ -10630,7 +10686,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
       </button>}
       <button aria-label="Notifikasi" onClick={()=>setShowNotifCenter(true)} style={{position:"relative",width:38,height:38,borderRadius:10,border:"1.5px solid #E2E8F0",background:"white",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>
         🔔
-        {(notifPenugasan.length+notifSambutan.length)>0&&<span style={{position:"absolute",top:-4,right:-4,background:"#EF4444",color:"white",borderRadius:"50%",width:16,height:16,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:900}}>{notifPenugasan.length+notifSambutan.length}</span>}
+        {(notifPenugasan.length+notifSambutan.length+notifSahkan.length)>0&&<span style={{position:"absolute",top:-4,right:-4,background:"#EF4444",color:"white",borderRadius:"50%",width:16,height:16,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:900}}>{notifPenugasan.length+notifSambutan.length+notifSahkan.length}</span>}
       </button>
       {role==="admin_rk"&&tab==="jadwal"&&<button onClick={()=>{setTab("form");setForm(emptyForm);setEditId(null);}} className="btn-ios" style={{padding:"9px 18px",borderRadius:10,border:"none",background:"linear-gradient(135deg,"+NAVY+",#1E3254)",color:"white",cursor:"pointer",fontSize:13,fontWeight:700,boxShadow:"0 4px 14px rgba(10,22,40,0.3)"}}>+ Input Jadwal Baru</button>}
     </div>}
@@ -11043,6 +11099,25 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
       onConfirm={confirmDlg.onConfirm}
       onCancel={()=>setConfirmDlg(null)}
     />}
+
+    {/* Notif bar pengesahan naskah — hanya saat genting (acara hari ini/besok),
+        supaya bilah ini tidak selalu nongol untuk acara yang masih lama */}
+    {role==="kabag"&&tab!=="form"&&(()=>{
+      const besok=localDateStr(new Date(Date.now()+86400000));
+      const genting=notifSahkan.filter(e=>e.tanggal<=besok);
+      if(genting.length===0)return null;
+      return <div style={{position:"fixed",bottom:isMobile?70:20,left:"50%",transform:"translateX(-50%)",zIndex:2000,background:"#5B21B6",color:"white",borderRadius:12,padding:"10px 18px",fontSize:13,fontWeight:700,display:"flex",alignItems:"center",gap:10,boxShadow:"0 4px 20px rgba(0,0,0,0.3)",maxWidth:380,width:"calc(100% - 32px)",cursor:"pointer"}}
+        onClick={()=>setShowNotifCenter(true)}>
+        <span style={{fontSize:18}}>🎤</span>
+        <div style={{minWidth:0}}>
+          <div>{genting.length} naskah menunggu pengesahan Anda</div>
+          <div style={{fontSize:12,opacity:0.85,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+            Acara hari ini/besok — {genting.map(e=>e.namaAcara).join(", ")}
+          </div>
+        </div>
+        <button onClick={e=>{e.stopPropagation();setNotifSahkan([]);}} style={{marginLeft:"auto",background:"rgba(255,255,255,0.2)",border:"none",color:"white",borderRadius:6,padding:"2px 8px",cursor:"pointer",fontSize:12,flexShrink:0}}>✕</button>
+      </div>;
+    })()}
 
     {/* Notif bar tugas menyusun naskah sambutan — untuk penyusun yang ditunjuk */}
     {notifSambutan.filter(e=>!e.sambutanFile).length>0&&tab!=="form"&&notifPenugasan.length===0&&
