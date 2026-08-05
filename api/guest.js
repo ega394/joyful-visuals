@@ -191,11 +191,20 @@ async function syncAgendaJadwal(guestId, agendaPatch, opts) {
     return {
       linked: 0, updated: 0, removed: 0, created: 1, agenda_id: row.id,
       tanggal: row.tanggal, jam: row.jam, lokasi: row.lokasi,
+      alur: row.alur, ditarik: false,
     };
   }
 
   var keep = rows[0];
   var hasil = Object.assign({}, keep.data, agendaPatch);
+
+  // "Tarik dari Publikasi" tidak menghapus baris agenda — hanya mengubah
+  // alur jadi menunggu_kasubbag, sedangkan tab Agenda cuma menampilkan yang
+  // "disetujui". Karena penyelarasan hanya menimpa tanggal/jam/lokasi, entri
+  // yang ditarik tetap tidak muncul meski jadwalnya sudah benar. Penayangan
+  // ulang karena itu harus diminta secara eksplisit, bukan efek samping.
+  if (opts.tayangkan) { hasil.alur = "disetujui"; hasil.alurHapus = null; }
+
   await sbPatchRow("jadwal", keep.id, { data: hasil });
 
   // Bereskan agenda ganda yang terlanjur dibuat oleh alur lama
@@ -204,11 +213,19 @@ async function syncAgendaJadwal(guestId, agendaPatch, opts) {
     try { await sbDeleteRow("jadwal", rows[i].id); removed++; } catch (e) {}
   }
 
+  var alur = hasil.alur || "disetujui";
   return {
     linked: rows.length, updated: 1, removed: removed, created: 0, agenda_id: keep.id,
     tanggal: hasil.tanggal, jam: hasil.jam, lokasi: hasil.lokasi,
+    alur: alur, ditarik: alur !== "disetujui",
   };
 }
+
+// Peran yang boleh menayangkan ulang agenda yang ditarik Kabag.
+// Catatan: endpoint tamu belum bergerbang token (berbeda dari api/room-booking
+// yang memakai verifyAdmin), jadi ini pagar di tingkat antarmuka — mengikuti
+// pola modul tamu yang ada, bukan batas keamanan.
+var BOLEH_TAYANG_ULANG = ["kabag", "kasubbag_protokol", "admin_rk"];
 
 // POST: sync_agenda — tombol "Tambahkan ke Agenda" (buat bila belum ada,
 // perbarui + rapikan duplikat bila sudah ada)
@@ -225,10 +242,16 @@ async function actionSyncAgenda(body) {
   if (g.jadwal_jam)  patch.jam    = g.jadwal_jam;
   if (body.tempat)   patch.lokasi = String(body.tempat).trim();
 
+  // Penayangan ulang membatalkan tindakan koreksi Kabag, jadi dibatasi pada
+  // peran yang memang berwenang atas alur tayang.
+  var bolehTayang = BOLEH_TAYANG_ULANG.indexOf(String(body.role || "")) >= 0;
+
   var agenda = await syncAgendaJadwal(body.id, patch, {
     createIfMissing: true,
     tempat: body.tempat ? String(body.tempat).trim() : "",
+    tayangkan: !!body.tayangkan && bolehTayang,
   });
+  if (body.tayangkan && !bolehTayang) agenda.tayang_ditolak = true;
 
   return {
     ok: true,
