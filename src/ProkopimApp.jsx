@@ -84,6 +84,22 @@ function sameEvent(a,b){
 // tidak berubah dipertahankan objek lamanya, sehingga React tidak merender
 // ulang barisnya dan posisi baca tidak melompat. Bila tidak ada perubahan
 // sama sekali, `prev` dikembalikan apa adanya agar tidak memicu render.
+// Gabungkan HANYA baris yang berubah (hasil dbLoadChanged). Penghapusan tidak
+// terdeteksi lewat jalur ini — baris yang dihapus baru lenyap pada muat penuh
+// berikutnya (aplikasi dibuka / pull-to-refresh). Pertukaran yang disengaja:
+// muat penuh tiap menit itulah yang menghabiskan egress.
+function mergeChanged(prev,rows){
+  if(!rows||!rows.length)return prev;
+  const next=(prev||[]).slice();
+  let berubah=false;
+  for(const r of rows){
+    const i=next.findIndex(e=>String(e.id)===String(r.id));
+    if(i<0){next.push(r);berubah=true;}
+    else if(!sameEvent(next[i],r)){next[i]=r;berubah=true;}
+  }
+  return berubah?next:prev;
+}
+
 function mergeEvents(prev,rows){
   const lama=new Map((prev||[]).map(e=>[String(e.id),e]));
   let berubah=(prev||[]).length!==rows.length;
@@ -587,7 +603,44 @@ const SUPA_KEY=import.meta.env.VITE_SUPABASE_ANON_KEY||"";
 const SUPA_OK=!!(SUPA_URL&&SUPA_KEY);
 const H=()=>({"Content-Type":"application/json",apikey:SUPA_KEY,Authorization:"Bearer "+SUPA_KEY});
 const forDB=ev=>{const d={...ev};if(d.sambutanFile?.startsWith("data:"))d.sambutanFile=null;if(d.sambutanDocx?.startsWith("blob:")||d.sambutanDocx?.startsWith("data:"))d.sambutanDocx=null;if(d.undanganFile?.startsWith("data:"))d.undanganFile=null;return d;};
-async function dbLoadAll(){if(!SUPA_OK)return null;const r=await fetch(SUPA_URL+"/rest/v1/jadwal?select=data&order=id",{headers:H()});if(!r.ok)throw new Error(await r.text());return(await r.json()).map(x=>x.data);}
+// ── Sinkronisasi hemat egress ────────────────────────────────
+// Basis data hanya ~30 MB tetapi egress menembus 6 GB/bulan: isi tabel
+// terkirim ulang ratusan kali karena polling selalu menarik SELURUH tabel.
+// Solusinya menarik hanya baris yang berubah sejak sinkron terakhir.
+// null = belum diketahui apakah kolom updated_at sudah ada (butuh migrasi).
+let _adaUpdatedAt=null;
+let _sinkronTerakhir=null;
+
+async function dbLoadAll(){
+  if(!SUPA_OK)return null;
+  // Sekalian ambil updated_at supaya polling berikutnya bisa bertahap.
+  // Bila migrasi belum dijalankan, PostgREST membalas 400 → pakai cara lama.
+  if(_adaUpdatedAt!==false){
+    const r=await fetch(SUPA_URL+"/rest/v1/jadwal?select=data,updated_at&order=id",{headers:H()});
+    if(r.ok){
+      _adaUpdatedAt=true;
+      const rows=await r.json();
+      _sinkronTerakhir=rows.reduce((m,x)=>(x.updated_at&&x.updated_at>m?x.updated_at:m),"")||null;
+      return rows.map(x=>x.data);
+    }
+    _adaUpdatedAt=false;
+  }
+  const r2=await fetch(SUPA_URL+"/rest/v1/jadwal?select=data&order=id",{headers:H()});
+  if(!r2.ok)throw new Error(await r2.text());
+  return(await r2.json()).map(x=>x.data);
+}
+
+// Hanya baris yang berubah. Mengembalikan null bila tidak bisa dipakai,
+// supaya pemanggil jatuh kembali ke dbLoadAll().
+async function dbLoadChanged(){
+  if(!SUPA_OK||!_adaUpdatedAt||!_sinkronTerakhir)return null;
+  const r=await fetch(SUPA_URL+"/rest/v1/jadwal?select=data,updated_at&updated_at=gt."+
+    encodeURIComponent(_sinkronTerakhir)+"&order=updated_at.asc",{headers:H()});
+  if(!r.ok)return null;
+  const rows=await r.json();
+  if(rows.length) _sinkronTerakhir=rows.reduce((m,x)=>(x.updated_at>m?x.updated_at:m),_sinkronTerakhir);
+  return rows.map(x=>x.data);
+}
 async function dbUpsert(ev){if(!SUPA_OK)return;await fetch(SUPA_URL+"/rest/v1/jadwal",{method:"POST",headers:{...H(),Prefer:"resolution=merge-duplicates"},body:JSON.stringify({id:ev.id,data:forDB(ev)})});}
 async function dbDelete(id){if(!SUPA_OK)return;await fetch(SUPA_URL+"/rest/v1/jadwal?id=eq."+id,{method:"DELETE",headers:H()});}
 
@@ -6781,12 +6834,22 @@ export default function App(){
   // ── Realtime: poll Supabase berkala (jeda lega, tidak mengganggu baca) ──
   React.useEffect(()=>{
     if(!SUPA_OK||!user)return;
-    const poll=async()=>{
+    const poll=async(paksa)=>{
+      // Tab di latar belakang tetap menarik data sepanjang hari — PWA sering
+      // dibiarkan terbuka. Ini penyumbang egress yang tidak memberi manfaat.
+      if(document.visibilityState!=="visible") return;
       // Jangan refresh saat user sedang membuka kartu antrian, atau
       // baru saja berinteraksi (scroll/sentuh) — supaya tidak ter-reset.
       if(_readingFocus) return;
-      if(Date.now()-_lastActivity < 12000) return;
+      if(!paksa && Date.now()-_lastActivity < 12000) return;
       try{
+        // Jalur hemat: hanya baris yang berubah. Umumnya nol baris.
+        const berubah=await dbLoadChanged();
+        if(berubah!==null){
+          if(berubah.length) setEvents(prev=>mergeChanged(prev,berubah));
+          return;
+        }
+        // Cadangan bila migrasi updated_at belum dijalankan
         const rows=await dbLoadAll();
         // Digabung per baris. Pembanding lama hanya melihat id+alur+alurHapus,
         // sehingga perubahan personil/catatan/kehadiran/naskah tidak pernah
@@ -6794,8 +6857,11 @@ export default function App(){
         if(rows&&rows.length>0) setEvents(prev=>mergeEvents(prev,rows));
       }catch{}
     };
-    const interval=setInterval(poll,60000);
-    return ()=>clearInterval(interval);
+    // Kembali ke tab → satu kali tarik agar data tidak basi setelah lama ditinggal
+    const onVis=()=>{ if(document.visibilityState==="visible") poll(true); };
+    document.addEventListener("visibilitychange",onVis);
+    const interval=setInterval(poll,300000);
+    return ()=>{clearInterval(interval);document.removeEventListener("visibilitychange",onVis);};
   },[user]);
 
   const showT=useCallback((msg,type="ok")=>{if(type==="ok")haptic(40);else if(type==="warn")haptic(80);else if(type==="error")haptic([50,30,50]);setToast({msg,type});setTimeout(()=>setToast(null),type==="error"?5000:type==="warn"?4000:3000);},[]);
