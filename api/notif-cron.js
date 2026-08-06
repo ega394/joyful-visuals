@@ -112,11 +112,13 @@ function localDateWITA(offsetDays = 0) {
 }
 
 // ── Load data dari Supabase ──────────────────────────────────
+// Penyaringan tanggal & alur didorong ke query. Sebelumnya seluruh tabel
+// ditarik lalu disaring di sini — 5x sehari, padahal yang dipakai hanya
+// jadwal hari ini/besok. Ikut menekan egress Supabase.
 async function loadJadwal() {
   const today = localDateWITA(0);
-  // Ambil jadwal yang disetujui mulai hari ini ke depan
   const rows = await sbGet(
-    `jadwal?select=data&order=id`
+    `jadwal?select=data&data->>alur=eq.disetujui&data->>tanggal=gte.${today}&order=id`
   );
   if (!rows) return [];
   return rows
@@ -127,7 +129,9 @@ async function loadJadwal() {
 // Versi untuk pending-approval (semua alur, jadwal aktif belum lewat)
 async function loadJadwalPending() {
   const today = localDateWITA(0);
-  const rows = await sbGet(`jadwal?select=data&order=id`);
+  const rows = await sbGet(
+    `jadwal?select=data&data->>alur=in.(menunggu_kasubbag,menunggu_kabag)&data->>tanggal=gte.${today}&order=id`
+  );
   if (!rows) return [];
   return rows
     .map(r => r.data)
