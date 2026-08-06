@@ -3,6 +3,7 @@
  * Dapat diakses oleh role kabag atau user dengan can_manage_rooms=true
  */
 import React, { useState, useEffect, useCallback, useMemo } from "react";
+import KontakActions from "./KontakActions.jsx";
 import { adminFetch, clearAdminToken } from "../roomAuth";
 
 const NAVY   = "#0A1628";
@@ -102,7 +103,10 @@ function ActionModal({ booking, action, onConfirm, onCancel }) {
           <div><span style={{ color: GRAY }}>Ruangan:</span> {booking.rooms?.name}</div>
           <div><span style={{ color: GRAY }}>Peserta:</span> {booking.participant_count} orang</div>
           <div><span style={{ color: GRAY }}>PIC:</span> {booking.pic_name}</div>
-          <div><span style={{ color: GRAY }}>WA PIC:</span> {booking.pic_wa}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+            <span><span style={{ color: GRAY }}>WA PIC:</span> {booking.pic_wa}</span>
+            <KontakActions kontak={booking.pic_wa}/>
+          </div>
         </div>
 
         <div style={{ fontSize: 12, fontWeight: 700, color: NAVY, marginBottom: 6 }}>
@@ -272,7 +276,12 @@ function BookingRow({ booking, onAction, isMobile }) {
             gap: "8px 14px", fontSize: 13, marginBottom: 14,
           }}>
             <div><div style={{ color: GRAY, fontSize: 11, fontWeight: 600 }}>PIC</div>{booking.pic_name}</div>
-            <div><div style={{ color: GRAY, fontSize: 11, fontWeight: 600 }}>WA PIC</div>{booking.pic_wa}</div>
+            <div><div style={{ color: GRAY, fontSize: 11, fontWeight: 600 }}>WA PIC</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                <span style={{ minWidth: 0, overflowWrap: "anywhere" }}>{booking.pic_wa}</span>
+                <KontakActions kontak={booking.pic_wa}/>
+              </div>
+            </div>
             <div><div style={{ color: GRAY, fontSize: 11, fontWeight: 600 }}>Peserta</div>{booking.participant_count} orang</div>
             <div><div style={{ color: GRAY, fontSize: 11, fontWeight: 600 }}>Kode</div>
               <span style={{ fontFamily: "monospace", fontWeight: 700 }}>{booking.booking_code}</span>
@@ -889,7 +898,12 @@ function BookingDetailModal({ booking, slots, onClose, onAction }) {
           </div>
           <div style={{gridColumn:"1/-1"}}><div style={{color:GRAY,fontSize:11,fontWeight:600}}>Instansi</div>{booking.instansi}</div>
           <div><div style={{color:GRAY,fontSize:11,fontWeight:600}}>PIC</div>{booking.pic_name}</div>
-          <div><div style={{color:GRAY,fontSize:11,fontWeight:600}}>WhatsApp</div>{booking.pic_wa}</div>
+          <div><div style={{color:GRAY,fontSize:11,fontWeight:600}}>WhatsApp</div>
+            <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+              <span style={{minWidth:0,overflowWrap:"anywhere"}}>{booking.pic_wa}</span>
+              <KontakActions kontak={booking.pic_wa}/>
+            </div>
+          </div>
           {booking.srikandi_ref && (
             <div style={{gridColumn:"1/-1"}}>
               <div style={{color:GRAY,fontSize:11,fontWeight:600}}>No. Srikandi</div>
