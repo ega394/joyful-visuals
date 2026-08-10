@@ -703,7 +703,7 @@ function printSingleBooking(b, slots) {
 // ── Admin Calendar View ───────────────────────────────────────
 
 const DAYS_SHORT  = ["Min","Sen","Sel","Rab","Kam","Jum","Sab"];
-const MONTH_NAMES = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+export const MONTH_NAMES = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
 
 function bookingsOnDate(bookings, roomId, dateStr, session) {
   return bookings.filter(b => {
@@ -716,7 +716,7 @@ function bookingsOnDate(bookings, roomId, dateStr, session) {
   });
 }
 
-function AdminCalendar({ bookings, rooms, year, month, roomFilter, onBookingClick }) {
+export function AdminCalendar({ bookings, rooms, year, month, roomFilter, onBookingClick }) {
   const firstOfMonth = new Date(year, month-1, 1);
   const daysInMonth  = new Date(year, month, 0).getDate();
   const startDow     = firstOfMonth.getDay();
@@ -835,7 +835,7 @@ function AdminCalendar({ bookings, rooms, year, month, roomFilter, onBookingClic
 }
 
 // ── Booking Detail Popover ────────────────────────────────────
-function BookingDetailModal({ booking, slots, onClose, onAction }) {
+export function BookingDetailModal({ booking, slots, onClose, onAction, readOnly }) {
   if (!booking) return null;
   const cfg = STATUS_CFG[viewStatus(booking)] || STATUS_CFG.Pending;
   const cancelReq = isCancelReq(booking);
@@ -937,7 +937,7 @@ function BookingDetailModal({ booking, slots, onClose, onAction }) {
           </div>
         </div>
 
-        {allSlots.length > 1 && (
+        {allSlots.length > 1 && !readOnly && (
           <div style={{
             margin:"0 22px 12px", background:"#EFF6FF", border:"1px solid #BFDBFE",
             color:"#1D4ED8", borderRadius:8, padding:"9px 12px", fontSize:12, fontWeight:600,
@@ -947,8 +947,8 @@ function BookingDetailModal({ booking, slots, onClose, onAction }) {
           </div>
         )}
 
-        {/* Action buttons */}
-        <div style={{padding:"0 22px 18px",display:"flex",gap:8,flexWrap:"wrap"}}>
+        {/* Action buttons — disembunyikan pada mode lihat-saja */}
+        {!readOnly && <div style={{padding:"0 22px 18px",display:"flex",gap:8,flexWrap:"wrap"}}>
           {booking.status === "Pending" && (
             <>
               <button onClick={()=>{onAction(booking,"Approved");onClose();}}
@@ -988,7 +988,7 @@ function BookingDetailModal({ booking, slots, onClose, onAction }) {
               marginLeft:"auto"}}>
             🖨️ Cetak Surat
           </button>
-        </div>
+        </div>}
       </div>
     </div>
   );
