@@ -4,8 +4,8 @@ import { AdminCalendar, BookingDetailModal, MONTH_NAMES } from "./BookingDashboa
 /**
  * Kalender peminjaman ruangan — LIHAT SAJA.
  *
- * Dipakai staf Protokol & staf Komdokpim yang perlu tahu ruangan mana yang
- * terpakai, tanpa kewenangan meninjau permohonan.
+ * Dipakai staf Protokol yang perlu tahu ruangan mana yang terpakai, tanpa
+ * kewenangan meninjau permohonan.
  *
  * Mengambil data lewat endpoint kalender publik `?month=YYYY-MM` (Pending +
  * Approved pada bulan tsb) — bukan `?admin=1` yang menuntut sesi peninjau

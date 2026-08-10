@@ -455,7 +455,8 @@ const KASUBBAG_ROLES=["kasubbag_protokol","kasubbag_komdokpim"];
 // Peran yang boleh membuka rekap kinerja DIRINYA SENDIRI + cetak bukti dukung.
 // Staf hanya melihat datanya sendiri — papan peringkat tim tetap milik Kabag/Kasubbag.
 // Staf yang boleh melihat kalender peminjaman ruangan (lihat saja).
-const KALENDER_RUANGAN_ROLES=["staf","timkom"];
+// Hanya staf Protokol — staf Komdokpim tidak memakai akses ini.
+const KALENDER_RUANGAN_ROLES=["staf"];
 const REKAP_SAYA_ROLES=["staf","admin_rk","timkom","kasubbag_protokol","kasubbag_komdokpim","kabag",
   "ajudan_walikota","ajudan_wakilwalikota"];
 
