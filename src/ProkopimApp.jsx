@@ -1663,12 +1663,39 @@ _Setda Kota Tarakan_`;
   const[log,setLog]=React.useState([]);
   const[errMsg,setErrMsg]=React.useState("");
 
-  const allUsers=loadUsers();
-  const targets=allUsers.filter(u=>u.noWA&&u.noWA.trim());
+  // Kandidat = seluruh pengguna yang punya nomor WA. Penerima dipilih sendiri
+  // oleh pengirim — bawaannya KOSONG, bukan semua, agar pengumuman tidak
+  // pernah tersiar ke seluruh orang hanya karena tombol tertekan.
+  const kandidat=React.useMemo(
+    ()=>loadUsers().filter(u=>u.noWA&&u.noWA.trim()),[]);
+  const[dipilih,setDipilih]=React.useState(()=>new Set());
+  const targets=kandidat.filter(u=>dipilih.has(u.username));
+
+  // Dikelompokkan per peran — cara paling wajar memilih ("semua Kasubbag")
+  const perPeran=React.useMemo(()=>{
+    const m=new Map();
+    kandidat.forEach(u=>{
+      const r=u.role||"lainnya";
+      if(!m.has(r))m.set(r,[]);
+      m.get(r).push(u);
+    });
+    return [...m.entries()];
+  },[kandidat]);
+  const labelPeran=(r)=>ALL_ROLE_DEFS.find(x=>x.key===r)?.label||r;
+
+  const toggleOrang=(un)=>setDipilih(p=>{
+    const n=new Set(p); n.has(un)?n.delete(un):n.add(un); return n;
+  });
+  const togglePeran=(anggota)=>setDipilih(p=>{
+    const n=new Set(p);
+    const semuaTerpilih=anggota.every(u=>n.has(u.username));
+    anggota.forEach(u=>semuaTerpilih?n.delete(u.username):n.add(u.username));
+    return n;
+  });
 
   const kirim=async()=>{
     if(!pesan.trim()){showT("Pesan tidak boleh kosong","warn");return;}
-    if(targets.length===0){showT("Tidak ada pengguna dengan nomor WA","warn");return;}
+    if(targets.length===0){showT("Pilih dulu siapa yang menerima pengumuman","warn");return;}
     setStatus("sending");setLog([]);setErrMsg("");
     const results=[];
     for(const u of targets){
@@ -1700,20 +1727,66 @@ _Setda Kota Tarakan_`;
       <div style={{padding:"16px 20px 12px",borderBottom:"1px solid #f1f5f9",display:"flex",alignItems:"center",gap:10,background:"linear-gradient(135deg,#0A1628,#1B4080)",borderRadius:"16px 16px 0 0"}}>
         <div style={{flex:1}}>
           <div style={{fontSize:16,fontWeight:700,color:"white"}}>📢 Kirim Pengumuman</div>
-          <div style={{fontSize:12,color:"#93C5FD",marginTop:2}}>WA blast ke {targets.length} pengguna terdaftar</div>
+          <div style={{fontSize:12,color:"#93C5FD",marginTop:2}}>
+            {targets.length>0
+              ? `Terpilih ${targets.length} dari ${kandidat.length} pengguna`
+              : `Pilih penerima — tersedia ${kandidat.length} pengguna`}
+          </div>
         </div>
         <button onClick={onClose} style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:7,padding:"6px 10px",cursor:"pointer",fontSize:13,color:"white",fontWeight:700}}>✕</button>
       </div>
 
       <div style={{flex:1,overflowY:"auto",padding:"16px 20px 20px"}}>
         {status==="idle"&&<>
-          {/* Daftar penerima */}
+          {/* Pilih penerima */}
           <div style={{marginBottom:14}}>
-            <div style={{fontSize:12,fontWeight:700,color:"#475569",marginBottom:8}}>Penerima ({targets.length} orang)</div>
-            <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
-              {targets.map(u=><span key={u.username} style={{fontSize:12,padding:"3px 8px",borderRadius:10,background:"#EFF6FF",color:"#1D4ED8",fontWeight:600}}>{u.nama||u.username}</span>)}
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,flexWrap:"wrap"}}>
+              <div style={{fontSize:12,fontWeight:700,color:"#475569",flex:1}}>
+                Penerima — terpilih {targets.length} orang
+              </div>
+              <button onClick={()=>setDipilih(new Set(kandidat.map(u=>u.username)))}
+                style={{padding:"5px 10px",borderRadius:8,border:"1.5px solid #CBD5E1",background:"white",color:"#334155",cursor:"pointer",fontSize:11,fontWeight:700}}>
+                Pilih Semua
+              </button>
+              <button onClick={()=>setDipilih(new Set())}
+                style={{padding:"5px 10px",borderRadius:8,border:"1.5px solid #CBD5E1",background:"white",color:"#334155",cursor:"pointer",fontSize:11,fontWeight:700}}>
+                Kosongkan
+              </button>
             </div>
-            {targets.length===0&&<div style={{padding:"10px",background:"#fef3c7",borderRadius:8,fontSize:12,color:"#92400e"}}>⚠️ Belum ada pengguna dengan nomor WA terdaftar</div>}
+
+            {kandidat.length===0
+              ?<div style={{padding:"10px",background:"#fef3c7",borderRadius:8,fontSize:12,color:"#92400e"}}>⚠️ Belum ada pengguna dengan nomor WA terdaftar</div>
+              :<div style={{maxHeight:240,overflowY:"auto",border:"1.5px solid #E2E8F0",borderRadius:10,padding:"8px 10px"}}>
+                {perPeran.map(([peran,anggota])=>{
+                  const semua=anggota.every(u=>dipilih.has(u.username));
+                  const sebagian=!semua&&anggota.some(u=>dipilih.has(u.username));
+                  return <div key={peran} style={{marginBottom:10}}>
+                    <button onClick={()=>togglePeran(anggota)}
+                      style={{display:"flex",alignItems:"center",gap:7,width:"100%",padding:"4px 0",border:"none",background:"transparent",cursor:"pointer",textAlign:"left"}}>
+                      <span style={{width:16,height:16,borderRadius:4,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:900,
+                        border:"1.5px solid "+(semua||sebagian?NAVY:"#CBD5E1"),
+                        background:semua?NAVY:sebagian?"#DBEAFE":"white",
+                        color:semua?"white":NAVY}}>{semua?"✓":sebagian?"–":""}</span>
+                      <span style={{fontSize:11.5,fontWeight:800,color:"#475569",textTransform:"uppercase",letterSpacing:0.4}}>
+                        {labelPeran(peran)} ({anggota.length})
+                      </span>
+                    </button>
+                    <div style={{display:"flex",flexWrap:"wrap",gap:5,paddingLeft:23,marginTop:3}}>
+                      {anggota.map(u=>{
+                        const on=dipilih.has(u.username);
+                        return <button key={u.username} onClick={()=>toggleOrang(u.username)}
+                          title={u.noWA}
+                          style={{fontSize:12,padding:"3px 9px",borderRadius:10,cursor:"pointer",fontWeight:600,
+                            border:"1.5px solid "+(on?"#1D4ED8":"#E2E8F0"),
+                            background:on?"#EFF6FF":"white",
+                            color:on?"#1D4ED8":"#94A3B8"}}>
+                          {on?"✓ ":""}{u.nama||u.username}
+                        </button>;
+                      })}
+                    </div>
+                  </div>;
+                })}
+              </div>}
           </div>
 
           {/* Isi pesan */}
@@ -1729,7 +1802,9 @@ _Setda Kota Tarakan_`;
               background:targets.length>0?"linear-gradient(135deg,#0A1628,#1B4080)":"#E2E8F0",
               color:targets.length>0?"white":"#94A3B8",cursor:targets.length>0?"pointer":"default",
               fontWeight:700,fontSize:14}}>
-            📤 Kirim ke Semua ({targets.length} orang)
+            {targets.length>0
+              ? `📤 Kirim ke ${targets.length} Penerima Terpilih`
+              : "Pilih penerima terlebih dahulu"}
           </button>
         </>}
 
