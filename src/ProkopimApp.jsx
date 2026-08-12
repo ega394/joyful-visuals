@@ -4151,19 +4151,33 @@ function getNamaByUsername(username){
 }
 
 // ============================================================
-//  NOTIF_FLAGS — kontrol global per kategori notifikasi.
+//  Kontrol global per kategori notifikasi — DIPISAH PER KANAL.
 //  Set ke false untuk menonaktifkan TANPA harus ubah call site.
 //  Kategori dideteksi otomatis dari `params.event` (sendWA) atau
 //  prefix `tag` (sendPush).
+//
+//  Dulu satu flag mengendalikan push DAN WhatsApp sekaligus, sehingga
+//  mematikan blast WA ikut mematikan notifikasi PWA — padahal push tidak
+//  memakan kuota Fonnte dan justru kanal yang paling cepat sampai.
+//  Sekarang keduanya terpisah: push boleh hidup meski WA tetap mati.
 // ============================================================
-const NOTIF_FLAGS = {
-  penugasan:        false, // "Anda Ditugaskan" — dinonaktifkan
-  persetujuan:      false, // alur submit/teruskan/setujui/tolak/tarik — dinonaktifkan
+const NOTIF_PUSH = {
+  penugasan:        true,  // "Anda Ditugaskan"
+  persetujuan:      true,  // alur submit/teruskan/setujui/tolak/tarik
   kehadiran:        true,  // konfirmasi kehadiran pimpinan
   pembatalan:       true,  // permintaan batal tayang
   delegasi:         true,  // WK delegasi ke WWK
-  pending_reminder: true,  // pengingat 16:00 WITA (baru)
+  pending_reminder: true,  // pengingat antrian persetujuan (cron 16:00 WITA)
   lainnya:          true,  // event lain yang belum diklasifikasi
+};
+const NOTIF_WA = {
+  penugasan:        false, // dimatikan — hemat kuota Fonnte, cukup lewat push
+  persetujuan:      false, // dimatikan — hemat kuota Fonnte, cukup lewat push
+  kehadiran:        true,
+  pembatalan:       true,
+  delegasi:         true,
+  pending_reminder: true,
+  lainnya:          true,
 };
 
 const WA_EVENT_CATEGORY = {
@@ -4195,7 +4209,7 @@ function pushTagCategory(tag){
 async function sendWA(params){
   // Filter per kategori — skip jika flag-nya dimatikan
   const cat = WA_EVENT_CATEGORY[params.event];
-  if(cat && NOTIF_FLAGS[cat] === false){
+  if(cat && NOTIF_WA[cat] === false){
     console.info("[NOTIF] WA skipped — kategori dinonaktifkan:",cat,"event:",params.event);
     return;
   }
@@ -4218,7 +4232,7 @@ async function sendWA(params){
 async function sendPush({targetRole,title,body,url,tag}){
   // Filter per kategori — skip jika flag-nya dimatikan
   const cat = pushTagCategory(tag);
-  if(NOTIF_FLAGS[cat] === false){
+  if(NOTIF_PUSH[cat] === false){
     console.info("[NOTIF] Push skipped — kategori dinonaktifkan:",cat,"tag:",tag);
     return;
   }
