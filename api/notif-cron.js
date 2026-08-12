@@ -14,10 +14,16 @@
  *   type=personil  → "10 8 * * *"   = 16:10 WITA
  */
 
+const webpush   = require("web-push");
+
 const SUPA_URL  = process.env.SUPABASE_URL  || process.env.VITE_SUPABASE_URL;
 const SUPA_KEY  = process.env.SUPABASE_KEY  || process.env.VITE_SUPABASE_ANON_KEY;
 const FONNTE    = process.env.FONNTE_TOKEN;
 const CRON_SEC  = process.env.CRON_SECRET;
+
+const VAPID_PUBLIC  = process.env.VAPID_PUBLIC;
+const VAPID_PRIVATE = process.env.VAPID_PRIVATE;
+const VAPID_EMAIL   = process.env.VAPID_EMAIL || "mailto:prokopim@tarakankota.go.id";
 
 // ── Helper Supabase ──────────────────────────────────────────
 const H = () => ({
@@ -30,6 +36,47 @@ async function sbGet(path) {
   const r = await fetch(`${SUPA_URL}/rest/v1/${path}`, { headers: H() });
   if (!r.ok) return null;
   return r.json();
+}
+
+// ── Push ke PWA ──────────────────────────────────────────────
+// Cron sebelumnya hanya bisa mengirim WhatsApp, sehingga pengingat antrian
+// persetujuan tidak pernah sampai sebagai notifikasi PWA. Push dikirim
+// langsung dari sini (bukan lewat /api/webpush) supaya tidak perlu tahu URL
+// absolut deployment dan tidak melewati gerbang autentikasi endpoint itu.
+function pushSiap() {
+  if (!VAPID_PUBLIC || !VAPID_PRIVATE) return false;
+  try {
+    webpush.setVapidDetails(VAPID_EMAIL, VAPID_PUBLIC, VAPID_PRIVATE);
+    return true;
+  } catch (e) { console.warn("[PUSH] VAPID tidak valid:", e.message); return false; }
+}
+
+async function sendPushRole(role, { title, body, url, tag }) {
+  if (!pushSiap()) return 0;
+  const subs = await sbGet(
+    `push_subscriptions?select=subscription&role=eq.${encodeURIComponent(role)}`
+  );
+  if (!subs || !subs.length) return 0;
+
+  const payload = JSON.stringify({ title, body, url: url || "/", tag: tag || "prokopim" });
+  let terkirim = 0;
+  await Promise.all(subs.map(async (row) => {
+    try {
+      await webpush.sendNotification(row.subscription, payload);
+      terkirim++;
+    } catch (e) {
+      // Langganan kedaluwarsa → bersihkan agar tidak dicoba terus
+      if (e.statusCode === 410 || e.statusCode === 404) {
+        const ep = row.subscription?.endpoint;
+        if (ep) await fetch(
+          `${SUPA_URL}/rest/v1/push_subscriptions?endpoint=eq.${encodeURIComponent(ep)}`,
+          { method: "DELETE", headers: H() }
+        ).catch(() => {});
+      }
+    }
+  }));
+  console.log(`[PUSH] ${role}: ${terkirim}/${subs.length} terkirim — ${title}`);
+  return terkirim;
 }
 
 // ── DEDUPLICATION: cek & catat log harian ───────────────────
@@ -130,14 +177,16 @@ async function loadJadwal() {
 async function loadJadwalPending() {
   const today = localDateWITA(0);
   const rows = await sbGet(
-    `jadwal?select=data&data->>alur=in.(menunggu_kasubbag,menunggu_kabag)&data->>tanggal=gte.${today}&order=id`
+    `jadwal?select=data&data->>alur=in.(menunggu_kasubbag,menunggu_kabag,ditolak)&data->>tanggal=gte.${today}&order=id`
   );
   if (!rows) return [];
   return rows
     .map(r => r.data)
     .filter(e =>
       e &&
-      (e.alur === "menunggu_kasubbag" || e.alur === "menunggu_kabag") &&
+      // "ditolak" = dikembalikan ke Admin RK untuk diperbaiki. Bagi Admin RK
+      // inilah padanan "menunggu tindakan", karena ia tidak menyetujui apa pun.
+      ["menunggu_kasubbag", "menunggu_kabag", "ditolak"].includes(e.alur) &&
       e.tanggal >= today
     );
 }
@@ -404,6 +453,15 @@ async function notifPendingApproval(users) {
       await sendWA(u.noWA, msg);
       console.log(`[PENDING-KASUBBAG] Terkirim → ${u.nama}`);
     }
+    // Push berbunyi sekali saat jadwal masuk; pengingat ini menutup celah
+    // bila notifikasi awal terlewat.
+    const ringkas = `${pendKasubbag.length} jadwal menunggu verifikasi Anda`;
+    for (const r of ["kasubbag_protokol", "kasubbag_komdokpim"]) {
+      await sendPushRole(r, {
+        title: "⏰ Antrian Persetujuan", body: ringkas,
+        url: "/", tag: "pending-kasubbag",
+      });
+    }
   }
 
   // Untuk Kabag
@@ -419,6 +477,23 @@ async function notifPendingApproval(users) {
       await sendWA(u.noWA, msg);
       console.log(`[PENDING-KABAG] Terkirim → ${u.nama}`);
     }
+    const ringkasKabag = `${pendKabag.length} jadwal menunggu persetujuan Anda`;
+    await sendPushRole("kabag", {
+      title: "⏰ Persetujuan Akhir", body: ringkasKabag,
+      url: "/", tag: "pending-kabag",
+    });
+  }
+
+  // Untuk Admin RK — jadwal yang dikembalikan & belum diperbaiki.
+  // Sengaja push saja: daftar ini bisa panjang dan pemiliknya sudah menerima
+  // WA saat jadwalnya dikembalikan.
+  const pendRevisi = pendings.filter(e => e.alur === "ditolak");
+  if (pendRevisi.length > 0) {
+    await sendPushRole("admin_rk", {
+      title: "↩ Jadwal Menunggu Perbaikan",
+      body: `${pendRevisi.length} jadwal dikembalikan & belum diperbaiki`,
+      url: "/", tag: "pending-revisi",
+    });
   }
 }
 
