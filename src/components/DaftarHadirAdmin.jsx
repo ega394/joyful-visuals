@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import QrDaftarHadir from "./QrDaftarHadir.jsx";
 
 /**
  * Kelola acara daftar hadir — dipakai dari dalam aplikasi (sudah login).
@@ -37,6 +38,7 @@ export default function DaftarHadirAdmin({ user, isMobile, showT }) {
   const [muat, setMuat]     = useState(true);
   const [err, setErr]       = useState("");
   const [buka, setBuka]     = useState(false);   // form buat acara
+  const [qrAcara, setQrAcara] = useState(null);  // acara yang QR-nya dibuka
   const [sibuk, setSibuk]   = useState(false);
 
   const [judul, setJudul]       = useState("");
@@ -286,6 +288,7 @@ export default function DaftarHadirAdmin({ user, isMobile, showT }) {
                     <button onClick={() => salin(a.kode)} style={{ ...btn, border: "none", background: NAVY, color: "white" }}>
                       🔗 Salin Tautan
                     </button>
+                    <button onClick={() => setQrAcara(a)} style={btn}>▦ QR Code</button>
                     <a href={tautan(a.kode)} target="_blank" rel="noopener noreferrer"
                       style={{ ...btn, textDecoration: "none", display: "inline-flex", alignItems: "center" }}>
                       ↗ Buka
@@ -308,6 +311,14 @@ export default function DaftarHadirAdmin({ user, isMobile, showT }) {
           Untuk melihat, menyortir, atau mengekspornya, buka Spreadsheet lewat tombol di atas.
         </div>
       </div>
+
+      {qrAcara && (
+        <QrDaftarHadir
+          acara={qrAcara}
+          tautan={tautan(qrAcara.kode)}
+          onClose={() => setQrAcara(null)}
+        />
+      )}
     </div>
   );
 }
