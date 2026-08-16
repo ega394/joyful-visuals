@@ -10,10 +10,15 @@
  * Web App ini LANGSUNG dari browser tamu, tanpa perantara.
  *
  * KEPUTUSAN PRIVASI YANG PENTING
- * Web App ini TIDAK PERNAH mengembalikan data peserta (nama, no HP, foto).
- * Rekap hanya bisa dilihat dari Spreadsheet-nya langsung. Konsekuensinya:
- * seandainya TOKEN di bawah bocor, yang bisa dilakukan orang luar hanyalah
- * membuat acara sampah — bukan mengambil data pribadi tamu.
+ * Data peserta hanya keluar lewat SATU jalan: action "laporan", yang menuntut
+ * TOKEN dan hanya melayani SATU acara per permintaan — bukan seluruh isi
+ * tabel. Semua action lain tidak pernah mengembalikan data peserta.
+ *
+ * Artinya TOKEN di bawah kini melindungi data pribadi, bukan sekadar mencegah
+ * pembuatan acara sampah. TOKEN ikut terkirim ke browser dan secara teknis
+ * bisa ditemukan orang yang memeriksa berkas aplikasi. Perlakukan seperti
+ * kunci: ganti bila dicurigai bocor (ubah di sini DAN di Vercel, lalu deploy
+ * ulang keduanya).
  *
  * ---------------------------------------------------------------------------
  * CARA PASANG (sekali saja, ±10 menit)
@@ -39,8 +44,8 @@
  * ---------------------------------------------------------------------------
  */
 
-// Ganti dengan kata sandi acak Anda sendiri. Hanya dipakai untuk membuat &
-// menutup acara — bukan untuk membaca data peserta.
+// Ganti dengan kata sandi acak Anda sendiri. Dipakai untuk membuat/menutup
+// acara DAN untuk mengambil laporan kehadiran — jaga kerahasiaannya.
 var TOKEN = "GANTI-DENGAN-KATA-SANDI-ACAK-ANDA";
 
 var TAB_ACARA = "Acara";
@@ -177,6 +182,58 @@ function doGet(e) {
       }
       out.reverse(); // terbaru di atas
       return balas({ ok: true, acara: out, sheetUrl: SpreadsheetApp.getActiveSpreadsheet().getUrl() });
+    }
+
+    // Laporan kehadiran satu acara — untuk dicetak dari aplikasi.
+    //
+    // Ini SATU-SATUNYA jalan data peserta keluar dari Web App. Sengaja
+    // dibatasi per acara (bukan seluruh isi tabel) dan menuntut token,
+    // sehingga cakupan kebocoran tetap sempit.
+    if (q.action === "laporan") {
+      if (q.token !== TOKEN) return balas({ ok: false, error: "Token tidak sah." });
+      var ac = cariAcara(q.kode);
+      if (!ac) return balas({ ok: false, error: "Acara tidak ditemukan." });
+
+      var sh = sheet(TAB_HADIR);
+      var rows = sh ? sh.getDataRange().getValues() : [];
+      var peserta = [];
+      for (var r = 1; r < rows.length; r++) {
+        if (String(rows[r][1]).toUpperCase() !== String(ac.kode).toUpperCase()) continue;
+        peserta.push({
+          waktu:    rows[r][0] ? Utilities.formatDate(new Date(rows[r][0]), "Asia/Makassar", "dd/MM/yyyy HH:mm") : "",
+          nama:     rows[r][3],
+          jabatan:  rows[r][4],
+          instansi: rows[r][5],
+          noHP:     String(rows[r][6] || "").replace(/^'/, ""),
+          fotoUrl:  rows[r][7],
+          tambahan: rows[r][8] ? JSON.parse(rows[r][8]) : {},
+        });
+      }
+
+      // Foto hanya bila diminta. Berkas di Drive bersifat privat, jadi URL-nya
+      // tidak bisa dipakai langsung sebagai <img> oleh browser — thumbnail
+      // dikirim sebagai base64 agar berkas aslinya tetap tidak dibuka aksesnya.
+      // Dibatasi jumlahnya karena mengambil thumbnail satu per satu lambat dan
+      // Apps Script berhenti pada 6 menit.
+      if (q.foto === "1" && peserta.length <= 80) {
+        for (var f = 0; f < peserta.length; f++) {
+          try {
+            var m = String(peserta[f].fotoUrl || "").match(/\/d\/([^/]+)/);
+            if (!m) continue;
+            var tb = DriveApp.getFileById(m[1]).getThumbnail();
+            if (tb) peserta[f].fotoData = "data:" + tb.getContentType() + ";base64," +
+              Utilities.base64Encode(tb.getBytes());
+          } catch (e) { /* satu foto gagal tidak boleh membatalkan laporan */ }
+        }
+      }
+
+      return balas({
+        ok: true,
+        acara: { kode: ac.kode, judul: ac.judul, subjudul: ac.subjudul,
+                 tanggal: ac.tanggal, lokasi: ac.lokasi,
+                 fieldAktif: ac.fieldAktif, fieldTambahan: ac.fieldTambahan },
+        peserta: peserta,
+      });
     }
 
     return balas({ ok: false, error: "Action tidak dikenal." });

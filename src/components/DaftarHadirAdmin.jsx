@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import QrDaftarHadir from "./QrDaftarHadir.jsx";
+import LaporanHadir from "./LaporanHadir.jsx";
 
 /**
  * Kelola acara daftar hadir — dipakai dari dalam aplikasi (sudah login).
@@ -39,6 +40,7 @@ export default function DaftarHadirAdmin({ user, isMobile, showT }) {
   const [err, setErr]       = useState("");
   const [buka, setBuka]     = useState(false);   // form buat acara
   const [qrAcara, setQrAcara] = useState(null);  // acara yang QR-nya dibuka
+  const [lapAcara, setLapAcara] = useState(null); // acara yang laporannya dibuka
   const [sibuk, setSibuk]   = useState(false);
 
   const [judul, setJudul]       = useState("");
@@ -289,6 +291,7 @@ export default function DaftarHadirAdmin({ user, isMobile, showT }) {
                       🔗 Salin Tautan
                     </button>
                     <button onClick={() => setQrAcara(a)} style={btn}>▦ QR Code</button>
+                    <button onClick={() => setLapAcara(a)} style={btn}>📄 Laporan</button>
                     <a href={tautan(a.kode)} target="_blank" rel="noopener noreferrer"
                       style={{ ...btn, textDecoration: "none", display: "inline-flex", alignItems: "center" }}>
                       ↗ Buka
@@ -317,6 +320,15 @@ export default function DaftarHadirAdmin({ user, isMobile, showT }) {
           acara={qrAcara}
           tautan={tautan(qrAcara.kode)}
           onClose={() => setQrAcara(null)}
+        />
+      )}
+
+      {lapAcara && (
+        <LaporanHadir
+          acara={lapAcara}
+          user={user}
+          showT={showT}
+          onClose={() => setLapAcara(null)}
         />
       )}
     </div>
