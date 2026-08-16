@@ -11,6 +11,7 @@ import SuperadminPage from "./pages/SuperadminPage.jsx";
 // Lazy load halaman publik berat (tamu + pinjam ruangan) → bundle awal ringan
 const TamuPage          = lazy(() => import("./TamuPage.jsx"));
 const PinjamRuanganPage = lazy(() => import("./pages/PinjamRuanganPage.jsx"));
+const DaftarHadirPage   = lazy(() => import("./pages/DaftarHadirPage.jsx"));
 
 const queryClient = new QueryClient();
 
@@ -34,6 +35,7 @@ const App = () => {
               <Route path="/superadmin/*" element={<SuperadminPage />} />
               <Route path="/tamu" element={<TamuPage />} />
               <Route path="/pinjamruangan" element={<PinjamRuanganPage />} />
+              <Route path="/daftarhadir" element={<DaftarHadirPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>

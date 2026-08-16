@@ -6,6 +6,7 @@ import UndanganGenerator from "./UndanganGenerator.jsx";
 const TamuPage       = React.lazy(() => import("./TamuPage.jsx"));
 const GuestDashboard = React.lazy(() => import("./GuestDashboard.jsx"));
 const RoomCalendarView = React.lazy(() => import("./components/RoomCalendarView.jsx"));
+const DaftarHadirAdmin = React.lazy(() => import("./components/DaftarHadirAdmin.jsx"));
 const _LazyFallback  = () => (
   <div style={{ padding: 24, textAlign: "center", color: "#64748b" }}>Memuat…</div>
 );
@@ -457,6 +458,8 @@ const KASUBBAG_ROLES=["kasubbag_protokol","kasubbag_komdokpim"];
 // Staf yang boleh melihat kalender peminjaman ruangan (lihat saja).
 // Hanya staf Protokol — staf Komdokpim tidak memakai akses ini.
 const KALENDER_RUANGAN_ROLES=["staf"];
+// Peran yang boleh membuat & mengelola acara daftar hadir digital.
+const DAFTAR_HADIR_ROLES=["kabag","kasubbag_protokol","kasubbag_komdokpim","staf","admin_rk"];
 const REKAP_SAYA_ROLES=["staf","admin_rk","timkom","kasubbag_protokol","kasubbag_komdokpim","kabag",
   "ajudan_walikota","ajudan_wakilwalikota"];
 
@@ -7700,6 +7703,7 @@ const TH={
     ...(!["walikota","wakilwalikota","ajudan_walikota","ajudan_wakilwalikota","admin_undangan","mitra_kerja"].includes(role)?[{key:"ekinerja",icon:"📊",label:"E-Kinerja"}]:[]),
     ...(["kabag","kasubbag_protokol","staf","admin_rk"].includes(role)?[{key:"action:undangan",icon:"📋",label:"Generator Undangan"}]:[]),
     ...(KALENDER_RUANGAN_ROLES.includes(role)?[{key:"kalender_ruangan",icon:"🏛️",label:"Kalender Ruangan"}]:[]),
+    ...(DAFTAR_HADIR_ROLES.includes(role)?[{key:"daftar_hadir",icon:"✍️",label:"Daftar Hadir Digital"}]:[]),
   ]},
   {label:"AKUN",items:[
     {key:"action:profile",   icon:"👤", label:"Pengaturan Akun"},
@@ -7882,6 +7886,7 @@ const TH={
               ...((KASUBBAG_ROLES.includes(role)||role==="kabag")?[{icon:"🏆",label:"Rekap Penugasan",action:()=>{setTab("rekap_penugasan");setMobMenu(false);}}]:[]),
               ...(REKAP_SAYA_ROLES.includes(role)?[{icon:"🏅",label:"Rekap Kinerja Saya",action:()=>{setTab("rekap_saya");setMobMenu(false);}}]:[]),
               ...(KALENDER_RUANGAN_ROLES.includes(role)?[{icon:"🏛️",label:"Kalender Ruangan",action:()=>{setTab("kalender_ruangan");setMobMenu(false);}}]:[]),
+              ...(DAFTAR_HADIR_ROLES.includes(role)?[{icon:"✍️",label:"Daftar Hadir",action:()=>{setTab("daftar_hadir");setMobMenu(false);}}]:[]),
               {icon:"👤",label:"Profil",action:()=>{setShowProfile(true);setMobMenu(false);}},
               ...(role==="kabag"?[{icon:"⚙️",label:"Kelola User"+(loadPendingRegs().length>0?" ("+loadPendingRegs().length+")":""),action:()=>{setShowAdmin(true);setMobMenu(false);}}]:[]),
               ...(role==="kabag"?[{icon:"📢",label:"Kirim Pengumuman",action:()=>{setShowBroadcast(true);setMobMenu(false);}}]:[]),
@@ -11020,7 +11025,9 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
       </div>}
       {/* ══ CONTENT ROUTING — setiap tab×role HARUS punya handler ══ */}
       {/* 1. Penugasan (semua role yang punya tab ini) */}
-      {tab==="kalender_ruangan"&&KALENDER_RUANGAN_ROLES.includes(role)
+      {tab==="daftar_hadir"&&DAFTAR_HADIR_ROLES.includes(role)
+        ?<React.Suspense fallback={<_LazyFallback />}><DaftarHadirAdmin user={user} isMobile={isMobile} showT={showT}/></React.Suspense>
+      :tab==="kalender_ruangan"&&KALENDER_RUANGAN_ROLES.includes(role)
         ?<React.Suspense fallback={<_LazyFallback />}><RoomCalendarView isMobile={isMobile}/></React.Suspense>
       :tab==="rekap_saya"&&REKAP_SAYA_ROLES.includes(role)
         ?<RekapPenugasanBulanan mode="saya" events={events} user={user} isMobile={isMobile} allUsers={loadUsers()}/>
