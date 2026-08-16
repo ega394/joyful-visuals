@@ -14,14 +14,25 @@ const ABSEN_URL = import.meta.env.VITE_ABSEN_URL || "";
 
 // Content-Type sengaja text/plain: itu "simple request" sehingga browser tidak
 // mengirim preflight OPTIONS, yang tidak dilayani Apps Script.
-async function kirimAbsen(payload) {
+//
+// Penulisan ke Sheets dijaga satu kunci di sisi server, jadi pada acara ramai
+// (ratusan orang memindai QR serentak saat pintu dibuka) sebagian permintaan
+// bisa tertolak karena antre. Dicoba ulang otomatis dengan jeda ACAK — kalau
+// jedanya tetap, semua yang tertolak akan kembali menumpuk di detik yang sama
+// dan masalahnya berulang.
+async function kirimAbsen(payload, percobaan = 0) {
   const r = await fetch(ABSEN_URL, {
     method: "POST",
     headers: { "Content-Type": "text/plain;charset=utf-8" },
     body: JSON.stringify(payload),
     redirect: "follow",
   });
-  return r.json();
+  const d = await r.json();
+  if (!d.ok && /sibuk/i.test(d.error || "") && percobaan < 4) {
+    await new Promise(res => setTimeout(res, 700 + Math.random() * 1800));
+    return kirimAbsen(payload, percobaan + 1);
+  }
+  return d;
 }
 
 /**
@@ -266,7 +277,7 @@ export default function DaftarHadirPage() {
               style={{ width: "100%", padding: "14px", borderRadius: 12, border: "none",
                 background: kirim ? "#94A3B8" : `linear-gradient(135deg,${NAVY},#1B4080)`,
                 color: "white", cursor: kirim ? "default" : "pointer", fontSize: 15, fontWeight: 800 }}>
-              {kirim ? "Mengirim…" : "Kirim Daftar Hadir"}
+              {kirim ? "Mengirim… mohon tunggu" : "Kirim Daftar Hadir"}
             </button>
           </div>
         )}

@@ -294,38 +294,58 @@ function simpanKehadiran(b) {
   if (a.status === "tutup") return balas({ ok: false, error: "Daftar hadir untuk acara ini sudah ditutup." });
   if (!b.nama || !String(b.nama).trim()) return balas({ ok: false, error: "Nama wajib diisi." });
 
-  // Kunci: dua orang menekan Kirim bersamaan bisa lolos pemeriksaan ganda
-  // dan sama-sama tersimpan. Lock membuat pemeriksaan + penulisan jadi satu.
-  var lock = LockService.getScriptLock();
-  lock.waitLock(20000);
-  try {
-    var hp = normalHP(b.noHP);
+  var hp = normalHP(b.noHP);
+  if (a.fieldAktif.indexOf("noHP") >= 0 && !hp) {
+    return balas({ ok: false, error: "Nomor ponsel wajib diisi." });
+  }
 
-    if (a.fieldAktif.indexOf("noHP") >= 0) {
-      if (!hp) return balas({ ok: false, error: "Nomor ponsel wajib diisi." });
-      var s = sheet(TAB_HADIR);
-      var data = s.getDataRange().getValues();
-      for (var i = 1; i < data.length; i++) {
-        if (String(data[i][1]).toUpperCase() === String(a.kode).toUpperCase() &&
-            normalHP(data[i][6]) === hp) {
-          return balas({ ok: false, error: "Nomor ponsel ini sudah terdaftar pada acara ini." });
-        }
-      }
+  // Unggah foto DI LUAR kunci.
+  //
+  // Ini bagian paling lambat (1-3 detik). Bila dilakukan sambil memegang
+  // kunci, seluruh pengisi lain ikut menunggu — pada acara ramai antreannya
+  // cepat melewati batas tunggu dan sebagian orang gagal mengisi. Berkas
+  // dibiarkan privat (bawaan Drive): jangan diubah jadi "anyone with link",
+  // isinya wajah orang.
+  var berkasFoto = null, urlFoto = "";
+  if (b.foto) {
+    var cocok = String(b.foto).match(/^data:(image\/[a-z+.-]+);base64,(.+)$/i);
+    if (cocok) {
+      var blob = Utilities.newBlob(
+        Utilities.base64Decode(cocok[2]), cocok[1],
+        a.kode + "_" + String(b.nama).replace(/[^\w\s.-]/g, "").slice(0, 40) + "_" +
+          new Date().getTime() + ".jpg"
+      );
+      berkasFoto = folderFoto().createFile(blob);
+      urlFoto = berkasFoto.getUrl();
     }
+  }
 
-    // Selfie → Drive. File dibiarkan privat (bawaan Drive): hanya pemilik akun
-    // yang bisa membukanya. Jangan diubah jadi "anyone with link" — isinya
-    // wajah orang.
-    var urlFoto = "";
-    if (b.foto) {
-      var cocok = String(b.foto).match(/^data:(image\/[a-z+.-]+);base64,(.+)$/i);
-      if (cocok) {
-        var blob = Utilities.newBlob(
-          Utilities.base64Decode(cocok[2]), cocok[1],
-          a.kode + "_" + String(b.nama).replace(/[^\w\s.-]/g, "").slice(0, 40) + "_" +
-            new Date().getTime() + ".jpg"
-        );
-        urlFoto = folderFoto().createFile(blob).getUrl();
+  // Kunci hanya membungkus periksa-ganda + tulis, sehingga dipegang dalam
+  // hitungan milidetik. tryLock (bukan waitLock) supaya saat penuh kita bisa
+  // membalas pesan yang bisa ditindaklanjuti, bukan melempar exception mentah.
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(45000)) {
+    if (berkasFoto) { try { berkasFoto.setTrashed(true); } catch (e) {} }
+    return balas({ ok: false, error: "Sistem sedang sibuk. Mohon tekan Kirim sekali lagi." });
+  }
+
+  try {
+    if (hp) {
+      // Baca hanya kolom B..G, bukan seluruh grid. Pada acara besar tabel ini
+      // terus bertambah dan dibaca ulang setiap orang mengisi — membaca
+      // seluruh kolom (termasuk URL foto & data tambahan) memperlambat semua
+      // orang yang sedang mengantre.
+      var s = sheet(TAB_HADIR);
+      var akhir = s.getLastRow();
+      if (akhir > 1) {
+        var kol = s.getRange(2, 2, akhir - 1, 6).getValues();   // B=kode … G=no_hp
+        for (var i = 0; i < kol.length; i++) {
+          if (String(kol[i][0]).toUpperCase() === String(a.kode).toUpperCase() &&
+              normalHP(kol[i][5]) === hp) {
+            if (berkasFoto) { try { berkasFoto.setTrashed(true); } catch (e) {} }
+            return balas({ ok: false, error: "Nomor ponsel ini sudah terdaftar pada acara ini." });
+          }
+        }
       }
     }
 
