@@ -20,6 +20,7 @@ export default async function handler(req, res) {
     namaAcara,
     tanggal,
     jam,
+    jamSelesai,         // opsional — hanya dikirim bila jam berakhir diketahui
     penyelenggara,
     lokasi,
     event,
@@ -66,9 +67,16 @@ export default async function handler(req, res) {
   const sapa = namaPenerima ? `Yth. *${namaPenerima}*,\n\n` : "";
 
   // ── Blok info jadwal ──────────────────────────────────────
+  // Jam selesai opsional; ditampilkan sebagai rentang hanya bila diketahui dan
+  // lebih besar dari jam mulai. Jadwal lama tidak punya field ini sama sekali.
+  const _mnt = (t) => { const [h, m] = String(t || "").split(":").map(Number); return (h * 60 + m) || 0; };
+  const rentangJam = (jam && jamSelesai && _mnt(jamSelesai) > _mnt(jam))
+    ? `${jam} – ${jamSelesai}`
+    : (jam || "-");
+
   const infoJadwal = [
     `📋 *${namaAcara || "-"}*`,
-    `📅 ${fmtTgl(tanggal)}, pukul ${jam || "-"} WITA`,
+    `📅 ${fmtTgl(tanggal)}, pukul ${rentangJam} WITA`,
     penyelenggara ? `🏢 ${penyelenggara}` : null,
     lokasi        ? `📍 ${lokasi}`        : null,
   ].filter(Boolean).join("\n");

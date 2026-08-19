@@ -158,6 +158,20 @@ function localDateWITA(offsetDays = 0) {
   return d.toISOString().slice(0, 10);
 }
 
+// ── Waktu agenda ─────────────────────────────────────────────
+// `jamSelesai` bersifat opsional dan tidak dimiliki agenda lama, jadi rentang
+// hanya ditampilkan bila terisi dan lebih besar dari jam mulai.
+function _mnt(t) {
+  const [h, m] = String(t || "").split(":").map(Number);
+  return (h * 60 + m) || 0;
+}
+function fmtRentangJam(e) {
+  const mulai = (e && e.jam ? e.jam : "").slice(0, 5);
+  if (!mulai) return "";
+  const selesai = (e && e.jamSelesai ? e.jamSelesai : "").slice(0, 5);
+  return selesai && _mnt(selesai) > _mnt(mulai) ? `${mulai} – ${selesai}` : mulai;
+}
+
 // ── Load data dari Supabase ──────────────────────────────────
 // Penyaringan tanggal & alur didorong ke query. Sebelumnya seluruh tabel
 // ditarik lalu disaring di sini — 5x sehari, padahal yang dipakai hanya
@@ -222,7 +236,7 @@ async function notifPagi(jadwal, users) {
 
   // Buat ringkasan
   const ringkasan = sorted.map(e =>
-    `🕐 ${e.jam?.slice(0,5)} — *${e.namaAcara}*\n📍 ${e.lokasi || e.penyelenggara || "-"}`
+    `🕐 ${fmtRentangJam(e)} — *${e.namaAcara}*\n📍 ${e.lokasi || e.penyelenggara || "-"}`
   ).join("\n\n");
 
   const msg =
@@ -262,7 +276,7 @@ async function notifReminder(jadwal, users) {
   );
 
   const daftar = belumDitugaskan.map(e =>
-    `• ${e.jam?.slice(0,5)} — ${e.namaAcara} (${e.lokasi || e.penyelenggara || "-"})`
+    `• ${fmtRentangJam(e)} — ${e.namaAcara} (${e.lokasi || e.penyelenggara || "-"})`
   ).join("\n");
 
   const msg =
@@ -304,7 +318,7 @@ async function notifAjudan(jadwal, users) {
     if (myEvs.length === 0) continue;
 
     const daftar = myEvs.map(e =>
-      `🕐 ${e.jam?.slice(0,5)} — *${e.namaAcara}*\n📍 ${e.lokasi || e.penyelenggara || "-"}\n👔 ${e.pakaian || "-"}`
+      `🕐 ${fmtRentangJam(e)} — *${e.namaAcara}*\n📍 ${e.lokasi || e.penyelenggara || "-"}\n👔 ${e.pakaian || "-"}`
     ).join("\n\n");
 
     const msg =
@@ -338,7 +352,7 @@ async function notifPimpinan(jadwal, users) {
 
   // Format satu baris kegiatan: waktu, nama, lokasi, pakaian (+ tanda sambutan)
   const fmtItem = (e) => {
-    const jam   = (e.jam || "").slice(0, 5);
+    const jam   = fmtRentangJam(e);
     const isSambutan = e.jenisKegiatan === "Sambutan" || e.jenisKegiatan === "Sambutan membuka acara";
     let s = `🕐 ${jam} · *${e.namaAcara}*\n   📍 ${e.lokasi || e.penyelenggara || "-"}\n   👔 ${e.pakaian || "-"}`;
     if (isSambutan) s += " · 🎤 Ada sambutan";
@@ -436,7 +450,7 @@ async function notifPendingApproval(users) {
     .sort((a, b) => (a.tanggal + a.jam).localeCompare(b.tanggal + b.jam));
 
   const fmtItem = (e) =>
-    `• ${fmtTgl(e.tanggal)} ${e.jam?.slice(0,5)} — *${e.namaAcara}*\n   📍 ${e.lokasi || e.penyelenggara || "-"}`;
+    `• ${fmtTgl(e.tanggal)} ${fmtRentangJam(e)} — *${e.namaAcara}*\n   📍 ${e.lokasi || e.penyelenggara || "-"}`;
 
   // Untuk Kasubbag (Protokol & Komdokpim)
   if (pendKasubbag.length > 0) {

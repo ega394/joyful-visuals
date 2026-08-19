@@ -6,6 +6,16 @@ const BULAN_LABEL = [
 ];
 const MEDAL = ["🥇","🥈","🥉"];
 
+// Jam selesai agenda bersifat opsional dan tidak dimiliki agenda lama, jadi
+// rentang hanya ditampilkan bila terisi dan lebih besar dari jam mulai.
+const _mnt = t => { const [h,m] = String(t||"").split(":").map(Number); return (h*60+m)||0; };
+function fmtRentangJam(ev){
+  const mulai = (ev && ev.jam) || "";
+  if(!mulai) return "";
+  const selesai = (ev && ev.jamSelesai) || "";
+  return selesai && _mnt(selesai) > _mnt(mulai) ? mulai+" – "+selesai : mulai;
+}
+
 // Daftar username unik yang dikreditkan untuk satu naskah sambutan yang DISAHKAN.
 function sambutanKredit(ev){
   if(!ev||!ev.sambutanSah)return [];
@@ -183,7 +193,7 @@ export default function RekapPenugasanBulanan({ events, user, isMobile, allUsers
     };
     const rowsTugas = s.kegiatan.map((ev,i)=>(
       "<tr><td class='c'>"+(i+1)+"</td><td>"+fmtTgl(ev.tanggal)+"</td><td>"+(ev.namaAcara||"-")+"</td>"+
-      "<td>"+(ev.penyelenggara||"-")+"</td><td class='c'>"+(ev.jam||"-")+"</td><td>"+(ev.lokasi||"-")+"</td>"+
+      "<td>"+(ev.penyelenggara||"-")+"</td><td class='c'>"+(fmtRentangJam(ev)||"-")+"</td><td>"+(ev.lokasi||"-")+"</td>"+
       "<td class='c'>"+(ev.jenisKegiatan||"-")+"</td></tr>"
     )).join("");
     const rowsNaskah = s.naskah.map((ev,i)=>(
@@ -474,7 +484,7 @@ ${s.jumlahNaskah>0
                     {meRow.kegiatan.map((ev, i) => (
                       <div key={"mt" + i} style={{ fontSize: 12.5, color: "#374151", marginBottom: 4, display: "flex", gap: 6 }}>
                         <span style={{ color: "#CBD5E1", flexShrink: 0 }}>·</span>
-                        <span>{ev.namaAcara} <span style={{ color: "#94A3B8" }}>— {ev.tanggal}{ev.jam ? " · " + ev.jam : ""}</span></span>
+                        <span>{ev.namaAcara} <span style={{ color: "#94A3B8" }}>— {ev.tanggal}{ev.jam ? " · " + fmtRentangJam(ev) : ""}</span></span>
                       </div>
                     ))}
                   </>
