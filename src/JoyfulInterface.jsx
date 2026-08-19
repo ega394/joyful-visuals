@@ -36,6 +36,13 @@ const HARI_ID = ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
 const BULAN   = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
 
 function fmtJam(str)  { return str || "--:--"; }
+
+// Jam selesai bersifat opsional pada agenda; agenda lama tidak memilikinya.
+// Hanya dianggap sah bila lebih besar dari jam mulai.
+const _mnt = (t) => { const [h, m] = String(t || "").split(":").map(Number); return (h * 60 + m) || 0; };
+function punyaJamSelesai(ev) {
+  return !!(ev && ev.jam && ev.jamSelesai && _mnt(ev.jamSelesai) > _mnt(ev.jam));
+}
 function fmtTgl(str) {
   if (!str) return "--";
   const d = new Date(str + "T00:00:00");
@@ -349,6 +356,11 @@ function ZenHeroCard({ ev, role, upd, showT, setDelegTarget }) {
         }}>
           {fmtJam(ev.jam)}
           <span style={{ fontSize: 16, fontWeight: 600, color: "#94A3B8", marginLeft: 6 }}>WITA</span>
+          {punyaJamSelesai(ev) && (
+            <span style={{ fontSize: 16, fontWeight: 700, color: "#64748B", marginLeft: 8, letterSpacing: 0 }}>
+              {"s.d. " + ev.jamSelesai}
+            </span>
+          )}
         </div>
 
         {/* Nama acara */}
@@ -514,7 +526,10 @@ function ZenMiniCard({ ev, role, isPast }) {
         background: isPast ? "#F1F5F9" : "linear-gradient(135deg," + NAVY + ",#1B3360)",
         borderRadius: 10, padding: "6px 4px", flexShrink: 0,
       }}>
-        <div style={{ fontSize: 11, fontWeight: 800, color: isPast ? "#94A3B8" : GOLD, lineHeight: 1 }}>{ev.jam?.slice(0,5)}</div>
+        <div style={{ fontSize: 11, fontWeight: 800, color: isPast ? "#94A3B8" : GOLD, lineHeight: 1 }}>
+          {ev.jam?.slice(0,5)}
+          {punyaJamSelesai(ev) && <div style={{ fontSize: 9, fontWeight: 700, opacity: 0.8, marginTop: 1, whiteSpace: "nowrap" }}>{"s.d. " + ev.jamSelesai.slice(0,5)}</div>}
+        </div>
         <div style={{ fontSize: 9, color: isPast ? "#CBD5E1" : "rgba(255,255,255,0.6)", marginTop: 2 }}>{fmtTgl(ev.tanggal).split(",")[0]}</div>
       </div>
       {/* Info */}
@@ -725,6 +740,7 @@ function AjudanCard({ ev, isWK, pimLabel, upd, showT, now, compact }) {
         }}>
           <div style={{ fontSize: 14, fontWeight: 900, color: isToday ? GOLD : "#334155", lineHeight: 1 }}>
             {ev.jam?.slice(0, 5)}
+            {punyaJamSelesai(ev) && <div style={{ fontSize: 9, fontWeight: 700, opacity: 0.75, marginTop: 2, whiteSpace: "nowrap" }}>{"s.d. " + ev.jamSelesai.slice(0,5)}</div>}
           </div>
           {!isToday && (
             <div style={{ fontSize: 9, color: "#94A3B8", marginTop: 2 }}>
