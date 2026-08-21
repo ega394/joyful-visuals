@@ -205,6 +205,24 @@ async function loadJadwalPending() {
     );
 }
 
+// Usulan perubahan jadwal yang SUDAH terbit. Jadwalnya tetap ber-alur
+// "disetujui", jadi tidak terjaring loadJadwalPending() di atas dan perlu
+// query tersendiri agar tidak mengendap tanpa pengingat.
+async function loadUsulanEdit() {
+  const today = localDateWITA(0);
+  const rows = await sbGet(
+    `jadwal?select=data&data->>alur=eq.disetujui&data->>tanggal=gte.${today}&order=id`
+  );
+  if (!rows) return [];
+  return rows
+    .map(r => r.data)
+    .filter(e =>
+      e &&
+      ["menunggu_kasubbag", "menunggu_kabag"].includes(e.alurEdit) &&
+      e.tanggal >= today
+    );
+}
+
 async function loadUsers() {
   const rows = await sbGet(`users?select=username,nama,jabatan,role,noWA`);
   return rows || [];
@@ -439,7 +457,8 @@ async function notifPersonil(jadwal, users) {
  */
 async function notifPendingApproval(users) {
   const pendings = await loadJadwalPending();
-  if (pendings.length === 0) {
+  const usulans  = await loadUsulanEdit();
+  if (pendings.length === 0 && usulans.length === 0) {
     console.log("[PENDING] Tidak ada jadwal yang menunggu persetujuan — skip.");
     return;
   }
@@ -507,6 +526,48 @@ async function notifPendingApproval(users) {
       title: "↩ Jadwal Menunggu Perbaikan",
       body: `${pendRevisi.length} jadwal dikembalikan & belum diperbaiki`,
       url: "/", tag: "pending-revisi",
+    });
+  }
+
+  // ── Usulan perubahan jadwal terbit ──
+  // Jadwalnya tetap tayang, jadi tidak ada tekanan alami untuk segera
+  // diputuskan — pengingat ini yang menjaganya tidak terlupakan.
+  const usulKasubbag = usulans.filter(e => e.alurEdit === "menunggu_kasubbag");
+  const usulKabag    = usulans.filter(e => e.alurEdit === "menunggu_kabag");
+
+  if (usulKasubbag.length > 0) {
+    const daftar = usulKasubbag.map(fmtItem).join("\n");
+    const msg =
+      `✏️ *Pengingat Usulan Perubahan Jadwal*\n` +
+      `Masih ada *${usulKasubbag.length}* usulan perubahan menunggu tinjauan Anda:\n\n` +
+      daftar +
+      `\n\nJadwal tetap tayang dengan data lama sampai usulan diputuskan.\n_Prokopim Kota Tarakan_`;
+    for (const u of users.filter(x => x.role === "kasubbag_protokol" && x.noWA)) {
+      await sendWA(u.noWA, msg);
+      console.log(`[USULAN-KASUBBAG] Terkirim → ${u.nama}`);
+    }
+    await sendPushRole("kasubbag_protokol", {
+      title: "✏️ Usulan Perubahan Jadwal",
+      body: `${usulKasubbag.length} usulan menunggu tinjauan Anda`,
+      url: "/", tag: "usulan-kasubbag",
+    });
+  }
+
+  if (usulKabag.length > 0) {
+    const daftar = usulKabag.map(fmtItem).join("\n");
+    const msg =
+      `✏️ *Pengingat Usulan Perubahan — Keputusan Akhir*\n` +
+      `Masih ada *${usulKabag.length}* usulan perubahan menunggu persetujuan Kabag:\n\n` +
+      daftar +
+      `\n\nJadwal tetap tayang dengan data lama sampai usulan diputuskan.\n_Prokopim Kota Tarakan_`;
+    for (const u of users.filter(x => x.role === "kabag" && x.noWA)) {
+      await sendWA(u.noWA, msg);
+      console.log(`[USULAN-KABAG] Terkirim → ${u.nama}`);
+    }
+    await sendPushRole("kabag", {
+      title: "✏️ Usulan Perubahan Jadwal",
+      body: `${usulKabag.length} usulan menunggu persetujuan Anda`,
+      url: "/", tag: "usulan-kabag",
     });
   }
 }

@@ -25,6 +25,8 @@ export default async function handler(req, res) {
     lokasi,
     event,
     alasanHapus,        // alasan pembatalan berjenjang
+    alasanEdit,         // alasan usulan perubahan jadwal terbit
+    ringkasEdit,        // daftar nama field yang diusulkan berubah
     submittedBy,        // nama yang mengajukan
     jabatanPengirim,    // jabatan yang melakukan aksi (misal "Kasubbag Protokol")
     namaPenerima,       // nama penerima untuk sapaan
@@ -292,6 +294,60 @@ export default async function handler(req, res) {
       `*${penolak}* tidak menyetujui pembatalan jadwal berikut:\n\n` +
       infoJadwal +
       `\n\nJadwal tetap aktif. Hubungi ${penolak} untuk informasi lebih lanjut.` +
+      FOOTER;
+
+  // ── Usulan perubahan jadwal yang sudah terbit ──────────────
+  } else if (event === "ajukan_edit") {
+    // Admin RK → Kasubbag Protokol: usulan perubahan jadwal terbit
+    const pengaju = submittedBy || "Admin RK";
+    const alasan  = alasanEdit  ? `\n\n📝 *Alasan:*\n${alasanEdit}`      : "";
+    const ringkas = ringkasEdit ? `\n\n🔧 *Yang diubah:* ${ringkasEdit}` : "";
+    pesan = HEADER +
+      sapa +
+      `✏️ *Usulan Perubahan Jadwal Terbit*\n\n` +
+      `*${pengaju}* mengajukan perubahan atas jadwal berikut:${alasan}${ringkas}\n\n` +
+      infoJadwal +
+      `\n\n_Data di atas masih data lama — jadwal tetap tayang sampai usulan disetujui._\n\n` +
+      `Mohon ditinjau di aplikasi:\n` +
+      `✅ Teruskan ke Kabag, atau\n` +
+      `❌ Tolak — jadwal tetap seperti semula.` +
+      FOOTER;
+
+  } else if (event === "edit_ke_kabag") {
+    // Kasubbag Protokol → Kabag: meneruskan usulan perubahan
+    const alasan  = alasanEdit  ? `\n\n📝 *Alasan:*\n${alasanEdit}`      : "";
+    const ringkas = ringkasEdit ? `\n\n🔧 *Yang diubah:* ${ringkasEdit}` : "";
+    pesan = HEADER +
+      sapa +
+      `✏️ *Usulan Perubahan — Keputusan Akhir Kabag*\n\n` +
+      `Kasubbag Protokol meneruskan usulan perubahan berikut:${alasan}${ringkas}\n\n` +
+      infoJadwal +
+      `\n\n_Data di atas masih data lama — jadwal tetap tayang sampai Anda menyetujui._\n\n` +
+      `Sebagai Kabag, Anda dapat:\n` +
+      `✅ Setujui — data jadwal langsung diperbarui, atau\n` +
+      `❌ Tolak — jadwal tetap seperti semula.` +
+      FOOTER;
+
+  } else if (event === "edit_disetujui") {
+    // Kabag → Admin RK: usulan disetujui, nilai baru sudah berlaku
+    const kabag = submittedBy || "Kabag";
+    pesan = HEADER +
+      sapa +
+      `✅ *Usulan Perubahan Jadwal Disetujui*\n\n` +
+      `*${kabag}* telah menyetujui usulan perubahan Anda. Jadwal kini tayang dengan data terbaru:\n\n` +
+      infoJadwal +
+      FOOTER;
+
+  } else if (event === "edit_ditolak") {
+    // Kasubbag/Kabag → Admin RK: usulan perubahan ditolak
+    const penolak = submittedBy || jabatanPengirim || "Pejabat terkait";
+    const catatan = catatanTolak ? `\n\n📝 *Alasan:*\n${catatanTolak}` : "";
+    pesan = HEADER +
+      sapa +
+      `❌ *Usulan Perubahan Ditolak*\n\n` +
+      `*${penolak}* tidak menyetujui usulan perubahan atas jadwal berikut:${catatan}\n\n` +
+      infoJadwal +
+      `\n\nJadwal tetap tayang dengan data lama. Anda dapat memperbaiki usulan lalu mengajukannya kembali.` +
       FOOTER;
 
 } else {
