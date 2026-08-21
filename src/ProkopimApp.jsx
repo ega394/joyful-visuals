@@ -824,7 +824,7 @@ const FIELD_USULAN=[
   {k:"untukPimpinan",  l:"Untuk Pimpinan"},
   {k:"besertaIstriWK", l:"Beserta Istri (Wali Kota)"},
   {k:"besertaIstriWWK",l:"Beserta Istri (Wakil Wali Kota)"},
-  {k:"undanganNama",   l:"Berkas Undangan"},
+  {k:"undanganNama",   l:"Berkas Undangan", cmp:"undanganFile"},
 ];
 
 // Perubahan tanggal atau jam membatalkan kesediaan hadir yang sudah dikonfirmasi,
@@ -844,11 +844,33 @@ const _labelNilai=(k,v)=>{
 
 // Daftar field yang benar-benar berubah, untuk ditampilkan ke penyetuju.
 // Tanpa ini Kasubbag dan Kabag harus menebak apa yang diubah Admin RK.
+//
+// Sebagian field dibandingkan lewat field lain (`cmp`): berkas undangan
+// dinilai dari tautannya, bukan namanya, supaya penggantian berkas dengan
+// nama file yang kebetulan sama tetap terdeteksi.
 function hitungDiffUsulan(ev,usulan){
   if(!ev||!usulan)return [];
   return FIELD_USULAN
-    .map(({k,l})=>({label:l,dari:_labelNilai(k,ev[k]),ke:_labelNilai(k,usulan[k])}))
-    .filter(d=>d.dari!==d.ke);
+    .map(({k,l,cmp})=>({
+      key:k,
+      label:l,
+      berubah:String((cmp?ev[cmp]:ev[k])||"")!==String((cmp?usulan[cmp]:usulan[k])||""),
+      dari:_labelNilai(k,ev[k]),
+      ke:_labelNilai(k,usulan[k]),
+    }))
+    .filter(d=>d.berubah||d.dari!==d.ke)
+    .map(({key,label,dari,ke})=>({key,label,dari,ke}));
+}
+
+// Membuang satu berkas undangan dari penyimpanan, dengan tiga pengaman:
+// tidak menghapus bila tautannya sama dengan yang masih dipakai, bila
+// kosong, atau bila berupa base64/blob (bukan berkas di Supabase Storage).
+// Kegagalan hapus sengaja tidak menghentikan alur — berkas menganggur jauh
+// lebih ringan akibatnya daripada persetujuan yang batal di tengah jalan.
+function buangBerkasUsulan(url,masihDipakai){
+  if(!url||url===masihDipakai)return;
+  if(typeof url!=="string"||!url.includes("supabase.co"))return;
+  storageDelete("undangan",url).catch(e=>console.warn("Sisa berkas undangan:",e?.message||e));
 }
 
 // Kartu perbandingan "nilai lama → nilai baru" untuk peninjau.
@@ -873,6 +895,17 @@ function DiffUsulan({ev,rapat}){
               <span style={{color:"#94A3B8",textDecoration:"line-through",wordBreak:"break-word"}}>{d.dari}</span>
               <span style={{color:"#94A3B8",margin:"0 6px"}}>→</span>
               <span style={{color:"#0F172A",fontWeight:700,wordBreak:"break-word"}}>{d.ke}</span>
+              {/* Pergantian dokumen tidak boleh disetujui tanpa melihat isinya. */}
+              {d.key==="undanganNama"&&<span style={{display:"flex",gap:8,marginTop:4}}>
+                {ev.undanganFile&&<a href={ev.undanganFile} target="_blank" rel="noopener noreferrer"
+                  style={{fontSize:12,fontWeight:700,color:"#64748B",textDecoration:"none",border:"1px solid #E2E8F0",borderRadius:6,padding:"2px 8px"}}>
+                  Buka berkas lama
+                </a>}
+                {(ev.usulanEdit||{}).undanganFile&&<a href={ev.usulanEdit.undanganFile} target="_blank" rel="noopener noreferrer"
+                  style={{fontSize:12,fontWeight:700,color:"#1D4ED8",textDecoration:"none",border:"1px solid #BFDBFE",background:"#EFF6FF",borderRadius:6,padding:"2px 8px"}}>
+                  Buka berkas usulan
+                </a>}
+              </span>}
             </div>
           </div>
         ))}
@@ -4099,6 +4132,38 @@ const fld=(k,l,type="text",full=false)=>(
     </div>
   );
 
+  // Blok unggah berkas undangan. Sebelumnya hanya dirender di langkah 2
+  // wizard jadwal baru, sehingga saat mengedit atau mengajukan usulan
+  // perubahan tidak ada satu pun tombol untuk mengganti berkasnya.
+  const blokUndangan = canUploadUndangan ? (
+        <div style={{marginBottom:16}}>
+          <label style={{display:"block",fontSize:12,color:"#475569",fontWeight:600,marginBottom:6}}>
+            Berkas Undangan <span style={{color:"#94a3b8",fontWeight:400}}>(Opsional)</span>
+          </label>
+          {form.undanganFile
+            ?<div style={{background:"#f0fdf4",borderRadius:10,padding:11,border:"1.5px solid #86efac"}}>
+              {form._undanganFromAI&&<div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8,padding:"5px 8px",background:"linear-gradient(90deg,#ede9fe,#ddd6fe)",borderRadius:7,fontSize:13,fontWeight:700,color:"#5b21b6"}}>
+                <span>🤖</span> Berkas ini otomatis tersimpan dari AI Auto-Isi
+              </div>}
+              <div style={{display:"flex",alignItems:"center",gap:8,background:"white",borderRadius:8,padding:"8px 10px",border:"1px solid #bbf7d0",marginBottom:7}}>
+                <span style={{fontSize:18,flexShrink:0}}>{form.undanganNama?.match(/\.(jpg|jpeg|png|webp)$/i)?"🖼️":"📄"}</span>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:12,fontWeight:700,color:"#15803d",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{form.undanganNama||"Berkas Undangan"}</div>
+                  <div style={{fontSize:12,color:"#64748b",marginTop:1}}>✓ Siap diunggah bersama jadwal</div>
+                </div>
+              </div>
+              <div style={{display:"flex",gap:6}}>
+                <FormUndanganUpload label="🔄 Ganti File" compact onFile={(file,name,b64)=>{setForm(p=>({...p,undanganFile:b64,undanganNama:name,_undanganFromAI:false}));}}/>
+                <button type="button" onClick={()=>setForm(p=>({...p,undanganFile:null,undanganNama:"",_undanganFromAI:false}))}
+                  style={{flex:1,padding:"7px",borderRadius:8,border:"1.5px solid #fca5a5",background:"white",color:"#ef4444",cursor:"pointer",fontSize:12,fontWeight:700}}>
+                  Hapus Berkas
+                </button>
+              </div>
+            </div>
+            :<FormUndanganUpload onFile={(file,name,b64)=>{setForm(p=>({...p,undanganFile:b64,undanganNama:name,_undanganFromAI:false}));}}/>
+          }
+    </div>
+  ) : null;
   return(
     <div style={{background:"white",borderRadius:12,padding:isMobile?"14px":"24px",
       boxShadow:"0 2px 12px rgba(0,0,0,0.07)",border:"1.5px solid "+GOLD2}}>
@@ -4264,34 +4329,7 @@ const fld=(k,l,type="text",full=false)=>(
             style={{width:"100%",padding:"10px 12px",borderRadius:9,border:"1.5px solid #e2e8f0",
               color:"#1e293b",resize:"vertical",background:"white",fontSize:14,boxSizing:"border-box"}}/>
         </div>
-        {/* Upload Undangan - hanya admin_rk */}
-        {canUploadUndangan&&<div style={{marginBottom:16}}>
-          <label style={{display:"block",fontSize:12,color:"#475569",fontWeight:600,marginBottom:6}}>
-            Berkas Undangan <span style={{color:"#94a3b8",fontWeight:400}}>(Opsional)</span>
-          </label>
-          {form.undanganFile
-            ?<div style={{background:"#f0fdf4",borderRadius:10,padding:11,border:"1.5px solid #86efac"}}>
-              {form._undanganFromAI&&<div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8,padding:"5px 8px",background:"linear-gradient(90deg,#ede9fe,#ddd6fe)",borderRadius:7,fontSize:13,fontWeight:700,color:"#5b21b6"}}>
-                <span>🤖</span> Berkas ini otomatis tersimpan dari AI Auto-Isi
-              </div>}
-              <div style={{display:"flex",alignItems:"center",gap:8,background:"white",borderRadius:8,padding:"8px 10px",border:"1px solid #bbf7d0",marginBottom:7}}>
-                <span style={{fontSize:18,flexShrink:0}}>{form.undanganNama?.match(/\.(jpg|jpeg|png|webp)$/i)?"🖼️":"📄"}</span>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:12,fontWeight:700,color:"#15803d",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{form.undanganNama||"Berkas Undangan"}</div>
-                  <div style={{fontSize:12,color:"#64748b",marginTop:1}}>✓ Siap diunggah bersama jadwal</div>
-                </div>
-              </div>
-              <div style={{display:"flex",gap:6}}>
-                <FormUndanganUpload label="🔄 Ganti File" compact onFile={(file,name,b64)=>{setForm(p=>({...p,undanganFile:b64,undanganNama:name,_undanganFromAI:false}));}}/>
-                <button type="button" onClick={()=>setForm(p=>({...p,undanganFile:null,undanganNama:"",_undanganFromAI:false}))}
-                  style={{flex:1,padding:"7px",borderRadius:8,border:"1.5px solid #fca5a5",background:"white",color:"#ef4444",cursor:"pointer",fontSize:12,fontWeight:700}}>
-                  Hapus Berkas
-                </button>
-              </div>
-            </div>
-            :<FormUndanganUpload onFile={(file,name,b64)=>{setForm(p=>({...p,undanganFile:b64,undanganNama:name,_undanganFromAI:false}));}}/>
-          }
-        </div>}
+        {blokUndangan}
         <div style={{display:"flex",gap:10}}>
           <button type="button" onClick={onCancel}
             style={{flex:1,padding:"12px",borderRadius:10,border:"1.5px solid #e2e8f0",
@@ -4348,6 +4386,7 @@ const fld=(k,l,type="text",full=false)=>(
           <textarea value={form.catatan||""} onChange={e=>setForm(p=>({...p,catatan:e.target.value}))} rows={2}
             style={{width:"100%",padding:"10px 12px",borderRadius:9,border:"1.5px solid #e2e8f0",color:"#1e293b",resize:"vertical",background:"white",fontSize:14,boxSizing:"border-box"}}/>
         </div>
+        {blokUndangan}
         {/* Alasan wajib — hanya untuk usulan perubahan jadwal terbit */}
         {usulanMode&&<div style={{marginBottom:12,borderRadius:10,border:"1.5px solid #BFDBFE",overflow:"hidden"}}>
           <div style={{background:"#EFF6FF",padding:"8px 12px",fontSize:12,fontWeight:800,color:"#1D4ED8"}}>
@@ -5870,6 +5909,9 @@ function UsulanEditKasubbag({ev,upd,showT,askConfirm,rejectTexts,setRT,user}){
           const catatan=(rejectTexts[ev.id+"_kass_edit"]||"").trim();
           if(!catatan){showT("Tulis alasan penolakan dulu","warn");return;}
           askConfirm("Tolak Usulan Perubahan?","Usulan dibuang dan jadwal tetap tayang apa adanya. Admin RK dapat mengajukan usulan baru.",()=>{
+            // Berkas yang terlanjur diunggah untuk usulan ini jadi yatim
+            // begitu usulannya dibuang — ikut dibersihkan.
+            buangBerkasUsulan((ev.usulanEdit||{}).undanganFile,ev.undanganFile);
             upd(ev.id,{alurEdit:null,usulanEdit:null,alasanEdit:"",catatanEditKasubbag:catatan,catatanEditKabag:""});
             const _pengusul=loadUsers().find(u=>u.username===(ev.usulanEditOleh||ev.submittedBy));
             if(_pengusul?.noWA)sendWA({to:_pengusul.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,
@@ -5915,6 +5957,9 @@ function UsulanEditKabag({ev,upd,showT,askConfirm,rejectTexts,setRT,user}){
               :"Data jadwal akan diperbarui dan langsung tayang dengan nilai baru.",
             ()=>{
               const patch={...usulan,alurEdit:null,usulanEdit:null,alasanEdit:"",catatanEditKasubbag:"",catatanEditKabag:""};
+              // Berkas undangan lama tidak lagi dirujuk siapa pun begitu usulan
+              // berlaku. Dibuang agar tidak menumpuk di penyimpanan.
+              buangBerkasUsulan(ev.undanganFile,usulan.undanganFile);
               if(waktuBerubah){
                 patch.statusWK=null;patch.statusWWK=null;
                 patch.perwakilanWK="";patch.perwakilanWWK="";
@@ -5951,6 +5996,7 @@ function UsulanEditKabag({ev,upd,showT,askConfirm,rejectTexts,setRT,user}){
           const alasan=(rejectTexts[ev.id+"_kabag_edit"]||"").trim();
           if(!alasan){showT("Tulis alasan penolakan dulu","warn");return;}
           askConfirm("Tolak Usulan Perubahan?","Usulan dibuang dan jadwal tetap tayang apa adanya. Admin RK dapat mengajukan usulan baru.",()=>{
+            buangBerkasUsulan((ev.usulanEdit||{}).undanganFile,ev.undanganFile);
             upd(ev.id,{alurEdit:null,usulanEdit:null,alasanEdit:"",catatanEditKabag:alasan,catatanEditKasubbag:""});
             const _pengusul=loadUsers().find(u=>u.username===(ev.usulanEditOleh||ev.submittedBy));
             if(_pengusul?.noWA)sendWA({to:_pengusul.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,
@@ -7757,6 +7803,8 @@ const submit = async () => {
 
     if(editId!==null){
       const evSebelum=events.find(e=>e.id===editId);
+      // Berkas undangan yang digantikan tidak lagi dirujuk jadwal ini.
+      buangBerkasUsulan(evSebelum&&evSebelum.undanganFile,formDataToSave.undanganFile);
       setEvents(p=>{const next=p.map(e=>e.id===editId?{...e,...formDataToSave}:e);const u=next.find(e=>e.id===editId);if(u)dbUpsert(u).catch(console.error);return next;});
       if(evSebelum?.alur==="ditolak"){
         upd(editId,{alur:"menunggu_kasubbag",catatanTolak:"",_requiresEdit:false});
