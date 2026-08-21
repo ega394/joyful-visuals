@@ -623,6 +623,8 @@ function BookingForm({ rooms, bookings, onSuccess, prefill, onClearPrefill }) {
   const [form,setForm] = useState({
     room_id:"",instansi:"",pic_name:"",pic_wa:"",event_name:"",
     participant_count:"",slots:[],srikandi_ref:"",
+    // Kolom umpan penangkal bot — manusia tidak akan pernah mengisinya.
+    website:"",
   });
   const [file,setFile]       = useState(null);
   const [submitting,setSub]  = useState(false);
@@ -738,6 +740,7 @@ function BookingForm({ rooms, bookings, onSuccess, prefill, onClearPrefill }) {
           pic_wa:form.pic_wa, event_name:form.event_name,
           participant_count:Number(form.participant_count),
           slots:form.slots, srikandi_ref:form.srikandi_ref, document_path,
+          website:form.website||"",   // kolom umpan — server membuang bila terisi
         }),
       });
       const d=await r.json();
@@ -778,6 +781,14 @@ function BookingForm({ rooms, bookings, onSuccess, prefill, onClearPrefill }) {
                     onFocus={e=>e.target.style.border=`1.5px solid ${NAVY}`} onBlur={e=>e.target.style.border=`1.5px solid ${BORDER}`}/>
                   <div style={{fontSize:11,color:GRAY,marginTop:4}}>Pastikan nomor ini aktif di WhatsApp — konfirmasi akan dikirim ke sini</div>
                 </div>
+              </div>
+              {/* Kolom umpan penangkal bot — tersembunyi dari mata dan pembaca
+                  layar, dilewati saat menekan Tab. Bila terisi, server membuang
+                  kiriman tanpa memberi tahu pengirimnya. */}
+              <div aria-hidden="true" style={{position:"absolute",left:"-9999px",width:1,height:1,overflow:"hidden"}}>
+                <label htmlFor="rb-website">Jangan diisi</label>
+                <input id="rb-website" name="website" type="text" tabIndex={-1} autoComplete="off"
+                  value={form.website||""} onChange={e=>f("website",e.target.value)}/>
               </div>
             </div>
           </div>

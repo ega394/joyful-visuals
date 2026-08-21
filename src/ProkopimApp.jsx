@@ -824,7 +824,7 @@ const FIELD_USULAN=[
   {k:"untukPimpinan",  l:"Untuk Pimpinan"},
   {k:"besertaIstriWK", l:"Beserta Istri (Wali Kota)"},
   {k:"besertaIstriWWK",l:"Beserta Istri (Wakil Wali Kota)"},
-  {k:"undanganNama",   l:"Berkas Undangan"},
+  {k:"undanganNama",   l:"Berkas Undangan", cmp:"undanganFile"},
 ];
 
 // Perubahan tanggal atau jam membatalkan kesediaan hadir yang sudah dikonfirmasi,
@@ -844,11 +844,33 @@ const _labelNilai=(k,v)=>{
 
 // Daftar field yang benar-benar berubah, untuk ditampilkan ke penyetuju.
 // Tanpa ini Kasubbag dan Kabag harus menebak apa yang diubah Admin RK.
+//
+// Sebagian field dibandingkan lewat field lain (`cmp`): berkas undangan
+// dinilai dari tautannya, bukan namanya, supaya penggantian berkas dengan
+// nama file yang kebetulan sama tetap terdeteksi.
 function hitungDiffUsulan(ev,usulan){
   if(!ev||!usulan)return [];
   return FIELD_USULAN
-    .map(({k,l})=>({label:l,dari:_labelNilai(k,ev[k]),ke:_labelNilai(k,usulan[k])}))
-    .filter(d=>d.dari!==d.ke);
+    .map(({k,l,cmp})=>({
+      key:k,
+      label:l,
+      berubah:String((cmp?ev[cmp]:ev[k])||"")!==String((cmp?usulan[cmp]:usulan[k])||""),
+      dari:_labelNilai(k,ev[k]),
+      ke:_labelNilai(k,usulan[k]),
+    }))
+    .filter(d=>d.berubah||d.dari!==d.ke)
+    .map(({key,label,dari,ke})=>({key,label,dari,ke}));
+}
+
+// Membuang satu berkas undangan dari penyimpanan, dengan tiga pengaman:
+// tidak menghapus bila tautannya sama dengan yang masih dipakai, bila
+// kosong, atau bila berupa base64/blob (bukan berkas di Supabase Storage).
+// Kegagalan hapus sengaja tidak menghentikan alur — berkas menganggur jauh
+// lebih ringan akibatnya daripada persetujuan yang batal di tengah jalan.
+function buangBerkasUsulan(url,masihDipakai){
+  if(!url||url===masihDipakai)return;
+  if(typeof url!=="string"||!url.includes("supabase.co"))return;
+  storageDelete("undangan",url).catch(e=>console.warn("Sisa berkas undangan:",e?.message||e));
 }
 
 // Kartu perbandingan "nilai lama → nilai baru" untuk peninjau.
@@ -873,6 +895,17 @@ function DiffUsulan({ev,rapat}){
               <span style={{color:"#94A3B8",textDecoration:"line-through",wordBreak:"break-word"}}>{d.dari}</span>
               <span style={{color:"#94A3B8",margin:"0 6px"}}>→</span>
               <span style={{color:"#0F172A",fontWeight:700,wordBreak:"break-word"}}>{d.ke}</span>
+              {/* Pergantian dokumen tidak boleh disetujui tanpa melihat isinya. */}
+              {d.key==="undanganNama"&&<span style={{display:"flex",gap:8,marginTop:4}}>
+                {ev.undanganFile&&<a href={ev.undanganFile} target="_blank" rel="noopener noreferrer"
+                  style={{fontSize:12,fontWeight:700,color:"#64748B",textDecoration:"none",border:"1px solid #E2E8F0",borderRadius:6,padding:"2px 8px"}}>
+                  Buka berkas lama
+                </a>}
+                {(ev.usulanEdit||{}).undanganFile&&<a href={ev.usulanEdit.undanganFile} target="_blank" rel="noopener noreferrer"
+                  style={{fontSize:12,fontWeight:700,color:"#1D4ED8",textDecoration:"none",border:"1px solid #BFDBFE",background:"#EFF6FF",borderRadius:6,padding:"2px 8px"}}>
+                  Buka berkas usulan
+                </a>}
+              </span>}
             </div>
           </div>
         ))}
@@ -1183,6 +1216,25 @@ function GlobalLoadingBar({active}){
   if(!active)return null;
   return <div style={{position:"fixed",top:0,left:0,right:0,height:3,zIndex:9999,background:"linear-gradient(90deg,#C9A84C,#0A1628,#C9A84C)",backgroundSize:"200% 100%",animation:"loadbar 1.2s linear infinite"}}
     aria-hidden="true"/>;
+}
+
+// ── Jam WITA berjalan untuk panel login ──
+// Dipasang di tingkat modul, bukan di dalam blok login, supaya intervalnya
+// tidak dimulai ulang setiap kali pengguna mengetik di formulir.
+function JamWITA({color,muted}){
+  const [now,setNow]=React.useState(()=>new Date());
+  React.useEffect(()=>{
+    const t=setInterval(()=>setNow(new Date()),1000);
+    return ()=>clearInterval(t);
+  },[]);
+  const opsi={timeZone:"Asia/Makassar"};
+  const jam=now.toLocaleTimeString("id-ID",{...opsi,hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false});
+  const tgl=now.toLocaleDateString("id-ID",{...opsi,weekday:"long",day:"numeric",month:"long",year:"numeric"});
+  return <div style={{display:"flex",alignItems:"baseline",gap:10,flexWrap:"wrap"}}>
+    <div style={{color,fontSize:26,fontWeight:800,letterSpacing:"-0.5px",fontVariantNumeric:"tabular-nums"}}>{jam}</div>
+    <div style={{color:muted,fontSize:12,fontWeight:600}}>WITA</div>
+    <div style={{color:muted,fontSize:12,marginLeft:"auto"}}>{tgl}</div>
+  </div>;
 }
 
 // ── Spinner kecil inline ──
@@ -4080,6 +4132,38 @@ const fld=(k,l,type="text",full=false)=>(
     </div>
   );
 
+  // Blok unggah berkas undangan. Sebelumnya hanya dirender di langkah 2
+  // wizard jadwal baru, sehingga saat mengedit atau mengajukan usulan
+  // perubahan tidak ada satu pun tombol untuk mengganti berkasnya.
+  const blokUndangan = canUploadUndangan ? (
+        <div style={{marginBottom:16}}>
+          <label style={{display:"block",fontSize:12,color:"#475569",fontWeight:600,marginBottom:6}}>
+            Berkas Undangan <span style={{color:"#94a3b8",fontWeight:400}}>(Opsional)</span>
+          </label>
+          {form.undanganFile
+            ?<div style={{background:"#f0fdf4",borderRadius:10,padding:11,border:"1.5px solid #86efac"}}>
+              {form._undanganFromAI&&<div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8,padding:"5px 8px",background:"linear-gradient(90deg,#ede9fe,#ddd6fe)",borderRadius:7,fontSize:13,fontWeight:700,color:"#5b21b6"}}>
+                <span>🤖</span> Berkas ini otomatis tersimpan dari AI Auto-Isi
+              </div>}
+              <div style={{display:"flex",alignItems:"center",gap:8,background:"white",borderRadius:8,padding:"8px 10px",border:"1px solid #bbf7d0",marginBottom:7}}>
+                <span style={{fontSize:18,flexShrink:0}}>{form.undanganNama?.match(/\.(jpg|jpeg|png|webp)$/i)?"🖼️":"📄"}</span>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:12,fontWeight:700,color:"#15803d",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{form.undanganNama||"Berkas Undangan"}</div>
+                  <div style={{fontSize:12,color:"#64748b",marginTop:1}}>✓ Siap diunggah bersama jadwal</div>
+                </div>
+              </div>
+              <div style={{display:"flex",gap:6}}>
+                <FormUndanganUpload label="🔄 Ganti File" compact onFile={(file,name,b64)=>{setForm(p=>({...p,undanganFile:b64,undanganNama:name,_undanganFromAI:false}));}}/>
+                <button type="button" onClick={()=>setForm(p=>({...p,undanganFile:null,undanganNama:"",_undanganFromAI:false}))}
+                  style={{flex:1,padding:"7px",borderRadius:8,border:"1.5px solid #fca5a5",background:"white",color:"#ef4444",cursor:"pointer",fontSize:12,fontWeight:700}}>
+                  Hapus Berkas
+                </button>
+              </div>
+            </div>
+            :<FormUndanganUpload onFile={(file,name,b64)=>{setForm(p=>({...p,undanganFile:b64,undanganNama:name,_undanganFromAI:false}));}}/>
+          }
+    </div>
+  ) : null;
   return(
     <div style={{background:"white",borderRadius:12,padding:isMobile?"14px":"24px",
       boxShadow:"0 2px 12px rgba(0,0,0,0.07)",border:"1.5px solid "+GOLD2}}>
@@ -4245,34 +4329,7 @@ const fld=(k,l,type="text",full=false)=>(
             style={{width:"100%",padding:"10px 12px",borderRadius:9,border:"1.5px solid #e2e8f0",
               color:"#1e293b",resize:"vertical",background:"white",fontSize:14,boxSizing:"border-box"}}/>
         </div>
-        {/* Upload Undangan - hanya admin_rk */}
-        {canUploadUndangan&&<div style={{marginBottom:16}}>
-          <label style={{display:"block",fontSize:12,color:"#475569",fontWeight:600,marginBottom:6}}>
-            Berkas Undangan <span style={{color:"#94a3b8",fontWeight:400}}>(Opsional)</span>
-          </label>
-          {form.undanganFile
-            ?<div style={{background:"#f0fdf4",borderRadius:10,padding:11,border:"1.5px solid #86efac"}}>
-              {form._undanganFromAI&&<div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8,padding:"5px 8px",background:"linear-gradient(90deg,#ede9fe,#ddd6fe)",borderRadius:7,fontSize:13,fontWeight:700,color:"#5b21b6"}}>
-                <span>🤖</span> Berkas ini otomatis tersimpan dari AI Auto-Isi
-              </div>}
-              <div style={{display:"flex",alignItems:"center",gap:8,background:"white",borderRadius:8,padding:"8px 10px",border:"1px solid #bbf7d0",marginBottom:7}}>
-                <span style={{fontSize:18,flexShrink:0}}>{form.undanganNama?.match(/\.(jpg|jpeg|png|webp)$/i)?"🖼️":"📄"}</span>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:12,fontWeight:700,color:"#15803d",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{form.undanganNama||"Berkas Undangan"}</div>
-                  <div style={{fontSize:12,color:"#64748b",marginTop:1}}>✓ Siap diunggah bersama jadwal</div>
-                </div>
-              </div>
-              <div style={{display:"flex",gap:6}}>
-                <FormUndanganUpload label="🔄 Ganti File" compact onFile={(file,name,b64)=>{setForm(p=>({...p,undanganFile:b64,undanganNama:name,_undanganFromAI:false}));}}/>
-                <button type="button" onClick={()=>setForm(p=>({...p,undanganFile:null,undanganNama:"",_undanganFromAI:false}))}
-                  style={{flex:1,padding:"7px",borderRadius:8,border:"1.5px solid #fca5a5",background:"white",color:"#ef4444",cursor:"pointer",fontSize:12,fontWeight:700}}>
-                  Hapus Berkas
-                </button>
-              </div>
-            </div>
-            :<FormUndanganUpload onFile={(file,name,b64)=>{setForm(p=>({...p,undanganFile:b64,undanganNama:name,_undanganFromAI:false}));}}/>
-          }
-        </div>}
+        {blokUndangan}
         <div style={{display:"flex",gap:10}}>
           <button type="button" onClick={onCancel}
             style={{flex:1,padding:"12px",borderRadius:10,border:"1.5px solid #e2e8f0",
@@ -4329,6 +4386,7 @@ const fld=(k,l,type="text",full=false)=>(
           <textarea value={form.catatan||""} onChange={e=>setForm(p=>({...p,catatan:e.target.value}))} rows={2}
             style={{width:"100%",padding:"10px 12px",borderRadius:9,border:"1.5px solid #e2e8f0",color:"#1e293b",resize:"vertical",background:"white",fontSize:14,boxSizing:"border-box"}}/>
         </div>
+        {blokUndangan}
         {/* Alasan wajib — hanya untuk usulan perubahan jadwal terbit */}
         {usulanMode&&<div style={{marginBottom:12,borderRadius:10,border:"1.5px solid #BFDBFE",overflow:"hidden"}}>
           <div style={{background:"#EFF6FF",padding:"8px 12px",fontSize:12,fontWeight:800,color:"#1D4ED8"}}>
@@ -5851,6 +5909,9 @@ function UsulanEditKasubbag({ev,upd,showT,askConfirm,rejectTexts,setRT,user}){
           const catatan=(rejectTexts[ev.id+"_kass_edit"]||"").trim();
           if(!catatan){showT("Tulis alasan penolakan dulu","warn");return;}
           askConfirm("Tolak Usulan Perubahan?","Usulan dibuang dan jadwal tetap tayang apa adanya. Admin RK dapat mengajukan usulan baru.",()=>{
+            // Berkas yang terlanjur diunggah untuk usulan ini jadi yatim
+            // begitu usulannya dibuang — ikut dibersihkan.
+            buangBerkasUsulan((ev.usulanEdit||{}).undanganFile,ev.undanganFile);
             upd(ev.id,{alurEdit:null,usulanEdit:null,alasanEdit:"",catatanEditKasubbag:catatan,catatanEditKabag:""});
             const _pengusul=loadUsers().find(u=>u.username===(ev.usulanEditOleh||ev.submittedBy));
             if(_pengusul?.noWA)sendWA({to:_pengusul.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,
@@ -5896,6 +5957,9 @@ function UsulanEditKabag({ev,upd,showT,askConfirm,rejectTexts,setRT,user}){
               :"Data jadwal akan diperbarui dan langsung tayang dengan nilai baru.",
             ()=>{
               const patch={...usulan,alurEdit:null,usulanEdit:null,alasanEdit:"",catatanEditKasubbag:"",catatanEditKabag:""};
+              // Berkas undangan lama tidak lagi dirujuk siapa pun begitu usulan
+              // berlaku. Dibuang agar tidak menumpuk di penyimpanan.
+              buangBerkasUsulan(ev.undanganFile,usulan.undanganFile);
               if(waktuBerubah){
                 patch.statusWK=null;patch.statusWWK=null;
                 patch.perwakilanWK="";patch.perwakilanWWK="";
@@ -5932,6 +5996,7 @@ function UsulanEditKabag({ev,upd,showT,askConfirm,rejectTexts,setRT,user}){
           const alasan=(rejectTexts[ev.id+"_kabag_edit"]||"").trim();
           if(!alasan){showT("Tulis alasan penolakan dulu","warn");return;}
           askConfirm("Tolak Usulan Perubahan?","Usulan dibuang dan jadwal tetap tayang apa adanya. Admin RK dapat mengajukan usulan baru.",()=>{
+            buangBerkasUsulan((ev.usulanEdit||{}).undanganFile,ev.undanganFile);
             upd(ev.id,{alurEdit:null,usulanEdit:null,alasanEdit:"",catatanEditKabag:alasan,catatanEditKasubbag:""});
             const _pengusul=loadUsers().find(u=>u.username===(ev.usulanEditOleh||ev.submittedBy));
             if(_pengusul?.noWA)sendWA({to:_pengusul.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,
@@ -7738,6 +7803,8 @@ const submit = async () => {
 
     if(editId!==null){
       const evSebelum=events.find(e=>e.id===editId);
+      // Berkas undangan yang digantikan tidak lagi dirujuk jadwal ini.
+      buangBerkasUsulan(evSebelum&&evSebelum.undanganFile,formDataToSave.undanganFile);
       setEvents(p=>{const next=p.map(e=>e.id===editId?{...e,...formDataToSave}:e);const u=next.find(e=>e.id===editId);if(u)dbUpsert(u).catch(console.error);return next;});
       if(evSebelum?.alur==="ditolak"){
         upd(editId,{alur:"menunggu_kasubbag",catatanTolak:"",_requiresEdit:false});
@@ -7962,13 +8029,38 @@ const TH={
 
   // ==================== LOGIN ====================
   if(!user){
+    // Ikon garis, bukan emoji. Emoji tampil berbeda-beda di tiap perangkat dan
+    // membuat panel ini terasa seadanya; SVG tampil sama persis di mana pun.
+    const Glif=({d,size=16})=>(
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
+        style={{display:"block",flexShrink:0}}>
+        <path d={d}/>
+      </svg>
+    );
+    const ICON={
+      approval:"M9 11l3 3 8-8M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9",
+      ai:"M12 3v3M12 18v3M3 12h3M18 12h3M7.8 7.8 5.6 5.6M18.4 18.4l-2.2-2.2M16.2 7.8l2.2-2.2M5.6 18.4l2.2-2.2M12 8.5A3.5 3.5 0 1 0 12 15.5 3.5 3.5 0 1 0 12 8.5",
+      chart:"M4 20V10M10 20V4M16 20v-7M22 20H2",
+      clock:"M12 7v5l3.5 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0",
+      bell:"M18 9a6 6 0 1 0-12 0c0 4-2 5-2 7h16c0-2-2-3-2-7M10.5 20a2 2 0 0 0 3 0",
+      shield:"M12 3l7.5 3v5.5c0 4.6-3.1 8.4-7.5 9.5-4.4-1.1-7.5-4.9-7.5-9.5V6L12 3zM9.2 12.2l2 2 3.6-3.6",
+    };
     const features=[
-      ["📋","Approval Berjenjang","Staf → Kasubbag → Kabag"],
-      ["🤖","AI Auto-Isi","Scan undangan, form terisi otomatis"],
-      ["📊","Briefing & Statistik","Ringkasan pagi + rekap kinerja tim"],
-      ["⏱️","Timeline Realtime","Jadwal visual dengan penanda waktu"],
-      ["🔔","Notifikasi WA & Push","Update instan ke seluruh tim"],
-      ["🔐","Keamanan Berlapis","Biometrik, sesi otomatis, anti brute-force"],
+      [ICON.approval,"Approval Berjenjang","Admin RK → Kasubbag → Kabag, lengkap dengan jejak audit"],
+      [ICON.ai,"AI Auto-Isi","Pindai undangan, formulir terisi sendiri"],
+      [ICON.chart,"Briefing & Statistik","Ringkasan pagi dan rekap kinerja tim"],
+      [ICON.clock,"Linimasa Langsung","Jadwal visual dengan penanda waktu berjalan"],
+      [ICON.bell,"Notifikasi WA & PWA","Kabar sampai ke ponsel seluruh tim"],
+      [ICON.shield,"Keamanan Berlapis","Biometrik, sesi otomatis, anti brute-force"],
+    ];
+
+    // Tautan layanan publik — tidak perlu akun.
+    const layananPublik=[
+      {href:"/tamu",label:"Permohonan Audiensi",desc:"Ajukan pertemuan dengan pimpinan",
+       d:"M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M19 8v6M22 11h-6"},
+      {href:"/pinjamruangan",label:"Peminjaman Ruangan",desc:"Pesan ruang rapat Pemkot",
+       d:"M3 21h18M5 21V7l7-4 7 4v14M9 21v-5h6v5M9 11h.01M15 11h.01"},
     ];
 
     // Warna tema
@@ -8003,6 +8095,9 @@ const TH={
         .login-btn-outline{background:transparent;border:1.5px solid hsla(215,20%,60%,0.25);color:${MUTED};font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;transition:all 0.2s;}
         .login-btn-outline:hover{border-color:hsla(42,78%,55%,0.4);color:${FG};}
         .feat-item{animation:fadeUp 0.6s ease both;}
+        .layanan-link:hover,.layanan-link:focus-visible{background:hsla(42,78%,55%,0.14)!important;border-color:hsla(42,78%,55%,0.45)!important;transform:translateY(-1px);}
+        .layanan-link:focus-visible{outline:2px solid hsl(42,78%,55%);outline-offset:2px;}
+        @media (prefers-reduced-motion:reduce){.feat-item,.login-card{animation:none!important}.layanan-link:hover{transform:none!important}}
         .login-card{animation:slideRight 0.6s ease both;}
       `}</style>
 
@@ -8022,7 +8117,23 @@ const TH={
             </div>
           </div>
           <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
-            {features.map(([ic,t])=><span key={t} style={{background:"hsla(42,78%,55%,0.12)",border:"1px solid hsla(42,78%,55%,0.3)",borderRadius:20,padding:"3px 10px",fontSize:12,color:GOLD2,fontWeight:700}}>{ic} {t}</span>)}
+            {features.map(([ic,t])=><span key={t} style={{background:"hsla(42,78%,55%,0.12)",border:"1px solid hsla(42,78%,55%,0.3)",borderRadius:20,padding:"4px 11px",fontSize:12,color:GOLD2,fontWeight:700,display:"inline-flex",alignItems:"center",gap:5}}><Glif d={ic} size={13}/>{t}</span>)}
+          </div>
+          {/* Layanan publik — tidak perlu akun */}
+          <div style={{marginTop:14,display:"flex",flexDirection:"column",gap:7}}>
+            {layananPublik.map(l=>(
+              <a key={l.href} href={l.href} className="layanan-link"
+                style={{display:"flex",alignItems:"center",gap:10,padding:"11px 13px",borderRadius:11,
+                  background:"hsla(42,78%,55%,0.06)",border:"1px solid hsla(42,78%,55%,0.22)",
+                  textDecoration:"none",transition:"all 0.18s"}}>
+                <span style={{color:GOLD2,display:"flex"}}><Glif d={l.d} size={18}/></span>
+                <span style={{minWidth:0}}>
+                  <span style={{display:"block",color:FG,fontSize:12.5,fontWeight:700,lineHeight:1.25}}>{l.label}</span>
+                  <span style={{display:"block",color:MUTED,fontSize:11.5,lineHeight:1.35,marginTop:1}}>{l.desc}</span>
+                </span>
+                <span style={{marginLeft:"auto",color:GOLD2,fontSize:15,lineHeight:1}}>&rsaquo;</span>
+              </a>
+            ))}
           </div>
         </div>
 
@@ -8084,18 +8195,46 @@ const TH={
                 <div style={{color:FG,fontSize:17,fontWeight:800}}>Komunikasi Pimpinan</div>
               </div>
             </div>
-            <div style={{width:40,height:3,background:"linear-gradient(90deg,"+GOLD2+","+GOLD_LIGHT+")",borderRadius:3,marginBottom:20}}/>
-            <div style={{color:MUTED,fontSize:12.5,lineHeight:1.8,marginBottom:28}}>
-              Sistem Informasi Jadwal Kegiatan Pimpinan Daerah Kota Tarakan. Mengelola agenda, approval workflow, dan koordinasi tim Protokol dan Komunikasi Pimpinan secara terpadu.
+            <div style={{width:40,height:3,background:"linear-gradient(90deg,"+GOLD2+","+GOLD_LIGHT+")",borderRadius:3,marginBottom:18}}/>
+
+            {/* Jam berjalan — penanda paling langsung bahwa sistem ini hidup */}
+            <div style={{padding:"12px 16px",borderRadius:12,background:"hsla(215,25%,20%,0.45)",border:"1px solid "+BORDER,marginBottom:20}}>
+              <JamWITA color={FG} muted={MUTED}/>
+            </div>
+
+            <div style={{color:MUTED,fontSize:12.5,lineHeight:1.8,marginBottom:24}}>
+              Sistem informasi jadwal kegiatan pimpinan daerah Kota Tarakan — mengelola agenda, persetujuan berjenjang, dan koordinasi tim Protokol serta Komunikasi Pimpinan dalam satu tempat.
             </div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px 16px"}}>
               {features.map(([ic,t,d],i)=><div key={t} className="feat-item" style={{display:"flex",alignItems:"flex-start",gap:10,animationDelay:(i*0.06)+"s"}}>
-                <div style={{width:30,height:30,borderRadius:8,background:"hsla(42,78%,55%,0.1)",border:"1px solid hsla(42,78%,55%,0.18)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,flexShrink:0,marginTop:1}}>{ic}</div>
+                <div style={{width:32,height:32,borderRadius:9,background:"hsla(42,78%,55%,0.1)",border:"1px solid hsla(42,78%,55%,0.2)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:1}}><Glif d={ic} size={16}/></div>
                 <div><div style={{color:FG,fontSize:12,fontWeight:700,lineHeight:1.3}}>{t}</div><div style={{color:MUTED,fontSize:12,lineHeight:1.4,marginTop:1}}>{d}</div></div>
               </div>)}
             </div>
+
+            {/* Layanan publik — tidak perlu akun */}
+            <div style={{marginTop:26,paddingTop:20,borderTop:"1px solid "+BORDER}}>
+              <div style={{color:MUTED,fontSize:11,letterSpacing:1.6,textTransform:"uppercase",fontWeight:700,marginBottom:10}}>
+                Layanan Publik &middot; Tanpa Akun
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                {layananPublik.map(l=>(
+                  <a key={l.href} href={l.href} className="layanan-link"
+                    style={{display:"flex",alignItems:"center",gap:10,padding:"11px 13px",borderRadius:11,
+                      background:"hsla(42,78%,55%,0.06)",border:"1px solid hsla(42,78%,55%,0.22)",
+                      textDecoration:"none",transition:"all 0.18s"}}>
+                    <span style={{color:GOLD2,display:"flex"}}><Glif d={l.d} size={18}/></span>
+                    <span style={{minWidth:0}}>
+                      <span style={{display:"block",color:FG,fontSize:12.5,fontWeight:700,lineHeight:1.25}}>{l.label}</span>
+                      <span style={{display:"block",color:MUTED,fontSize:11.5,lineHeight:1.35,marginTop:1}}>{l.desc}</span>
+                    </span>
+                    <span style={{marginLeft:"auto",color:GOLD2,fontSize:15,lineHeight:1}}>&rsaquo;</span>
+                  </a>
+                ))}
+              </div>
+            </div>
           </div>
-          <div style={{color:MUTED,fontSize:12,letterSpacing:1.5,opacity:0.5,marginTop:20}}>v{import.meta.env.VITE_APP_VERSION || "1.0.0"} (Build {import.meta.env.VITE_BUILD_TIME}) · Prokopim Tarakan</div>
+          <div style={{color:MUTED,fontSize:12,letterSpacing:1.5,opacity:0.5,marginTop:20}}>v{import.meta.env.VITE_APP_VERSION || "1.0.0"} (Build {import.meta.env.VITE_BUILD_TIME}) &middot; Prokopim Tarakan</div>
         </div>
 
         {/* Right panel login */}

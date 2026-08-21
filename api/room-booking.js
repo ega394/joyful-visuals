@@ -104,6 +104,51 @@ async function sendPushToManagers({ title, body, url, tag }) {
 }
 
 // ── Booking code (1 pengajuan = 1 kode untuk banyak slot) ─────
+// ── Pengaman halaman publik /pinjamruangan ──────────────────
+// Formulir terbuka tanpa login. Tanpa penahan, satu orang bisa mengunci
+// banyak slot sekaligus atau membanjiri antrian pengelola. Bersandar pada
+// basis data, bukan memori proses, supaya tetap berlaku di instance baru.
+const JEDA_KIRIM_MENIT = 10;
+const MAKS_PENGAJUAN_AKTIF = 3;
+
+// 0812…, 62812…, dan +62 812… harus dikenali sebagai orang yang sama.
+function normalWA(v) {
+  let d = String(v || "").replace(/\D/g, "");
+  if (d.slice(0, 2) === "62") d = "0" + d.slice(2);
+  else if (d.slice(0, 1) === "8") d = "0" + d;
+  return d;
+}
+
+async function pastikanTidakSpam(picWA) {
+  const wa = normalWA(picWA);
+  if (wa.length < 8) return { error: "Nomor WhatsApp PIC tidak valid." };
+
+  // Cocokkan 9 digit terakhir agar tahan beda format penulisan.
+  const ekor = wa.slice(-9);
+  const rows = await sbGet(
+    `room_bookings?pic_wa=like.*${encodeURIComponent(ekor)}*` +
+    `&select=created_at,status,booking_code&order=created_at.desc&limit=200`
+  );
+  if (!rows || !rows.length) return null;
+
+  const terakhir = rows[0]?.created_at ? new Date(rows[0].created_at).getTime() : 0;
+  const selisihMenit = (Date.now() - terakhir) / 60000;
+  if (terakhir && selisihMenit < JEDA_KIRIM_MENIT) {
+    const sisa = Math.max(1, Math.ceil(JEDA_KIRIM_MENIT - selisihMenit));
+    return { error: `Pengajuan Anda sebelumnya baru saja masuk. Mohon tunggu ${sisa} menit lagi sebelum mengajukan yang baru.` };
+  }
+
+  // Satu pengajuan bisa berisi banyak baris slot, jadi yang dihitung adalah
+  // jumlah kode pengajuan yang berbeda — bukan jumlah barisnya.
+  const kodeAktif = new Set(
+    rows.filter(r => r.status === "Pending").map(r => r.booking_code).filter(Boolean)
+  );
+  if (kodeAktif.size >= MAKS_PENGAJUAN_AKTIF) {
+    return { error: `Masih ada ${kodeAktif.size} pengajuan Anda yang menunggu keputusan. Mohon tunggu sampai diputuskan sebelum mengajukan yang baru.` };
+  }
+  return null;
+}
+
 function genBookingCode() {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let s = "";
@@ -312,6 +357,14 @@ export default async function handler(req, res) {
         if (v === undefined || v === null || v === "")
           return res.status(400).json({ error: `Field '${k}' wajib diisi` });
       }
+
+      // Kolom umpan: tidak terlihat manusia, hanya bot yang mengisinya.
+      // Dibalas seolah berhasil agar bot tidak belajar menghindar.
+      if (String(body?.website || body?.alamat_web || "").trim()) {
+        return res.status(200).json({ ok: true, booking_code: null });
+      }
+      const spam = await pastikanTidakSpam(pic_wa);
+      if (spam) return res.status(429).json(spam);
       if (!slots || !slots.length)
         return res.status(400).json({ error: "Minimal pilih satu tanggal & sesi." });
       if (slots.length > 60)
