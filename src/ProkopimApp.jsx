@@ -2665,10 +2665,25 @@ function BiometricTab({user,showT}){
 }
 
 // ==================== INPUT & DRAFT PROGRESS VIEW (Admin RK / Staf) ====================
+// Jadwal yang menuntut tindakan Admin RK: draft yang belum dikirim, dan yang
+// dikembalikan untuk diperbaiki. Inilah yang paling sering dicari sehari-hari.
+const _perluTindakan=e=>e.alur==="draft"||e.alur==="ditolak";
+
 function DraftProgressView({events,user,upd,showT,askConfirm,setTab,isMobile,setForm,setEditId,deleteAndSync,onAddNew}){
   const NAVY="#0A1628",GOLD="#C9A84C";
   // sendingId: id event yang sedang di-"Kirim ke Kasubbag" (cegah dobel klik)
   const[sendingId,setSendingId]=React.useState(null);
+  const[q,setQ]=React.useState("");
+  const[filter,setFilter]=React.useState("perlu");
+  // Kartu tertutup secara bawaan. `null` berarti pengguna belum menyentuh
+  // apa pun — saat itu kartu yang perlu tindakan terbuka sendiri. Begitu
+  // pengguna mengetuk satu kartu, himpunan ini yang berlaku sepenuhnya.
+  const[openSet,setOpenSet]=React.useState(null);
+  // Polling ditahan HANYA setelah pengguna sengaja membuka kartu. Kalau
+  // ditahan sejak awal karena kartu "perlu tindakan" terbuka otomatis,
+  // data tidak akan pernah menyegar selama pekerjaan belum bersih.
+  useHoldRefresh(openSet!==null&&openSet.size>0);
+
   const mine=events.filter(e=>e.submittedBy===user?.username);
   const steps=[
     {key:"draft",label:"Draft",color:"#64748b"},
@@ -2678,7 +2693,56 @@ function DraftProgressView({events,user,upd,showT,askConfirm,setTab,isMobile,set
   ];
   const getStep=(alur)=>steps.findIndex(s=>s.key===alur);
   const fmt=d=>{if(!d)return"";const[y,m,dd]=d.split("-");const M=["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];return dd+" "+M[parseInt(m)-1]+" "+y;};
-  
+
+  const cocokFilter=(e,f)=>
+    f==="perlu"   ? _perluTindakan(e)
+  : f==="menunggu"? e.alur==="menunggu_kasubbag"||e.alur==="menunggu_kabag"
+  : f==="tayang"  ? e.alur==="disetujui"
+  : true;
+
+  const jml={
+    perlu:    mine.filter(e=>cocokFilter(e,"perlu")).length,
+    menunggu: mine.filter(e=>cocokFilter(e,"menunggu")).length,
+    tayang:   mine.filter(e=>cocokFilter(e,"tayang")).length,
+    semua:    mine.length,
+  };
+
+  // Bawaannya "Perlu Tindakan". Bila kebetulan kosong, jatuh ke "Semua" agar
+  // halaman tidak terlihat seperti rusak saat pekerjaan sedang bersih.
+  const filterAktif=(filter==="perlu"&&jml.perlu===0)?"semua":filter;
+
+  const cari=q.trim().toLowerCase();
+  const terlihat=mine.filter(e=>{
+    if(!cocokFilter(e,filterAktif))return false;
+    if(!cari)return true;
+    return [e.namaAcara,e.penyelenggara,e.lokasi,e.buktiUndangan]
+      .some(v=>String(v||"").toLowerCase().includes(cari));
+  });
+
+  // Urutan: yang perlu tindakan dulu, lalu jadwal mendatang dari yang terdekat,
+  // baru yang sudah lewat dari yang terbaru. Sebelumnya murni tanggal menurun,
+  // sehingga acara terjauh justru menempati puncak daftar.
+  const hariIni=todayStr();
+  const urut=(a,b)=>{
+    const pa=_perluTindakan(a)?0:1, pb=_perluTindakan(b)?0:1;
+    if(pa!==pb)return pa-pb;
+    const la=(a.tanggal||"")<hariIni?1:0, lb=(b.tanggal||"")<hariIni?1:0;
+    if(la!==lb)return la-lb;
+    return la
+      ? (b.tanggal||"").localeCompare(a.tanggal||"")   // lampau: terbaru dulu
+      : (a.tanggal||"").localeCompare(b.tanggal||"");  // mendatang: terdekat dulu
+  };
+  const daftar=[...terlihat].sort(urut);
+
+  // Sebelum pengguna menyentuh apa pun, yang terbuka adalah kartu yang
+  // menuntut tindakan. Sesudahnya, murni pilihan pengguna.
+  const terbukaSet=openSet??new Set(mine.filter(_perluTindakan).map(e=>e.id));
+  const toggleKartu=id=>{
+    const s=new Set(terbukaSet);
+    if(s.has(id))s.delete(id);else s.add(id);
+    setOpenSet(s);
+  };
+
   if(mine.length===0)return (
     <div style={{padding:40,textAlign:"center",color:"#94a3b8",fontSize:14}}>
       <div style={{fontSize:32,marginBottom:12}}>📝</div>
@@ -2695,17 +2759,73 @@ function DraftProgressView({events,user,upd,showT,askConfirm,setTab,isMobile,set
           + Input Baru
         </button>
       </div>
-      
-      {mine.sort((a,b)=>b.tanggal?.localeCompare(a.tanggal||"")||0).map(ev=>{
+
+      {/* ── Cari & saring ── */}
+      <div style={{position:"relative",marginBottom:10}}>
+        <span style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",fontSize:14,color:"#94A3B8",pointerEvents:"none"}}>🔍</span>
+        <input
+          value={q} onChange={e=>setQ(e.target.value)}
+          placeholder="Cari nama acara, penyelenggara, lokasi, atau no. surat…"
+          style={{width:"100%",padding:"10px 34px 10px 34px",borderRadius:10,border:"1.5px solid #e2e8f0",
+            fontSize:13,color:"#1e293b",background:"white",boxSizing:"border-box"}}/>
+        {q&&<button onClick={()=>setQ("")} aria-label="Bersihkan pencarian"
+          style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",border:"none",background:"#f1f5f9",
+            borderRadius:"50%",width:20,height:20,cursor:"pointer",color:"#64748b",fontSize:12,lineHeight:1,padding:0}}>×</button>}
+      </div>
+
+      <div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap"}}>
+        {[{k:"perlu",l:"Perlu Tindakan",n:jml.perlu,c:"#DC2626"},
+          {k:"menunggu",l:"Menunggu",n:jml.menunggu,c:"#D97706"},
+          {k:"tayang",l:"Tayang",n:jml.tayang,c:"#16A34A"},
+          {k:"semua",l:"Semua",n:jml.semua,c:NAVY}].map(t=>{
+          const aktif=filterAktif===t.k;
+          return <button key={t.k} onClick={()=>{setFilter(t.k);setOpenSet(null);}}
+            style={{padding:"6px 11px",borderRadius:20,cursor:"pointer",fontSize:12,fontWeight:700,
+              border:"1.5px solid "+(aktif?t.c:"#e2e8f0"),background:aktif?t.c:"white",color:aktif?"white":"#475569"}}>
+            {t.l}
+            <span style={{marginLeft:5,opacity:aktif?0.85:0.6,fontWeight:800}}>{t.n}</span>
+          </button>;
+        })}
+      </div>
+
+      {daftar.length===0&&<div style={{textAlign:"center",padding:"36px 20px",color:"#94A3B8"}}>
+        <div style={{fontSize:30,marginBottom:8}}>{cari?"🔍":"✅"}</div>
+        <div style={{fontSize:13,fontWeight:600}}>
+          {cari?"Tidak ada jadwal yang cocok dengan pencarian":"Tidak ada jadwal pada kategori ini"}
+        </div>
+      </div>}
+
+      {daftar.map(ev=>{
         const stepIdx=getStep(ev.alur);
         const isDraft=ev.alur==="draft";
         const isDitolak=ev.alur==="ditolak";
         const isDisetujui=ev.alur==="disetujui";
+        // Yang menuntut tindakan terbuka sendiri; sisanya tertutup sampai
+        // diketuk, supaya daftar tetap pendek dan mudah ditelusuri.
+        const terbuka=terbukaSet.has(ev.id);
+        const statusRingkas=isDraft?{l:"Draft",bg:"#F1F5F9",c:"#475569"}
+          :isDitolak?{l:"Perlu Diperbaiki",bg:"#FEE2E2",c:"#991B1B"}
+          :isDisetujui?{l:ev.alurEdit?"Usulan Ubah":ev.alurHapus?"Minta Batal":"Tayang",bg:ev.alurEdit||ev.alurHapus?"#EFF6FF":"#D1FAE5",c:ev.alurEdit||ev.alurHapus?"#1D4ED8":"#065F46"}
+          :ev.alur==="menunggu_kabag"?{l:"Di Kabag",bg:"#EDE9FE",c:"#5B21B6"}
+          :{l:"Di Kasubbag",bg:"#FEF3C7",c:"#92400E"};
         return (
-          <div key={ev.id} style={{background:"white",borderRadius:14,padding:"14px 16px",marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,0.07)",border:"1.5px solid "+(isDitolak?"#fca5a5":isDraft?"#e2e8f0":isDisetujui?"#86efac":"#e2e8f0")}}>
-            <div style={{fontSize:13,fontWeight:700,color:"#0F2040",marginBottom:4}}>{ev.namaAcara}</div>
-            <div style={{fontSize:13,color:"#64748b",marginBottom:10}}>{fmt(ev.tanggal)} · {fmtJamWita(ev)} · {ev.penyelenggara}</div>
-            
+          <div key={ev.id} style={{background:"white",borderRadius:14,padding:terbuka?"14px 16px":"11px 14px",marginBottom:terbuka?14:8,boxShadow:"0 2px 8px rgba(0,0,0,0.07)",border:"1.5px solid "+(isDitolak?"#fca5a5":isDraft?"#e2e8f0":isDisetujui?"#86efac":"#e2e8f0")}}>
+            {/* Baris ringkas — selalu tampil, sekaligus tombol buka/tutup */}
+            <div onClick={()=>toggleKartu(ev.id)}
+              role="button" tabIndex={0} aria-expanded={terbuka}
+              onKeyDown={e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();toggleKartu(ev.id);}}}
+              style={{display:"flex",alignItems:"flex-start",gap:10,cursor:"pointer",marginBottom:terbuka?10:0}}>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:13,fontWeight:700,color:"#0F2040",marginBottom:3,overflowWrap:"anywhere"}}>{ev.namaAcara}</div>
+                <div style={{fontSize:12,color:"#64748b",overflowWrap:"anywhere"}}>{fmt(ev.tanggal)} · {fmtJamWita(ev)}{ev.penyelenggara?" · "+ev.penyelenggara:""}</div>
+              </div>
+              <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
+                <span style={{fontSize:11,fontWeight:800,padding:"3px 8px",borderRadius:20,background:statusRingkas.bg,color:statusRingkas.c,whiteSpace:"nowrap"}}>{statusRingkas.l}</span>
+                <span style={{fontSize:13,color:"#94A3B8",transform:terbuka?"rotate(90deg)":"none",transition:"transform 0.15s"}}>›</span>
+              </div>
+            </div>
+
+            {terbuka&&<>
             {!isDraft&&!isDitolak&&<div style={{display:"flex",alignItems:"center",gap:0,marginBottom:12}}>
               {steps.map((s,i)=>(
                 <React.Fragment key={s.key}>
@@ -2752,6 +2872,7 @@ function DraftProgressView({events,user,upd,showT,askConfirm,setTab,isMobile,set
   setTimeout(()=>setSendingId(null),1500);
 }} style={{padding:"7px 14px",borderRadius:8,border:"none",background:sendingId===ev.id?"#94A3B8":NAVY,color:"white",cursor:sendingId===ev.id?"default":"pointer",fontSize:12,fontWeight:700,opacity:sendingId===ev.id?0.7:1}}>{sendingId===ev.id?"Mengirim…":"Kirim ke Kasubbag →"}</button>}
             </div>
+            </>}
           </div>
         );
       })}
