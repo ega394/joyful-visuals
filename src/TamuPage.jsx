@@ -161,6 +161,10 @@ export default function TamuPage() {
     needs_aksesibilitas: false,
     akses_options:       [],
     akses_detail:        "",
+    // Kolom umpan penangkal bot. Disembunyikan dari mata dan dari pembaca
+    // layar; manusia tidak akan pernah mengisinya. Bila terisi, server
+    // membuang kiriman itu diam-diam.
+    website:             "",
   };
   var [form, setForm] = useState(function() {
     try {
@@ -275,59 +279,10 @@ export default function TamuPage() {
     setStep("loading");
     announce("Mengirim permohonan. Mohon tunggu...");
 
-    // ── Konfigurasi Supabase (ikuti pola ProkopimApp) ────
-    var SUPA_URL = (typeof import.meta !== "undefined" && import.meta.env)
-      ? (import.meta.env.VITE_SUPABASE_URL || "")
-      : "";
-    var SUPA_KEY = (typeof import.meta !== "undefined" && import.meta.env)
-      ? (import.meta.env.VITE_SUPABASE_ANON_KEY || "")
-      : "";
-
-    if (!SUPA_URL || !SUPA_KEY) {
-      setStep("form");
-      setErrors({ _global: "Konfigurasi sistem belum lengkap. Silakan hubungi Admin Prokopim." });
-      announce("Pengiriman gagal. Konfigurasi sistem belum lengkap.");
-      return;
-    }
-
-    var headers = {
-      "Content-Type":  "application/json",
-      "apikey":        SUPA_KEY,
-      "Authorization": "Bearer " + SUPA_KEY,
-    };
-
     try {
       var noWaNormal = normalizePhone(form.phone);
 
-      // ── Step 1: Rate limit check ─────────────────────────
-      // Cek apakah nomor WA ini masih punya permohonan aktif
-      var checkUrl = SUPA_URL
-        + "/rest/v1/permohonan_tamu"
-        + "?no_wa=eq." + encodeURIComponent(noWaNormal)
-        + "&status=in.(\"pending_rk\",\"pending_kasubbag\",\"pending_kabag\",\"pending_pimpinan\")"
-        + "&select=id"
-        + "&limit=1";
-
-      var checkRes = await fetch(checkUrl, { headers: headers });
-
-      if (!checkRes.ok) {
-        var checkErr = await checkRes.json().catch(function() { return {}; });
-        throw new Error(checkErr.message || "Gagal memeriksa data. Coba lagi.");
-      }
-
-      var existing = await checkRes.json();
-
-      if (Array.isArray(existing) && existing.length > 0) {
-        setStep("form");
-        setErrors({
-          _global: "Nomor WhatsApp ini masih memiliki permohonan yang sedang diproses. " +
-                   "Harap tunggu konfirmasi dari Tim Protokol.",
-        });
-        announce("Pengiriman dibatalkan. Nomor WhatsApp masih memiliki permohonan aktif.");
-        return;
-      }
-
-      // ── Step 2: Siapkan aksesibilitas ────────────────────
+      // ── Step 1: Susun aksesibilitas ──────────────────────
       var aksesParts = AKSES_OPTIONS
         .filter(function(o) { return form.akses_options.includes(o.id); })
         .map(function(o)    { return o.label; });
@@ -338,7 +293,6 @@ export default function TamuPage() {
             : form.akses_detail.trim()) || null)
         : null;
 
-      // ── Step 3: Susun payload sesuai kolom tabel ─────────
       var pejabatOpt = PEJABAT_OPTIONS.find(function(o) { return o.id === form.tujuan_pejabat; });
       var pejabatLabel = pejabatOpt ? pejabatOpt.label : form.tujuan_pejabat;
 
@@ -348,7 +302,6 @@ export default function TamuPage() {
         no_wa:                  noWaNormal,
         tujuan_pejabat:         pejabatLabel,   // "Wali Kota" | "Wakil Wali Kota"
         maksud_keperluan:       form.purpose.trim(),
-        status:                 "pending_rk",   // intake masuk Admin RK dulu
         pesan:                  form.message.trim() || null,
         preferensi_tanggal:     form.preferred_date || null,
         preferensi_jam:         form.preferred_time || null,
@@ -356,43 +309,32 @@ export default function TamuPage() {
         detail_aksesibilitas:   aksesDetail,
       };
 
-      // ── Step 4: Insert ke Supabase ────────────────────────
-      var insertRes = await fetch(SUPA_URL + "/rest/v1/permohonan_tamu", {
+      // ── Step 2: Kirim lewat server ───────────────────────
+      // Halaman ini terbuka tanpa login. Sebelumnya penyimpanan dilakukan
+      // langsung dari browser ke Supabase, sehingga penahan pengiriman
+      // beruntun hanya ada di sisi tampilan dan mudah dilewati. Sekarang
+      // seluruhnya ditangani server: jeda antar pengajuan, batas permohonan
+      // yang masih berjalan, dan kolom umpan penangkal bot.
+      var kirimRes = await fetch("/api/guest?action=checkin", {
         method:  "POST",
-        headers: Object.assign({}, headers, {
-          "Prefer": "return=minimal",
-        }),
-        body: JSON.stringify(insertPayload),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(Object.assign({}, insertPayload, {
+          sumber:  "publik",
+          website: form.website || "",   // kolom umpan — manusia tak melihatnya
+        })),
       });
 
-      if (!insertRes.ok) {
-        var insertErr = await insertRes.json().catch(function() { return {}; });
-        var pgMsg    = insertErr.message || "";
-        var pgDetail = insertErr.details || "";
-        var pgHint   = insertErr.hint    || "";
-        var pgCode   = insertErr.code    || "";
-        // Tampilkan pesan MENTAH dari Supabase agar bisa didiagnosis
-        var rawErr = "[" + pgCode + "] " + pgMsg
-          + (pgDetail ? " | " + pgDetail : "")
-          + (pgHint   ? " | Hint: " + pgHint : "");
-        throw new Error(rawErr || "Gagal mengirim. HTTP " + insertRes.status);
+      var hasil = await kirimRes.json().catch(function() { return {}; });
+
+      if (!kirimRes.ok || hasil.error) {
+        var pesanTolak = hasil.error || ("Gagal mengirim. HTTP " + kirimRes.status);
+        setStep("form");
+        setErrors({ _global: pesanTolak });
+        announce("Pengiriman dibatalkan. " + pesanTolak);
+        return;
       }
 
-      var inserted = await insertRes.json().catch(function() { return [{}]; });
-      var row = Array.isArray(inserted) ? inserted[0] : inserted;
-
-      // ── Step 4b: Kirim WA konfirmasi (best-effort, tidak blokir sukses) ──
-      try {
-        await fetch("/api/guest?action=notify_new", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            nama: insertPayload.nama,
-            no_wa: noWaNormal,
-            tujuan_pejabat: pejabatLabel,
-          }),
-        });
-      } catch (_) { /* abaikan — konfirmasi WA bersifat tambahan */ }
+      var row = { id: hasil.id || null };
 
       // ── Step 5: Tampilkan sukses ──────────────────────────
       setResult({
@@ -573,6 +515,18 @@ function FormView({ form, setF, errors, touched, onBlur, onSubmit, loading, form
         aria-label="Formulir permohonan audiensi"
         style={{ padding:"24px 18px 20px" }}
       >
+        {/* Kolom umpan penangkal bot — tersembunyi dari mata dan pembaca layar,
+            dilewati saat menekan Tab. Bila terisi, server membuang kiriman. */}
+        <div aria-hidden="true" style={{ position:"absolute", left:"-9999px", width:1, height:1, overflow:"hidden" }}>
+          <label htmlFor="tamu-website">Jangan diisi</label>
+          <input
+            id="tamu-website" name="website" type="text"
+            tabIndex={-1} autoComplete="off"
+            value={form.website || ""}
+            onChange={function(e) { setForm(function(p) { return Object.assign({}, p, { website: e.target.value }); }); }}
+          />
+        </div>
+
         <InfoBox/>
 
         {/* Error global */}

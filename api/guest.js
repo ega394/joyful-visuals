@@ -21,6 +21,57 @@ function H(prefer) {
   return h;
 }
 
+// ── Pengaman halaman publik /tamu ────────────────────────────
+// Formulir ini terbuka tanpa login, jadi satu orang bisa menekan kirim
+// berkali-kali dan membanjiri antrian Admin RK. Tiga lapis penahan:
+//   1. jeda antar pengajuan dari nomor WA yang sama,
+//   2. batas permohonan yang masih berjalan per nomor,
+//   3. kolom umpan (honeypot) yang hanya terisi oleh bot.
+// Semua bersandar pada basis data, bukan memori proses, supaya tetap
+// berlaku meski Vercel menyalakan instance baru.
+var JEDA_KIRIM_MENIT = 10;
+var MAKS_PERMOHONAN_AKTIF = 3;
+var STATUS_AKTIF = ["pending_rk", "pending_kasubbag", "pending_kabag", "pending_pimpinan"];
+
+// 0812…, 62812…, dan +62 812… harus dikenali sebagai orang yang sama.
+function normalWA(v) {
+  var d = String(v || "").replace(/\D/g, "");
+  if (d.slice(0, 2) === "62") d = "0" + d.slice(2);
+  else if (d.slice(0, 1) === "8") d = "0" + d;
+  return d;
+}
+
+async function pastikanTidakSpam(noWA) {
+  var wa = normalWA(noWA);
+  if (wa.length < 8) throw new Error("Nomor WhatsApp tidak valid.");
+
+  // Cocokkan berdasarkan 9 digit terakhir agar tahan beda format penulisan.
+  var ekor = wa.slice(-9);
+  var rows = await sbGet(
+    "permohonan_tamu?no_wa=like.*" + encodeURIComponent(ekor) +
+    "&select=created_at,status&order=created_at.desc&limit=20"
+  );
+  if (!rows || !rows.length) return;
+
+  var terakhir = rows[0] && rows[0].created_at ? new Date(rows[0].created_at).getTime() : 0;
+  var selisihMenit = (Date.now() - terakhir) / 60000;
+  if (terakhir && selisihMenit < JEDA_KIRIM_MENIT) {
+    var sisa = Math.max(1, Math.ceil(JEDA_KIRIM_MENIT - selisihMenit));
+    throw new Error(
+      "Permohonan Anda sebelumnya baru saja masuk. Mohon tunggu " + sisa +
+      " menit lagi sebelum mengirim permohonan baru."
+    );
+  }
+
+  var aktif = rows.filter(function (r) { return STATUS_AKTIF.indexOf(r.status) !== -1; }).length;
+  if (aktif >= MAKS_PERMOHONAN_AKTIF) {
+    throw new Error(
+      "Masih ada " + aktif + " permohonan Anda yang sedang diproses. " +
+      "Mohon tunggu sampai permohonan tersebut selesai sebelum mengajukan yang baru."
+    );
+  }
+}
+
 async function sbGet(path) {
   var r = await fetch(SUPA_URL + "/rest/v1/" + path, { headers: H() });
   if (!r.ok) throw new Error(await r.text());
@@ -313,20 +364,38 @@ async function actionCheckin(body) {
   
   if (!nama || !no_wa || !body.maksud_keperluan) throw new Error("Field wajib belum lengkap");
 
+  // Kolom umpan: tidak terlihat manusia, hanya bot pengisi-otomatis yang
+  // mengisinya. Dibalas seolah berhasil agar bot tidak belajar menghindar.
+  if (String(body.website || body.alamat_web || "").trim()) {
+    return { ok: true, id: null };
+  }
+  await pastikanTidakSpam(no_wa);
+
+  var tujuan = body.tujuan_pejabat || "Wali Kota";
   var created = await sbPost({
     nama: nama,
     instansi: body.instansi || "-",
-    no_wa: no_wa,
-    tujuan_pejabat: body.tujuan_pejabat || "Wali Kota",
+    no_wa: normalWA(no_wa),
+    tujuan_pejabat: tujuan,
     maksud_keperluan: body.maksud_keperluan,
     status: "pending_rk", // Status awal baru
     pesan: body.pesan || null,
-    preferensi_tanggal: body.preferred_date || null,
-    preferensi_jam: body.preferred_time || null
+    preferensi_tanggal: body.preferensi_tanggal || body.preferred_date || null,
+    preferensi_jam: body.preferensi_jam || body.preferred_time || null,
+    butuh_aksesibilitas: body.butuh_aksesibilitas || false,
+    detail_aksesibilitas: body.detail_aksesibilitas || null
   });
 
-  await sendWA(no_wa, "✅ *Tamu Terdaftar*\n\nYth. *" + nama + "*,\nPermohonan Anda telah diterima dan sedang diperiksa oleh *Admin RK*." + WA_FOOTER);
-  return { ok: true, id: created[0]?.id };
+  // Formulir publik memakai sapaan audiensi; pemanggil lain memakai sapaan
+  // pendaftaran tamu seperti sebelumnya.
+  var pesanWA = body.sumber === "publik"
+    ? "✅ *Permohonan Audiensi Diterima*\n\nYth. *" + nama + "*,\n" +
+      "Permohonan audiensi Anda kepada *" + tujuan + "* telah kami terima dan sedang diproses oleh Tim Protokol.\n\n" +
+      "Anda akan menerima pemberitahuan melalui WhatsApp ini begitu ada keputusan dan penjadwalan dari pimpinan."
+    : "✅ *Tamu Terdaftar*\n\nYth. *" + nama + "*,\nPermohonan Anda telah diterima dan sedang diperiksa oleh *Admin RK*.";
+  await sendWA(no_wa, pesanWA + WA_FOOTER);
+
+  return { ok: true, id: created[0]?.id, nama: nama, tujuan_pejabat: tujuan };
 }
 
 // 3. POST: verify_rk (Admin RK -> Kasubbag)
