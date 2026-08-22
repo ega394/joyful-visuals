@@ -362,23 +362,39 @@ export default function UndanganGenerator({ isMobile, showT }) {
     frame.setAttribute("aria-hidden", "true");
     frame.style.cssText =
       "position:fixed; left:-20000px; top:0; width:210mm; height:297mm; border:0; background:white;";
-    frame.onload = async () => {
+
+    let beres = false;
+    const selesai = (fn, arg) => { if (!beres) { beres = true; clearTimeout(pengaman); fn(arg); } };
+    const pengaman = setTimeout(
+      () => selesai(reject, new Error("Dokumen cetak terlalu lama disiapkan.")), 15000);
+
+    // Menempelkan iframe ke DOM memicu SATU event load untuk dokumen kosong
+    // bawaan (about:blank) sebelum srcdoc termuat. Tanpa penjagaan ini,
+    // prosesnya lanjut memakai dokumen kosong itu: teks sempat terparse tetapi
+    // gambar kop Garuda belum termuat, sehingga hilang dari hasil cetak.
+    frame.addEventListener("load", async () => {
+      if (beres) return;
+      const doc = frame.contentDocument;
+      if (!doc || !doc.getElementById("dokumen-cetak")) return;   // masih about:blank
       try {
-        const doc = frame.contentDocument;
-        // Tunggu seluruh gambar (kop garuda, stempel, tanda tangan) benar-benar
-        // termuat — kalau tidak, hasilnya bisa terpotong atau kosong.
+        // Tunggu seluruh gambar (kop Garuda, stempel, tanda tangan) benar-benar
+        // termuat — kalau tidak, hasilnya tercetak tanpa gambar.
         await Promise.all(Array.from(doc.images).map(img =>
-          img.complete ? Promise.resolve()
-            : new Promise(r => { img.onload = r; img.onerror = r; })
+          img.complete ? Promise.resolve() : new Promise(r => {
+            // Memakai addEventListener, bukan img.onload/onerror, supaya
+            // penangan pada atribut onerror bawaan dokumen — yang
+            // menyembunyikan gambar gagal muat — tidak ikut tertimpa.
+            img.addEventListener("load",  r, { once: true });
+            img.addEventListener("error", r, { once: true });
+          })
         ));
         if (doc.fonts && doc.fonts.ready) { try { await doc.fonts.ready; } catch { /* abaikan */ } }
         await new Promise(r => setTimeout(r, 120));
-        resolve(frame);
-      } catch (e) { reject(e); }
-    };
-    frame.onerror = () => reject(new Error("Gagal menyiapkan dokumen cetak."));
+        selesai(resolve, frame);
+      } catch (e) { selesai(reject, e); }
+    });
+
     document.body.appendChild(frame);
-    // srcdoc dipasang setelah menempel ke DOM agar onload pasti tertangkap.
     frame.srcdoc = buildDocHTML();
   });
 
