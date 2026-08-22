@@ -49,19 +49,10 @@ const CSS_ASLI = `
   .footer-alamat { position: absolute; bottom: 20mm; left: 0; right: 0; text-align: center; font-size: 10pt; line-height: 1.3; }
   .teks-multibaris { white-space: pre-wrap; }
   .page-break { page-break-before: always; }
+  /* Setiap lembar A4 memulai halaman cetak baru. */
+  .pecah-halaman { page-break-before: always; break-before: page; }
   .tte-marker { color: #0056b3; font-family: monospace !important; background: #e9ecef; padding: 2px 5px; border-radius: 3px; font-weight: bold; }
 `;
-
-function loadHtml2Pdf() {
-  return new Promise((resolve, reject) => {
-    if (window.html2pdf) { resolve(window.html2pdf); return; }
-    const s = document.createElement("script");
-    s.src = "https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js";
-    s.onload = () => resolve(window.html2pdf);
-    s.onerror = () => reject(new Error("Gagal memuat html2pdf.js"));
-    document.head.appendChild(s);
-  });
-}
 
 const formatTanggalIndo = (dateStr) => {
   if (!dateStr) return "";
@@ -172,7 +163,7 @@ export default function UndanganGenerator({ isMobile, showT }) {
     let halamanLampiran = "";
     if (form.pilihanCetak !== "utama") {
       halamanLampiran = `
-        <div class="halaman-a4 html2pdf__page-break">
+        <div class="halaman-a4 pecah-halaman">
           <div style="margin-bottom:15px;">LAMPIRAN SURAT</div>
           <table style="border-collapse:collapse;margin-bottom:25px;">
             <tr><td style="width:70pt;">Nomor</td><td style="width:15pt;">:</td><td>${form.nomor}</td></tr>
@@ -233,113 +224,102 @@ export default function UndanganGenerator({ isMobile, showT }) {
     `;
   };
 
-  const generatePDF = async () => {
+  // ── Satu sumber dokumen untuk pratinjau, cetak, dan PDF ──
+  // Sebelumnya ketiganya memakai jalur render yang berbeda: pratinjau di
+  // dalam iframe bersih, PDF di dalam dokumen aplikasi, cetak di iframe
+  // berukuran 0×0. Wajar hasilnya tidak pernah sama. Sekarang ketiganya
+  // membaca dokumen yang sama persis.
+  const buildDocHTML = (extraCSS = "") => `<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8">
+    <title>Undangan Prokopim</title>
+    <style>
+      html, body { margin:0; padding:0; background:white; }
+      @page { size: A4 portrait; margin: 0; }
+      ${CSS_ASLI}
+      ${extraCSS}
+    </style>
+  </head>
+  <body>${buildHTMLString()}</body>
+</html>`;
+
+  // Iframe A4 di luar layar. WAJIB berukuran nyata — iframe 0×0 membuat
+  // browser menghitung tata letak cetak pada viewport nol, dan marginnya
+  // meleset dari template. Juga tidak boleh display:none atau opacity:0,
+  // karena html2canvas hanya bisa memotret elemen yang benar-benar dirender.
+  const siapkanFrameA4 = () => new Promise((resolve, reject) => {
+    const frame = document.createElement("iframe");
+    frame.setAttribute("aria-hidden", "true");
+    frame.style.cssText =
+      "position:fixed; left:-20000px; top:0; width:210mm; height:297mm; border:0; background:white;";
+    frame.onload = async () => {
+      try {
+        const doc = frame.contentDocument;
+        // Tunggu seluruh gambar (kop garuda, stempel, tanda tangan) benar-benar
+        // termuat — kalau tidak, hasilnya bisa terpotong atau kosong.
+        await Promise.all(Array.from(doc.images).map(img =>
+          img.complete ? Promise.resolve()
+            : new Promise(r => { img.onload = r; img.onerror = r; })
+        ));
+        if (doc.fonts && doc.fonts.ready) { try { await doc.fonts.ready; } catch { /* abaikan */ } }
+        await new Promise(r => setTimeout(r, 120));
+        resolve(frame);
+      } catch (e) { reject(e); }
+    };
+    frame.onerror = () => reject(new Error("Gagal menyiapkan dokumen cetak."));
+    document.body.appendChild(frame);
+    // srcdoc dipasang setelah menempel ke DOM agar onload pasti tertangkap.
+    frame.srcdoc = buildDocHTML();
+  });
+
+  const buangFrame = (frame) => {
+    if (frame && document.body.contains(frame)) document.body.removeChild(frame);
+  };
+
+  // Nama dokumen dipakai sebagai judul halaman, karena browser memakai judul
+  // itu sebagai nama berkas bawaan saat pengguna memilih "Simpan sebagai PDF".
+  const namaDokumen = () => {
+    const nomorSurat = form.nomor.replace(/[\/\\]/g, "-").replace(/[^a-zA-Z0-9-]/g, "");
+    const suffixTtd  = form.jenisTtd === "tte" ? "_TTE" : (form.jenisTtd === "scan" ? "_Scan" : "");
+    const prefix     = form.pilihanCetak === "utama" ? "Undangan_Utama" : "Undangan";
+    return `${prefix}${suffixTtd}_${nomorSurat || "Draft"}`;
+  };
+
+  // Satu jalur keluaran untuk cetak maupun simpan PDF: dialog cetak bawaan
+  // browser. Inilah yang membuat hasilnya benar-benar WYSIWYG — mesin
+  // paginasi yang menghitung halamannya sama persis dengan yang dipakai
+  // printer, dan `@page { margin: 0 }` dihormati apa adanya.
+  const bukaDialogCetak = async () => {
     if (!form.nomor.trim() || !form.tanggalAcaraInput || !form.tempat.trim()) {
       if (showT) showT("Isi minimal: Nomor Surat, Hari/Tanggal Acara, dan Tempat", "warn");
-      return;
+      return false;
     }
     setLoading(true);
-
+    let frame = null;
     try {
-      const html2pdf = await loadHtml2Pdf();
-
-      const styleEl = document.createElement("style");
-      styleEl.textContent = CSS_ASLI;
-      document.head.appendChild(styleEl);
-
-      // Pastikan kontainer PDF juga bersih dari border/shadow
-      const container = document.createElement("div");
-      container.style.cssText = "position:absolute; top:0; left:0; width:210mm; background:white; z-index:-9999; border:none; box-shadow:none; margin:0; padding:0;";
-      container.innerHTML = buildHTMLString();
-      document.body.appendChild(container);
-
-      const imagesToPreload = [`${window.location.origin}/image001.jpg`];
-      if (form.jenisTtd === "scan") {
-        imagesToPreload.push(`${window.location.origin}/stempel.png`);
-        imagesToPreload.push(`${window.location.origin}/image.jpeg`);
-      }
-
-      await Promise.all(imagesToPreload.map(src => {
-        return new Promise((resolve) => {
-          const img = new Image();
-          img.onload = resolve;
-          img.onerror = resolve; 
-          img.src = src;
-        });
-      }));
-
-      await new Promise(r => setTimeout(r, 300));
-
-      const nomorSurat = form.nomor.replace(/[\/\\]/g, "-").replace(/[^a-zA-Z0-9-]/g, "");
-      const suffixTtd  = form.jenisTtd === "tte" ? "_TTE" : (form.jenisTtd === "scan" ? "_Scan" : "");
-      const prefix     = form.pilihanCetak === "utama" ? "Undangan_Utama" : "Undangan";
-      const namaFile   = `${prefix}${suffixTtd}_${nomorSurat || "Draft"}.pdf`;
-
-      await html2pdf().set({
-        margin: 0,
-        filename: namaFile,
-        image: { type: "jpeg", quality: 1 },
-        html2canvas: { 
-          scale: 2, 
-          useCORS: true,
-          logging: false,
-          scrollY: 0,
-          scrollX: 0
-        },
-        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
-      }).from(container).save();
-
-      document.body.removeChild(container);
-      document.head.removeChild(styleEl);
-
-      if (showT) showT("PDF berhasil diunduh: " + namaFile, "ok");
+      frame = await siapkanFrameA4();
+      frame.contentDocument.title = namaDokumen();
+      frame.contentWindow.focus();
+      frame.contentWindow.print();
+      // Dialog cetak menahan proses; frame dibuang setelah dialog ditutup.
+      setTimeout(() => buangFrame(frame), 60000);
+      return true;
     } catch (err) {
-      if (showT) showT("Gagal membuat PDF: " + err.message, "error");
-      else alert("Gagal: " + err.message);
+      if (showT) showT("Gagal menyiapkan dokumen: " + err.message, "error");
+      buangFrame(frame);
+      return false;
     } finally {
       setLoading(false);
     }
   };
 
-  const cetakLangsung = () => {
-    const printFrame = document.createElement("iframe");
-    printFrame.style.position = "fixed";
-    printFrame.style.right = "0";
-    printFrame.style.bottom = "0";
-    printFrame.style.width = "0";
-    printFrame.style.height = "0";
-    printFrame.style.border = "0";
-    document.body.appendChild(printFrame);
-
-    const doc = printFrame.contentWindow.document;
-    doc.open();
-    doc.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Cetak Undangan Prokopim</title>
-          <style>
-            body { margin: 0; background: white; }
-            ${CSS_ASLI}
-            @page { size: 210mm 297mm; margin: 0; }
-          </style>
-        </head>
-        <body>${buildHTMLString()}</body>
-      </html>
-    `);
-    doc.close();
-
-    setTimeout(() => {
-      printFrame.contentWindow.focus();
-      printFrame.contentWindow.print();
-      
-      setTimeout(() => {
-        if (document.body.contains(printFrame)) {
-          document.body.removeChild(printFrame);
-        }
-      }, 5000);
-    }, 500);
+  const generatePDF = async () => {
+    const ok = await bukaDialogCetak();
+    if (ok && showT) showT('Pada dialog cetak, pilih tujuan "Simpan sebagai PDF"', "warn");
   };
+
+  const cetakLangsung = () => bukaDialogCetak();
 
   return (
     <>
@@ -455,7 +435,7 @@ export default function UndanganGenerator({ isMobile, showT }) {
           <div style={{ padding: "12px 14px 16px", borderTop: "1px solid #E2E8F0", background: "#F8FAFC", flexShrink: 0 }}>
             <button onClick={generatePDF} disabled={loading}
               style={{ width: "100%", padding: "13px 0", borderRadius: 10, border: "none", background: loading ? "#94A3B8" : "linear-gradient(135deg," + NAVY + ",#1A2F50)", color: "white", fontWeight: 800, fontSize: 14, cursor: loading ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, boxShadow: loading ? "none" : "0 4px 14px rgba(10,22,40,0.25)", marginBottom: 8 }}>
-              {loading ? <><span style={{ width:16,height:16,borderRadius:"50%",border:"2.5px solid rgba(255,255,255,0.3)",borderTopColor:"white",display:"inline-block",animation:"spin 0.7s linear infinite" }}/>&nbsp;Memproses PDF...</> : <><span style={{ fontSize:18 }}>⬇</span>&nbsp;Unduh PDF Undangan</>}
+              {loading ? <><span style={{ width:16,height:16,borderRadius:"50%",border:"2.5px solid rgba(255,255,255,0.3)",borderTopColor:"white",display:"inline-block",animation:"spin 0.7s linear infinite" }}/>&nbsp;Menyiapkan...</> : <><span style={{ fontSize:18 }}>⬇</span>&nbsp;Simpan sebagai PDF</>}
             </button>
             
             <button onClick={cetakLangsung} disabled={loading}
@@ -477,19 +457,13 @@ export default function UndanganGenerator({ isMobile, showT }) {
             <iframe 
               id="preview-iframe" 
               title="Preview Undangan" 
-              srcDoc={`
-                <!DOCTYPE html>
-                <html>
-                  <head>
-                    <style>
-                      body { margin:0; padding:20px; background:#525659; display:flex; flex-direction:column; align-items:center; gap:20px; }
-                      ${CSS_ASLI}
-                      .halaman-a4 { box-shadow: 0 4px 15px rgba(0,0,0,0.4) !important; margin-bottom: 20px !important; }
-                    </style>
-                  </head>
-                  <body>${buildHTMLString()}</body>
-                </html>
-              `} 
+              srcDoc={buildDocHTML(`
+                /* Hanya untuk layar: latar gelap dan bayangan kertas supaya
+                   halamannya terbaca sebagai lembaran. Ukuran dan margin isinya
+                   tetap sama persis dengan yang dicetak dan diunduh. */
+                body { padding:20px; background:#525659; display:flex; flex-direction:column; align-items:center; gap:20px; }
+                .halaman-a4 { box-shadow: 0 4px 15px rgba(0,0,0,0.4) !important; margin-bottom: 20px !important; }
+              `)}
               style={{ flex: 1, border: "none", width: "100%", background: "#525659" }}
             />
           </div>
