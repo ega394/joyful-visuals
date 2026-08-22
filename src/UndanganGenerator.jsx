@@ -77,6 +77,36 @@ const formatTanggalIndo = (dateStr) => {
 const NAVY = "#0A1628";
 const GOLD = "#C9A84C";
 
+// ── Konsep undangan ──────────────────────────────────────────
+// Disimpan di perangkat masing-masing (localStorage), bukan di basis data.
+// Konsep adalah bahan kerja pribadi yang belum tentu jadi surat; menaruhnya
+// di Supabase menambah tabel dan egress tanpa manfaat yang sepadan.
+// Konsekuensinya: konsep tidak ikut berpindah antar komputer.
+const KEY_KONSEP  = "prokopim_konsep_undangan";
+const MAKS_KONSEP = 20;
+
+function bacaKonsep() {
+  try {
+    const v = JSON.parse(localStorage.getItem(KEY_KONSEP) || "[]");
+    return Array.isArray(v) ? v : [];
+  } catch { return []; }
+}
+
+function tulisKonsep(list) {
+  try {
+    localStorage.setItem(KEY_KONSEP, JSON.stringify(list.slice(0, MAKS_KONSEP)));
+    return true;
+  } catch { return false; }   // kuota penyimpanan penuh atau mode privat
+}
+
+const fmtWaktuSimpan = (iso) => {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) +
+           " · " + d.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", hour12: false });
+  } catch { return ""; }
+};
+
 const inputSt = { width: "100%", padding: "9px 11px", borderRadius: 8, border: "1.5px solid #E2E8F0", fontSize: 13, color: NAVY, background: "white", outline: "none", fontFamily: "inherit", boxSizing: "border-box" };
 const textareaSt = Object.assign({}, inputSt, { resize: "vertical", lineHeight: 1.55, minHeight: 72 });
 
@@ -146,6 +176,74 @@ export default function UndanganGenerator({ isMobile, showT }) {
 
   const resetForm = () => {
     if (window.confirm("Reset semua kolom? Data yang belum disimpan akan hilang.")) setForm(EMPTY);
+  };
+
+  // ── Konsep ──
+  const [konsep, setKonsep] = useState(bacaKonsep);
+
+  // Nama bawaan diambil dari isi yang paling menandai surat, supaya konsep
+  // mudah dikenali kembali tanpa pengguna harus mengarang nama.
+  const namaBawaanKonsep = () => {
+    // Buang penomoran, kata sambung, dan tanda baca penutup agar tersisa intinya.
+    const bersihkan = (s) => String(s || "")
+      .replace(/^\d+\.\s*/, "")
+      .replace(/[;.]\s*(dan|atau)\s*$/i, "")
+      .replace(/[;.]+$/, "")
+      .trim();
+    // Baris bawaan form ("1. ...;", "2. ...; dan", "3. Hal-hal lain...") bukan
+    // isi sungguhan, jadi tidak boleh dipakai sebagai nama konsep.
+    const bermakna = (s) => {
+      const t = bersihkan(s);
+      return t && !/^\.+$/.test(t) && !/^hal-hal lain/i.test(t) ? t : "";
+    };
+    const bukanToken = (s) => (s && !/^\$\{.*\}$/.test(s.trim()) ? s.trim() : "");
+
+    const inti = (form.acara || "").split("\n").map(bermakna).find(Boolean)
+      || bukanToken(form.tempat)
+      || bukanToken(form.nomor)
+      || "Konsep undangan";
+    const tgl = form.tanggalAcaraInput ? " — " + form.tanggalAcaraInput : "";
+    return (inti.length > 48 ? inti.slice(0, 48) + "…" : inti) + tgl;
+  };
+
+  const simpanKonsep = () => {
+    const nama = (window.prompt("Simpan konsep dengan nama:", namaBawaanKonsep()) || "").trim();
+    if (!nama) return;
+
+    const lama = konsep.find(k => k.nama.toLowerCase() === nama.toLowerCase());
+    if (lama && !window.confirm(`Konsep "${nama}" sudah ada. Timpa dengan isi sekarang?`)) return;
+
+    const entri = { id: lama ? lama.id : String(Date.now()), nama, disimpan: new Date().toISOString(), data: { ...form } };
+    const berikut = [entri, ...konsep.filter(k => k.id !== entri.id)];
+
+    if (berikut.length > MAKS_KONSEP && !lama) {
+      const dibuang = berikut[MAKS_KONSEP];
+      if (!window.confirm(`Konsep tersimpan sudah ${MAKS_KONSEP}. Menyimpan yang baru akan membuang konsep terlama, "${dibuang.nama}". Lanjutkan?`)) return;
+    }
+
+    if (!tulisKonsep(berikut)) {
+      if (showT) showT("Gagal menyimpan konsep — penyimpanan peramban penuh atau diblokir.", "error");
+      return;
+    }
+    setKonsep(berikut.slice(0, MAKS_KONSEP));
+    setSection("konsep");
+    if (showT) showT(lama ? `Konsep "${nama}" diperbarui` : `Konsep "${nama}" tersimpan`, "ok");
+  };
+
+  const bukaKonsep = (k) => {
+    // Digabung dengan EMPTY agar konsep lama yang belum punya kolom baru
+    // tetap terbuka dengan nilai bawaan, bukan undefined.
+    setForm({ ...EMPTY, ...(k.data || {}) });
+    setSection("surat");
+    if (showT) showT(`Konsep "${k.nama}" dibuka`, "ok");
+  };
+
+  const hapusKonsep = (k) => {
+    if (!window.confirm(`Hapus konsep "${k.nama}"? Tindakan ini tidak dapat dibatalkan.`)) return;
+    const berikut = konsep.filter(x => x.id !== k.id);
+    tulisKonsep(berikut);
+    setKonsep(berikut);
+    if (showT) showT("Konsep dihapus", "warn");
   };
 
   let tglText = formatTanggalIndo(form.tanggalAcaraInput);
@@ -367,6 +465,36 @@ export default function UndanganGenerator({ isMobile, showT }) {
               <div style={{ fontSize: 11, color: "#1D4ED8", lineHeight: 1.6 }}>Kolom bertanda <span style={{ color: "#DC2626", fontWeight: 700 }}>*</span> wajib diisi sebelum mengunduh.</div>
             </div>
 
+            <SectionBtn isActive={section === "konsep"} onClick={() => setSection(s => s === "konsep" ? "" : "konsep")} icon="💾" title="Konsep Tersimpan"
+              subtitle={konsep.length ? `${konsep.length} konsep · tersimpan di perangkat ini` : "Belum ada konsep tersimpan"}/>
+            <SectionBody isActive={section === "konsep"}>
+              {konsep.length === 0
+                ? <div style={{ fontSize: 12, color: "#94A3B8", lineHeight: 1.6 }}>
+                    Belum ada konsep. Isi undangannya lebih dulu, lalu tekan <b style={{ color: "#475569" }}>Simpan Konsep</b> di bawah untuk menyimpannya dan melanjutkan lain waktu.
+                  </div>
+                : <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    {konsep.map(k => (
+                      <div key={k.id} style={{ border: "1.5px solid #E2E8F0", borderRadius: 9, padding: "9px 11px", background: "#F8FAFC" }}>
+                        <div style={{ fontSize: 12.5, fontWeight: 700, color: NAVY, overflowWrap: "anywhere" }}>{k.nama}</div>
+                        <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 1 }}>{fmtWaktuSimpan(k.disimpan)}</div>
+                        <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+                          <button onClick={() => bukaKonsep(k)}
+                            style={{ flex: 1, padding: "6px 0", borderRadius: 7, border: "none", background: NAVY, color: "white", cursor: "pointer", fontSize: 11.5, fontWeight: 700 }}>
+                            Buka
+                          </button>
+                          <button onClick={() => hapusKonsep(k)}
+                            style={{ padding: "6px 12px", borderRadius: 7, border: "1.5px solid #FCA5A5", background: "white", color: "#DC2626", cursor: "pointer", fontSize: 11.5, fontWeight: 700 }}>
+                            Hapus
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                    <div style={{ fontSize: 11, color: "#94A3B8", lineHeight: 1.5, marginTop: 2 }}>
+                      Konsep tersimpan di peramban komputer ini saja — tidak ikut berpindah ke perangkat lain.
+                    </div>
+                  </div>}
+            </SectionBody>
+
             <SectionBtn isActive={section === "surat"} onClick={() => setSection(s => s === "surat" ? "" : "surat")} icon="🗂" title="Data Surat" subtitle="Nomor, tanggal, sifat, lampiran"/>
             <SectionBody isActive={section === "surat"}>
               <div style={{ marginBottom: 12 }}><Label text="Tempat, Tanggal Surat"/><input className="ug-input" style={inputSt} value={form.tanggalSurat} onChange={set("tanggalSurat")}/></div>
@@ -452,6 +580,11 @@ export default function UndanganGenerator({ isMobile, showT }) {
             <button onClick={cetakLangsung} disabled={loading}
               style={{ width: "100%", padding: "11px 0", borderRadius: 10, border: "2px solid " + NAVY, background: "white", color: NAVY, fontWeight: 800, fontSize: 13, cursor: loading ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 8 }}>
               <span style={{ fontSize:18 }}>🖨️</span> Cetak Langsung ke Printer
+            </button>
+
+            <button onClick={simpanKonsep}
+              style={{ width:"100%",padding:"10px 0",borderRadius:10,border:"1.5px solid "+NAVY,background:"white",color:NAVY,fontWeight:700,fontSize:12.5,cursor:"pointer",marginBottom:8,display:"flex",alignItems:"center",justifyContent:"center",gap:7 }}>
+              <span style={{ fontSize:16 }}>💾</span> Simpan Konsep
             </button>
 
             <button onClick={resetForm} style={{ width:"100%",padding:"9px 0",borderRadius:10,border:"1.5px solid #E2E8F0",background:"white",color:"#64748B",fontWeight:600,fontSize:12,cursor:"pointer" }}>🔄 Reset Semua Kolom</button>
