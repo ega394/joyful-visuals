@@ -7,7 +7,15 @@ import React, { useState, useRef } from "react";
 
 // ── CSS Kertas & Dokumen ──
 const CSS_ASLI = `
-  #dokumen-cetak, #dokumen-cetak * { font-family: Arial, Helvetica, sans-serif !important; }
+  /* Arial adalah font baku tata naskah dinas. Bila mesin tidak memilikinya,
+     rantai berikut jatuh ke font yang metriknya PERSIS sama dengan Arial —
+     Liberation Sans (umum di Linux) dan Arimo — sehingga lebar huruf,
+     pemenggalan baris, dan jumlah halaman tetap sama di komputer mana pun.
+     Tanpa ini, fallback bisa mendarat di DejaVu Sans yang 12,8% lebih lebar
+     dan menggeser tata letak surat. */
+  #dokumen-cetak, #dokumen-cetak * {
+    font-family: Arial, "Liberation Sans", Arimo, "Helvetica Neue", Helvetica, sans-serif !important;
+  }
   #dokumen-cetak { background: white !important; width: 210mm !important; margin: 0 !important; padding: 0 !important; box-shadow: none !important; border: none !important; }
   
   /* FIX UTAMA: Paksa hilangkan bayangan dan margin dengan !important agar kebal dari CSS Global */
@@ -51,7 +59,10 @@ const CSS_ASLI = `
   .page-break { page-break-before: always; }
   /* Setiap lembar A4 memulai halaman cetak baru. */
   .pecah-halaman { page-break-before: always; break-before: page; }
-  .tte-marker { color: #0056b3; font-family: monospace !important; background: #e9ecef; padding: 2px 5px; border-radius: 3px; font-weight: bold; }
+  /* Penanda TTE ikut Arial seperti seluruh isi surat. Aturan monospace yang
+     dulu ada di sini tidak pernah berlaku — kalah spesifisitas dari selektor
+     #dokumen-cetak *, jadi dihapus agar tidak menyesatkan. */
+  .tte-marker { color: #0056b3; background: #e9ecef; padding: 2px 5px; border-radius: 3px; font-weight: bold; }
 `;
 
 const formatTanggalIndo = (dateStr) => {
