@@ -136,7 +136,7 @@ function cariAcara(kode) {
         kode: data[i][0],
         judul: data[i][1],
         subjudul: data[i][2],
-        tanggal: data[i][3],
+        tanggal: tglStr(data[i][3]),
         lokasi: data[i][4],
         fieldAktif: String(data[i][5] || "").split(",").filter(String),
         fieldTambahan: data[i][6] ? JSON.parse(data[i][6]) : [],
@@ -274,7 +274,7 @@ function doGet(e) {
       for (var i = 1; i < data.length; i++) {
         out.push({
           kode: data[i][0], judul: data[i][1], subjudul: data[i][2],
-          tanggal: data[i][3], lokasi: data[i][4],
+          tanggal: tglStr(data[i][3]), lokasi: data[i][4],
           fieldAktif: String(data[i][5] || "").split(",").filter(String),
           fieldTambahan: data[i][6] ? JSON.parse(data[i][6]) : [],
           status: data[i][7] || "buka",
@@ -283,7 +283,7 @@ function doGet(e) {
           // Keadaan efektif dihitung di sini juga, supaya kartu di aplikasi
           // menampilkan "Terbuka/Ditutup" yang sama dengan yang dialami tamu.
           efektifBuka: gerbangWaktu({
-            status: data[i][7] || "buka", tanggal: data[i][3],
+            status: data[i][7] || "buka", tanggal: tglStr(data[i][3]),
             jamMulai: jamStr(data[i][10]), jamSelesai: jamStr(data[i][11]),
           }).buka,
           jumlahHadir: jumlah[String(data[i][0])] || 0,

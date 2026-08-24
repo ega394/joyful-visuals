@@ -11,6 +11,17 @@ import LaporanHadir from "./LaporanHadir.jsx";
  * hanyalah membuat acara sampah — bukan mengambil data pribadi tamu.
  */
 
+// "2026-08-24" → "Sen, 24 Agu 2026". Tanggal sengaja diurai per bagian, bukan
+// lewat new Date(), supaya tidak bergeser sehari di zona waktu mana pun.
+const fmtTgl = (t) => {
+  const m = String(t || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return t || "";
+  const HARI  = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
+  const BULAN = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+  const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+  return `${HARI[d.getUTCDay()]}, ${+m[3]} ${BULAN[+m[2] - 1]} ${m[1]}`;
+};
+
 const NAVY = "#0A1628", GOLD = "#C9A84C", GREEN = "#0D6B4F", RED = "#991B1B";
 const ABSEN_URL   = import.meta.env.VITE_ABSEN_URL   || "";
 const ABSEN_TOKEN = import.meta.env.VITE_ABSEN_TOKEN || "";
@@ -339,7 +350,7 @@ export default function DaftarHadirAdmin({ user, isMobile, showT }) {
                       <div style={{ fontWeight: 800, fontSize: 14, color: NAVY, marginBottom: 2 }}>{a.judul}</div>
                       {a.subjudul && <div style={{ fontSize: 12, color: "#64748B" }}>{a.subjudul}</div>}
                       <div style={{ fontSize: 11.5, color: "#94A3B8", marginTop: 3 }}>
-                        {a.tanggal ? `🗓️ ${a.tanggal} · ` : ""}{jadwal ? `🕐 ${jadwal} · ` : ""}
+                        {a.tanggal ? `🗓️ ${fmtTgl(a.tanggal)} · ` : ""}{jadwal ? `🕐 ${jadwal} · ` : ""}
                         {a.lokasi ? `📍 ${a.lokasi} · ` : ""}
                         Kode <b style={{ fontFamily: "monospace", color: NAVY }}>{a.kode}</b>
                       </div>
