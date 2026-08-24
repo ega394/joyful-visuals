@@ -146,7 +146,34 @@ export default function DaftarHadirPage() {
     fontFamily: "Inter, system-ui, sans-serif",
   };
 
-  if (muat) return <div style={{ ...kotak, textAlign: "center", paddingTop: 80, color: "#64748B" }}>Memuat…</div>;
+  // Halaman tidak lagi ditahan menunggu jawaban Apps Script. Layanan itu sering
+  // baru bangun dari dingin dan butuh 1–3 detik; menahan seluruh halaman selama
+  // itu membuat tamu menatap layar kosong. Kini identitas acara saja yang
+  // menyusul, sementara tamu sudah bisa mulai mengetik namanya.
+  if (muat && !acara && !err) return (
+    <div style={kotak}>
+      <div style={{ maxWidth: 460, margin: "0 auto", paddingTop: 28 }}>
+        <div aria-live="polite" style={{ background: "white", borderRadius: 16, padding: "22px 20px",
+          border: "1.5px solid #E2E8F0", textAlign: "center" }}>
+          <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: 1.2, color: GOLD,
+            textTransform: "uppercase", marginBottom: 6 }}>Daftar Hadir Digital</div>
+          <div style={{ fontSize: 15, fontWeight: 800, color: NAVY }}>Menyiapkan formulir…</div>
+          <div style={{ fontSize: 12.5, color: "#64748B", marginTop: 6, lineHeight: 1.6 }}>
+            Mohon tunggu sebentar, identitas acara sedang dimuat.
+          </div>
+          {/* Rangka isian, supaya tamu melihat bentuk formulirnya lebih dulu */}
+          <div style={{ marginTop: 18, display: "flex", flexDirection: "column", gap: 10 }}>
+            {[0, 1, 2].map(i => (
+              <div key={i} style={{ height: 42, borderRadius: 9, background:
+                "linear-gradient(90deg,#F1F5F9 25%,#E2E8F0 37%,#F1F5F9 63%)",
+                backgroundSize: "400% 100%", animation: "dhKilau 1.4s ease infinite" }}/>
+            ))}
+          </div>
+        </div>
+      </div>
+      <style>{"@keyframes dhKilau{0%{background-position:100% 0}100%{background-position:-100% 0}}"}</style>
+    </div>
+  );
 
   if (err && !acara) return (
     <div style={kotak}>
