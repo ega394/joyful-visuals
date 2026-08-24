@@ -220,10 +220,33 @@ export default function DaftarHadirPage() {
         </div>
 
         {ditutup ? (
-          <div style={{ background: "#FFF7ED", border: "1.5px solid #FDBA74", borderRadius: 12,
-            padding: "16px 16px", fontSize: 13.5, color: "#9A3412", textAlign: "center" }}>
-            🔒 Daftar hadir untuk acara ini <b>sudah ditutup</b>.
-          </div>
+          // Tamu yang datang kepagian perlu tahu KAPAN dibuka; tanpa itu
+          // tautannya disangka rusak dan panitia yang dihubungi.
+          acara.alasan === "belum_dibuka" ? (
+            <div style={{ background: "#EFF6FF", border: "1.5px solid #BFDBFE", borderRadius: 12,
+              padding: "18px 16px", fontSize: 13.5, color: "#1D4ED8", textAlign: "center", lineHeight: 1.7 }}>
+              <div style={{ fontSize: 30, marginBottom: 6 }}>🕐</div>
+              Pengisian daftar hadir <b>belum dibuka</b>.
+              {acara.bukaPukul && <>
+                <div style={{ fontSize: 22, fontWeight: 900, margin: "10px 0 4px" }}>
+                  Dibuka pukul {acara.bukaPukul} WITA
+                </div>
+                <div style={{ fontSize: 12.5, color: "#3B82F6" }}>
+                  Silakan buka kembali tautan ini saat waktunya tiba.
+                </div>
+              </>}
+            </div>
+          ) : (
+            <div style={{ background: "#FFF7ED", border: "1.5px solid #FDBA74", borderRadius: 12,
+              padding: "16px 16px", fontSize: 13.5, color: "#9A3412", textAlign: "center", lineHeight: 1.7 }}>
+              🔒 Daftar hadir untuk acara ini <b>sudah ditutup</b>.
+              {acara.alasan === "sudah_lewat" && acara.tutupPukul && (
+                <div style={{ fontSize: 12.5, marginTop: 6, color: "#B45309" }}>
+                  Pengisian ditutup pukul {acara.tutupPukul} WITA.
+                </div>
+              )}
+            </div>
+          )
         ) : (
           <div style={{ background: "white", borderRadius: 16, padding: "18px 16px",
             border: "1.5px solid #E2E8F0" }}>
