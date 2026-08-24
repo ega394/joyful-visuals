@@ -121,6 +121,38 @@ export default function DaftarHadirAdmin({ user, isMobile, showT }) {
     setSibuk(false);
   };
 
+  // Menghapus acara ikut membuang seluruh data kehadiran dan foto selfienya,
+  // dan tidak bisa dibatalkan. Karena itu penjagaannya dibuat sebanding dengan
+  // risikonya: acara kosong cukup dikonfirmasi biasa, acara yang sudah berisi
+  // peserta menuntut kode acaranya diketik ulang.
+  const hapusAcara = async (a) => {
+    const jml = a.jumlahHadir || 0;
+    if (jml > 0) {
+      const jawab = window.prompt(
+        `Acara "${a.judul}" sudah berisi ${jml} data kehadiran.\n\n` +
+        `Menghapusnya membuang SELURUH data itu beserta foto selfienya, dan tidak dapat dibatalkan.\n\n` +
+        `Ketik kode acara "${a.kode}" untuk melanjutkan:`, "");
+      if (!jawab || jawab.trim().toUpperCase() !== String(a.kode).toUpperCase()) {
+        if (jawab !== null) showT?.("Kode tidak cocok — penghapusan dibatalkan", "warn");
+        return;
+      }
+    } else if (!window.confirm(
+      `Hapus acara "${a.judul}"?\n\nBelum ada data kehadiran. Tindakan ini tidak dapat dibatalkan.`)) {
+      return;
+    }
+
+    setSibuk(true);
+    try {
+      const d = await kirim({ action: "hapus_acara", kode: a.kode, konfirmasi: a.kode });
+      if (!d.ok) throw new Error(d.error || "Gagal");
+      showT?.(d.dihapus > 0
+        ? `Acara dihapus beserta ${d.dihapus} data kehadiran`
+        : "Acara dihapus", "ok");
+      muatAcara();
+    } catch (e) { showT?.("Gagal menghapus: " + e.message, "error"); }
+    setSibuk(false);
+  };
+
   const tautan = (kode) => `${window.location.origin}/daftarhadir?e=${kode}`;
 
   const salin = async (kode) => {
@@ -345,6 +377,10 @@ export default function DaftarHadirAdmin({ user, isMobile, showT }) {
                         ↺ Ikuti Jadwal
                       </button>
                     )}
+                    <button onClick={() => hapusAcara(a)} disabled={sibuk}
+                      style={{ ...btn, color: "#DC2626", border: "1.5px solid #FCA5A5" }}>
+                      🗑 Hapus
+                    </button>
                   </div>
                 </div>
               );
