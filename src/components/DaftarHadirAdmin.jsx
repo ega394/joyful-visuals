@@ -47,6 +47,8 @@ export default function DaftarHadirAdmin({ user, isMobile, showT }) {
   const [subjudul, setSubjudul] = useState("");
   const [tanggal, setTanggal]   = useState("");
   const [lokasi, setLokasi]     = useState("");
+  const [jamMulai, setJamMulai]     = useState("");
+  const [jamSelesai, setJamSelesai] = useState("");
   const [fieldAktif, setFieldAktif] = useState(["jabatan", "instansi", "noHP", "selfie"]);
   const [tambahan, setTambahan] = useState([]);   // [{label,wajib}]
 
@@ -75,12 +77,18 @@ export default function DaftarHadirAdmin({ user, isMobile, showT }) {
 
   const buatAcara = async () => {
     if (!judul.trim()) { showT?.("Judul acara wajib diisi", "warn"); return; }
+    if (!tanggal)  { showT?.("Tanggal acara wajib diisi", "warn"); return; }
+    if (!jamMulai) { showT?.("Jam mulai wajib diisi — dipakai untuk buka-tutup otomatis", "warn"); return; }
+    if (jamSelesai && jamSelesai <= jamMulai) {
+      showT?.("Jam selesai harus lebih besar dari jam mulai", "warn"); return;
+    }
     setSibuk(true);
     try {
       const d = await kirim({
         action: "buat_acara",
         judul: judul.trim(), subjudul: subjudul.trim(),
         tanggal, lokasi: lokasi.trim(),
+        jamMulai, jamSelesai,
         fieldAktif,
         fieldTambahan: tambahan.filter(t => t.label.trim()),
         dibuatOleh: user?.nama || user?.username || "",
@@ -89,19 +97,25 @@ export default function DaftarHadirAdmin({ user, isMobile, showT }) {
       showT?.("✅ Acara daftar hadir dibuat", "ok");
       setBuka(false);
       setJudul(""); setSubjudul(""); setTanggal(""); setLokasi("");
+      setJamMulai(""); setJamSelesai("");
       setFieldAktif(["jabatan", "instansi", "noHP", "selfie"]); setTambahan([]);
       muatAcara();
     } catch (e) { showT?.("Gagal: " + e.message, "error"); }
     setSibuk(false);
   };
 
-  const ubahStatus = async (a) => {
-    const baru = a.status === "tutup" ? "buka" : "tutup";
+  // Tiga keadaan: "otomatis" mengikuti jadwal, "buka"/"tutup" memaksa.
+  const PESAN_STATUS = {
+    buka:     "Pengisian dibuka paksa — jadwal diabaikan",
+    tutup:    "Pengisian ditutup paksa — jadwal diabaikan",
+    otomatis: "Kembali mengikuti jadwal otomatis",
+  };
+  const ubahStatus = async (a, baru) => {
     setSibuk(true);
     try {
       const d = await kirim({ action: "ubah_status", kode: a.kode, status: baru });
       if (!d.ok) throw new Error(d.error || "Gagal");
-      showT?.(baru === "tutup" ? "Daftar hadir ditutup" : "Daftar hadir dibuka kembali", "ok");
+      showT?.(PESAN_STATUS[baru] || "Status diperbarui", "ok");
       muatAcara();
     } catch (e) { showT?.("Gagal: " + e.message, "error"); }
     setSibuk(false);
@@ -186,11 +200,26 @@ export default function DaftarHadirAdmin({ user, isMobile, showT }) {
                 <label style={lbl}>Tanggal</label>
                 <input type="date" value={tanggal} onChange={e => setTanggal(e.target.value)} style={inp}/>
               </div>
+              <div style={{ flex: "1 1 110px" }}>
+                <label style={lbl}>Jam Mulai *</label>
+                <input type="time" value={jamMulai} onChange={e => setJamMulai(e.target.value)} style={inp}/>
+              </div>
+              <div style={{ flex: "1 1 110px" }}>
+                <label style={lbl}>Jam Selesai</label>
+                <input type="time" value={jamSelesai} onChange={e => setJamSelesai(e.target.value)} style={inp}/>
+              </div>
               <div style={{ flex: "2 1 200px" }}>
                 <label style={lbl}>Lokasi</label>
                 <input value={lokasi} onChange={e => setLokasi(e.target.value)}
                   placeholder="mis. Ruang Rapat Lt.3" style={inp}/>
               </div>
+            </div>
+
+            <div style={{ marginBottom: 13, padding: "9px 11px", background: "#EFF6FF",
+              border: "1px solid #BFDBFE", borderRadius: 8, fontSize: 11.5, color: "#1D4ED8", lineHeight: 1.6 }}>
+              🕐 Pengisian terbuka otomatis <b>30 menit sebelum</b> jam mulai, dan tertutup
+              <b> 1 jam setelah</b> jam selesai. Bila jam selesai dikosongkan, tertutup
+              <b> 6 jam setelah</b> jam mulai. Bisa dibuka atau ditutup manual kapan saja.
             </div>
 
             <div style={{ marginBottom: 13 }}>
@@ -263,7 +292,13 @@ export default function DaftarHadirAdmin({ user, isMobile, showT }) {
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {acara.map(a => {
-              const tutup = a.status === "tutup";
+              // `efektifBuka` sudah memperhitungkan jadwal; acara lama yang
+              // belum punya kolom itu jatuh ke pembacaan status apa adanya.
+              const terbuka = a.efektifBuka !== undefined ? a.efektifBuka : a.status !== "tutup";
+              const tutup = !terbuka;
+              const jadwal = a.jamMulai
+                ? a.jamMulai + (a.jamSelesai ? "–" + a.jamSelesai : "") + " WITA"
+                : "";
               return (
                 <div key={a.kode} style={{ background: "white", borderRadius: 13,
                   border: "1.5px solid " + (tutup ? "#E2E8F0" : "#BFDBFE"), padding: "13px 15px" }}>
@@ -272,7 +307,8 @@ export default function DaftarHadirAdmin({ user, isMobile, showT }) {
                       <div style={{ fontWeight: 800, fontSize: 14, color: NAVY, marginBottom: 2 }}>{a.judul}</div>
                       {a.subjudul && <div style={{ fontSize: 12, color: "#64748B" }}>{a.subjudul}</div>}
                       <div style={{ fontSize: 11.5, color: "#94A3B8", marginTop: 3 }}>
-                        {a.tanggal ? `🗓️ ${a.tanggal} · ` : ""}{a.lokasi ? `📍 ${a.lokasi} · ` : ""}
+                        {a.tanggal ? `🗓️ ${a.tanggal} · ` : ""}{jadwal ? `🕐 ${jadwal} · ` : ""}
+                        {a.lokasi ? `📍 ${a.lokasi} · ` : ""}
                         Kode <b style={{ fontFamily: "monospace", color: NAVY }}>{a.kode}</b>
                       </div>
                     </div>
@@ -296,11 +332,19 @@ export default function DaftarHadirAdmin({ user, isMobile, showT }) {
                       style={{ ...btn, textDecoration: "none", display: "inline-flex", alignItems: "center" }}>
                       ↗ Buka
                     </a>
-                    <button onClick={() => ubahStatus(a)} disabled={sibuk}
+                    <button onClick={() => ubahStatus(a, tutup ? "buka" : "tutup")} disabled={sibuk}
                       style={{ ...btn, color: tutup ? GREEN : "#92400E",
                         border: "1.5px solid " + (tutup ? "#86EFAC" : "#FDE68A") }}>
-                      {tutup ? "Buka Kembali" : "Tutup Pengisian"}
+                      {tutup ? "Buka Paksa" : "Tutup Paksa"}
                     </button>
+                    {/* Hanya muncul saat status sedang dipaksa DAN acaranya punya
+                        jadwal — kalau tidak, tombolnya tidak berarti apa-apa. */}
+                    {a.status !== "otomatis" && a.jamMulai && (
+                      <button onClick={() => ubahStatus(a, "otomatis")} disabled={sibuk}
+                        style={{ ...btn, color: "#1D4ED8", border: "1.5px solid #BFDBFE" }}>
+                        ↺ Ikuti Jadwal
+                      </button>
+                    )}
                   </div>
                 </div>
               );

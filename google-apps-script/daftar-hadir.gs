@@ -48,6 +48,9 @@
 // acara DAN untuk mengambil laporan kehadiran — jaga kerahasiaannya.
 var TOKEN = "GANTI-DENGAN-KATA-SANDI-ACAK-ANDA";
 
+// Seluruh perhitungan waktu memakai WITA, zona tempat acara berlangsung —
+// bukan zona bawaan proyek Apps Script, yang bisa saja berbeda.
+var ZONA = "Asia/Makassar";
 var TAB_ACARA = "Acara";
 var TAB_HADIR = "Hadir";
 var NAMA_FOLDER = "Foto Daftar Hadir Prokopim";
@@ -61,8 +64,19 @@ function setup() {
     a.appendRow([
       "kode", "judul", "subjudul", "tanggal", "lokasi",
       "field_aktif", "field_tambahan", "status", "dibuat_oleh", "dibuat_pada",
+      "jam_mulai", "jam_selesai",
     ]);
     a.setFrozenRows(1);
+  } else {
+    // Sheet lama dibuat sebelum ada penjadwalan otomatis. Dua kolom ditambahkan
+    // di UJUNG supaya nomor kolom lama (mis. status di kolom 8) tidak bergeser.
+    var av = ss.getSheetByName(TAB_ACARA);
+    var judulKolom = av.getRange(1, 1, 1, av.getLastColumn()).getValues()[0]
+      .map(function (x) { return String(x); });
+    if (judulKolom.indexOf("jam_mulai") < 0) {
+      av.getRange(1, 11).setValue("jam_mulai");
+      av.getRange(1, 12).setValue("jam_selesai");
+    }
   }
 
   if (!ss.getSheetByName(TAB_HADIR)) {
@@ -127,10 +141,88 @@ function cariAcara(kode) {
         fieldAktif: String(data[i][5] || "").split(",").filter(String),
         fieldTambahan: data[i][6] ? JSON.parse(data[i][6]) : [],
         status: data[i][7] || "buka",
+        jamMulai:   jamStr(data[i][10]),
+        jamSelesai: jamStr(data[i][11]),
       };
     }
   }
   return null;
+}
+
+// ── Penjadwalan buka/tutup otomatis ──────────────────────────
+// Pengisian dibuka 30 menit sebelum acara mulai dan ditutup 1 jam setelah
+// selesai. Bila jam selesai tidak diisi, ditutup 6 jam setelah mulai.
+var BUKA_LEBIH_AWAL_MENIT = 30;
+var TUTUP_SETELAH_MENIT   = 60;
+var DURASI_BAWAAN_MENIT   = 6 * 60;
+
+// Sel jam di Sheets bisa terbaca sebagai teks "08:30" atau sebagai objek Date
+// (kalau pengguna sempat mengetiknya sebagai jam). Keduanya dinormalkan ke
+// "HH:MM" supaya perhitungan di bawah tidak bergantung cara pengisiannya.
+function jamStr(v) {
+  if (v === null || v === undefined || v === "") return "";
+  if (Object.prototype.toString.call(v) === "[object Date]") {
+    return Utilities.formatDate(v, ZONA, "HH:mm");
+  }
+  var t = String(v).trim();
+  var m = t.match(/^(\d{1,2})[:.](\d{2})/);
+  return m ? ("0" + m[1]).slice(-2) + ":" + m[2] : "";
+}
+
+function tglStr(v) {
+  if (!v) return "";
+  if (Object.prototype.toString.call(v) === "[object Date]") {
+    return Utilities.formatDate(v, ZONA, "yyyy-MM-dd");
+  }
+  var t = String(v).trim();
+  return /^\d{4}-\d{2}-\d{2}$/.test(t) ? t : "";
+}
+
+// Menggabungkan tanggal + jam menjadi Date pada zona waktu WITA.
+function saatnya(tanggal, jam, geserMenit) {
+  var tgl = tglStr(tanggal), jm = jamStr(jam);
+  if (!tgl || !jm) return null;
+  var bagianTgl = tgl.split("-"), bagianJam = jm.split(":");
+  var d = new Date(Number(bagianTgl[0]), Number(bagianTgl[1]) - 1, Number(bagianTgl[2]),
+                   Number(bagianJam[0]), Number(bagianJam[1]), 0);
+  if (geserMenit) d.setMinutes(d.getMinutes() + geserMenit);
+  return d;
+}
+
+/**
+ * Menentukan apakah pengisian sedang terbuka.
+ *
+ * Status manual "buka"/"tutup" selalu menang — acara kerap molor, dan petugas
+ * harus tetap bisa memberi kelonggaran. Penjadwalan hanya berlaku saat status
+ * bernilai "otomatis" DAN jam mulainya terisi; acara lama yang tidak punya jam
+ * karena itu tetap berperilaku seperti sebelumnya.
+ */
+function gerbangWaktu(a) {
+  if (a.status === "tutup") return { buka: false, alasan: "tutup_manual" };
+  if (a.status === "buka")  return { buka: true,  alasan: "buka_manual" };
+
+  var mulai = saatnya(a.tanggal, a.jamMulai, 0);
+  if (!mulai) return { buka: true, alasan: "tanpa_jadwal" };
+
+  var bukaPada  = saatnya(a.tanggal, a.jamMulai, -BUKA_LEBIH_AWAL_MENIT);
+  var tutupPada = a.jamSelesai
+    ? saatnya(a.tanggal, a.jamSelesai, TUTUP_SETELAH_MENIT)
+    : saatnya(a.tanggal, a.jamMulai, DURASI_BAWAAN_MENIT);
+
+  // Jam selesai lebih kecil dari jam mulai berarti salah isi; jangan sampai
+  // jendelanya jadi negatif dan pengisian tidak pernah bisa dibuka.
+  if (tutupPada && bukaPada && tutupPada <= bukaPada) {
+    tutupPada = saatnya(a.tanggal, a.jamMulai, DURASI_BAWAAN_MENIT);
+  }
+
+  var kini = new Date();
+  var f = function (d) { return d ? Utilities.formatDate(d, ZONA, "HH:mm") : ""; };
+
+  if (bukaPada && kini < bukaPada)
+    return { buka: false, alasan: "belum_dibuka", bukaPukul: f(bukaPada), tutupPukul: f(tutupPada) };
+  if (tutupPada && kini > tutupPada)
+    return { buka: false, alasan: "sudah_lewat", bukaPukul: f(bukaPada), tutupPukul: f(tutupPada) };
+  return { buka: true, alasan: "dalam_jadwal", bukaPukul: f(bukaPada), tutupPukul: f(tutupPada) };
 }
 
 // ── GET ──────────────────────────────────────────────────────
@@ -144,12 +236,22 @@ function doGet(e) {
       if (!a) return balas({ ok: false, error: "Acara tidak ditemukan." });
       return balas({
         ok: true,
-        acara: {
-          kode: a.kode, judul: a.judul, subjudul: a.subjudul,
-          tanggal: a.tanggal, lokasi: a.lokasi,
-          fieldAktif: a.fieldAktif, fieldTambahan: a.fieldTambahan,
-          status: a.status,
-        },
+        acara: (function () {
+          var g = gerbangWaktu(a);
+          return {
+            kode: a.kode, judul: a.judul, subjudul: a.subjudul,
+            tanggal: a.tanggal, lokasi: a.lokasi,
+            jamMulai: a.jamMulai, jamSelesai: a.jamSelesai,
+            fieldAktif: a.fieldAktif, fieldTambahan: a.fieldTambahan,
+            // `status` diisi keadaan EFEKTIF supaya halaman publik tidak perlu
+            // menghitung ulang jadwalnya — perhitungan tetap satu tempat.
+            status: g.buka ? "buka" : "tutup",
+            statusAsli: a.status,
+            alasan: g.alasan,
+            bukaPukul: g.bukaPukul || "",
+            tutupPukul: g.tutupPukul || "",
+          };
+        })(),
       });
     }
 
@@ -177,6 +279,13 @@ function doGet(e) {
           fieldTambahan: data[i][6] ? JSON.parse(data[i][6]) : [],
           status: data[i][7] || "buka",
           dibuatOleh: data[i][8], dibuatPada: data[i][9],
+          jamMulai: jamStr(data[i][10]), jamSelesai: jamStr(data[i][11]),
+          // Keadaan efektif dihitung di sini juga, supaya kartu di aplikasi
+          // menampilkan "Terbuka/Ditutup" yang sama dengan yang dialami tamu.
+          efektifBuka: gerbangWaktu({
+            status: data[i][7] || "buka", tanggal: data[i][3],
+            jamMulai: jamStr(data[i][10]), jamSelesai: jamStr(data[i][11]),
+          }).buka,
           jumlahHadir: jumlah[String(data[i][0])] || 0,
         });
       }
@@ -200,7 +309,7 @@ function doGet(e) {
       for (var r = 1; r < rows.length; r++) {
         if (String(rows[r][1]).toUpperCase() !== String(ac.kode).toUpperCase()) continue;
         peserta.push({
-          waktu:    rows[r][0] ? Utilities.formatDate(new Date(rows[r][0]), "Asia/Makassar", "dd/MM/yyyy HH:mm") : "",
+          waktu:    rows[r][0] ? Utilities.formatDate(new Date(rows[r][0]), ZONA, "dd/MM/yyyy HH:mm") : "",
           nama:     rows[r][3],
           jabatan:  rows[r][4],
           instansi: rows[r][5],
@@ -273,9 +382,13 @@ function buatAcara(b) {
     b.lokasi || "",
     (b.fieldAktif || []).join(","),
     JSON.stringify(b.fieldTambahan || []),
-    "buka",
+    // Acara baru mengikuti jadwal. Tanpa jam mulai, gerbangWaktu() membiarkannya
+    // terbuka, jadi perilakunya sama seperti sebelum fitur ini ada.
+    "otomatis",
     b.dibuatOleh || "",
     new Date(),
+    jamStr(b.jamMulai || ""),
+    jamStr(b.jamSelesai || ""),
   ]);
   return balas({ ok: true, kode: kode });
 }
@@ -284,14 +397,23 @@ function ubahStatus(b) {
   if (b.token !== TOKEN) return balas({ ok: false, error: "Token tidak sah." });
   var a = cariAcara(b.kode);
   if (!a) return balas({ ok: false, error: "Acara tidak ditemukan." });
-  sheet(TAB_ACARA).getRange(a.baris, 8).setValue(b.status === "tutup" ? "tutup" : "buka");
+  // Tiga keadaan: "otomatis" mengikuti jadwal, "buka"/"tutup" memaksa.
+  var st = String(b.status || "").toLowerCase();
+  if (["otomatis", "buka", "tutup"].indexOf(st) < 0) st = "otomatis";
+  sheet(TAB_ACARA).getRange(a.baris, 8).setValue(st);
   return balas({ ok: true });
 }
 
 function simpanKehadiran(b) {
   var a = cariAcara(b.kode);
   if (!a) return balas({ ok: false, error: "Acara tidak ditemukan." });
-  if (a.status === "tutup") return balas({ ok: false, error: "Daftar hadir untuk acara ini sudah ditutup." });
+  var gerbang = gerbangWaktu(a);
+  if (!gerbang.buka) {
+    return balas({ ok: false, error:
+      gerbang.alasan === "belum_dibuka"
+        ? "Pengisian daftar hadir baru dibuka pukul " + gerbang.bukaPukul + " WITA."
+        : "Daftar hadir untuk acara ini sudah ditutup." });
+  }
   if (!b.nama || !String(b.nama).trim()) return balas({ ok: false, error: "Nama wajib diisi." });
 
   var hp = normalHP(b.noHP);
