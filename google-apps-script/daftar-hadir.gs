@@ -360,6 +360,7 @@ function doPost(e) {
   try {
     if (body.action === "buat_acara")  return buatAcara(body);
     if (body.action === "ubah_status") return ubahStatus(body);
+    if (body.action === "hapus_acara") return hapusAcara(body);
     if (body.action === "daftar")      return simpanKehadiran(body);
     return balas({ ok: false, error: "Action tidak dikenal." });
   } catch (err) {
@@ -391,6 +392,55 @@ function buatAcara(b) {
     jamStr(b.jamSelesai || ""),
   ]);
   return balas({ ok: true, kode: kode });
+}
+
+/**
+ * Menghapus satu acara beserta SELURUH data kehadirannya.
+ *
+ * Baris di sheet dihapus dari bawah ke atas: menghapus dari atas membuat
+ * nomor baris di bawahnya bergeser, sehingga baris berikutnya ikut salah
+ * sasaran. Foto selfie ikut dibuang ke sampah Drive supaya tidak menumpuk
+ * sebagai berkas yatim yang tidak bisa dijangkau siapa pun lagi.
+ *
+ * Tidak bisa dibatalkan, karena itu pemanggilnya wajib mengirim konfirmasi
+ * berisi kode acara — sekadar salah pencet tidak akan sampai ke sini.
+ */
+function hapusAcara(b) {
+  if (b.token !== TOKEN) return balas({ ok: false, error: "Token tidak sah." });
+  var a = cariAcara(b.kode);
+  if (!a) return balas({ ok: false, error: "Acara tidak ditemukan." });
+  if (String(b.konfirmasi || "").toUpperCase() !== String(a.kode).toUpperCase()) {
+    return balas({ ok: false, error: "Konfirmasi kode acara tidak cocok." });
+  }
+
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(20000)) {
+    return balas({ ok: false, error: "Sistem sedang sibuk. Coba lagi sebentar." });
+  }
+
+  var jumlahHadir = 0;
+  try {
+    var sh = sheet(TAB_HADIR);
+    if (sh) {
+      var rows = sh.getDataRange().getValues();
+      for (var r = rows.length - 1; r >= 1; r--) {
+        if (String(rows[r][1]).toUpperCase() !== String(a.kode).toUpperCase()) continue;
+        // Foto dibuang ke sampah, bukan dihapus permanen — masih bisa
+        // dipulihkan dari Trash Drive selama 30 hari kalau ternyata keliru.
+        var m = String(rows[r][7] || "").match(/\/d\/([^/]+)/);
+        if (m) { try { DriveApp.getFileById(m[1]).setTrashed(true); } catch (e) {} }
+        sh.deleteRow(r + 1);
+        jumlahHadir++;
+      }
+    }
+    // Baris acara dihapus paling akhir, supaya kalau penghapusan data
+    // kehadiran gagal di tengah jalan acaranya masih ada dan bisa diulang.
+    sheet(TAB_ACARA).deleteRow(a.baris);
+  } finally {
+    lock.releaseLock();
+  }
+
+  return balas({ ok: true, dihapus: jumlahHadir });
 }
 
 function ubahStatus(b) {
