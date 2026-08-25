@@ -3190,7 +3190,7 @@ function ApprovalQueueView({events,role,upd,showT,askConfirm,isMobile}){
           <div style={{height:1,background:"#F1F5F9",margin:"10px 0"}}/>
           <LocalTextarea evId={ev.id} placeholder="Catatan (wajib diisi bila mengembalikan ke staf)..." rows={2} onCommit={(id,v)=>setRT(p=>({...p,[id]:v}))}/>
           <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-            <button onClick={()=>askConfirm("Kembalikan untuk Diperbaiki?","Jadwal dikembalikan ke Admin RK dengan catatan di atas. Admin RK dapat mengedit ulang dan mengajukan kembali — tidak perlu input dari awal.",()=>{upd(ev.id,{alur:"ditolak",catatanTolak:rejectTexts[ev.id]||"Perlu perbaikan",_requiresEdit:true});showT("Dikembalikan ke Admin RK untuk diperbaiki","warn");const _ur=loadUsers().find(u=>u.username===ev.submittedBy);if(_ur?.noWA)sendWA({to:_ur.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,penyelenggara:ev.penyelenggara,event:"rejected",catatanTolak:rejectTexts[ev.id]||"",submittedBy:getNamaByUsername(ev.submittedBy)});sendPush({targetRole:"admin_rk",title:"↩ Jadwal Perlu Diperbaiki",body:ev.namaAcara+": "+(rejectTexts[ev.id]||"Perlu diperbaiki"),url:"/",tag:"rejected-"+ev.id});},"Ya, Kembalikan","#92400E")}
+            <button onClick={()=>askConfirm("Kembalikan untuk Diperbaiki?","Jadwal dikembalikan ke Admin RK dengan catatan di atas. Admin RK dapat mengedit ulang dan mengajukan kembali — tidak perlu input dari awal.",()=>{upd(ev.id,{alur:"ditolak",catatanTolak:rejectTexts[ev.id]||"Perlu perbaikan",_requiresEdit:true});showT("Dikembalikan ke Admin RK untuk diperbaiki","warn");const _ur=loadUsers().find(u=>u.username===ev.submittedBy);if(_ur?.noWA)sendWA({to:_ur.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,penyelenggara:ev.penyelenggara,event:"rejected",catatanTolak:rejectTexts[ev.id]||"",submittedBy:getNamaByUsername(ev.submittedBy)});sendPush({targetUser:ev.submittedBy,title:"↩ Jadwal Perlu Diperbaiki",body:ev.namaAcara+": "+(rejectTexts[ev.id]||"Perlu diperbaiki"),url:"/",tag:"rejected-"+ev.id});},"Ya, Kembalikan","#92400E")}
               style={{flex:1,padding:"10px 14px",borderRadius:10,border:"1.5px solid #D97706",background:"#FFFBEB",color:"#92400E",cursor:"pointer",fontSize:12,fontWeight:700}}>
               ↩ Kembalikan untuk Diperbaiki
             </button>
@@ -3217,7 +3217,7 @@ function ApprovalQueueView({events,role,upd,showT,askConfirm,isMobile}){
                 upd(ev.id,{alur:"disetujui"});showT("Jadwal disetujui & tayang!","ok");
                 const _u=loadUsers().find(u=>u.username===ev.submittedBy);
                 if(_u?.noWA)sendWA({to:_u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"approved",submittedBy:getNamaByUsername(ev.submittedBy)});
-                sendPush({targetRole:"admin_rk",title:"✅ Jadwal Disetujui",body:ev.namaAcara+" sudah dipublikasi",url:"/",tag:"approved-"+ev.id});
+                sendPush({targetUser:ev.submittedBy,title:"✅ Jadwal Disetujui",body:ev.namaAcara+" sudah dipublikasi",url:"/",tag:"approved-"+ev.id});
                 loadUsers().filter(u=>(u.role==="ajudan_walikota"||u.role==="ajudan_wakilwalikota")&&u.noWA).forEach(u=>{const isWK=u.role==="ajudan_walikota"&&(ev.untukPimpinan||[]).includes("walikota");const isWWK=u.role==="ajudan_wakilwalikota"&&((ev.untukPimpinan||[]).includes("wakilwalikota")||ev.delegasiKeWWK);if(isWK||isWWK)sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"approved"});});
                 setTimeout(()=>setBusy(null),1500);
               },
@@ -4660,7 +4660,10 @@ async function sendWA(params){
 }
 
 // ── PWA Push Notifikasi Helper ──
-async function sendPush({targetRole,title,body,url,tag}){
+// `targetUser` mengirim ke satu orang; `targetRole` ke seluruh pemegang peran.
+// Pakai targetUser untuk pesan yang menyapa pribadi ("Anda Ditugaskan"),
+// targetRole hanya untuk yang memang urusan bersama seperti antrian persetujuan.
+async function sendPush({targetRole,targetUser,title,body,url,tag}){
   // Filter per kategori — skip jika flag-nya dimatikan
   const cat = pushTagCategory(tag);
   if(NOTIF_PUSH[cat] === false){
@@ -4671,7 +4674,7 @@ async function sendPush({targetRole,title,body,url,tag}){
     await fetch("/api/webpush",{
       method:"POST",
       headers:apiHeaders(),
-      body:JSON.stringify({action:"send",notify:{title,body,url:url||"/",targetRole,tag}})
+      body:JSON.stringify({action:"send",notify:{title,body,url:url||"/",targetRole,targetUser,tag}})
     });
   }catch(e){console.warn("Push notif failed:",e);}
 }
@@ -5916,7 +5919,7 @@ function UsulanEditKasubbag({ev,upd,showT,askConfirm,rejectTexts,setRT,user}){
             const _pengusul=loadUsers().find(u=>u.username===(ev.usulanEditOleh||ev.submittedBy));
             if(_pengusul?.noWA)sendWA({to:_pengusul.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,
               penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"edit_ditolak",catatanTolak:catatan,submittedBy:user?.nama});
-            sendPush({targetRole:"admin_rk",title:"❌ Usulan Perubahan Ditolak",body:ev.namaAcara+": "+catatan,url:"/",tag:"usulan-tolak-"+ev.id});
+            sendPush({targetUser:(ev.usulanEditOleh||ev.submittedBy),title:"❌ Usulan Perubahan Ditolak",body:ev.namaAcara+": "+catatan,url:"/",tag:"usulan-tolak-"+ev.id});
             showT("Usulan ditolak — jadwal tetap apa adanya","warn");
           },"Tolak","#991B1B");
         }} style={{flex:1,padding:"10px",borderRadius:10,border:"1.5px solid #FCA5A5",background:"white",color:"#DC2626",cursor:"pointer",fontSize:12,fontWeight:700}}>
@@ -5981,7 +5984,7 @@ function UsulanEditKabag({ev,upd,showT,askConfirm,rejectTexts,setRT,user}){
               const _pengusul=_allU.find(u=>u.username===(ev.usulanEditOleh||ev.submittedBy));
               if(_pengusul?.noWA)sendWA({to:_pengusul.noWA,namaAcara:usulan.namaAcara,tanggal:usulan.tanggal,jam:usulan.jam,jamSelesai:usulan.jamSelesai,
                 penyelenggara:usulan.penyelenggara,lokasi:usulan.lokasi,event:"edit_disetujui",submittedBy:_editor});
-              sendPush({targetRole:"admin_rk",title:"✅ Usulan Perubahan Disetujui",body:usulan.namaAcara+" sudah diperbarui",url:"/",tag:"usulan-ok-"+ev.id});
+              sendPush({targetUser:(ev.usulanEditOleh||ev.submittedBy),title:"✅ Usulan Perubahan Disetujui",body:usulan.namaAcara+" sudah diperbarui",url:"/",tag:"usulan-ok-"+ev.id});
               sendPush({targetRole:"kasubbag_protokol",title:"✅ Perubahan Jadwal Berlaku",body:usulan.namaAcara,url:"/",tag:"usulan-ok-ks-"+ev.id});
               if(waktuBerubah){
                 sendPush({targetRole:"ajudan_walikota",title:"🔄 Jadwal Berubah",body:usulan.namaAcara+" — mohon konfirmasi ulang kehadiran",url:"/",tag:"usulan-ajd-"+ev.id});
@@ -6001,7 +6004,7 @@ function UsulanEditKabag({ev,upd,showT,askConfirm,rejectTexts,setRT,user}){
             const _pengusul=loadUsers().find(u=>u.username===(ev.usulanEditOleh||ev.submittedBy));
             if(_pengusul?.noWA)sendWA({to:_pengusul.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,
               penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"edit_ditolak",catatanTolak:alasan,submittedBy:user?.nama});
-            sendPush({targetRole:"admin_rk",title:"❌ Usulan Perubahan Ditolak Kabag",body:ev.namaAcara+": "+alasan,url:"/",tag:"usulan-tolak-"+ev.id});
+            sendPush({targetUser:(ev.usulanEditOleh||ev.submittedBy),title:"❌ Usulan Perubahan Ditolak Kabag",body:ev.namaAcara+": "+alasan,url:"/",tag:"usulan-tolak-"+ev.id});
             sendPush({targetRole:"kasubbag_protokol",title:"❌ Usulan Perubahan Ditolak",body:ev.namaAcara,url:"/",tag:"usulan-tolak-ks-"+ev.id});
             showT("Usulan ditolak — jadwal tetap apa adanya","warn");
           },"Tolak","#991B1B");
@@ -6311,7 +6314,7 @@ function ExpandedDetail({ev,hariEv}){
             <span>⚠️</span> Wajib diisi — jelaskan alasannya agar Admin RK tahu apa yang perlu diperbaiki
           </div>
           <textarea placeholder="Contoh: Lokasi belum lengkap, jam mulai perlu dikonfirmasi ulang ke penyelenggara..." value={rejectTexts[ev.id]||""} onChange={e=>setRT(p=>({...p,[ev.id]:e.target.value}))} rows={3} style={{width:"100%",padding:"9px 11px",border:"none",resize:"none",color:"#334155",background:"#FFF5F5",fontSize:13,boxSizing:"border-box"}}/>
-          <button onClick={()=>{if(!(rejectTexts[ev.id]||"").trim()){showT("Tulis alasan perbaikan dulu","warn");return;}askConfirm("Kembalikan untuk Diperbaiki?","Jadwal '"+ev.namaAcara+"' dikembalikan ke Admin RK dengan catatan di atas. Admin RK dapat mengedit dan mengajukan kembali — tidak perlu input dari awal.",()=>{upd(ev.id,{alur:"ditolak",catatanTolak:rejectTexts[ev.id]||"Perlu perbaikan",_requiresEdit:true});showT("Dikembalikan ke Admin RK untuk diperbaiki","warn");{const _ur=loadUsers().find(u=>u.username===ev.submittedBy);if(_ur?.noWA)sendWA({to:_ur.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,penyelenggara:ev.penyelenggara,event:"rejected",catatanTolak:rejectTexts[ev.id]||"",submittedBy:getNamaByUsername(ev.submittedBy)});}sendPush({targetRole:"admin_rk",title:"↩ Jadwal Perlu Diperbaiki",body:ev.namaAcara+": "+(rejectTexts[ev.id]||"Perlu diperbaiki"),url:"/",tag:"rejected-"+ev.id});},"Ya, Kembalikan","#92400E");}}
+          <button onClick={()=>{if(!(rejectTexts[ev.id]||"").trim()){showT("Tulis alasan perbaikan dulu","warn");return;}askConfirm("Kembalikan untuk Diperbaiki?","Jadwal '"+ev.namaAcara+"' dikembalikan ke Admin RK dengan catatan di atas. Admin RK dapat mengedit dan mengajukan kembali — tidak perlu input dari awal.",()=>{upd(ev.id,{alur:"ditolak",catatanTolak:rejectTexts[ev.id]||"Perlu perbaikan",_requiresEdit:true});showT("Dikembalikan ke Admin RK untuk diperbaiki","warn");{const _ur=loadUsers().find(u=>u.username===ev.submittedBy);if(_ur?.noWA)sendWA({to:_ur.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,penyelenggara:ev.penyelenggara,event:"rejected",catatanTolak:rejectTexts[ev.id]||"",submittedBy:getNamaByUsername(ev.submittedBy)});}sendPush({targetUser:ev.submittedBy,title:"↩ Jadwal Perlu Diperbaiki",body:ev.namaAcara+": "+(rejectTexts[ev.id]||"Perlu diperbaiki"),url:"/",tag:"rejected-"+ev.id});},"Ya, Kembalikan","#92400E");}}
             style={{width:"100%",padding:"12px",border:"none",background:"#D97706",color:"white",cursor:"pointer",fontSize:13,fontWeight:800}}>
             ↩ Kembalikan untuk Diperbaiki
           </button>
@@ -6390,7 +6393,7 @@ function ExpandedDetail({ev,hariEv}){
       {ev.alur==="menunggu_kabag"&&!ev.alurHapus&&<>
         {/* PRIMARY */}
         <button onClick={()=>{upd(ev.id,{alur:"disetujui"});showT("Jadwal disetujui & dipublikasi");
-          {const _u=loadUsers().find(u=>u.username===ev.submittedBy);if(_u?.noWA)sendWA({to:_u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"approved",submittedBy:getNamaByUsername(ev.submittedBy)});}sendPush({targetRole:"admin_rk",title:"✅ Jadwal Disetujui",body:ev.namaAcara+" sudah dipublikasi",url:"/",tag:"approved-"+ev.id});loadUsers().filter(u=>(u.role==="ajudan_walikota"||u.role==="ajudan_wakilwalikota")&&u.noWA).forEach(u=>{const isWK=u.role==="ajudan_walikota"&&(ev.untukPimpinan||[]).includes("walikota");const isWWK=u.role==="ajudan_wakilwalikota"&&((ev.untukPimpinan||[]).includes("wakilwalikota")||ev.delegasiKeWWK);if(isWK||isWWK)sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"approved"});});}}
+          {const _u=loadUsers().find(u=>u.username===ev.submittedBy);if(_u?.noWA)sendWA({to:_u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"approved",submittedBy:getNamaByUsername(ev.submittedBy)});}sendPush({targetUser:ev.submittedBy,title:"✅ Jadwal Disetujui",body:ev.namaAcara+" sudah dipublikasi",url:"/",tag:"approved-"+ev.id});loadUsers().filter(u=>(u.role==="ajudan_walikota"||u.role==="ajudan_wakilwalikota")&&u.noWA).forEach(u=>{const isWK=u.role==="ajudan_walikota"&&(ev.untukPimpinan||[]).includes("walikota");const isWWK=u.role==="ajudan_wakilwalikota"&&((ev.untukPimpinan||[]).includes("wakilwalikota")||ev.delegasiKeWWK);if(isWK||isWWK)sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"approved"});});}}
           style={{width:"100%",padding:"13px",borderRadius:10,border:"none",background:NAVY,color:"white",cursor:"pointer",fontSize:14,fontWeight:800,boxShadow:"0 4px 14px rgba(10,22,40,0.3)"}}>
           ✅ Setujui & Publikasi
         </button>
@@ -6405,7 +6408,7 @@ function ExpandedDetail({ev,hariEv}){
             <span>⚠️</span> Wajib diisi — jelaskan alasannya agar Admin RK tahu apa yang perlu diperbaiki
           </div>
           <textarea placeholder="Contoh: Data penyelenggara perlu dilengkapi, lokasi tidak sesuai..." value={rejectTexts[ev.id]||""} onChange={e=>setRT(p=>({...p,[ev.id]:e.target.value}))} rows={3} style={{width:"100%",padding:"9px 11px",border:"none",resize:"none",color:"#334155",background:"#FFF5F5",fontSize:13,boxSizing:"border-box"}}/>
-          <button onClick={()=>{if(!(rejectTexts[ev.id]||"").trim()){showT("Tulis alasan penolakan dulu","warn");return;}askConfirm("Tolak Jadwal?","Jadwal '"+ev.namaAcara+"' akan DITOLAK dan dikembalikan ke Admin RK dengan alasan di atas. Admin RK dapat memperbaiki dan mengajukan ulang.",()=>{upd(ev.id,{alur:"ditolak",catatanTolak:rejectTexts[ev.id]||"Perlu perbaikan",_requiresEdit:true});showT("Jadwal ditolak — dikembalikan ke Admin RK","warn");{const _ur=loadUsers().find(u=>u.username===ev.submittedBy);if(_ur?.noWA)sendWA({to:_ur.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,penyelenggara:ev.penyelenggara,event:"rejected",catatanTolak:rejectTexts[ev.id]||"",submittedBy:getNamaByUsername(ev.submittedBy)});}sendPush({targetRole:"admin_rk",title:"❌ Jadwal Ditolak Kabag",body:ev.namaAcara+": "+(rejectTexts[ev.id]||"Perlu diperbaiki"),url:"/",tag:"rejected-"+ev.id});},"Ya, Tolak","#991B1B");}}
+          <button onClick={()=>{if(!(rejectTexts[ev.id]||"").trim()){showT("Tulis alasan penolakan dulu","warn");return;}askConfirm("Tolak Jadwal?","Jadwal '"+ev.namaAcara+"' akan DITOLAK dan dikembalikan ke Admin RK dengan alasan di atas. Admin RK dapat memperbaiki dan mengajukan ulang.",()=>{upd(ev.id,{alur:"ditolak",catatanTolak:rejectTexts[ev.id]||"Perlu perbaikan",_requiresEdit:true});showT("Jadwal ditolak — dikembalikan ke Admin RK","warn");{const _ur=loadUsers().find(u=>u.username===ev.submittedBy);if(_ur?.noWA)sendWA({to:_ur.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,penyelenggara:ev.penyelenggara,event:"rejected",catatanTolak:rejectTexts[ev.id]||"",submittedBy:getNamaByUsername(ev.submittedBy)});}sendPush({targetUser:ev.submittedBy,title:"❌ Jadwal Ditolak Kabag",body:ev.namaAcara+": "+(rejectTexts[ev.id]||"Perlu diperbaiki"),url:"/",tag:"rejected-"+ev.id});},"Ya, Tolak","#991B1B");}}
             style={{width:"100%",padding:"12px",border:"none",background:"#DC2626",color:"white",cursor:"pointer",fontSize:13,fontWeight:800}}>
             ❌ Tolak Jadwal
           </button>
@@ -7568,26 +7571,50 @@ export default function App(){
     showT("Evaluasi berhasil dikirim ✓");
   };
 
+    // Ringkasan kegiatan untuk isi notifikasi penugasan.
+    const ringkasEv=(ev)=>(ev?.namaAcara||"Kegiatan")+" · "+(ev?.tanggal||"")+" "+fmtJamWita(ev);
+
+    // Memberi tahu satu orang bahwa ia ditugaskan atau dicabut. Memakai
+    // targetUser, bukan targetRole — sebelumnya seluruh pemegang peran ikut
+    // menerima "Anda Ditugaskan" meski tidak ditugaskan sama sekali.
+    const kabariPenugasan=async(un,ev,jenis,catatan)=>{
+      const masuk=jenis==="masuk";
+      await sendPush({
+        targetUser:un,
+        title: masuk?"📋 Anda Ditugaskan":"❌ Penugasan Dicabut",
+        body:  ringkasEv(ev)+(masuk&&catatan?" · "+catatan:""),
+        url:"/",
+        tag:(masuk?"penugasan-":"cabut-")+ev?.id+"-"+un,
+      });
+    };
+
     const savePenugasan=async(evId,personilArr,catatanPenugasan)=>{
     setGlobalLoading(true);
+    const ev=events.find(e=>e.id===evId);
+    // Selisih dihitung SEBELUM daftarnya ditimpa.
+    const sebelum=(ev?.personil)||[];
+    const ditambah=personilArr.filter(un=>!sebelum.includes(un));
+    const dicabut =sebelum.filter(un=>!personilArr.includes(un));
+
     upd(evId,{personil:personilArr,catatanPenugasan});
     setPenugasanEv(null);
     showT("Penugasan disimpan untuk "+personilArr.length+" personil ✓");
-    // Kirim notifikasi push ke masing-masing personil (WA penugasan dinonaktifkan)
-    const ev=events.find(e=>e.id===evId);
-    for(const un of personilArr){
-      const u=loadUsers().find(x=>x.username===un);
-      if(u){
-        await sendPush({targetRole:u.role,title:"📋 Anda Ditugaskan",body:ev?.namaAcara+" · "+ev?.tanggal+" "+fmtJamWita(ev)+(catatanPenugasan?" · "+catatanPenugasan:""),url:"/",tag:"penugasan-"+evId+"-"+un});
-      }
-    }
+
+    // Hanya yang berubah yang dikabari. Yang sudah ditugaskan dan tidak
+    // diapa-apakan tidak perlu menerima "Anda Ditugaskan" berulang kali
+    // setiap atasannya menyunting daftar demi orang lain.
+    for(const un of ditambah) await kabariPenugasan(un,ev,"masuk",catatanPenugasan);
+    for(const un of dicabut)  await kabariPenugasan(un,ev,"cabut");
     setGlobalLoading(false);
   };
 
   // ── Cabut satu personil dari penugasan (aksi cepat dari PersonilBanner) ──
-  const cabutPersonilSatu=(ev,username,nama)=>{
+  const cabutPersonilSatu=async(ev,username,nama)=>{
     const newPersonil=(ev.personil||[]).filter(un=>un!==username);
     upd(ev.id,{personil:newPersonil});
+    // Jalur ini dulu sama sekali tidak memberi tahu yang bersangkutan —
+    // orangnya baru sadar saat kegiatannya hilang dari daftar tugasnya.
+    await kabariPenugasan(username,ev,"cabut");
     showT(nama+" dicabut dari penugasan","warn");
   };
 
@@ -9803,7 +9830,7 @@ function KabagDashboard({events, user, upd, showT, askConfirm, deleteAndSync, is
                 upd(ev.id,{alur:"disetujui"});showT("Jadwal disetujui & dipublikasi");
                 const u=loadUsers().find(x=>x.username===ev.submittedBy);
                 if(u?.noWA)sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"approved",submittedBy:getNamaByUsername(ev.submittedBy)});
-                sendPush({targetRole:"admin_rk",title:"✅ Jadwal Disetujui",body:ev.namaAcara+" sudah dipublikasi",url:"/",tag:"approved-"+ev.id});
+                sendPush({targetUser:ev.submittedBy,title:"✅ Jadwal Disetujui",body:ev.namaAcara+" sudah dipublikasi",url:"/",tag:"approved-"+ev.id});
                 loadUsers().filter(u=>(u.role==="ajudan_walikota"||u.role==="ajudan_wakilwalikota")&&u.noWA).forEach(u=>{const isWK=u.role==="ajudan_walikota"&&(ev.untukPimpinan||[]).includes("walikota");const isWWK=u.role==="ajudan_wakilwalikota"&&((ev.untukPimpinan||[]).includes("wakilwalikota")||ev.delegasiKeWWK);if(isWK||isWWK)sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"approved"});});
                 setExpanded(null);
                 setTimeout(()=>setBusyId(null),1500);
@@ -9817,7 +9844,7 @@ function KabagDashboard({events, user, upd, showT, askConfirm, deleteAndSync, is
               <RejectTextarea evId={ev.id} placeholder="Catatan penolakan..." rows={2}
                 style={{width:"100%",padding:"9px 11px",border:"none",resize:"none",color:"#334155",background:"white",fontSize:12,boxSizing:"border-box"}}
                 onCommit={(id,v)=>setRT(p=>({...p,[id]:v}))}/>
-              <button onClick={()=>{if(!(rejectTexts[ev.id]||"").trim()){showT("Tulis alasan penolakan dulu","warn");return;}askConfirm("Tolak Jadwal?","Jadwal '"+ev.namaAcara+"' akan ditolak dan dikembalikan ke Admin RK dengan alasan di atas. Admin RK dapat memperbaiki dan mengajukan ulang.",()=>{const catatan=rejectTexts[ev.id]||"Perlu diperbaiki";upd(ev.id,{alur:"ditolak",catatanTolak:catatan,_requiresEdit:true});showT("Jadwal ditolak — dikembalikan ke Admin RK","warn");const u=loadUsers().find(x=>x.username===ev.submittedBy);if(u?.noWA)sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,penyelenggara:ev.penyelenggara,event:"rejected",catatanTolak:catatan,submittedBy:getNamaByUsername(ev.submittedBy)});sendPush({targetRole:"admin_rk",title:"❌ Jadwal Ditolak Kabag",body:ev.namaAcara+": "+catatan,url:"/",tag:"rejected-"+ev.id});setExpanded(null);},"Ya, Tolak","#991B1B")}}
+              <button onClick={()=>{if(!(rejectTexts[ev.id]||"").trim()){showT("Tulis alasan penolakan dulu","warn");return;}askConfirm("Tolak Jadwal?","Jadwal '"+ev.namaAcara+"' akan ditolak dan dikembalikan ke Admin RK dengan alasan di atas. Admin RK dapat memperbaiki dan mengajukan ulang.",()=>{const catatan=rejectTexts[ev.id]||"Perlu diperbaiki";upd(ev.id,{alur:"ditolak",catatanTolak:catatan,_requiresEdit:true});showT("Jadwal ditolak — dikembalikan ke Admin RK","warn");const u=loadUsers().find(x=>x.username===ev.submittedBy);if(u?.noWA)sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,penyelenggara:ev.penyelenggara,event:"rejected",catatanTolak:catatan,submittedBy:getNamaByUsername(ev.submittedBy)});sendPush({targetUser:ev.submittedBy,title:"❌ Jadwal Ditolak Kabag",body:ev.namaAcara+": "+catatan,url:"/",tag:"rejected-"+ev.id});setExpanded(null);},"Ya, Tolak","#991B1B")}}
                 style={{width:"100%",padding:"10px",border:"none",background:"#FEE2E2",color:"#991B1B",cursor:"pointer",fontSize:12,fontWeight:700}}>
                 ❌ Tolak Jadwal
               </button>
@@ -9891,7 +9918,7 @@ function KabagDashboard({events, user, upd, showT, askConfirm, deleteAndSync, is
                     // Notifikasi kasubbag
                     loadUsers().filter(u=>(u.role==="kasubbag_protokol")&&u.noWA).forEach(u=>sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"recalled"}));
                     sendPush({targetRole:"kasubbag_protokol",title:"↩ Jadwal Ditarik Kabag",body:ev.namaAcara+": "+(rejectTexts[ev.id+"_recall"]||"Perlu perbaikan"),url:"/",tag:"recall-"+ev.id});sendPush({targetRole:"kasubbag_komdokpim",title:"↩ Jadwal Ditarik Kabag",body:ev.namaAcara+": "+(rejectTexts[ev.id+"_recall"]||"Perlu perbaikan"),url:"/",tag:"recall-"+ev.id});
-                    sendPush({targetRole:"admin_rk",title:"↩ Jadwal Ditarik Kabag",body:ev.namaAcara+" — dikembalikan ke Kasubbag",url:"/",tag:"recall-admin-"+ev.id});{const _subU=loadUsers().find(u=>u.username===ev.submittedBy);if(_subU?.noWA)sendWA({to:_subU.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"recalled",submittedBy:getNamaByUsername(ev.submittedBy)});}
+                    sendPush({targetUser:ev.submittedBy,title:"↩ Jadwal Ditarik Kabag",body:ev.namaAcara+" — dikembalikan ke Kasubbag",url:"/",tag:"recall-admin-"+ev.id});{const _subU=loadUsers().find(u=>u.username===ev.submittedBy);if(_subU?.noWA)sendWA({to:_subU.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"recalled",submittedBy:getNamaByUsername(ev.submittedBy)});}
                     setExpanded(null);
                   },"Ya, Tarik","#D97706"
                 );
@@ -10220,7 +10247,7 @@ function KasubbagDashboard({events, user, upd, showT, askConfirm, isMobile, onPe
             </button>
             <div style={{borderRadius:10,overflow:"hidden",border:"1.5px solid #FECACA"}}>
               <LocalRejectTA evId={ev.id} onCommit={(id,v)=>setRT(p=>({...p,[id]:v}))}/>
-              <button onClick={()=>askConfirm("Kembalikan untuk Diperbaiki?","Jadwal '"+ev.namaAcara+"' dikembalikan ke Admin RK dengan catatan di atas. Admin RK dapat mengedit dan mengajukan kembali — tidak perlu input dari awal.",()=>{upd(ev.id,{alur:"ditolak",catatanTolak:rejectTexts[ev.id]||"",_requiresEdit:true});showT("Dikembalikan ke Admin RK untuk diperbaiki","warn");const u=loadUsers().find(x=>x.username===ev.submittedBy);if(u?.noWA)sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,penyelenggara:ev.penyelenggara,event:"rejected",catatanTolak:rejectTexts[ev.id]||"",submittedBy:getNamaByUsername(ev.submittedBy)});sendPush({targetRole:"admin_rk",title:"↩ Jadwal Perlu Diperbaiki",body:ev.namaAcara+": "+(rejectTexts[ev.id]||"Perlu perbaikan"),url:"/",tag:"rejected-"+ev.id});setExpanded(null);},"Ya, Kembalikan","#92400E")}
+              <button onClick={()=>askConfirm("Kembalikan untuk Diperbaiki?","Jadwal '"+ev.namaAcara+"' dikembalikan ke Admin RK dengan catatan di atas. Admin RK dapat mengedit dan mengajukan kembali — tidak perlu input dari awal.",()=>{upd(ev.id,{alur:"ditolak",catatanTolak:rejectTexts[ev.id]||"",_requiresEdit:true});showT("Dikembalikan ke Admin RK untuk diperbaiki","warn");const u=loadUsers().find(x=>x.username===ev.submittedBy);if(u?.noWA)sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,penyelenggara:ev.penyelenggara,event:"rejected",catatanTolak:rejectTexts[ev.id]||"",submittedBy:getNamaByUsername(ev.submittedBy)});sendPush({targetUser:ev.submittedBy,title:"↩ Jadwal Perlu Diperbaiki",body:ev.namaAcara+": "+(rejectTexts[ev.id]||"Perlu perbaikan"),url:"/",tag:"rejected-"+ev.id});setExpanded(null);},"Ya, Kembalikan","#92400E")}
                 style={{width:"100%",padding:"10px",border:"none",background:"#FFFBEB",color:"#92400E",borderTop:"1.5px solid #FDE68A",cursor:"pointer",fontSize:12,fontWeight:700}}>
                 ↩ Kembalikan untuk Diperbaiki
               </button>
@@ -10439,20 +10466,27 @@ function KasubbagDashboard({events, user, upd, showT, askConfirm, isMobile, onPe
             placeholder="Contoh: Berhalangan hadir, ditugaskan kegiatan lain..."
             rows={2} style={{width:"100%",padding:"9px 11px",borderRadius:9,border:"1.5px solid #E2E8F0",fontSize:12,resize:"none",boxSizing:"border-box"}}/>
         </div>
-        <div style={{background:"#EFF6FF",borderRadius:9,padding:"8px 11px",marginBottom:14,fontSize:13,color:"#1E40AF"}}>📱 Notifikasi WA akan dikirim ke <strong>{cabutTarget.nama}</strong> secara otomatis.</div>
+        <div style={{background:"#EFF6FF",borderRadius:9,padding:"8px 11px",marginBottom:14,fontSize:13,color:"#1E40AF"}}>📱 Notifikasi aplikasi dan WhatsApp akan dikirim ke <strong>{cabutTarget.nama}</strong> secara otomatis.</div>
         <div style={{display:"flex",gap:8}}>
           <button onClick={()=>{setCabutTarget(null);setAlasanCabut("");}} style={{flex:1,padding:"12px",borderRadius:10,border:"1.5px solid #E2E8F0",background:"white",color:"#64748B",cursor:"pointer",fontWeight:700,fontSize:13}}>Batal</button>
           <button onClick={()=>{
             if(!alasanCabut.trim()){showT("Alasan pencabutan wajib diisi","error");return;}
             const ev=events.find(e=>e.id===cabutTarget.evId);if(!ev)return;
             upd(cabutTarget.evId,{personil:(ev.personil||[]).filter(x=>x!==cabutTarget.un)});
+            // Notifikasi aplikasi menyusul WhatsApp. Sebelumnya jalur ini hanya
+            // mengirim WA, sementara jalur cabut cepat tidak mengirim apa pun —
+            // dua perilaku berbeda untuk tindakan yang sama.
+            sendPush({targetUser:cabutTarget.un,title:"❌ Penugasan Dicabut",
+              body:(ev.namaAcara||"Kegiatan")+" · "+(ev.tanggal||"")+" "+fmtJamWita(ev)+
+                   (alasanCabut.trim()?" · "+alasanCabut.trim():""),
+              url:"/",tag:"cabut-"+ev.id+"-"+cabutTarget.un});
             const tUser=loadUsers().find(u=>u.username===cabutTarget.un);
             if(tUser?.noWA){
               const sby=role==="kasubbag_protokol"?"Kasubbag Protokol":"Kasubbag Komdokpim";
               const pesan="\u274C *Pencabutan Penugasan*\n\nYth. "+cabutTarget.nama+",\n\nPenugasan Anda pada kegiatan berikut telah dicabut:\n\n\uD83D\uDCCC *"+ev.namaAcara+"*\n\uD83D\uDCC5 "+ev.tanggal+"\n\u23F0 "+fmtJamWita(ev)+""+(ev.lokasi?"\n\uD83D\uDCCD "+ev.lokasi:"")+"\n\n\uD83D\uDCDD Alasan: "+alasanCabut+"\n\nJika ada pertanyaan silakan hubungi "+sby+".\n\n_Prokopim Kota Tarakan_\n_prokopim.tarakankota.go.id_";
               fetch("/api/whatsapp",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({event:"broadcast",pesanCustom:pesan,target:tUser.noWA})}).catch(e=>console.warn("Sync:",e?.message||e));
             }
-            showT("Penugasan "+cabutTarget.nama+" dicabut & WA terkirim","warn");
+            showT("Penugasan "+cabutTarget.nama+" dicabut & pemberitahuan terkirim","warn");
             setCabutTarget(null);setAlasanCabut("");
           }} style={{flex:1,padding:"12px",borderRadius:10,border:"none",background:"#DC2626",color:"white",cursor:"pointer",fontWeight:800,fontSize:13}}>Ya, Cabut & Kirim WA</button>
         </div>

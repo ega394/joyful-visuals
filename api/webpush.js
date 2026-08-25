@@ -15,9 +15,16 @@ const supaHeaders = () => ({
 });
 
 // Simpan/ambil subscription dari tabel Supabase 'push_subscriptions'
-async function getSubs(role) {
-  const url = SUPA_URL + "/rest/v1/push_subscriptions?select=subscription,role"
-    + (role ? "&role=eq." + role : "");
+//
+// `username` didahulukan atas `role`. Notifikasi yang menyapa satu orang
+// — "Anda Ditugaskan", "Jadwal Disetujui" — sebelumnya dikirim ke SELURUH
+// pemegang peran, karena hanya penyaringan peran yang tersedia di sini.
+// Kolom username sudah ada di tabel sejak awal; hanya penyaringnya yang
+// belum pernah dipakai.
+async function getSubs(role, username) {
+  let url = SUPA_URL + "/rest/v1/push_subscriptions?select=subscription,role,username";
+  if (username)  url += "&username=eq." + encodeURIComponent(username);
+  else if (role) url += "&role=eq." + encodeURIComponent(role);
   const r = await fetch(url, { headers: supaHeaders() });
   return r.ok ? await r.json() : [];
 }
@@ -77,8 +84,13 @@ module.exports = async (req, res) => {
 
     // ── SEND: kirim push ke role tertentu ──
     if (action === "send" && notify) {
-      const { title, body, url, targetRole, tag } = notify;
-      const subs = await getSubs(targetRole);
+      const { title, body, url, targetRole, targetUser, tag } = notify;
+      // Tanpa sasaran sama sekali, getSubs() akan mengambil SELURUH langganan
+      // dan menyiarkannya ke semua orang. Ditolak, bukan dibiarkan lolos.
+      if (!targetUser && !targetRole) {
+        return res.status(400).json({ error: "Butuh targetUser atau targetRole" });
+      }
+      const subs = await getSubs(targetRole, targetUser);
       if (!subs.length) return res.status(200).json({ ok: true, sent: 0 });
 
       const payload = JSON.stringify({ title, body, url: url || "/", tag: tag || "prokopim" });
