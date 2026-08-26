@@ -65,6 +65,7 @@ function setup() {
       "kode", "judul", "subjudul", "tanggal", "lokasi",
       "field_aktif", "field_tambahan", "status", "dibuat_oleh", "dibuat_pada",
       "jam_mulai", "jam_selesai",
+      "hapus_diminta_oleh", "hapus_alasan",
     ]);
     a.setFrozenRows(1);
   } else {
@@ -76,6 +77,10 @@ function setup() {
     if (judulKolom.indexOf("jam_mulai") < 0) {
       av.getRange(1, 11).setValue("jam_mulai");
       av.getRange(1, 12).setValue("jam_selesai");
+    }
+    if (judulKolom.indexOf("hapus_diminta_oleh") < 0) {
+      av.getRange(1, 13).setValue("hapus_diminta_oleh");
+      av.getRange(1, 14).setValue("hapus_alasan");
     }
   }
 
@@ -143,6 +148,8 @@ function cariAcara(kode) {
         status: data[i][7] || "buka",
         jamMulai:   jamStr(data[i][10]),
         jamSelesai: jamStr(data[i][11]),
+        hapusDimintaOleh: String(data[i][12] || ""),
+        hapusAlasan:      String(data[i][13] || ""),
       };
     }
   }
@@ -280,6 +287,8 @@ function doGet(e) {
           status: data[i][7] || "buka",
           dibuatOleh: data[i][8], dibuatPada: data[i][9],
           jamMulai: jamStr(data[i][10]), jamSelesai: jamStr(data[i][11]),
+          hapusDimintaOleh: String(data[i][12] || ""),
+          hapusAlasan:      String(data[i][13] || ""),
           // Keadaan efektif dihitung di sini juga, supaya kartu di aplikasi
           // menampilkan "Terbuka/Ditutup" yang sama dengan yang dialami tamu.
           efektifBuka: gerbangWaktu({
@@ -361,6 +370,8 @@ function doPost(e) {
     if (body.action === "buat_acara")  return buatAcara(body);
     if (body.action === "ubah_status") return ubahStatus(body);
     if (body.action === "hapus_acara") return hapusAcara(body);
+    if (body.action === "minta_hapus") return mintaHapus(body);
+    if (body.action === "batal_minta_hapus") return batalMintaHapus(body);
     if (body.action === "daftar")      return simpanKehadiran(body);
     return balas({ ok: false, error: "Action tidak dikenal." });
   } catch (err) {
@@ -390,6 +401,7 @@ function buatAcara(b) {
     new Date(),
     jamStr(b.jamMulai || ""),
     jamStr(b.jamSelesai || ""),
+    "", "",                                  // hapus_diminta_oleh, hapus_alasan
   ]);
   return balas({ ok: true, kode: kode });
 }
@@ -407,6 +419,14 @@ function buatAcara(b) {
  */
 function hapusAcara(b) {
   if (b.token !== TOKEN) return balas({ ok: false, error: "Token tidak sah." });
+  // Penghapusan membuang data kehadiran secara permanen, jadi dikunci pada
+  // Kabag. Token dipakai bersama seluruh pengguna yang punya akses daftar
+  // hadir, sehingga pemeriksaan ini menahan kekeliruan — bukan penyusup yang
+  // sengaja menyusun permintaan sendiri. Penahan sesungguhnya ada pada alur
+  // dua langkah: siapa yang mengajukan tercatat, dan Kabag yang memutuskan.
+  if (String(b.peran || "").trim().toLowerCase() !== "kabag") {
+    return balas({ ok: false, error: "Hanya Kabag yang dapat menghapus acara. Ajukan penghapusan kepada Kabag." });
+  }
   var a = cariAcara(b.kode);
   if (!a) return balas({ ok: false, error: "Acara tidak ditemukan." });
   if (String(b.konfirmasi || "").toUpperCase() !== String(a.kode).toUpperCase()) {
@@ -441,6 +461,34 @@ function hapusAcara(b) {
   }
 
   return balas({ ok: true, dihapus: jumlahHadir });
+}
+
+/**
+ * Mengajukan penghapusan kepada Kabag. Tidak menghapus apa pun — hanya
+ * mencatat siapa yang meminta dan alasannya pada baris acara.
+ */
+function mintaHapus(b) {
+  if (b.token !== TOKEN) return balas({ ok: false, error: "Token tidak sah." });
+  var a = cariAcara(b.kode);
+  if (!a) return balas({ ok: false, error: "Acara tidak ditemukan." });
+  var alasan = String(b.alasan || "").trim();
+  if (!alasan) return balas({ ok: false, error: "Alasan pengajuan wajib diisi." });
+  var oleh = String(b.oleh || "").trim() || "(tidak diketahui)";
+  var sh = sheet(TAB_ACARA);
+  sh.getRange(a.baris, 13).setValue(oleh);
+  sh.getRange(a.baris, 14).setValue(alasan);
+  return balas({ ok: true });
+}
+
+// Menarik kembali pengajuan yang belum diputuskan Kabag.
+function batalMintaHapus(b) {
+  if (b.token !== TOKEN) return balas({ ok: false, error: "Token tidak sah." });
+  var a = cariAcara(b.kode);
+  if (!a) return balas({ ok: false, error: "Acara tidak ditemukan." });
+  var sh = sheet(TAB_ACARA);
+  sh.getRange(a.baris, 13).setValue("");
+  sh.getRange(a.baris, 14).setValue("");
+  return balas({ ok: true });
 }
 
 function ubahStatus(b) {
