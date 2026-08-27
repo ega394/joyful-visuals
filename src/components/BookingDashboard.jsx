@@ -896,14 +896,22 @@ export function BookingDetailModal({ booking, slots, onClose, onAction, readOnly
               ); })}
             </div>
           </div>
-          <div style={{gridColumn:"1/-1"}}><div style={{color:GRAY,fontSize:11,fontWeight:600}}>Instansi</div>{booking.instansi}</div>
-          <div><div style={{color:GRAY,fontSize:11,fontWeight:600}}>PIC</div>{booking.pic_name}</div>
-          <div><div style={{color:GRAY,fontSize:11,fontWeight:600}}>WhatsApp</div>
-            <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
-              <span style={{minWidth:0,overflowWrap:"anywhere"}}>{booking.pic_wa}</span>
-              <KontakActions kontak={booking.pic_wa}/>
+          {/* Kalender publik tidak lagi mengirim identitas peminjam, jadi
+              baris-baris ini hanya muncul bila datanya memang ada. */}
+          {booking.instansi && (
+            <div style={{gridColumn:"1/-1"}}><div style={{color:GRAY,fontSize:11,fontWeight:600}}>Instansi</div>{booking.instansi}</div>
+          )}
+          {booking.pic_name && (
+            <div><div style={{color:GRAY,fontSize:11,fontWeight:600}}>PIC</div>{booking.pic_name}</div>
+          )}
+          {booking.pic_wa && (
+            <div><div style={{color:GRAY,fontSize:11,fontWeight:600}}>WhatsApp</div>
+              <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+                <span style={{minWidth:0,overflowWrap:"anywhere"}}>{booking.pic_wa}</span>
+                <KontakActions kontak={booking.pic_wa}/>
+              </div>
             </div>
-          </div>
+          )}
           {booking.srikandi_ref && (
             <div style={{gridColumn:"1/-1"}}>
               <div style={{color:GRAY,fontSize:11,fontWeight:600}}>No. Srikandi</div>

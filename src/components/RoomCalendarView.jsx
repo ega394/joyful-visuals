@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { AdminCalendar, BookingDetailModal, MONTH_NAMES } from "./BookingDashboard.jsx";
+import { userFetch } from "../roomAuth";
 
 /**
  * Kalender peminjaman ruangan — LIHAT SAJA.
@@ -7,12 +8,16 @@ import { AdminCalendar, BookingDetailModal, MONTH_NAMES } from "./BookingDashboa
  * Dipakai staf Protokol yang perlu tahu ruangan mana yang terpakai, tanpa
  * kewenangan meninjau permohonan.
  *
- * Mengambil data lewat endpoint kalender publik `?month=YYYY-MM` (Pending +
- * Approved pada bulan tsb) — bukan `?admin=1` yang menuntut sesi peninjau
- * permohonan, yang memang tidak dimiliki staf. Data yang sama sudah dipakai
- * halaman publik peminjaman, jadi tidak ada informasi baru yang dibuka.
+ * Mengambil data lewat endpoint kalender `?month=YYYY-MM` (Pending + Approved
+ * pada bulan tsb) — bukan `?admin=1` yang menuntut sesi peninjau permohonan,
+ * yang memang tidak dimiliki staf.
+ *
+ * Permintaan dikirim lewat userFetch: bila token sesi berhasil didapat, server
+ * menyertakan rincian peminjam (termasuk WA PIC) sehingga staf bisa menghubungi
+ * yang bersangkutan. Tanpa token — kalender tetap tampil, hanya isinya sebatas
+ * ketersediaan slot, sama seperti yang dilihat halaman publik.
  */
-export default function RoomCalendarView({ isMobile }) {
+export default function RoomCalendarView({ isMobile, user }) {
   const NAVY = "#0A1628", GOLD = "#C9A84C";
   const now = new Date();
 
@@ -31,7 +36,7 @@ export default function RoomCalendarView({ isMobile }) {
     setLoading(true); setErr("");
     try {
       const [bk, rm] = await Promise.all([
-        fetch("/api/room-booking?month=" + monthStr).then(r => r.json()),
+        userFetch(user, "/api/room-booking?month=" + monthStr).then(r => r.json()),
         fetch("/api/room-booking?op=rooms").then(r => r.json()),
       ]);
       setBookings(Array.isArray(bk) ? bk : []);
@@ -41,7 +46,10 @@ export default function RoomCalendarView({ isMobile }) {
       setBookings([]);
     }
     setLoading(false);
-  }, [monthStr]);
+    // Sengaja bergantung pada username, bukan objek user: bila induk membuat
+    // objek baru tiap render, kalender tidak ikut memuat ulang tanpa henti.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [monthStr, user?.username]);
 
   useEffect(() => { muat(); }, [muat]);
 

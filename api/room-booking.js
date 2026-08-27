@@ -15,7 +15,10 @@
  */
 
 const SUPA_URL = process.env.SUPABASE_URL  || process.env.VITE_SUPABASE_URL;
-const SUPA_KEY = process.env.SUPABASE_KEY  || process.env.VITE_SUPABASE_ANON_KEY;
+// Utamakan service key: dengan itu endpoint ini tetap berjalan meski kebijakan
+// RLS `room_bookings` dipersempit sehingga anon key tidak lagi bisa membaca
+// tabelnya langsung. Fallback tetap ada supaya deploy lama tidak mati.
+const SUPA_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 const FONNTE   = process.env.FONNTE_TOKEN;
 const VAPID_PUBLIC  = process.env.VAPID_PUBLIC;
 const VAPID_PRIVATE = process.env.VAPID_PRIVATE;
@@ -180,7 +183,8 @@ function genToken() {
 
 // Verifikasi via header Authorization: Bearer <token> (atau X-Admin-Token).
 // Token diterbitkan oleh op=auth & disimpan di users.session_token.
-async function verifyAdmin(req) {
+// verifySession → pemegang akun mana pun yang tokennya masih berlaku.
+async function verifySession(req) {
   const auth = req.headers["authorization"] || "";
   const token = (auth.startsWith("Bearer ") ? auth.slice(7) : "")
     || req.headers["x-admin-token"] || "";
@@ -192,8 +196,26 @@ async function verifyAdmin(req) {
   const u = rows?.[0];
   if (!u || u.disabled) return null;
   if (!u.session_expires || new Date(u.session_expires) < new Date()) return null;
+  return u;
+}
+
+// verifyAdmin → khusus peninjau permohonan (Kabag / pengelola ruangan).
+async function verifyAdmin(req) {
+  const u = await verifySession(req);
+  if (!u) return null;
   return (u.role === "kabag" || u.can_manage_rooms) ? u : null;
 }
+
+// ── Pemilihan kolom ───────────────────────────────────────────
+// Kalender bulanan dapat dibuka siapa saja tanpa login. Yang dibutuhkan
+// halaman publik hanyalah "slot ini terpakai atau tidak" — bukan siapa
+// peminjamnya, apalagi nomor WhatsApp-nya. Jadi respons tanpa sesi dipangkas
+// ke kolom ketersediaan saja; nomor kontak hanya keluar untuk pemegang akun.
+const KOLOM_KALENDER_PUBLIK =
+  "id,booking_code,room_id,start_date,end_date,session,status";
+const KOLOM_KALENDER_INTERNAL =
+  "id,booking_code,room_id,start_date,end_date,session,status," +
+  "event_name,instansi,pic_name,pic_wa,participant_count,notes,created_at,reviewed_at";
 
 // ── Main handler ──────────────────────────────────────────────
 export default async function handler(req, res) {
@@ -242,10 +264,21 @@ export default async function handler(req, res) {
       }
 
       // ?pic_wa=XXX → tracker by WA
+      // Dulu cocok-substring apa adanya: "0812" pun mengembalikan booking milik
+      // orang lain, jadi daftar peminjam bisa disisir sedikit demi sedikit.
+      // Sekarang wajib nomor utuh, lalu dicocokkan pada 9 digit terakhir supaya
+      // beda format penulisan (0812…/62812…/+62 812…) tetap ketemu.
       if (query.pic_wa) {
-        const wa = query.pic_wa.replace(/\D/g, "");
+        const wa = normalWA(query.pic_wa);
+        if (wa.length < 10) {
+          return res.status(400).json({
+            error: "Masukkan nomor WhatsApp lengkap (contoh: 08123456789), bukan sebagian.",
+          });
+        }
+        const ekor = wa.slice(-9);
         const rows = await sbGet(
-          `room_bookings?pic_wa=ilike.*${wa}*&select=*,rooms(name,capacity)&order=created_at.desc&limit=20`
+          `room_bookings?pic_wa=like.*${encodeURIComponent(ekor)}*` +
+          `&select=*,rooms(name,capacity)&order=created_at.desc&limit=20`
         );
         return res.status(200).json(rows);
       }
@@ -256,8 +289,12 @@ export default async function handler(req, res) {
       const firstDay = `${year}-${String(month).padStart(2, "0")}-01`;
       const lastDay  = new Date(year, month, 0).toISOString().slice(0, 10);
 
+      // Rincian peminjam (termasuk WA PIC) hanya untuk pemegang akun aplikasi.
+      const sesi = await verifySession(req);
+      const kolom = sesi ? KOLOM_KALENDER_INTERNAL : KOLOM_KALENDER_PUBLIK;
+
       const rows = await sbGet(
-        `room_bookings?select=*,rooms(name,capacity)` +
+        `room_bookings?select=${kolom},rooms(name,capacity)` +
         `&status=in.(Pending,Approved)` +
         `&start_date=lte.${lastDay}&end_date=gte.${firstDay}` +
         `&order=start_date.asc`
@@ -319,9 +356,10 @@ export default async function handler(req, res) {
         const u = rows?.[0];
         if (!u || u.disabled || u.password !== pass)
           return res.status(401).json({ error: "Username atau password salah." });
-        if (!(u.role === "kabag" || u.can_manage_rooms))
-          return res.status(403).json({ error: "Akun ini bukan peninjau permohonan." });
 
+        // Token diterbitkan untuk semua pemegang akun aktif — dipakai juga oleh
+        // kalender ruangan internal agar bisa melihat kontak PIC. Kewenangan
+        // meninjau permohonan tetap diperiksa terpisah lewat verifyAdmin().
         const TTL_MS = 12 * 3600 * 1000;
         const token = genToken();
         await sbPatch(`users?username=eq.${encodeURIComponent(u.username)}`, {
