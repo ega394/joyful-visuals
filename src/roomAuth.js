@@ -60,3 +60,19 @@ export async function adminFetch(user, url, opts = {}) {
   const headers = { ...(opts.headers || {}), "Authorization": `Bearer ${token}` };
   return fetch(url, { ...opts, headers });
 }
+
+/**
+ * fetch yang melampirkan token bila bisa didapat, dan tetap jalan bila tidak.
+ *
+ * Dipakai endpoint yang boleh diakses publik tetapi memberi data lebih lengkap
+ * kepada pemegang akun — mis. kalender `?month=` yang hanya menyertakan kontak
+ * PIC untuk pengguna yang sudah login. Kegagalan token tidak boleh membuat
+ * kalender gagal tampil, jadi errornya sengaja ditelan.
+ */
+export async function userFetch(user, url, opts = {}) {
+  let token = null;
+  try { token = await getAdminToken(user); } catch { /* lanjut tanpa token */ }
+  const headers = { ...(opts.headers || {}) };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  return fetch(url, { ...opts, headers });
+}

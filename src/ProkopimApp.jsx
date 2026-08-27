@@ -11802,7 +11802,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
       {tab==="daftar_hadir"&&DAFTAR_HADIR_ROLES.includes(role)
         ?<React.Suspense fallback={<_LazyFallback />}><DaftarHadirAdmin user={user} isMobile={isMobile} showT={showT}/></React.Suspense>
       :tab==="kalender_ruangan"&&KALENDER_RUANGAN_ROLES.includes(role)
-        ?<React.Suspense fallback={<_LazyFallback />}><RoomCalendarView isMobile={isMobile}/></React.Suspense>
+        ?<React.Suspense fallback={<_LazyFallback />}><RoomCalendarView isMobile={isMobile} user={user}/></React.Suspense>
       :tab==="rekap_saya"&&REKAP_SAYA_ROLES.includes(role)
         ?<RekapPenugasanBulanan mode="saya" events={events} user={user} isMobile={isMobile} allUsers={loadUsers()}/>
       :tab==="rekap_penugasan"&&(role==="kabag"||KASUBBAG_ROLES.includes(role))
