@@ -25,15 +25,40 @@
 --
 --  PRASYARAT — JALANKAN URUT, JANGAN DILEWATI
 --  ------------------------------------------
---  1. Di Vercel → Project Settings → Environment Variables, tambahkan
+--  1. MERGE DULU perubahan api/room-booking.js yang membaca
+--     SUPABASE_SERVICE_KEY (PR "tutup paparan nomor WA peminjam ruangan").
+--     Ini langkah yang paling mudah terlewat: selama yang jalan di produksi
+--     masih kode lama, barisnya hanya
+--         const SUPA_KEY = process.env.SUPABASE_KEY || ...ANON_KEY;
+--     sehingga variabel di langkah 2 tidak pernah dibaca sama sekali dan
+--     server tetap memakai anon key.
+--  2. Di Vercel → Project Settings → Environment Variables, tambahkan
 --       SUPABASE_SERVICE_KEY = <service_role key dari Supabase>
---     (Supabase Dashboard → Project Settings → API → service_role).
---     Service role melewati RLS, sehingga /api/room-booking tetap jalan
---     setelah kebijakan di bawah dicabut.
---  2. Deploy ulang aplikasi supaya variabel itu terbaca.
---  3. Uji: buka /pinjamruangan — kalender harus tetap terisi. Kalau
---     kosong, service key belum terpasang; JANGAN lanjut ke langkah 4.
+--     (Supabase Dashboard → Project Settings → API Keys → tab Legacy API
+--     keys → service_role → Reveal). Service role melewati RLS, sehingga
+--     /api/room-booking tetap jalan setelah kebijakan di bawah dicabut.
+--     JANGAN diberi awalan VITE_ — Vite menyalin variabel VITE_* ke dalam
+--     bundel JavaScript yang diunduh browser.
+--     Repo ini terpasang di lebih dari satu project Vercel; pasang di
+--     semuanya, atau yang tidak dipasangi akan mati.
+--  3. Deploy ulang setiap project tersebut, tunggu sampai selesai.
 --  4. Baru jalankan skrip ini di Supabase → SQL Editor.
+--
+--  CATATAN SOAL "MENGUJI DULU SEBELUM LANGKAH 4"
+--  ---------------------------------------------
+--  Tidak ada uji yang benar-benar menentukan sebelum skrip ini dijalankan:
+--  selama kebijakan lama masih terpasang, anon key pun tetap bisa membaca,
+--  jadi /pinjamruangan akan terlihat normal baik service key sudah terbaca
+--  maupun belum. Skrip inilah ujinya. Karena itu:
+--
+--    - jalankan di jam sepi;
+--    - siapkan lebih dulu SQL pada bagian MEMBATALKAN di bawah pada tab
+--      SQL Editor terpisah, sebelum menekan Run di sini;
+--    - segera setelah Run, buka /pinjamruangan. Kalender kosong berarti
+--      service key belum terbaca — jalankan SQL pembatalan saat itu juga.
+--
+--  Kalender kosong hanya berarti permintaan baca ditolak. Tidak ada data
+--  yang hilang, dan pembatalan mengembalikan keadaan seperti semula.
 --
 --  YANG IKUT TERDAMPAK
 --  -------------------
@@ -45,7 +70,23 @@
 --
 --  MEMBATALKAN
 --  -----------
---  Jalankan ulang bagian kebijakan di 2026-05-13_room_booking.sql.
+--  Salin blok berikut ke SQL Editor dan Run. Ini mengembalikan persis
+--  kebijakan yang berlaku sebelum skrip ini dijalankan (sama dengan yang
+--  ada di 2026-05-13_room_booking.sql):
+--
+--    ALTER TABLE room_bookings ENABLE ROW LEVEL SECURITY;
+--
+--    DROP POLICY IF EXISTS "public_read_bookings" ON room_bookings;
+--    CREATE POLICY "public_read_bookings" ON room_bookings
+--      FOR SELECT USING (status IN ('Pending','Approved','Rejected','Cancelled'));
+--
+--    DROP POLICY IF EXISTS "public_insert_bookings" ON room_bookings;
+--    CREATE POLICY "public_insert_bookings" ON room_bookings
+--      FOR INSERT WITH CHECK (true);
+--
+--    DROP POLICY IF EXISTS "anon_update_bookings" ON room_bookings;
+--    CREATE POLICY "anon_update_bookings" ON room_bookings
+--      FOR UPDATE USING (true) WITH CHECK (true);
 -- =====================================================================
 
 ALTER TABLE room_bookings ENABLE ROW LEVEL SECURITY;
