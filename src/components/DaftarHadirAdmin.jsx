@@ -132,35 +132,78 @@ export default function DaftarHadirAdmin({ user, isMobile, showT }) {
     setSibuk(false);
   };
 
-  // Menghapus acara ikut membuang seluruh data kehadiran dan foto selfienya,
-  // dan tidak bisa dibatalkan. Karena itu penjagaannya dibuat sebanding dengan
-  // risikonya: acara kosong cukup dikonfirmasi biasa, acara yang sudah berisi
-  // peserta menuntut kode acaranya diketik ulang.
+  // Hanya Kabag yang boleh menghapus. Peran lain mengajukan, Kabag memutuskan.
+  const bolehHapus = user?.role === "kabag";
+
+  // Data kehadiran hanya ada di Google Sheets — sekali dihapus, tidak ada
+  // salinan lain di mana pun. Peringatan pencadangan karena itu muncul pada
+  // SETIAP penghapusan, termasuk yang datanya masih kosong: acara kosong hari
+  // ini bisa saja sudah terisi saat tombolnya ditekan.
+  const PESAN_CADANGAN =
+    "PASTIKAN DATANYA SUDAH DICADANGKAN.\n" +
+    "Buka Rekap di Spreadsheet, atau unduh Laporan acara ini lebih dulu.\n" +
+    "Data yang terhapus tidak dapat dipulihkan dari aplikasi.";
+
   const hapusAcara = async (a) => {
     const jml = a.jumlahHadir || 0;
     if (jml > 0) {
       const jawab = window.prompt(
         `Acara "${a.judul}" sudah berisi ${jml} data kehadiran.\n\n` +
         `Menghapusnya membuang SELURUH data itu beserta foto selfienya, dan tidak dapat dibatalkan.\n\n` +
+        `⚠️ ${PESAN_CADANGAN}\n\n` +
         `Ketik kode acara "${a.kode}" untuk melanjutkan:`, "");
       if (!jawab || jawab.trim().toUpperCase() !== String(a.kode).toUpperCase()) {
         if (jawab !== null) showT?.("Kode tidak cocok — penghapusan dibatalkan", "warn");
         return;
       }
     } else if (!window.confirm(
-      `Hapus acara "${a.judul}"?\n\nBelum ada data kehadiran. Tindakan ini tidak dapat dibatalkan.`)) {
+      `Hapus acara "${a.judul}"?\n\nBelum ada data kehadiran. Tindakan ini tidak dapat dibatalkan.\n\n` +
+      `⚠️ ${PESAN_CADANGAN}`)) {
       return;
     }
 
     setSibuk(true);
     try {
-      const d = await kirim({ action: "hapus_acara", kode: a.kode, konfirmasi: a.kode });
+      const d = await kirim({ action: "hapus_acara", kode: a.kode, konfirmasi: a.kode, peran: user?.role });
       if (!d.ok) throw new Error(d.error || "Gagal");
       showT?.(d.dihapus > 0
         ? `Acara dihapus beserta ${d.dihapus} data kehadiran`
         : "Acara dihapus", "ok");
       muatAcara();
     } catch (e) { showT?.("Gagal menghapus: " + e.message, "error"); }
+    setSibuk(false);
+  };
+
+  const ajukanHapus = async (a) => {
+    const jml = a.jumlahHadir || 0;
+    const alasan = window.prompt(
+      `Ajukan penghapusan acara "${a.judul}" kepada Kabag.\n\n` +
+      (jml > 0 ? `Acara ini berisi ${jml} data kehadiran yang akan ikut terhapus.\n\n` : "") +
+      `⚠️ ${PESAN_CADANGAN}\n\n` +
+      `Tulis alasan pengajuan:`, "");
+    if (alasan === null) return;
+    if (!alasan.trim()) { showT?.("Alasan pengajuan wajib diisi", "warn"); return; }
+
+    setSibuk(true);
+    try {
+      const d = await kirim({ action: "minta_hapus", kode: a.kode,
+        alasan: alasan.trim(), oleh: user?.nama || user?.username || "" });
+      if (!d.ok) throw new Error(d.error || "Gagal");
+      showT?.("Pengajuan penghapusan dikirim ke Kabag", "ok");
+      muatAcara();
+    } catch (e) { showT?.("Gagal mengajukan: " + e.message, "error"); }
+    setSibuk(false);
+  };
+
+  const batalAjukanHapus = async (a) => {
+    if (!window.confirm(`Tarik kembali pengajuan penghapusan acara "${a.judul}"?`)) return;
+    setSibuk(true);
+    try {
+      const d = await kirim({ action: "batal_minta_hapus", kode: a.kode });
+      if (!d.ok) throw new Error(d.error || "Gagal");
+      showT?.("Pengajuan ditarik kembali", "ok");
+      muatAcara();
+    } catch (e) { showT?.("Gagal: " + e.message, "error"); }
     setSibuk(false);
   };
 
@@ -365,6 +408,24 @@ export default function DaftarHadirAdmin({ user, isMobile, showT }) {
                     </span>
                   </div>
 
+                  {a.hapusDimintaOleh && (
+                    <div style={{ marginTop: 10, padding: "9px 11px", borderRadius: 9,
+                      background: "#FEF2F2", border: "1.5px solid #FECACA" }}>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: "#991B1B" }}>
+                        🗑 Diajukan untuk dihapus oleh {a.hapusDimintaOleh}
+                      </div>
+                      {a.hapusAlasan && (
+                        <div style={{ fontSize: 12, color: "#7F1D1D", marginTop: 3, lineHeight: 1.55 }}>
+                          Alasan: {a.hapusAlasan}
+                        </div>
+                      )}
+                      <div style={{ fontSize: 11.5, color: "#B91C1C", marginTop: 5, lineHeight: 1.55 }}>
+                        {bolehHapus
+                          ? "Pastikan datanya sudah dicadangkan sebelum menyetujui."
+                          : "Menunggu keputusan Kabag."}
+                      </div>
+                    </div>
+                  )}
                   <div style={{ display: "flex", gap: 7, marginTop: 11, flexWrap: "wrap" }}>
                     <button onClick={() => salin(a.kode)} style={{ ...btn, border: "none", background: NAVY, color: "white" }}>
                       🔗 Salin Tautan
@@ -388,10 +449,23 @@ export default function DaftarHadirAdmin({ user, isMobile, showT }) {
                         ↺ Ikuti Jadwal
                       </button>
                     )}
-                    <button onClick={() => hapusAcara(a)} disabled={sibuk}
-                      style={{ ...btn, color: "#DC2626", border: "1.5px solid #FCA5A5" }}>
-                      🗑 Hapus
-                    </button>
+                    {bolehHapus ? (
+                      <button onClick={() => hapusAcara(a)} disabled={sibuk}
+                        style={{ ...btn, color: "#DC2626", border: "1.5px solid #FCA5A5",
+                          background: a.hapusDimintaOleh ? "#FEF2F2" : "white" }}>
+                        {a.hapusDimintaOleh ? "🗑 Setujui Penghapusan" : "🗑 Hapus"}
+                      </button>
+                    ) : a.hapusDimintaOleh ? (
+                      <button onClick={() => batalAjukanHapus(a)} disabled={sibuk}
+                        style={{ ...btn, color: "#92400E", border: "1.5px solid #FDE68A" }}>
+                        ↩ Tarik Pengajuan
+                      </button>
+                    ) : (
+                      <button onClick={() => ajukanHapus(a)} disabled={sibuk}
+                        style={{ ...btn, color: "#DC2626", border: "1.5px solid #FCA5A5" }}>
+                        🗑 Ajukan Penghapusan
+                      </button>
+                    )}
                   </div>
                 </div>
               );
