@@ -62,11 +62,25 @@ bercabang**, dengan satu kolom Pelaksana untuk setiap aktor dan simbol kapsul
 (mulai/selesai), kotak (proses), belah ketupat (keputusan), panah (arah), serta
 segilima (sambungan halaman).
 
-Dalam dokumen tertulis ini, kolom Pelaksana disajikan sebagai **satu kolom**
-agar prosedurnya terbaca utuh sebagai teks. Percabangan dinyatakan secara
-eksplisit pada kolom Keterangan dengan rujukan nomor langkah — misalnya
-"Bila tidak lengkap → langkah 5b". Penggambaran ke bentuk diagram alir bercabang
-dilakukan pada tahap penyalinan ke format cetak A4 lanskap.
+Bagian Prosedur pada setiap SOP disajikan dalam bentuk tersebut: kolom
+Pelaksana dipecah menjadi satu kolom untuk tiap aktor, dan simbol ditempatkan
+pada kolom pelakunya, disambung panah yang menunjukkan arah proses. Simbol yang
+dipakai:
+
+| Simbol | Arti |
+|---|---|
+| Kapsul | Mulai dan selesai |
+| Kotak | Proses atau kegiatan |
+| Belah ketupat | Pengambilan keputusan |
+| Panah | Arah proses |
+
+Setiap belah ketupat memiliki dua atau lebih cabang. Agar setiap cabang jelas
+tujuannya, **arah percabangan dituliskan pada kolom Keterangan** dengan rujukan
+nomor langkah — misalnya "layak → langkah 8; tidak layak → langkah 7". Garis
+panah pada kolom Pelaksana menggambarkan alur utamanya.
+
+Untuk memuat kolom Pelaksana sebanyak jumlah aktor, lembar SOP dicetak pada
+**kertas A4 lanskap**.
 
 ---
 

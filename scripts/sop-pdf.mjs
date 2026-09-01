@@ -37,6 +37,143 @@ const selDari = (baris) =>
 
 const pemisahTabel = (b) => /^\|[\s:|-]+\|$/.test(b.trim());
 
+// ── Diagram alir bercabang ───────────────────────────────────────
+// PermenPAN-RB 35/2012 menghendaki satu kolom Pelaksana untuk tiap aktor,
+// dengan simbol pada kolom pelakunya. Markdown menyimpannya sebagai satu
+// kolom teks agar tetap terbaca sebagai naskah; pemecahan menjadi kolom
+// dilakukan di sini, saat dicetak.
+
+// Sebutan yang sebenarnya menunjuk pelaku yang sama disatukan supaya tidak
+// menghasilkan dua kolom untuk orang yang itu-itu juga.
+const SEPADAN = {
+  "Petugas Protokol": "Staf Protokol",
+  // Penyusun naskah sambutan adalah Staf Komdok yang ditunjuk — satu orang,
+  // bukan dua pelaksana yang berbeda.
+  "Penyusun": "Staf Komunikasi dan Dokumentasi",
+  // Pengaju penghapusan daftar hadir adalah salah satu dari pelaksana yang
+  // sudah punya kolom sendiri; disatukan agar tidak muncul kolom kembar.
+  "Pengaju penghapusan": "Pengaju",
+};
+// Kepala kolom dipendekkan — kolom simbol hanya selebar ±13 mm.
+const RINGKAS = {
+  "Admin Rencana Kegiatan": "Admin RK",
+  "Kepala Bagian": "Kabag",
+  "Kasubbag Protokol": "Kasubbag Protokol",
+  "Kasubbag Komdokpim": "Kasubbag Komdok",
+  "Pejabat penanda tangan": "Pejabat TTD",
+  "Admin Undangan": "Admin Undangan",
+  "Staf Komunikasi dan Dokumentasi": "Staf Komdok",
+  "Petugas yang ditugaskan": "Petugas",
+  "Pengelola Ruangan": "Pengelola Ruang",
+  "Pejabat penanda tangan": "Pejabat TTD",
+};
+
+const bakukan = (n) => SEPADAN[n] || n;
+
+function pelakuDari(selPelaksana) {
+  return selPelaksana.split(",").map(s => bakukan(s.trim())).filter(Boolean);
+}
+
+// Bentuk simbol ditentukan dari isi kolom Keterangan, yang memang sudah
+// menyatakan mulai, selesai, dan percabangan keputusan.
+function bentukLangkah(ket) {
+  const k = ket.replace(/\*\*/g, "");
+  if (/^Keputusan:/i.test(k.trim()))            return "keputusan";
+  if (/\bMulai\b/.test(k))                       return "mulai";
+  if (/\bSelesai\b/.test(k))                     return "selesai";
+  return "proses";
+}
+
+const SIMBOL = {
+  mulai:    `<svg viewBox="0 0 40 20"><rect x="2" y="3" width="36" height="14" rx="7" ry="7"/></svg>`,
+  selesai:  `<svg viewBox="0 0 40 20"><rect x="2" y="3" width="36" height="14" rx="7" ry="7"/></svg>`,
+  proses:   `<svg viewBox="0 0 40 20"><rect x="3" y="3" width="34" height="14"/></svg>`,
+  keputusan:`<svg viewBox="0 0 40 20"><polygon points="20,2 38,10 20,18 2,10"/></svg>`,
+};
+
+function tabelAlir(isi) {
+  // Urutan kolom mengikuti urutan kemunculan pertama pada alur.
+  const aktor = [];
+  for (const r of isi) for (const p of pelakuDari(r[2]))
+    if (!aktor.includes(p)) aktor.push(p);
+  const N = aktor.length;
+  const slot = (i) => ((i + 0.5) / N) * 100;
+
+  // Lebar kolom ditetapkan lewat <colgroup>: dengan table-layout:fixed,
+  // lebar pada baris kepala kedua diabaikan karena baris pertama memakai
+  // colspan, sehingga Mutu Baku sempat menyempit sampai teksnya terpenggal.
+  const wAktor = Math.min(34, N * 5);
+  const sisa   = 100 - 2.6 - 26.5 - wAktor;
+  const wUraian = sisa * 0.55, wKet = sisa * 0.45;
+  const kolom =
+    `<colgroup>` +
+    `<col style="width:2.6%"><col style="width:${wUraian.toFixed(2)}%">` +
+    aktor.map(() => `<col style="width:${(wAktor / N).toFixed(2)}%">`).join("") +
+    `<col style="width:10%"><col style="width:6.5%"><col style="width:10%">` +
+    `<col style="width:${wKet.toFixed(2)}%">` +
+    `</colgroup>`;
+
+  const kepala =
+    `<tr>` +
+    `<th rowspan="2" class="c-no">No</th>` +
+    `<th rowspan="2" class="c-uraian">Uraian Kegiatan</th>` +
+    `<th colspan="${N}" class="c-pel">Pelaksana</th>` +
+    `<th colspan="3" class="c-mutu">Mutu Baku</th>` +
+    `<th rowspan="2" class="c-ket">Keterangan</th>` +
+    `</tr><tr>` +
+    aktor.map(a => `<th class="c-aktor">${lolos(RINGKAS[a] || a)}</th>`).join("") +
+    `<th class="c-sub">Kelengkapan</th><th class="c-sub">Waktu</th><th class="c-sub">Output</th>` +
+    `</tr>`;
+
+  const badan = isi.map((r, n) => {
+    const bentuk = bentukLangkah(r[6]);
+    const pelaku = pelakuDari(r[2]).map(p => aktor.indexOf(p)).filter(x => x >= 0);
+    const utama  = pelaku.length ? Math.min(...pelaku) : 0;
+
+    // Sambungan ke langkah berikutnya: turun dari simbol, lalu mendatar bila
+    // pelaksananya berpindah kolom.
+    const brk = isi[n + 1];
+    const tujuan = brk
+      ? (pelakuDari(brk[2]).map(p => aktor.indexOf(p)).filter(x => x >= 0)[0] ?? utama)
+      : null;
+
+    const lapis = [];
+    for (const i of pelaku)
+      lapis.push(`<div class="simbol ${bentuk}" style="left:${slot(i) - 50 / N}%;width:${100 / N}%">${SIMBOL[bentuk]}</div>`);
+    if (tujuan !== null) {
+      lapis.push(`<div class="turun" style="left:${slot(utama)}%"></div>`);
+      if (tujuan !== utama) {
+        const a = Math.min(slot(utama), slot(tujuan)), b = Math.abs(slot(tujuan) - slot(utama));
+        lapis.push(`<div class="mendatar" style="left:${a}%;width:${b}%"></div>`);
+        lapis.push(`<div class="panah" style="left:${slot(tujuan)}%"></div>`);
+      } else {
+        lapis.push(`<div class="panah" style="left:${slot(utama)}%"></div>`);
+      }
+    }
+    const pemisah = aktor.slice(1).map((_, k) =>
+      `<div class="garis" style="left:${((k + 1) / N) * 100}%"></div>`).join("");
+
+    return `<tr>` +
+      `<td class="c-no">${sebaris(r[0])}</td>` +
+      `<td class="c-uraian">${sebaris(r[1])}</td>` +
+      `<td class="alir" colspan="${N}"><div class="alir-isi">${pemisah}${lapis.join("")}</div></td>` +
+      `<td class="c-sub">${sebaris(r[3])}</td>` +
+      `<td class="c-sub">${sebaris(r[4])}</td>` +
+      `<td class="c-sub">${sebaris(r[5])}</td>` +
+      `<td class="c-ket">${sebaris(r[6])}</td>` +
+    `</tr>`;
+  }).join("");
+
+  return `<table class="alirtabel">${kolom}<thead>${kepala}</thead><tbody>${badan}</tbody></table>` +
+    `<div class="legenda">
+       <span><i class="lg mulai"></i> Mulai / Selesai</span>
+       <span><i class="lg proses"></i> Proses</span>
+       <span><i class="lg keputusan"></i> Keputusan</span>
+       <span><i class="lg arah"></i> Arah proses</span>
+       <span class="lg-ket">Percabangan keputusan dirinci pada kolom Keterangan.</span>
+     </div>`;
+}
+
 function keHTML(md) {
   const baris = md.split("\n");
   const out = [];
@@ -58,8 +195,11 @@ function keHTML(md) {
       while (i < baris.length && baris[i].trim().startsWith("|")) {
         isi.push(selDari(baris[i])); i++;
       }
-      // Tabel identitas = 2 kolom; tabel prosedur = 7 kolom.
-      const kelas = lebar === 7 ? "prosedur" : lebar === 2 ? "identitas" : "ringkas";
+      // Tabel prosedur (7 kolom) dirender sebagai diagram alir bercabang:
+      // kolom Pelaksana dipecah satu kolom per aktor, berisi simbol.
+      if (lebar === 7) { out.push(tabelAlir(isi)); continue; }
+
+      const kelas = lebar === 2 ? "identitas" : "ringkas";
       out.push(`<table class="${kelas}"><thead><tr>` +
         kepala.map(h => `<th>${sebaris(h)}</th>`).join("") +
         `</tr></thead><tbody>` +
@@ -160,14 +300,53 @@ tbody tr:nth-child(even) { background: #F8FAFC; }
 table.identitas td.k0 { width: 22%; background: #F1F5F9; font-weight: 700; }
 table.identitas thead { display: none; }
 
-/* Tabel prosedur: tujuh kolom, lebar diatur agar Uraian & Keterangan lega */
-table.prosedur td.k0, table.prosedur th:nth-child(1) { width: 3%;  text-align: center; }
-table.prosedur td.k1 { width: 25%; }
-table.prosedur td.k2 { width: 14%; }
-table.prosedur td.k3 { width: 12%; }
-table.prosedur td.k4 { width: 8%;  }
-table.prosedur td.k5 { width: 13%; }
-table.prosedur td.k6 { width: 25%; }
+/* ── Diagram alir bercabang ─────────────────────────────────── */
+table.alirtabel { font-size: 7.1pt; table-layout: fixed; }
+table.alirtabel th { font-size: 6.9pt; text-align: center; padding: 2.6pt 2pt; }
+/* Lebar tiap kolom ditetapkan lewat <colgroup> di penyusun tabel. */
+table.alirtabel td { padding: 2.6pt 3pt; overflow-wrap: break-word; hyphens: none; }
+table.alirtabel .c-no { text-align: center; }
+/* Pada baris yang uraiannya hanya satu baris, simbol dan panah berdesakan.
+   height pada <tr> berlaku sebagai tinggi minimum, jadi ruangnya tetap ada. */
+table.alirtabel tbody tr { height: 32pt; }
+/* Kolom aktor sempit (±10 mm). Huruf dikecilkan agar nama jabatan pecah di
+   antarkata, bukan di tengah kata seperti "Kasubba / g Protokol". */
+table.alirtabel th.c-aktor { font-size: 5.8pt; line-height: 1.2; padding: 3pt .5pt;
+                             overflow-wrap: break-word; }
+
+/* Sel alir memuat lapisan simbol & penghubung yang diposisikan mutlak. */
+table.alirtabel td.alir { padding: 0; position: relative; }
+td.alir .alir-isi { position: absolute; inset: 0; }
+
+.alir-isi .garis { position: absolute; top: 0; bottom: 0; width: 0;
+                   border-left: .4pt solid #CBD5E1; }
+.alir-isi .simbol { position: absolute; top: 4pt; height: 13pt;
+                    display: flex; align-items: center; justify-content: center; }
+.alir-isi .simbol svg { width: 88%; height: 100%; overflow: visible; }
+.alir-isi .simbol svg rect,
+.alir-isi .simbol svg polygon { fill: #fff; stroke: #0A1628; stroke-width: 1.6; }
+.alir-isi .simbol.mulai svg rect, .alir-isi .simbol.selesai svg rect { fill: #E2E8F0; }
+.alir-isi .simbol.keputusan svg polygon { fill: #FEF3C7; }
+
+/* Penghubung: turun dari simbol, mendatar bila pindah kolom, lalu panah. */
+.alir-isi .turun { position: absolute; top: 17pt; bottom: 4.5pt; width: 0;
+                   border-left: .9pt solid #0A1628; }
+.alir-isi .mendatar { position: absolute; bottom: 4.5pt; height: 0;
+                      border-top: .9pt solid #0A1628; }
+.alir-isi .panah { position: absolute; bottom: 0; width: 0; height: 0;
+                   margin-left: -2.4pt;
+                   border-left: 2.4pt solid transparent;
+                   border-right: 2.4pt solid transparent;
+                   border-top: 4.5pt solid #0A1628; }
+
+.legenda { display: flex; gap: 12pt; align-items: center; flex-wrap: wrap;
+           font-size: 6.9pt; color: #334155; margin: -4pt 0 10pt; }
+.legenda i.lg { display: inline-block; width: 13pt; height: 7pt; margin-right: 3pt;
+                vertical-align: -1pt; border: .9pt solid #0A1628; background: #fff; }
+.legenda i.lg.mulai { border-radius: 4pt; background: #E2E8F0; }
+.legenda i.lg.keputusan { background: #FEF3C7; transform: rotate(45deg) scale(.72); }
+.legenda i.lg.arah { border: 0; border-top: .9pt solid #0A1628; height: 0; width: 16pt; }
+.legenda .lg-ket { color: #64748B; font-style: italic; }
 
 .sorot { border: .8pt solid #F59E0B; background: #FFFBEB; border-radius: 3pt;
          padding: 7pt 10pt; margin: 8pt 0; page-break-inside: avoid; }

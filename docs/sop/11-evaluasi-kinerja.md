@@ -57,7 +57,7 @@
 | 8 | Mengingatkan petugas yang belum mengisi evaluasi | Kasubbag Protokol, Kasubbag Komdokpim | Daftar evaluasi belum terisi |  | Pengingat tersampaikan | Kembali ke langkah 3 bagi yang bersangkutan |
 | 9 | Menelaah rekapitulasi kinerja bulanan per personil | Kasubbag Protokol, Kasubbag Komdokpim, Kepala Bagian | Rekapitulasi penugasan dan evaluasi |  | Hasil telaah kinerja | Meliputi jumlah penugasan, hasil evaluasi, dan kontribusi naskah sambutan |
 | 10 | Menyampaikan pembinaan dan arahan perbaikan kepada personil | Kasubbag Protokol, Kasubbag Komdokpim, Kepala Bagian | Hasil telaah kinerja |  | Arahan pembinaan | Disampaikan secara langsung, tidak semata-mata melalui aplikasi |
-| 11 | Mencetak bukti dukung kinerja untuk keperluan penilaian kepegawaian | Petugas, Kasubbag, Kepala Bagian | Rekapitulasi kinerja |  | Bukti dukung tercetak | Melalui menu E-Kinerja. Selesai |
+| 11 | Mencetak bukti dukung kinerja untuk keperluan penilaian kepegawaian | Petugas yang ditugaskan, Kasubbag Protokol, Kasubbag Komdokpim, Kepala Bagian | Rekapitulasi kinerja |  | Bukti dukung tercetak | Melalui menu E-Kinerja. Selesai |
 
 ---
 
