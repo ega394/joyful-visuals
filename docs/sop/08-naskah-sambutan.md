@@ -10,7 +10,7 @@
 | **Tanggal Efektif** | ......................................... |
 | **Disahkan oleh** | Sekretaris Daerah Kota Tarakan |
 | **Nama SOP** | Penyusunan dan Pengesahan Naskah Sambutan Pimpinan |
-| **Dasar Hukum** | 1. Peraturan Daerah tentang Pembentukan dan Susunan Perangkat Daerah *(nomor dan tahun diisi)*<br>2. Peraturan Wali Kota tentang Kedudukan, Susunan Organisasi, Tugas dan Fungsi Sekretariat Daerah *(nomor dan tahun diisi)*<br>3. Peraturan Wali Kota tentang Tata Naskah Dinas *(nomor dan tahun diisi)* |
+| **Dasar Hukum** | 1. .........................................<br>2. .........................................<br>3. .........................................<br>4. ......................................... |
 | **Kualifikasi Pelaksana** | 1. Menguasai kaidah bahasa Indonesia yang baik dan benar<br>2. Memahami kebijakan dan program Pemerintah Kota Tarakan<br>3. Mampu menyusun naskah pidato sesuai karakter Pimpinan<br>4. Mampu mengoperasikan Aplikasi Prokopim Hibot |
 | **Keterkaitan** | 1. SOP 1 — Penyusunan dan Penetapan Jadwal Kegiatan Pimpinan<br>2. SOP 4 — Penugasan Petugas Protokol dan Dokumentasi<br>3. SOP 9 — Peliputan dan Publikasi Kegiatan Pimpinan<br>4. SOP 11 — Evaluasi Kinerja Petugas Protokol dan Dokumentasi |
 | **Peralatan/Perlengkapan** | 1. Aplikasi Prokopim Hibot<br>2. Perangkat komputer dengan pengolah kata<br>3. Bahan rujukan: data program, capaian, dan kebijakan daerah<br>4. Berkas undangan dan susunan acara dari penyelenggara |
@@ -37,20 +37,20 @@ satu peran, kreditnya dihitung satu kali.
 
 | No | Uraian Kegiatan | Pelaksana | Kelengkapan | Waktu | Output | Keterangan |
 |---|---|---|---|---|---|---|
-| 1 | Menerima pemberitahuan jadwal disetujui yang berjenis Sambutan atau Sambutan membuka acara | Kasubbag Komdokpim | Jadwal Disetujui | Seketika **(otomatis)** | Pemberitahuan diterima | Mulai. Lanjutan SOP 1 langkah 11 |
-| 2 | Menelaah kebutuhan naskah berdasarkan jenis, tema, dan khalayak kegiatan | Kasubbag Komdokpim | Jadwal, berkas undangan, susunan acara | 30 menit | Kebutuhan naskah | |
-| 3 | Menunjuk penyusun naskah | Kasubbag Komdokpim | Kebutuhan naskah, ketersediaan personil | 10 menit | Penyusun ditetapkan | Sistem mencatat Kasubbag sebagai penyelia |
-| 4 | Menerima pemberitahuan penunjukan sebagai penyusun | Staf Komunikasi dan Dokumentasi | Notifikasi | Seketika **(otomatis)** | Penunjukan diketahui | |
-| 5 | Mengumpulkan bahan: data program, capaian, kebijakan daerah, dan susunan acara | Penyusun | Bahan rujukan | 1 hari kerja | Bahan terkumpul | |
-| 6 | Menyusun naskah sambutan | Penyusun | Bahan terkumpul | 1 hari kerja | Rancangan naskah | Paling lambat H-2 kegiatan |
-| 7 | Mengunggah naskah ke aplikasi | Penyusun | Rancangan naskah | 10 menit | Naskah terunggah | Diunggah dalam format terolah dan/atau format siap cetak. Paling lambat H-1 kegiatan |
-| 8 | Menyelia naskah: kesesuaian isi, kaidah bahasa, dan gaya penyampaian Pimpinan | Kasubbag Komdokpim | Naskah terunggah | 4 jam kerja | Hasil penyeliaan | **Keputusan:** layak → langkah 10; perlu perbaikan → langkah 9 |
-| 9 | Mengembalikan naskah kepada penyusun disertai arahan perbaikan | Kasubbag Komdokpim | Arahan perbaikan | 15 menit | Naskah dikembalikan | Kembali ke langkah 6 |
-| 10 | Meneruskan naskah kepada Kepala Bagian untuk disahkan | Kasubbag Komdokpim | Naskah hasil penyeliaan | 10 menit | Naskah menunggu pengesahan | Sistem menampilkan penanda pada lonceng pemberitahuan Kepala Bagian |
-| 11 | Menelaah dan memutuskan pengesahan naskah | Kepala Bagian | Naskah hasil penyeliaan | 4 jam kerja | Keputusan | **Keputusan:** disahkan → langkah 12; belum layak → kembali ke langkah 9 |
-| 12 | Mengesahkan naskah | Kepala Bagian | Naskah layak | 5 menit | Naskah **Disahkan** | Sistem mencatat pengesah dan waktu pengesahan |
-| 13 | Menyerahkan naskah yang telah disahkan kepada Pimpinan melalui Ajudan | Kasubbag Komdokpim, Ajudan | Naskah disahkan | 30 menit | Naskah diterima Pimpinan | Naskah dapat diunduh langsung dari kartu kegiatan |
-| 14 | Menyiapkan naskah cetak untuk dibawa ke lokasi kegiatan | Staf Protokol, Ajudan | Naskah disahkan | 20 menit | Naskah cetak | Selesai |
+| 1 | Menerima pemberitahuan jadwal disetujui yang berjenis Sambutan atau Sambutan membuka acara | Kasubbag Komdokpim | Jadwal Disetujui |  | Pemberitahuan diterima | Mulai. Lanjutan SOP 1 langkah 11. Otomatis oleh sistem, seketika. |
+| 2 | Menelaah kebutuhan naskah berdasarkan jenis, tema, dan khalayak kegiatan | Kasubbag Komdokpim | Jadwal, berkas undangan, susunan acara |  | Kebutuhan naskah |  |
+| 3 | Menunjuk penyusun naskah | Kasubbag Komdokpim | Kebutuhan naskah, ketersediaan personil |  | Penyusun ditetapkan | Sistem mencatat Kasubbag sebagai penyelia |
+| 4 | Menerima pemberitahuan penunjukan sebagai penyusun | Staf Komunikasi dan Dokumentasi | Notifikasi |  | Penunjukan diketahui |. Otomatis oleh sistem, seketika. |
+| 5 | Mengumpulkan bahan: data program, capaian, kebijakan daerah, dan susunan acara | Penyusun | Bahan rujukan |  | Bahan terkumpul |  |
+| 6 | Menyusun naskah sambutan | Penyusun | Bahan terkumpul |  | Rancangan naskah | Paling lambat H-2 kegiatan |
+| 7 | Mengunggah naskah ke aplikasi | Penyusun | Rancangan naskah |  | Naskah terunggah | Diunggah dalam format terolah dan/atau format siap cetak. Paling lambat H-1 kegiatan |
+| 8 | Menyelia naskah: kesesuaian isi, kaidah bahasa, dan gaya penyampaian Pimpinan | Kasubbag Komdokpim | Naskah terunggah |  | Hasil penyeliaan | **Keputusan:** layak → langkah 10; perlu perbaikan → langkah 9 |
+| 9 | Mengembalikan naskah kepada penyusun disertai arahan perbaikan | Kasubbag Komdokpim | Arahan perbaikan |  | Naskah dikembalikan | Kembali ke langkah 6 |
+| 10 | Meneruskan naskah kepada Kepala Bagian untuk disahkan | Kasubbag Komdokpim | Naskah hasil penyeliaan |  | Naskah menunggu pengesahan | Sistem menampilkan penanda pada lonceng pemberitahuan Kepala Bagian |
+| 11 | Menelaah dan memutuskan pengesahan naskah | Kepala Bagian | Naskah hasil penyeliaan |  | Keputusan | **Keputusan:** disahkan → langkah 12; belum layak → kembali ke langkah 9 |
+| 12 | Mengesahkan naskah | Kepala Bagian | Naskah layak |  | Naskah **Disahkan** | Sistem mencatat pengesah dan waktu pengesahan |
+| 13 | Menyerahkan naskah yang telah disahkan kepada Pimpinan melalui Ajudan | Kasubbag Komdokpim, Ajudan | Naskah disahkan |  | Naskah diterima Pimpinan | Naskah dapat diunduh langsung dari kartu kegiatan |
+| 14 | Menyiapkan naskah cetak untuk dibawa ke lokasi kegiatan | Staf Protokol, Ajudan | Naskah disahkan |  | Naskah cetak | Selesai |
 
 ---
 

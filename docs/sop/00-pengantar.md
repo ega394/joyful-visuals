@@ -10,26 +10,26 @@ Dokumen ini memuat **11 Standar Operasional Prosedur** yang mencakup seluruh alu
 kerja Bagian Prokopim, baik pada Sub Bagian Protokol maupun Sub Bagian Komunikasi
 dan Dokumentasi Pimpinan.
 
-| No | Nama SOP | Berkas |
+| No | Nama SOP | Pelaksana Utama |
 |---|---|---|
-| 1 | Penyusunan dan Penetapan Jadwal Kegiatan Pimpinan | `01-penetapan-jadwal.md` |
-| 2 | Perubahan Jadwal Kegiatan yang Telah Ditetapkan | `02-perubahan-jadwal.md` |
-| 3 | Penarikan dan Pembatalan Jadwal Kegiatan | `03-penarikan-jadwal.md` |
-| 4 | Penugasan Petugas Protokol dan Dokumentasi | `04-penugasan-petugas.md` |
-| 5 | Pelayanan Permohonan Audiensi dan Kunjungan Tamu Pimpinan | `05-audiensi-tamu.md` |
-| 6 | Pelayanan Peminjaman Ruangan | `06-peminjaman-ruangan.md` |
-| 7 | Penyelenggaraan Daftar Hadir Digital | `07-daftar-hadir.md` |
-| 8 | Penyusunan dan Pengesahan Naskah Sambutan Pimpinan | `08-naskah-sambutan.md` |
-| 9 | Peliputan dan Publikasi Kegiatan Pimpinan | `09-peliputan-publikasi.md` |
-| 10 | Penerbitan Undangan Kedinasan | `10-undangan-kedinasan.md` |
-| 11 | Evaluasi Kinerja Petugas Protokol dan Dokumentasi | `11-evaluasi-kinerja.md` |
+| 1 | Penyusunan dan Penetapan Jadwal Kegiatan Pimpinan | Sub Bagian Protokol |
+| 2 | Perubahan Jadwal Kegiatan yang Telah Ditetapkan | Sub Bagian Protokol |
+| 3 | Penarikan dan Pembatalan Jadwal Kegiatan | Sub Bagian Protokol |
+| 4 | Penugasan Petugas Protokol dan Dokumentasi | Kedua Sub Bagian |
+| 5 | Pelayanan Permohonan Audiensi dan Kunjungan Tamu Pimpinan | Sub Bagian Protokol |
+| 6 | Pelayanan Peminjaman Ruangan | Sub Bagian Protokol |
+| 7 | Penyelenggaraan Daftar Hadir Digital | Sub Bagian Protokol |
+| 8 | Penyusunan dan Pengesahan Naskah Sambutan Pimpinan | Sub Bagian Komdokpim |
+| 9 | Peliputan dan Publikasi Kegiatan Pimpinan | Sub Bagian Komdokpim |
+| 10 | Penerbitan Undangan Kedinasan | Sub Bagian Protokol |
+| 11 | Evaluasi Kinerja Petugas Protokol dan Dokumentasi | Kedua Sub Bagian |
 
 ---
 
 ## B. Acuan Format
 
-Format dokumen ini mengikuti **Peraturan Menteri Pendayagunaan Aparatur Negara dan
-Reformasi Birokrasi Nomor 35 Tahun 2012** tentang Pedoman Penyusunan Standar
+Dokumen ini disusun mengikuti **Peraturan Menteri Pendayagunaan Aparatur Negara
+dan Reformasi Birokrasi Nomor 35 Tahun 2012** tentang Pedoman Penyusunan Standar
 Operasional Prosedur Administrasi Pemerintahan (SOP AP), yang mensyaratkan setiap
 SOP memuat:
 
@@ -39,24 +39,19 @@ SOP memuat:
 2. **Bagian Prosedur** — kolom Uraian Kegiatan, Pelaksana, Mutu Baku (Kelengkapan,
    Waktu, Output), dan Keterangan.
 
-> ### ⚠️ Tiga hal yang wajib diperiksa sebelum dokumen ini disahkan
+> ### ⚠️ Dua kolom sengaja dikosongkan
 >
-> **1. Acuan peraturan perlu dikonfirmasi.** Penyusun dokumen ini tidak dapat
-> memastikan apakah PermenPAN-RB 35/2012 masih menjadi acuan yang berlaku bagi
-> Pemerintah Kota Tarakan, atau telah ada peraturan yang lebih baru maupun
-> Peraturan Wali Kota tersendiri. Mohon dipastikan lebih dahulu kepada Bagian
-> Organisasi Setda Kota Tarakan. Bila acuannya berbeda, seluruh format ikut
-> menyesuaikan.
+> **1. Kolom Dasar Hukum.** Nomor dan tahun peraturan tidak dicantumkan dan
+> disediakan sebagai isian kosong. Pengisiannya memerlukan pemeriksaan dokumen
+> peraturan yang asli — mencantumkan nomor yang tidak dipastikan kebenarannya
+> akan menjadikan dokumen ini cacat sejak awal.
 >
-> **2. Kolom Dasar Hukum sengaja dikosongkan.** Mencantumkan nomor dan tahun
-> peraturan yang tidak dipastikan kebenarannya akan menjadikan dokumen ini cacat
-> sejak awal. Yang dicantumkan hanya *jenis* peraturan yang perlu diisi, bukan
-> nomornya. Pengisiannya memerlukan pemeriksaan dokumen aslinya.
+> **2. Kolom Mutu Baku → Waktu.** Seluruh sel dikosongkan dan akan ditetapkan
+> oleh Kepala Bagian. Langkah yang dijalankan sendiri oleh sistem tidak
+> memerlukan penetapan waktu; keterangan **"Otomatis oleh sistem"** pada kolom
+> Keterangan menandai langkah-langkah tersebut.
 >
-> **3. Kolom Waktu masih berupa usulan.** Angka pada kolom Mutu Baku → Waktu
-> adalah usulan penyusun, belum diukur dari data pelaksanaan. Angka ini perlu
-> ditetapkan oleh Kepala Bagian. Pengecualian: waktu yang ditandai
-> **(otomatis)** merupakan perilaku sistem yang sudah berjalan dan angkanya pasti.
+> Kedua kolom itu harus terisi sebelum dokumen ini disahkan.
 
 ---
 
@@ -77,18 +72,18 @@ dilakukan pada tahap penyalinan ke format cetak A4 lanskap.
 
 ## D. Daftar Pelaksana
 
-| Sebutan dalam SOP | Peran pada aplikasi | Keterangan |
+| Sebutan dalam SOP | Kedudukan | Kewenangan pokok |
 |---|---|---|
-| Kepala Bagian | `kabag` | Kabag Prokopim |
-| Kasubbag Protokol | `kasubbag_protokol` | |
-| Kasubbag Komdokpim | `kasubbag_komdokpim` | Komunikasi dan Dokumentasi Pimpinan |
-| Admin Rencana Kegiatan | `admin_rk` | Petugas input dan pantau jadwal |
-| Staf Protokol | `staf` | |
-| Staf Komunikasi dan Dokumentasi | `timkom` | |
-| Admin Undangan | `admin_undangan` | Penyusun undangan kedinasan |
-| Ajudan | `ajudan_walikota`, `ajudan_wakilwalikota` | |
-| Pimpinan | `walikota`, `wakilwalikota` | |
-| Pengelola Ruangan | `can_manage_rooms` | Atribut tambahan, dapat melekat pada peran mana pun |
+| Kepala Bagian | Kepala Bagian Prokopim | Memutuskan penetapan, perubahan, penarikan, dan pembatalan jadwal; mengesahkan naskah sambutan; menghapus acara daftar hadir |
+| Kasubbag Protokol | Kepala Sub Bagian Protokol | Menelaah jadwal dan permohonan tamu; menugaskan petugas protokol |
+| Kasubbag Komdokpim | Kepala Sub Bagian Komunikasi dan Dokumentasi Pimpinan | Menunjuk penyusun naskah sambutan dan menyelianya; menyetujui bahan publikasi; menugaskan petugas dokumentasi |
+| Admin Rencana Kegiatan | Pelaksana pada Sub Bagian Protokol | Menginput dan memantau jadwal; memverifikasi permohonan tamu |
+| Staf Protokol | Pelaksana pada Sub Bagian Protokol | Melaksanakan tugas keprotokolan di lapangan |
+| Staf Komunikasi dan Dokumentasi | Pelaksana pada Sub Bagian Komdokpim | Meliput, menyusun naskah sambutan, dan menyiapkan bahan publikasi |
+| Admin Undangan | Pelaksana pada Sub Bagian Protokol | Menyusun naskah undangan kedinasan |
+| Ajudan | Ajudan Wali Kota / Wakil Wali Kota | Mendampingi Pimpinan dan meneruskan kesediaan hadir |
+| Pimpinan | Wali Kota / Wakil Wali Kota | Memutuskan permohonan audiensi |
+| Pengelola Ruangan | Pejabat/pelaksana yang ditunjuk | Meninjau dan memutuskan permohonan peminjaman ruangan |
 
 ---
 

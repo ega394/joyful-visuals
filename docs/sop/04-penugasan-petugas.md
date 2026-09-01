@@ -10,7 +10,7 @@
 | **Tanggal Efektif** | ......................................... |
 | **Disahkan oleh** | Sekretaris Daerah Kota Tarakan |
 | **Nama SOP** | Penugasan Petugas Protokol dan Dokumentasi |
-| **Dasar Hukum** | 1. Peraturan Daerah tentang Pembentukan dan Susunan Perangkat Daerah *(nomor dan tahun diisi)*<br>2. Peraturan Wali Kota tentang Kedudukan, Susunan Organisasi, Tugas dan Fungsi Sekretariat Daerah *(nomor dan tahun diisi)*<br>3. Peraturan tentang Keprotokolan *(nomor dan tahun diisi)* |
+| **Dasar Hukum** | 1. .........................................<br>2. .........................................<br>3. .........................................<br>4. ......................................... |
 | **Kualifikasi Pelaksana** | 1. Memahami tugas dan fungsi keprotokolan serta dokumentasi<br>2. Mengetahui beban kerja dan ketersediaan personil<br>3. Mampu mengoperasikan Aplikasi Prokopim Hibot |
 | **Keterkaitan** | 1. SOP 1 — Penyusunan dan Penetapan Jadwal Kegiatan Pimpinan<br>2. SOP 2 — Perubahan Jadwal Kegiatan yang Telah Ditetapkan<br>3. SOP 9 — Peliputan dan Publikasi Kegiatan Pimpinan<br>4. SOP 11 — Evaluasi Kinerja Petugas Protokol dan Dokumentasi |
 | **Peralatan/Perlengkapan** | 1. Aplikasi Prokopim Hibot<br>2. Perangkat komputer atau telepon pintar dengan sambungan internet<br>3. Daftar personil beserta ketersediaannya |
@@ -35,17 +35,17 @@
 
 | No | Uraian Kegiatan | Pelaksana | Kelengkapan | Waktu | Output | Keterangan |
 |---|---|---|---|---|---|---|
-| 1 | Menerima pemberitahuan jadwal yang telah disetujui | Kasubbag Protokol, Kasubbag Komdokpim | Jadwal Disetujui | Seketika **(otomatis)** | Pemberitahuan diterima | Mulai. Lanjutan SOP 1 langkah 11 |
-| 2 | Menelaah kebutuhan personil berdasarkan jenis, skala, dan lokasi kegiatan | Kasubbag Protokol, Kasubbag Komdokpim | Jadwal, berkas undangan | 30 menit | Kebutuhan personil | |
-| 3 | Memeriksa ketersediaan dan beban penugasan personil | Kasubbag Protokol, Kasubbag Komdokpim | Rekap penugasan berjalan | 15 menit | Daftar calon petugas | |
-| 4 | Menetapkan personil yang ditugaskan dan menuliskan catatan penugasan | Kasubbag Protokol, Kasubbag Komdokpim | Daftar calon petugas | 10 menit | Penugasan tersimpan | Kepala Bagian dapat menetapkan penugasan untuk seluruh peran |
-| 5 | Mengirimkan pemberitahuan penugasan | Sistem | Penugasan tersimpan | Seketika **(otomatis)** | Notifikasi diterima petugas | Hanya personil yang **baru ditambahkan** yang diberi tahu |
-| 6 | Menerima dan membaca penugasan beserta catatannya | Staf Protokol, Staf Komunikasi dan Dokumentasi | Notifikasi penugasan | 10 menit | Penugasan diketahui | Penugasan dapat dilihat pada menu Penugasan Saya |
-| 7 | Melakukan persiapan sesuai penugasan | Petugas yang ditugaskan | Penugasan, berkas undangan | Menyesuaikan | Kesiapan pelaksanaan | |
-| 8 | Meninjau kembali penugasan bila terjadi perubahan kebutuhan | Kasubbag Protokol, Kasubbag Komdokpim, Kepala Bagian | Penugasan berjalan | 10 menit | Penugasan diperbarui | **Keputusan:** ada perubahan → langkah 9; tidak ada → langkah 11 |
-| 9 | Menambah atau mencabut personil | Kasubbag Protokol, Kasubbag Komdokpim, Kepala Bagian | Penugasan berjalan | 10 menit | Penugasan diperbarui | |
-| 10 | Memberitahukan penambahan kepada personil baru dan pencabutan kepada personil yang dicabut | Sistem | Penugasan diperbarui | Seketika **(otomatis)** | Notifikasi diterima | Personil yang tidak berubah tidak menerima pemberitahuan |
-| 11 | Melaksanakan tugas pada hari pelaksanaan kegiatan | Petugas yang ditugaskan | Penugasan, kesiapan | Menyesuaikan | Kegiatan terlaksana | Selesai. Dilanjutkan SOP 11 — Evaluasi Kinerja |
+| 1 | Menerima pemberitahuan jadwal yang telah disetujui | Kasubbag Protokol, Kasubbag Komdokpim | Jadwal Disetujui |  | Pemberitahuan diterima | Mulai. Lanjutan SOP 1 langkah 11. Otomatis oleh sistem, seketika. |
+| 2 | Menelaah kebutuhan personil berdasarkan jenis, skala, dan lokasi kegiatan | Kasubbag Protokol, Kasubbag Komdokpim | Jadwal, berkas undangan |  | Kebutuhan personil |  |
+| 3 | Memeriksa ketersediaan dan beban penugasan personil | Kasubbag Protokol, Kasubbag Komdokpim | Rekap penugasan berjalan |  | Daftar calon petugas |  |
+| 4 | Menetapkan personil yang ditugaskan dan menuliskan catatan penugasan | Kasubbag Protokol, Kasubbag Komdokpim | Daftar calon petugas |  | Penugasan tersimpan | Kepala Bagian dapat menetapkan penugasan untuk seluruh peran |
+| 5 | Mengirimkan pemberitahuan penugasan | Sistem | Penugasan tersimpan |  | Notifikasi diterima petugas | Hanya personil yang **baru ditambahkan** yang diberi tahu. Otomatis oleh sistem, seketika. |
+| 6 | Menerima dan membaca penugasan beserta catatannya | Staf Protokol, Staf Komunikasi dan Dokumentasi | Notifikasi penugasan |  | Penugasan diketahui | Penugasan dapat dilihat pada menu Penugasan Saya |
+| 7 | Melakukan persiapan sesuai penugasan | Petugas yang ditugaskan | Penugasan, berkas undangan |  | Kesiapan pelaksanaan |  |
+| 8 | Meninjau kembali penugasan bila terjadi perubahan kebutuhan | Kasubbag Protokol, Kasubbag Komdokpim, Kepala Bagian | Penugasan berjalan |  | Penugasan diperbarui | **Keputusan:** ada perubahan → langkah 9; tidak ada → langkah 11 |
+| 9 | Menambah atau mencabut personil | Kasubbag Protokol, Kasubbag Komdokpim, Kepala Bagian | Penugasan berjalan |  | Penugasan diperbarui |  |
+| 10 | Memberitahukan penambahan kepada personil baru dan pencabutan kepada personil yang dicabut | Sistem | Penugasan diperbarui |  | Notifikasi diterima | Personil yang tidak berubah tidak menerima pemberitahuan. Otomatis oleh sistem, seketika. |
+| 11 | Melaksanakan tugas pada hari pelaksanaan kegiatan | Petugas yang ditugaskan | Penugasan, kesiapan |  | Kegiatan terlaksana | Selesai. Dilanjutkan SOP 11 — Evaluasi Kinerja |
 
 ---
 

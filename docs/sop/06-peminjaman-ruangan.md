@@ -10,7 +10,7 @@
 | **Tanggal Efektif** | ......................................... |
 | **Disahkan oleh** | Sekretaris Daerah Kota Tarakan |
 | **Nama SOP** | Pelayanan Peminjaman Ruangan |
-| **Dasar Hukum** | 1. Peraturan Daerah tentang Pembentukan dan Susunan Perangkat Daerah *(nomor dan tahun diisi)*<br>2. Peraturan Wali Kota tentang Kedudukan, Susunan Organisasi, Tugas dan Fungsi Sekretariat Daerah *(nomor dan tahun diisi)*<br>3. Peraturan perundang-undangan tentang Pengelolaan Barang Milik Daerah *(nomor dan tahun diisi)*<br>4. Peraturan perundang-undangan tentang Pelayanan Publik *(nomor dan tahun diisi)* |
+| **Dasar Hukum** | 1. .........................................<br>2. .........................................<br>3. .........................................<br>4. ......................................... |
 | **Kualifikasi Pelaksana** | 1. Memahami ketentuan penggunaan ruangan di lingkungan Sekretariat Daerah<br>2. Mengetahui kapasitas dan kelengkapan setiap ruangan<br>3. Mampu mengoperasikan Aplikasi Prokopim Hibot |
 | **Keterkaitan** | 1. SOP 1 — Penyusunan dan Penetapan Jadwal Kegiatan Pimpinan<br>2. SOP 5 — Pelayanan Permohonan Audiensi dan Kunjungan Tamu Pimpinan<br>3. SOP 7 — Penyelenggaraan Daftar Hadir Digital |
 | **Peralatan/Perlengkapan** | 1. Aplikasi Prokopim Hibot, formulir peminjaman daring<br>2. Perangkat komputer atau telepon pintar dengan sambungan internet<br>3. Surat permohonan peminjaman bernomor Srikandi<br>4. Sambungan WhatsApp untuk pemberitahuan kepada pemohon |
@@ -33,18 +33,18 @@
 
 | No | Uraian Kegiatan | Pelaksana | Kelengkapan | Waktu | Output | Keterangan |
 |---|---|---|---|---|---|---|
-| 1 | Memeriksa ketersediaan ruangan pada kalender daring | Pemohon | Sambungan internet | 10 menit | Ketersediaan diketahui | Mulai |
-| 2 | Mengisi formulir peminjaman: instansi, penanggung jawab, nomor WhatsApp, nama acara, jumlah peserta, nomor Srikandi, dan mengunggah surat permohonan | Pemohon | Surat permohonan bernomor Srikandi | 20 menit | Isian formulir | |
-| 3 | Memilih ruangan beserta tanggal dan sesi yang dikehendaki | Pemohon | Kalender ketersediaan | 10 menit | Daftar slot dipilih | Dapat memilih lebih dari satu tanggal dengan sesi berbeda |
-| 4 | Mengirimkan permohonan | Pemohon | Isian formulir lengkap | 2 menit | Permohonan berstatus **Menunggu** | Sistem memeriksa pengaman jeda 10 menit dan batas 3 permohonan aktif |
-| 5 | Menerbitkan kode peminjaman dan memberitahukannya kepada pemohon | Sistem | Permohonan tersimpan | Seketika **(otomatis)** | Kode peminjaman diterima pemohon | Kode dipakai pemohon untuk menelusuri permohonannya |
-| 6 | Menerima pemberitahuan permohonan baru | Pengelola Ruangan, Kepala Bagian | Notifikasi | Seketika **(otomatis)** | Pemberitahuan diterima | Melalui WhatsApp |
-| 7 | Menelaah permohonan: kesesuaian ruangan dengan jumlah peserta, kelengkapan surat, dan ketersediaan slot | Pengelola Ruangan, Kepala Bagian | Permohonan, surat, kalender | 1 hari kerja | Hasil telaah | **Keputusan:** disetujui → langkah 8; ditolak → langkah 9 |
-| 8 | Menyetujui permohonan | Pengelola Ruangan, Kepala Bagian | Hasil telaah | 10 menit | Permohonan berstatus **Disetujui** | Sistem menolak bila slot telah disetujui untuk pemohon lain. Lanjut ke langkah 10 |
-| 9 | Menolak permohonan disertai alasan | Pengelola Ruangan, Kepala Bagian | Alasan penolakan | 10 menit | Permohonan berstatus **Ditolak** | Alasan wajib diisi. Lanjut ke langkah 10 |
-| 10 | Memberitahukan keputusan kepada penanggung jawab pemohon | Sistem | Keputusan | Seketika **(otomatis)** | Pemberitahuan diterima | Melalui WhatsApp |
-| 11 | Mencetak surat konfirmasi peminjaman | Pemohon, Pengelola Ruangan | Permohonan disetujui | 10 menit | Surat konfirmasi | Dapat dicetak dari aplikasi |
-| 12 | Menggunakan ruangan sesuai tanggal dan sesi yang disetujui | Pemohon | Surat konfirmasi | Menyesuaikan | Ruangan terpakai | Selesai |
+| 1 | Memeriksa ketersediaan ruangan pada kalender daring | Pemohon | Sambungan internet |  | Ketersediaan diketahui | Mulai |
+| 2 | Mengisi formulir peminjaman: instansi, penanggung jawab, nomor WhatsApp, nama acara, jumlah peserta, nomor Srikandi, dan mengunggah surat permohonan | Pemohon | Surat permohonan bernomor Srikandi |  | Isian formulir |  |
+| 3 | Memilih ruangan beserta tanggal dan sesi yang dikehendaki | Pemohon | Kalender ketersediaan |  | Daftar slot dipilih | Dapat memilih lebih dari satu tanggal dengan sesi berbeda |
+| 4 | Mengirimkan permohonan | Pemohon | Isian formulir lengkap |  | Permohonan berstatus **Menunggu** | Sistem memeriksa pengaman jeda 10 menit dan batas 3 permohonan aktif |
+| 5 | Menerbitkan kode peminjaman dan memberitahukannya kepada pemohon | Sistem | Permohonan tersimpan |  | Kode peminjaman diterima pemohon | Kode dipakai pemohon untuk menelusuri permohonannya. Otomatis oleh sistem, seketika. |
+| 6 | Menerima pemberitahuan permohonan baru | Pengelola Ruangan, Kepala Bagian | Notifikasi |  | Pemberitahuan diterima | Melalui WhatsApp. Otomatis oleh sistem, seketika. |
+| 7 | Menelaah permohonan: kesesuaian ruangan dengan jumlah peserta, kelengkapan surat, dan ketersediaan slot | Pengelola Ruangan, Kepala Bagian | Permohonan, surat, kalender |  | Hasil telaah | **Keputusan:** disetujui → langkah 8; ditolak → langkah 9 |
+| 8 | Menyetujui permohonan | Pengelola Ruangan, Kepala Bagian | Hasil telaah |  | Permohonan berstatus **Disetujui** | Sistem menolak bila slot telah disetujui untuk pemohon lain. Lanjut ke langkah 10 |
+| 9 | Menolak permohonan disertai alasan | Pengelola Ruangan, Kepala Bagian | Alasan penolakan |  | Permohonan berstatus **Ditolak** | Alasan wajib diisi. Lanjut ke langkah 10 |
+| 10 | Memberitahukan keputusan kepada penanggung jawab pemohon | Sistem | Keputusan |  | Pemberitahuan diterima | Melalui WhatsApp. Otomatis oleh sistem, seketika. |
+| 11 | Mencetak surat konfirmasi peminjaman | Pemohon, Pengelola Ruangan | Permohonan disetujui |  | Surat konfirmasi | Dapat dicetak dari aplikasi |
+| 12 | Menggunakan ruangan sesuai tanggal dan sesi yang disetujui | Pemohon | Surat konfirmasi |  | Ruangan terpakai | Selesai |
 
 ---
 
@@ -52,10 +52,10 @@
 
 | No | Uraian Kegiatan | Pelaksana | Kelengkapan | Waktu | Output | Keterangan |
 |---|---|---|---|---|---|---|
-| 1 | Membuka penelusuran permohonan menggunakan kode peminjaman atau nomor WhatsApp | Pemohon | Kode peminjaman atau nomor WhatsApp lengkap | 5 menit | Permohonan ditemukan | Mulai. Penelusuran melalui nomor WhatsApp mensyaratkan nomor **lengkap** |
-| 2 | Mengajukan pembatalan disertai alasan | Pemohon | Alasan pembatalan | 10 menit | Permintaan pembatalan tercatat | Hanya untuk permohonan berstatus Disetujui dan acaranya belum berlalu |
-| 3 | Menerima pemberitahuan permintaan pembatalan | Pengelola Ruangan, Kepala Bagian | Notifikasi | Seketika **(otomatis)** | Pemberitahuan diterima | Melalui WhatsApp |
-| 4 | Memproses pembatalan dan membebaskan slot ruangan | Pengelola Ruangan, Kepala Bagian | Permintaan pembatalan | 4 jam kerja | Permohonan berstatus **Dibatalkan**, slot tersedia kembali | Selesai |
+| 1 | Membuka penelusuran permohonan menggunakan kode peminjaman atau nomor WhatsApp | Pemohon | Kode peminjaman atau nomor WhatsApp lengkap |  | Permohonan ditemukan | Mulai. Penelusuran melalui nomor WhatsApp mensyaratkan nomor **lengkap** |
+| 2 | Mengajukan pembatalan disertai alasan | Pemohon | Alasan pembatalan |  | Permintaan pembatalan tercatat | Hanya untuk permohonan berstatus Disetujui dan acaranya belum berlalu |
+| 3 | Menerima pemberitahuan permintaan pembatalan | Pengelola Ruangan, Kepala Bagian | Notifikasi |  | Pemberitahuan diterima | Melalui WhatsApp. Otomatis oleh sistem, seketika. |
+| 4 | Memproses pembatalan dan membebaskan slot ruangan | Pengelola Ruangan, Kepala Bagian | Permintaan pembatalan |  | Permohonan berstatus **Dibatalkan**, slot tersedia kembali | Selesai |
 
 ---
 
