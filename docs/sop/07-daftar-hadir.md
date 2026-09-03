@@ -37,12 +37,12 @@
 | 1 | Menerima penugasan menyiapkan daftar hadir suatu kegiatan | Kepala Bagian, Kasubbag, Staf Protokol, Admin Rencana Kegiatan | Jadwal kegiatan |  | Kebutuhan diketahui | Mulai |
 | 2 | Membuat acara daftar hadir: judul, subjudul, tanggal, jam mulai, jam selesai, dan lokasi | Kepala Bagian, Kasubbag, Staf Protokol, Admin Rencana Kegiatan | Data kegiatan |  | Acara terbuat | Jam mulai wajib diisi |
 | 3 | Menentukan isian yang diminta dari peserta | Kepala Bagian, Kasubbag, Staf Protokol, Admin Rencana Kegiatan | Kebutuhan data |  | Susunan isian ditetapkan | Isian baku: jabatan, instansi, nomor telepon, swafoto. Dapat ditambah isian lain sesuai kebutuhan |
-| 4 | Menerbitkan kode acara dan poster kode QR | Sistem | Acara terbuat |  | Kode acara dan poster A4 |. Otomatis oleh sistem, seketika. |
+| 4 | Menerbitkan kode acara dan poster kode QR | Sistem | Acara terbuat |  | Kode acara dan poster A4 | Otomatis oleh sistem, seketika. |
 | 5 | Mencetak poster kode QR dan memasangnya di lokasi kegiatan | Staf Protokol | Poster A4, pencetak |  | Poster terpasang | Poster memuat identitas acara agar peserta tidak keliru |
 | 6 | Membuka pengisian daftar hadir | Sistem | Acara terbuat |  | Pengisian terbuka | Dapat dibuka lebih awal secara paksa bila diperlukan. Otomatis oleh sistem: 30 menit sebelum jam mulai. |
 | 7 | Memindai kode QR dan mengisi daftar hadir | Peserta | Telepon pintar |  | Kehadiran terekam | Peserta yang datang sebelum pengisian dibuka menerima keterangan jam pembukaan |
 | 8 | Memantau jalannya pengisian | Staf Protokol | Aplikasi |  | Pengisian terpantau | Bila perlu, pengisian dapat dibuka atau ditutup secara paksa |
-| 9 | Menutup pengisian daftar hadir | Sistem | Acara berjalan |  | Pengisian tertutup |. Otomatis oleh sistem: 1 jam setelah jam selesai, atau 6 jam sejak jam mulai. |
+| 9 | Menutup pengisian daftar hadir | Sistem | Acara berjalan |  | Pengisian tertutup | Otomatis oleh sistem: 1 jam setelah jam selesai, atau 6 jam sejak jam mulai. |
 | 10 | Mengunduh dan menyerahkan rekapitulasi kehadiran | Staf Protokol, Admin Rencana Kegiatan | Data kehadiran |  | Rekapitulasi kehadiran | Selesai |
 
 ---

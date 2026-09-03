@@ -36,7 +36,7 @@
 | 11 | Mengembalikan rancangan untuk direvisi disertai arahan | Kasubbag Komdokpim | Arahan revisi |  | Rancangan dikembalikan | Kembali ke langkah 7 |
 | 12 | Menyetujui dan merilis bahan publikasi | Kasubbag Komdokpim | Rancangan layak |  | Bahan publikasi **Dirilis** |  |
 | 13 | Menayangkan bahan publikasi pada kanal resmi Pemerintah Kota Tarakan | Staf Komunikasi dan Dokumentasi | Bahan publikasi dirilis |  | Publikasi tayang |  |
-| 14 | Menyampaikan bahan publikasi kepada Pimpinan | Sistem | Bahan publikasi dirilis |  | Bahan tampil pada kartu agenda Pimpinan |. Otomatis oleh sistem, seketika. |
+| 14 | Menyampaikan bahan publikasi kepada Pimpinan | Sistem | Bahan publikasi dirilis |  | Bahan tampil pada kartu agenda Pimpinan | Otomatis oleh sistem, seketika. |
 | 15 | Memantau publikasi yang telah tayang | Kepala Bagian | Publikasi tayang |  | Hasil pemantauan | Dalam keadaan mendesak Kepala Bagian dapat meminta bahan ditarik |
 | 16 | Mengarsipkan foto, video, dan naskah publikasi | Staf Komunikasi dan Dokumentasi | Bahan dokumentasi, naskah |  | Arsip dokumentasi | Selesai. Dilanjutkan SOP 11 — Evaluasi Kinerja |
 

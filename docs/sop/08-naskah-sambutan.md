@@ -40,7 +40,7 @@ satu peran, kreditnya dihitung satu kali.
 | 1 | Menerima pemberitahuan jadwal disetujui yang berjenis Sambutan atau Sambutan membuka acara | Kasubbag Komdokpim | Jadwal Disetujui |  | Pemberitahuan diterima | Mulai. Lanjutan SOP 1 langkah 11. Otomatis oleh sistem, seketika. |
 | 2 | Menelaah kebutuhan naskah berdasarkan jenis, tema, dan khalayak kegiatan | Kasubbag Komdokpim | Jadwal, berkas undangan, susunan acara |  | Kebutuhan naskah |  |
 | 3 | Menunjuk penyusun naskah | Kasubbag Komdokpim | Kebutuhan naskah, ketersediaan personil |  | Penyusun ditetapkan | Sistem mencatat Kasubbag sebagai penyelia |
-| 4 | Menerima pemberitahuan penunjukan sebagai penyusun | Staf Komunikasi dan Dokumentasi | Notifikasi |  | Penunjukan diketahui |. Otomatis oleh sistem, seketika. |
+| 4 | Menerima pemberitahuan penunjukan sebagai penyusun | Staf Komunikasi dan Dokumentasi | Notifikasi |  | Penunjukan diketahui | Otomatis oleh sistem, seketika. |
 | 5 | Mengumpulkan bahan: data program, capaian, kebijakan daerah, dan susunan acara | Penyusun | Bahan rujukan |  | Bahan terkumpul |  |
 | 6 | Menyusun naskah sambutan | Penyusun | Bahan terkumpul |  | Rancangan naskah | Paling lambat H-2 kegiatan |
 | 7 | Mengunggah naskah ke aplikasi | Penyusun | Rancangan naskah |  | Naskah terunggah | Diunggah dalam format terolah dan/atau format siap cetak. Paling lambat H-1 kegiatan |
