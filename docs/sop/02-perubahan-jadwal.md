@@ -48,3 +48,26 @@
    penelaah atas usulan perubahan yang belum diputuskan.
 3. **Kewenangan pengusul.** Usulan perubahan atas jadwal yang telah terbit
    diajukan oleh Admin Rencana Kegiatan dan ditelaah oleh Kasubbag Protokol.
+
+---
+
+## Pejabat Berhalangan
+
+Apabila pejabat yang berwenang pada prosedur ini berhalangan (cuti, tugas luar,
+atau sakit), kewenangannya dilaksanakan oleh **Pelaksana Harian (PLH)** yang
+ditunjuk dengan Surat Perintah dan didaftarkan pada aplikasi oleh Kepala Bagian
+atau Superadmin.
+
+1. Kepala Bagian hanya dapat diampu oleh Kasubbag. Kasubbag dapat diampu
+   Kasubbag lain maupun pelaksana pada sub bagian yang bersangkutan.
+2. Masa berlaku PLH **wajib dicantumkan** dan kewenangannya **padam sendiri**
+   pada tanggal terakhir, tanpa perlu dicabut.
+3. Selama masa PLH, yang bersangkutan memegang kewenangan jabatan yang diampu
+   **sekaligus** kewenangan jabatannya sendiri.
+4. Jejak audit mencatat **peran asli** pelaksana beserta keterangan jabatan yang
+   diampu dan nomor Surat Perintahnya, sehingga tetap terbaca siapa yang
+   sesungguhnya memutus.
+5. Apabila penerus dan pemutus adalah orang yang sama, keputusan itu ditandai
+   secara khusus pada jejak audit.
+6. Bila Kasubbag berhalangan dan belum ditunjuk PLH, Kepala Bagian dapat
+   mengambil alih tahap Kasubbag sebagai jaring pengaman.
