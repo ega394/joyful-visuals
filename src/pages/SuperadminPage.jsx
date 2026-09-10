@@ -12,6 +12,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import JSZip from "jszip";
+import PlhManagement from "../components/PlhManagement.jsx";
 
 const SUPA_URL = import.meta.env.VITE_SUPABASE_URL || "";
 const SUPA_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
@@ -326,6 +327,7 @@ export default function SuperadminPage() {
           ["data",   "Data"],
           ["backup", "Backup & Restore"],
           ["audit",  "Audit Log"],
+          ["plh",    "Pelaksana Harian"],
           ["system", "System Info"],
         ].map(([k, l]) => (
           <button key={k} onClick={() => setTab(k)}
@@ -344,6 +346,9 @@ export default function SuperadminPage() {
         {tab === "data"   && <DataTab   user={user} T={T} />}
         {tab === "backup" && <BackupTab user={user} T={T} />}
         {tab === "audit"  && <AuditTab  user={user} T={T} />}
+        {/* Jalur kedua penetapan PLH: dipakai bila Kabag mendadak berhalangan
+            dan belum sempat menunjuk pengampu sebelum cuti. */}
+        {tab === "plh"    && <PlhManagement user={user} isMobile={false} />}
         {tab === "system" && <SystemTab user={user} T={T} />}
       </div>
 

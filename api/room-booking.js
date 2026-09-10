@@ -14,6 +14,11 @@
  *   DELETE ?id=X&code=X         → cancel oleh peminjam
  */
 
+// Aturan PLH sengaja tidak disalin ulang di sini: peramban dan peladen harus
+// memakai pemeriksaan yang sama persis, kalau tidak keduanya bisa berbeda
+// pendapat tentang penetapan yang sah.
+import { periksaPenetapan, PERAN_DAPAT_DIAMPU } from "../src/lib/plh.js";
+
 const SUPA_URL = process.env.SUPABASE_URL  || process.env.VITE_SUPABASE_URL;
 // Utamakan service key: dengan itu endpoint ini tetap berjalan meski kebijakan
 // RLS `room_bookings` dipersempit sehingga anon key tidak lagi bisa membaca
@@ -526,6 +531,53 @@ export default async function handler(req, res) {
 
     // ── PUT — admin update status / set_manager ────────────────
     if (method === "PUT") {
+
+      // ?op=set_plh → tetapkan / cabut Pelaksana Harian
+      //
+      // Menumpang endpoint ini karena kuota fungsi Vercel Hobby sudah penuh
+      // (12/12); tidak ada kaitannya dengan peminjaman ruangan.
+      //
+      // Memakai verifySession, bukan verifyAdmin: yang berwenang menetapkan
+      // adalah Kabag dan Superadmin, sedangkan verifyAdmin justru meloloskan
+      // pengelola ruangan yang tidak berwenang atas urusan kepegawaian.
+      if (query.op === "set_plh") {
+        const pemohon = await verifySession(req);
+        if (!pemohon) return res.status(403).json({ error: "Sesi tidak valid — silakan login ulang." });
+        if (pemohon.role !== "kabag" && pemohon.role !== "superadmin")
+          return res.status(403).json({ error: "Hanya Kabag dan Superadmin yang dapat menetapkan PLH." });
+
+        const { target, plh_untuk, plh_mulai, plh_selesai, plh_dasar } = body || {};
+        if (!target) return res.status(400).json({ error: "Field 'target' wajib ada" });
+
+        const tgt = await sbGet(
+          `users?username=eq.${encodeURIComponent(target)}&select=username,nama,role,disabled`
+        );
+        if (!tgt?.length) return res.status(404).json({ error: "Pengguna tidak ditemukan" });
+        if (tgt[0].disabled) return res.status(400).json({ error: "Akun tersebut dinonaktifkan." });
+
+        // plh_untuk kosong → pencabutan
+        if (!plh_untuk) {
+          await sbPatch(`users?username=eq.${encodeURIComponent(target)}`, {
+            plh_untuk: null, plh_mulai: null, plh_selesai: null, plh_dasar: null,
+          });
+          return res.status(200).json({ ok: true, username: target, dicabut: true });
+        }
+
+        const salah = periksaPenetapan({
+          peranPengampu: tgt[0].role, plh_untuk, plh_mulai, plh_selesai,
+        });
+        if (salah) return res.status(400).json({ error: salah });
+
+        await sbPatch(`users?username=eq.${encodeURIComponent(target)}`, {
+          plh_untuk, plh_mulai, plh_selesai,
+          plh_dasar: (plh_dasar || "").trim() || null,
+        });
+        return res.status(200).json({
+          ok: true, username: target, nama: tgt[0].nama,
+          plh_untuk, plh_mulai, plh_selesai,
+        });
+      }
+
       const admin = await verifyAdmin(req);
       if (!admin) return res.status(403).json({ error: "Akses ditolak. Sesi peninjau permohonan tidak valid — silakan login ulang." });
 

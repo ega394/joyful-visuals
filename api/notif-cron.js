@@ -15,6 +15,8 @@
  */
 
 const webpush   = require("web-push");
+// Satu sumber aturan PLH untuk peramban maupun peladen.
+import { plhAktif, hariIniWita } from "../src/lib/plh.js";
 
 const SUPA_URL  = process.env.SUPABASE_URL  || process.env.VITE_SUPABASE_URL;
 const SUPA_KEY  = process.env.SUPABASE_KEY  || process.env.VITE_SUPABASE_ANON_KEY;
@@ -51,12 +53,51 @@ function pushSiap() {
   } catch (e) { console.warn("[PUSH] VAPID tidak valid:", e.message); return false; }
 }
 
+// ── Pelaksana Harian (PLH) ────────────────────────────────────
+// Penerima pengingat BERTAMBAH, bukan berpindah: aplikasi mengetahui jabatan
+// apa yang sedang diampu, tetapi tidak mengetahui pejabat mana yang sedang
+// cuti — apalagi bila pemangku jabatan itu lebih dari satu orang. Lebih baik
+// pengingat sampai ke dua orang daripada tidak sampai sama sekali.
+
+// Bersandar pada plhAktif() supaya aturan masa berlakunya sama persis dengan
+// yang dipakai peramban — bukan disalin ulang di sini.
+function sedangMengampu(u, role) {
+  return plhAktif(u)?.untuk === role;
+}
+
+/** Pemegang jabatan `role` hari ini: pemangku aslinya dan PLH yang mengampunya. */
+function penerimaJabatan(users, role) {
+  return (users || []).filter(u => u.noWA && (u.role === role || sedangMengampu(u, role)));
+}
+
+async function pengampuJabatan(role) {
+  const hari = hariIniWita();
+  try {
+    return await sbGet(
+      `users?plh_untuk=eq.${encodeURIComponent(role)}` +
+      `&plh_mulai=lte.${hari}&plh_selesai=gte.${hari}` +
+      `&disabled=is.false&select=username,nama,noWA`
+    ) || [];
+  } catch { return []; }   // kolom PLH belum ada → berjalan seperti semula
+}
+
 async function sendPushRole(role, { title, body, url, tag }) {
   if (!pushSiap()) return 0;
-  const subs = await sbGet(
-    `push_subscriptions?select=subscription&role=eq.${encodeURIComponent(role)}`
-  );
-  if (!subs || !subs.length) return 0;
+  const [byRole, plh] = await Promise.all([
+    sbGet(`push_subscriptions?select=endpoint,subscription&role=eq.${encodeURIComponent(role)}`),
+    pengampuJabatan(role),
+  ]);
+  let subs = byRole || [];
+  if (plh.length) {
+    const daftar = plh.map(u => encodeURIComponent(u.username)).join(",");
+    const tambahan = await sbGet(
+      `push_subscriptions?select=endpoint,subscription&username=in.(${daftar})`
+    ).catch(() => []);
+    // Satu perangkat bisa terjaring dua kali bila peran aslinya kebetulan sama.
+    const sudah = new Set(subs.map(r => r.endpoint));
+    for (const r of (tambahan || [])) if (!sudah.has(r.endpoint)) { sudah.add(r.endpoint); subs.push(r); }
+  }
+  if (!subs.length) return 0;
 
   const payload = JSON.stringify({ title, body, url: url || "/", tag: tag || "prokopim" });
   let terkirim = 0;
@@ -224,7 +265,11 @@ async function loadUsulanEdit() {
 }
 
 async function loadUsers() {
-  const rows = await sbGet(`users?select=username,nama,jabatan,role,noWA`);
+  // Kolom PLH baru ada setelah migrasi dijalankan, sedangkan deploy selalu
+  // mendahului migrasi. Tanpa penahan ini, seluruh pengingat terjadwal mati
+  // sampai migrasinya dijalankan.
+  const rows = await sbGet(`users?select=username,nama,jabatan,role,noWA,plh_untuk,plh_mulai,plh_selesai`)
+    .catch(() => sbGet(`users?select=username,nama,jabatan,role,noWA`));
   return rows || [];
 }
 
@@ -250,7 +295,7 @@ async function notifPagi(jadwal, users) {
     "ajudan_walikota", "ajudan_wakilwalikota",
   ];
 
-  const targets = users.filter(u => roles.includes(u.role) && u.noWA);
+  const targets = users.filter(u => u.noWA && (roles.includes(u.role) || roles.some(r => sedangMengampu(u, r))));
 
   // Buat ringkasan
   const ringkasan = sorted.map(e =>
@@ -290,7 +335,7 @@ async function notifReminder(jadwal, users) {
   }
 
   const kasubbags = users.filter(
-    u => (u.role === "kasubbag_protokol" || u.role === "kasubbag_komdokpim") && u.noWA
+    u => u.noWA && ["kasubbag_protokol","kasubbag_komdokpim"].some(r => u.role === r || sedangMengampu(u, r))
   );
 
   const daftar = belumDitugaskan.map(e =>
@@ -474,7 +519,7 @@ async function notifPendingApproval(users) {
   // Untuk Kasubbag (Protokol & Komdokpim)
   if (pendKasubbag.length > 0) {
     const kasubbags = users.filter(
-      u => (u.role === "kasubbag_protokol" || u.role === "kasubbag_komdokpim") && u.noWA
+      u => u.noWA && ["kasubbag_protokol","kasubbag_komdokpim"].some(r => u.role === r || sedangMengampu(u, r))
     );
     const daftar = pendKasubbag.map(fmtItem).join("\n");
     const msg =
@@ -542,7 +587,7 @@ async function notifPendingApproval(users) {
       `Masih ada *${usulKasubbag.length}* usulan perubahan menunggu tinjauan Anda:\n\n` +
       daftar +
       `\n\nJadwal tetap tayang dengan data lama sampai usulan diputuskan.\n_Prokopim Kota Tarakan_`;
-    for (const u of users.filter(x => x.role === "kasubbag_protokol" && x.noWA)) {
+    for (const u of penerimaJabatan(users, "kasubbag_protokol")) {
       await sendWA(u.noWA, msg);
       console.log(`[USULAN-KASUBBAG] Terkirim → ${u.nama}`);
     }

@@ -17,8 +17,10 @@ import NewsroomDashboard from "./NewsroomDashboard.jsx";
 import SuperadminPage from "./pages/SuperadminPage.jsx";
 import BookingDashboard from "./components/BookingDashboard.jsx";
 import RoomManagement from "./components/RoomManagement.jsx";
+const PlhManagement = React.lazy(() => import("./components/PlhManagement.jsx"));
 import { clearAdminToken } from "./roomAuth";
 import { JADWAL_STATUS } from "./lib/statusColors.js";
+import { peranEfektif, plhAktif, punyaPeran, jejakPlh, LABEL_PERAN } from "./lib/plh.js";
 
 // ═══════════════════════════════════════════════════════
 // PENDAFTARAN AKUN (Register → Menunggu Persetujuan Kabag)
@@ -937,7 +939,10 @@ function inferTimelineAction(from, to, prevEv, patch) {
 function appendTimelineEntries(prevEv, patch, actor) {
   if (!actor || !prevEv) return null;
   const at = new Date().toISOString();
-  const base = { actor: actor.username, actor_role: actor.role, at };
+  // actor_role sengaja peran ASLI, bukan peran yang diampu. Bila PLH dicatat
+  // begitu saja sebagai "kabag", pembaca jejak setahun kemudian akan mengira
+  // Kabag sendiri yang memutus. Pendelegasiannya dilekatkan di sebelahnya.
+  const base = { actor: actor.username, actor_role: actor.role, at, ...(jejakPlh(actor) || {}) };
   const out = [];
 
   // 1. Perubahan alur (workflow transition)
@@ -7214,7 +7219,32 @@ export default function App(){
   if (window.location.pathname === "/tamu" || window.location.search.includes("tamu"))
     return <React.Suspense fallback={<_LazyFallback />}><TamuPage /></React.Suspense>;
   const width=useWindowWidth();const isMobile=width<768;
-  const[user,setUser]=useState(null);const role=user?.role||null;
+  const[user,setUser]=useState(null);
+  // Gerbang kewenangan memakai peran efektif, sehingga PLH ikut berlaku pada
+  // seluruh pemeriksaan `role === "..."` tanpa perlu disentuh satu per satu.
+  // `user.role` sengaja dibiarkan utuh sebagai peran ASLI — dipakai jejak audit
+  // dan dua kewenangan yang memang tidak diwariskan kepada PLH.
+  const role=user?peranEfektif(user):null;
+  const plh=plhAktif(user);
+
+  // ── Dua kewenangan yang TIDAK diwariskan kepada PLH ──────────────
+  // Rekap kinerja tim memuat nilai evaluasi seluruh anggota. Pejabat yang
+  // mengampu jabatan lain tetap melihatnya seperti biasa, tetapi pelaksana
+  // yang sedang mengampu tidak — ia kembali menjadi rekan sejawat pekan depan.
+  const PERAN_PELAKSANA=["staf","admin_rk","timkom"];
+  const bolehRekapTim=(role==="kabag"||KASUBBAG_ROLES.includes(role))
+    && !(plh&&PERAN_PELAKSANA.includes(user?.role));
+  // Penghapusan acara daftar hadir dikunci pada Kabag asli — lihat
+  // DaftarHadirAdmin, yang sengaja memeriksa user.role (peran asli).
+
+  // Kewenangan bersifat gabungan: menu milik peran asli tidak boleh hilang
+  // hanya karena yang bersangkutan sedang mengampu jabatan lain.
+  const bolehKalenderRuangan=KALENDER_RUANGAN_ROLES.some(r=>punyaPeran(user,r));
+
+  // Eskalasi ke atas: Kabag berwenang atas kewenangan bawahannya, jadi boleh
+  // memutus di tahap Kasubbag. Dimatikan secara bawaan supaya antrian harian
+  // Kabag tidak membengkak — dinyalakan hanya saat Kasubbag berhalangan.
+  const[ambilAlihKasubbag,setAmbilAlihKasubbag]=useState(false);
   const[loginForm,setLF]=useState({username:"",password:""});const[loginErr,setLE]=useState("");const[showPass,setShowPass]=useState(false);
   const[bioLoading,setBioLoading]=useState(false);const[bioErr,setBioErr]=useState("");
   const[events,setEvents]=useState([]);const[dbReady,setDbReady]=useState(false);const[dbError,setDbError]=useState("");
@@ -7693,7 +7723,10 @@ export default function App(){
     else if(role==="kasubbag_komdokpim")
       base=events.filter(e=>e.alur==="disetujui");
     else if(role==="kabag")
-      base=tab==="jadwal"?events.filter(e=>e.alur==="menunggu_kabag"||(e.alurHapus==="menunggu_kabag")||(e.alurEdit==="menunggu_kabag")):events.filter(e=>e.alur==="disetujui");
+      // Eskalasi: Kabag juga melihat tahap Kasubbag sebagai jaring pengaman
+      // bila Kasubbag mendadak berhalangan dan belum sempat ditunjuk PLH.
+      // Ditandai terpisah pada kartunya, bukan dicampur begitu saja.
+      base=tab==="jadwal"?events.filter(e=>e.alur==="menunggu_kabag"||(e.alurHapus==="menunggu_kabag")||(e.alurEdit==="menunggu_kabag")||(ambilAlihKasubbag&&(e.alur==="menunggu_kasubbag"||e.alurHapus==="menunggu_kasubbag"||e.alurEdit==="menunggu_kasubbag"))):events.filter(e=>e.alur==="disetujui");
     if(filterDate==="range"&&(filterFrom||filterTo)){
       base=base.filter(e=>(!filterFrom||e.tanggal>=filterFrom)&&(!filterTo||e.tanggal<=filterTo));
     }else if(filterDate==="week"){
@@ -8364,6 +8397,7 @@ const TH={
       {key:"tamu",          icon:"👥", label:"Manajemen Tamu"},
       {key:"newsroom",      icon:"📰", label:"Monitoring Komdok"},
       {key:"ruangan",       icon:"🏛️", label:"Peminjaman Ruangan"},
+      {key:"plh",           icon:"🛡️", label:"Pelaksana Harian"},
     ]:[]),
     // ── Staf/Kasubbag dengan akses kelola ruangan ──
     ...((user?.can_manage_rooms&&role!=="kabag")?[
@@ -8407,13 +8441,13 @@ const TH={
     {key:"action:report", icon:"📄",label:"Cetak Rekap PDF"},
     ...(role!=="mitra_kerja"?[{key:"action:report_tamu", icon:"📇",label:"Cetak Rekap Tamu"}]:[]),
     ...(canReport?[{key:"action:laporan",icon:"📊",label:"Laporan Mingguan/Bulanan"}]:[]),
-    ...((KASUBBAG_ROLES.includes(role)||role==="kabag")?[{key:"penugasan",icon:"📈",label:"Rekap Evaluasi Kinerja"}]:[]),
-    ...((KASUBBAG_ROLES.includes(role)||role==="kabag")?[{key:"rekap_penugasan",icon:"🏆",label:"Rekap Penugasan Bulanan"}]:[]),
+    ...(bolehRekapTim?[{key:"penugasan",icon:"📈",label:"Rekap Evaluasi Kinerja"}]:[]),
+    ...(bolehRekapTim?[{key:"rekap_penugasan",icon:"🏆",label:"Rekap Penugasan Bulanan"}]:[]),
     ...(REKAP_SAYA_ROLES.includes(role)?[{key:"rekap_saya",icon:"🏅",label:"Rekap Kinerja Saya"}]:[]),
     ...(role==="admin_rk"||role==="kabag"?[{key:"action:arsip",icon:"📦",label:"Unduh Arsip Berkas"}]:[]),
     ...(!["walikota","wakilwalikota","ajudan_walikota","ajudan_wakilwalikota","admin_undangan","mitra_kerja"].includes(role)?[{key:"ekinerja",icon:"📊",label:"E-Kinerja"}]:[]),
     ...(["kabag","kasubbag_protokol","staf","admin_rk"].includes(role)?[{key:"action:undangan",icon:"📋",label:"Generator Undangan"}]:[]),
-    ...(KALENDER_RUANGAN_ROLES.includes(role)?[{key:"kalender_ruangan",icon:"🏛️",label:"Kalender Ruangan"}]:[]),
+    ...(bolehKalenderRuangan?[{key:"kalender_ruangan",icon:"🏛️",label:"Kalender Ruangan"}]:[]),
     ...(DAFTAR_HADIR_ROLES.includes(role)?[{key:"daftar_hadir",icon:"✍️",label:"Daftar Hadir Digital"}]:[]),
   ]},
   {label:"AKUN",items:[
@@ -8495,6 +8529,7 @@ const TH={
     {key:"tamu",         label:"Tamu",    icon:"👥"},
     {key:"newsroom",     label:"Komdok",  icon:"📰"},
     {key:"ruangan",      label:"Ruangan", icon:"🏛️"},
+    ...(role==="kabag"?[{key:"plh",label:"PLH",icon:"🛡️"}]:[]),
   ]:[]),
   // ── Peninjau Permohonan (non-kabag) ──
   ...((user?.can_manage_rooms&&role!=="kabag")?[
@@ -8596,7 +8631,7 @@ const TH={
               ...((KASUBBAG_ROLES.includes(role)||role==="kabag")?[{icon:"📈",label:"Rekap Evaluasi",action:()=>{setTab("penugasan");setMobMenu(false);}}]:[]),
               ...((KASUBBAG_ROLES.includes(role)||role==="kabag")?[{icon:"🏆",label:"Rekap Penugasan",action:()=>{setTab("rekap_penugasan");setMobMenu(false);}}]:[]),
               ...(REKAP_SAYA_ROLES.includes(role)?[{icon:"🏅",label:"Rekap Kinerja Saya",action:()=>{setTab("rekap_saya");setMobMenu(false);}}]:[]),
-              ...(KALENDER_RUANGAN_ROLES.includes(role)?[{icon:"🏛️",label:"Kalender Ruangan",action:()=>{setTab("kalender_ruangan");setMobMenu(false);}}]:[]),
+              ...(bolehKalenderRuangan?[{icon:"🏛️",label:"Kalender Ruangan",action:()=>{setTab("kalender_ruangan");setMobMenu(false);}}]:[]),
               ...(DAFTAR_HADIR_ROLES.includes(role)?[{icon:"✍️",label:"Daftar Hadir",action:()=>{setTab("daftar_hadir");setMobMenu(false);}}]:[]),
               {icon:"👤",label:"Profil",action:()=>{setShowProfile(true);setMobMenu(false);}},
               ...(role==="kabag"?[{icon:"⚙️",label:"Kelola User"+(loadPendingRegs().length>0?" ("+loadPendingRegs().length+")":""),action:()=>{setShowAdmin(true);setMobMenu(false);}}]:[]),
@@ -8879,7 +8914,7 @@ function ConfirmModal({title, body, confirmLabel="Ya, Lanjutkan", confirmColor="
 // DASHBOARD AJUDAN — ringkas, fokus konfirmasi kehadiran hari ini/besok
 // ═══════════════════════════════════════════════════════════════════════
 function AjudanDashboard({events, user, upd, showT, setDelegTarget, isMobile}){
-  const role=user?.role;
+  const role=peranEfektif(user);   // ikut berlaku bagi PLH
   const NAVY="#0A1628",GOLD="#C9A84C",GREEN="#0D6B4F";
   const now = new Date();
   const toStr = d => localDateStr(d);
@@ -9210,7 +9245,7 @@ function OnboardingModal({role, onClose}){
 // ═══════════════════════════════════════════════════════
 function NotifCenter({events, user, onClose, isMobile}){
   const NAVY="#0A1628",GOLD="#C9A84C";
-  const role=user?.role;
+  const role=peranEfektif(user);   // ikut berlaku bagi PLH
   const now=new Date();
   const todayS=localDateStr(now);
   const fmt=t=>new Date(t).toLocaleDateString("id-ID",{weekday:"short",day:"numeric",month:"short"});
@@ -10156,7 +10191,7 @@ function KabagRiwayatTab({events,user}){
 // ═══════════════════════════════════════════════════════
 function KasubbagDashboard({events, user, upd, showT, askConfirm, isMobile, onPenugasan}){
   const NAVY="#0A1628",GOLD="#C9A84C",GREEN="#0D6B4F";
-  const role=user?.role;
+  const role=peranEfektif(user);   // ikut berlaku bagi PLH
   const isProto=role==="kasubbag_protokol";
   const [activeTab, setActiveTab] = useState("antrian");
   const [expandedId, setExpanded] = useState(null);
@@ -11571,6 +11606,35 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
   };
 
   const mainContentJSX=(<div style={{flex:1,minWidth:0,display:"flex",flexDirection:"column",background:"#F0F4FA",overflow:"hidden"}}>
+    {/* ── Penanda PLH ──────────────────────────────────────────────
+        Selalu terlihat selama masa pendelegasian, supaya yang bersangkutan
+        sadar sedang memakai kewenangan pinjaman dan tahu kapan berakhirnya. */}
+    {plh&&<div style={{background:"linear-gradient(90deg,#92400E,#B45309)",color:"white",
+      padding:isMobile?"7px 12px":"8px 32px",fontSize:isMobile?11.5:12.5,fontWeight:700,
+      display:"flex",alignItems:"center",gap:8,flexShrink:0,flexWrap:"wrap"}}>
+      <span aria-hidden="true">🛡️</span>
+      <span>Anda bertindak sebagai PLH {LABEL_PERAN[plh.untuk]||plh.untuk} s.d. {fmtShort(plh.selesai)}</span>
+      {plh.dasar&&<span style={{fontWeight:500,opacity:.85}}>· {plh.dasar}</span>}
+    </div>}
+    {/* ── Eskalasi: tahap Kasubbag dapat diambil alih Kabag ── */}
+    {role==="kabag"&&tab==="jadwal"&&(()=>{
+      const n=events.filter(e=>e.alur==="menunggu_kasubbag"||e.alurHapus==="menunggu_kasubbag"||e.alurEdit==="menunggu_kasubbag").length;
+      if(!n)return null;
+      return (
+        <div style={{background:"#FFF8E7",borderBottom:"1px solid #FDE68A",color:"#78350F",
+          padding:isMobile?"7px 12px":"8px 32px",fontSize:isMobile?11.5:12.5,
+          display:"flex",alignItems:"center",gap:10,flexShrink:0,flexWrap:"wrap"}}>
+          <span style={{fontWeight:700}}>{n} jadwal masih menunggu Kasubbag</span>
+          <button onClick={()=>setAmbilAlihKasubbag(v=>!v)}
+            style={{padding:"3px 10px",borderRadius:7,border:"1.5px solid #B45309",
+              background:ambilAlihKasubbag?"#B45309":"white",color:ambilAlihKasubbag?"white":"#B45309",
+              cursor:"pointer",fontSize:11.5,fontWeight:700}}>
+            {ambilAlihKasubbag?"Sembunyikan lagi":"Ambil alih"}
+          </button>
+          <span style={{opacity:.75}}>Dipakai bila Kasubbag berhalangan dan belum ditunjuk PLH.</span>
+        </div>
+      );
+    })()}
     {/* ── Desktop top bar ── */}
     {!isMobile&&<div style={{background:"white",borderBottom:"1px solid #E4EAF2",padding:"14px 32px",display:"flex",alignItems:"center",gap:16,flexShrink:0,boxShadow:"0 1px 8px rgba(0,0,0,0.04)"}}>
       <div style={{flex:1}}>
@@ -11801,13 +11865,13 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
       {/* 1. Penugasan (semua role yang punya tab ini) */}
       {tab==="daftar_hadir"&&DAFTAR_HADIR_ROLES.includes(role)
         ?<React.Suspense fallback={<_LazyFallback />}><DaftarHadirAdmin user={user} isMobile={isMobile} showT={showT}/></React.Suspense>
-      :tab==="kalender_ruangan"&&KALENDER_RUANGAN_ROLES.includes(role)
+      :tab==="kalender_ruangan"&&bolehKalenderRuangan
         ?<React.Suspense fallback={<_LazyFallback />}><RoomCalendarView isMobile={isMobile} user={user}/></React.Suspense>
       :tab==="rekap_saya"&&REKAP_SAYA_ROLES.includes(role)
         ?<RekapPenugasanBulanan mode="saya" events={events} user={user} isMobile={isMobile} allUsers={loadUsers()}/>
-      :tab==="rekap_penugasan"&&(role==="kabag"||KASUBBAG_ROLES.includes(role))
+      :tab==="rekap_penugasan"&&bolehRekapTim
         ?<RekapPenugasanBulanan events={events} user={user} isMobile={isMobile} allUsers={loadUsers()}/>
-      :showPenugasan&&(role==="kabag"||KASUBBAG_ROLES.includes(role))
+      :showPenugasan&&bolehRekapTim
         ?<RekapEvaluasi events={events} user={user} isMobile={isMobile} allUsers={loadUsers()} RekapPenugasan={RekapPenugasanBulanan}/>
       :showPenugasan
         ?<PenugasanSayaView events={events} user={user} onOpenEvaluasi={setEvaluasiEv} isMobile={isMobile}/>
@@ -11870,6 +11934,8 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
         ?<ApprovalQueueView events={events} role={role} upd={upd} showT={showT} askConfirm={askConfirm} isMobile={isMobile}/>
 
       /* 8b. Peminjaman Ruangan — dashboard admin */
+      :tab==="plh"&&(role==="kabag"||role==="superadmin")
+        ?<React.Suspense fallback={<_LazyFallback />}><PlhManagement user={user} isMobile={isMobile}/></React.Suspense>
       :tab==="ruangan"&&(role==="kabag"||user?.can_manage_rooms)
         ?<BookingDashboard user={user} isMobile={isMobile}/>
 

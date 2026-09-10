@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# PDF SOP dibangkitkan dari docs/sop/*.md — jalankan: node scripts/sop-pdf.mjs
+docs/sop/SOP-Prokopim.pdf
