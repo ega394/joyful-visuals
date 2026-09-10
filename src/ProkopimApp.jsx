@@ -8397,7 +8397,6 @@ const TH={
       {key:"tamu",          icon:"👥", label:"Manajemen Tamu"},
       {key:"newsroom",      icon:"📰", label:"Monitoring Komdok"},
       {key:"ruangan",       icon:"🏛️", label:"Peminjaman Ruangan"},
-      {key:"plh",           icon:"🛡️", label:"Pelaksana Harian"},
     ]:[]),
     // ── Staf/Kasubbag dengan akses kelola ruangan ──
     ...((user?.can_manage_rooms&&role!=="kabag")?[
@@ -8449,6 +8448,7 @@ const TH={
     ...(["kabag","kasubbag_protokol","staf","admin_rk"].includes(role)?[{key:"action:undangan",icon:"📋",label:"Generator Undangan"}]:[]),
     ...(bolehKalenderRuangan?[{key:"kalender_ruangan",icon:"🏛️",label:"Kalender Ruangan"}]:[]),
     ...(DAFTAR_HADIR_ROLES.includes(role)?[{key:"daftar_hadir",icon:"✍️",label:"Daftar Hadir Digital"}]:[]),
+    ...(role==="kabag"?[{key:"plh",icon:"🛡️",label:"Pelaksana Harian"}]:[]),
   ]},
   {label:"AKUN",items:[
     {key:"action:profile",   icon:"👤", label:"Pengaturan Akun"},
@@ -8529,7 +8529,6 @@ const TH={
     {key:"tamu",         label:"Tamu",    icon:"👥"},
     {key:"newsroom",     label:"Komdok",  icon:"📰"},
     {key:"ruangan",      label:"Ruangan", icon:"🏛️"},
-    ...(role==="kabag"?[{key:"plh",label:"PLH",icon:"🛡️"}]:[]),
   ]:[]),
   // ── Peninjau Permohonan (non-kabag) ──
   ...((user?.can_manage_rooms&&role!=="kabag")?[
@@ -8628,11 +8627,12 @@ const TH={
               {icon:"📄",label:"Cetak PDF",action:()=>{setShowReport(true);setMobMenu(false);}},
               {icon:"📇",label:"Cetak Tamu",action:()=>{setShowReportTamu(true);setMobMenu(false);}},
               ...(canReport?[{icon:"📊",label:"Laporan",action:()=>{setShowLaporan(true);setMobMenu(false);}}]:[]),
-              ...((KASUBBAG_ROLES.includes(role)||role==="kabag")?[{icon:"📈",label:"Rekap Evaluasi",action:()=>{setTab("penugasan");setMobMenu(false);}}]:[]),
-              ...((KASUBBAG_ROLES.includes(role)||role==="kabag")?[{icon:"🏆",label:"Rekap Penugasan",action:()=>{setTab("rekap_penugasan");setMobMenu(false);}}]:[]),
+              ...(bolehRekapTim?[{icon:"📈",label:"Rekap Evaluasi",action:()=>{setTab("penugasan");setMobMenu(false);}}]:[]),
+              ...(bolehRekapTim?[{icon:"🏆",label:"Rekap Penugasan",action:()=>{setTab("rekap_penugasan");setMobMenu(false);}}]:[]),
               ...(REKAP_SAYA_ROLES.includes(role)?[{icon:"🏅",label:"Rekap Kinerja Saya",action:()=>{setTab("rekap_saya");setMobMenu(false);}}]:[]),
               ...(bolehKalenderRuangan?[{icon:"🏛️",label:"Kalender Ruangan",action:()=>{setTab("kalender_ruangan");setMobMenu(false);}}]:[]),
               ...(DAFTAR_HADIR_ROLES.includes(role)?[{icon:"✍️",label:"Daftar Hadir",action:()=>{setTab("daftar_hadir");setMobMenu(false);}}]:[]),
+              ...(role==="kabag"?[{icon:"🛡️",label:"Pelaksana Harian",action:()=>{setTab("plh");setMobMenu(false);}}]:[]),
               {icon:"👤",label:"Profil",action:()=>{setShowProfile(true);setMobMenu(false);}},
               ...(role==="kabag"?[{icon:"⚙️",label:"Kelola User"+(loadPendingRegs().length>0?" ("+loadPendingRegs().length+")":""),action:()=>{setShowAdmin(true);setMobMenu(false);}}]:[]),
               ...(role==="kabag"?[{icon:"📢",label:"Kirim Pengumuman",action:()=>{setShowBroadcast(true);setMobMenu(false);}}]:[]),
