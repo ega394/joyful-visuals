@@ -97,7 +97,31 @@ sebagai bagian dari efisiensi sumber daya.
 
 ## 4. Latar Belakang dan Analisis Masalah
 
-### 4.1 Kondisi sebelum inovasi
+### 4.1 Peristiwa pemicu
+
+Sumber informasi agenda Pimpinan datang dari banyak arah sekaligus: surat yang
+diantar ke rumah dinas, berkas yang ditinggalkan di meja, dan pesan percakapan
+yang dikirim langsung kepada Wali Kota. Karena tidak ada satu pintu masuk,
+beberapa kali rencana kegiatan tidak terinput sama sekali.
+
+Puncaknya terjadi pada awal Januari 2026. Satu berkas disposisi agenda dan tamu
+turun sebanyak tiga lembar, tetapi yang kembali ke Bagian Prokopim hanya dua.
+Bagian Prokopim menindaklanjuti dua lembar itu dengan keyakinan bahwa memang
+hanya itulah yang diturunkan. Belakangan diketahui ketiga lembar sudah
+didisposisi seluruhnya — satu lembar tidak ikut terfoto ketika berkas itu
+diteruskan melalui grup percakapan.
+
+Tidak ada seorang pun yang lalai. Setiap orang mengerjakan bagiannya dengan
+benar. **Kegagalannya terletak pada rantai penyampaiannya**: ketika dokumen
+berpindah tangan dalam bentuk foto di grup percakapan, tidak ada satu pun pihak
+yang dapat memastikan berapa lembar yang seharusnya diterima. Penerima tidak
+punya cara mengetahui ada yang kurang, dan pengirim tidak punya cara memastikan
+semuanya terkirim.
+
+Peristiwa itu menjadi perhatian Pimpinan, dan menjadi titik tolak Bagian
+Prokopim mencari cara agar kejadian serupa tidak berulang.
+
+### 4.2 Kondisi sebelum inovasi
 
 Sebelum Maret 2026, seluruh alur kerja Bagian Prokopim dijalankan secara manual.
 
@@ -121,7 +145,7 @@ atasan.
 **Ketersediaan ruangan** dicatat pada papan tulis dan dikoordinasikan lewat
 grup percakapan.
 
-### 4.1.1 Kelemahan yang ditimbulkannya
+### 4.2.1 Kelemahan yang ditimbulkannya
 
 **a. Jendela persetujuan sekali sehari menciptakan keterlambatan struktural.**
 Undangan yang masuk pagi menunggu sekitar delapan jam hanya untuk *mulai*
@@ -159,7 +183,7 @@ pada ketelitian, ingatan, dan ketekunan perorangan. Ketika satu orang lupa,
 lalai, atau berhalangan, tidak ada sistem yang menahan. Lima kelemahan lainnya
 adalah gejala dari satu akar ini.
 
-### 4.2 Akar masalah
+### 4.3 Akar masalah
 
 1. **Alur berjenjang tanpa penopang sistem.** Penetapan agenda Pimpinan
    melibatkan sekurang-kurangnya tiga jenjang. Bila jenjang itu dijalankan lewat
@@ -174,7 +198,7 @@ adalah gejala dari satu akar ini.
 5. **Beban administrasi berulang.** Rekapitulasi, undangan, dan daftar hadir
    disusun ulang dari nol setiap kali.
 
-### 4.3 Kelompok sasaran
+### 4.4 Kelompok sasaran
 
 | Kelompok | Kebutuhan |
 |---|---|
@@ -303,11 +327,52 @@ Setiap perpindahan status terekam pada jejak audit beserta pelaku dan waktunya.
 | **Pengguna** | 40 akun aktif pada 12 jenis peran |
 | **Volume** | 521 kegiatan terkelola, rata-rata **87 kegiatan per bulan** pada bulan-bulan penuh |
 
-**Tahapan.** ⬜ *Mohon dilengkapi: kapan gagasan muncul, bagaimana kebutuhan
-dijaring, kapan uji coba, kapan dipakai penuh, dan pengembangan apa saja yang
-menyusul.* Panduan mensyaratkan video memuat lima substansi, dua di antaranya
-**penjaringan ide** dan **pemilihan ide** — jadi cerita tahapan ini juga
-dibutuhkan untuk video.
+### 7.1 Penjaringan ide
+
+Kebutuhan tidak dijaring lewat survei, melainkan muncul dari pengalaman kerja
+sehari-hari yang berulang:
+
+1. **Beragamnya pintu masuk informasi.** Agenda datang lewat surat ke rumah
+   dinas, berkas di meja, dan pesan percakapan langsung kepada Wali Kota —
+   sehingga beberapa kali rencana kegiatan tidak terinput sama sekali.
+2. **Peristiwa Januari 2026** (bagian 4.1): satu lembar disposisi tidak ikut
+   terfoto saat berkas diteruskan melalui grup percakapan, dan tidak seorang pun
+   memiliki cara untuk mengetahuinya.
+3. **Telaah bersama seluruh Bagian.** Sesudah peristiwa itu, Bagian Prokopim
+   menelaah ulang seluruh alur kerjanya dan menemukan pola yang sama berulang di
+   banyak tempat: penugasan yang tersimpan di ingatan, ketersediaan ruangan yang
+   hanya tercatat di papan tulis, dan arsip yang tersebar.
+
+Kesimpulannya satu: persoalannya bukan pada ketelitian orang, melainkan pada
+**tidak adanya satu sumber kebenaran** yang dapat dirujuk semua pihak.
+
+### 7.2 Pemilihan ide
+
+Beberapa arah penyelesaian dipertimbangkan:
+
+| Pilihan | Alasan tidak dipilih / dipilih |
+|---|---|
+| Menambah ketelitian lewat pengawasan dan pengingat manual | Tidak menyentuh akar masalah. Peristiwa Januari terjadi justru ketika semua orang sudah bekerja dengan benar. |
+| Memperbaiki tata kelola lembar sebar bersama | Tetap menyisakan banyak versi dan tidak meninggalkan jejak keputusan. |
+| Mengadakan aplikasi jadi dari pihak ketiga | Memerlukan anggaran dan pengadaan, sementara alur keprotokolan pimpinan sangat khas dan sulit diakomodasi paket umum. |
+| **Membangun sistem informasi sendiri dengan satu sumber kebenaran dan jejak audit** | **Dipilih.** Menyelesaikan akar masalah, dapat disesuaikan dengan alur yang sesungguhnya, dan dapat dijalankan tanpa anggaran pengadaan. |
+
+Yang menentukan pilihan terakhir: **setiap perpindahan dokumen dan keputusan
+harus meninggalkan jejak yang dapat diperiksa siapa pun yang berkepentingan.**
+Dengan begitu, kekurangan satu lembar tidak lagi mungkin luput tanpa ada yang
+menyadarinya.
+
+### 7.3 Tahapan pelaksanaan
+
+| Tahap | Waktu | Keterangan |
+|---|---|---|
+| Peristiwa pemicu dan telaah alur kerja | Januari 2026 | |
+| Pembangunan dan uji coba | Februari – awal Maret 2026 | |
+| Mulai dipakai | Maret 2026 | Dikuatkan Surat Sekda 11 Maret 2026 |
+| Pengembangan berkelanjutan | Maret 2026 – sekarang | ⬜ *(sebutkan penambahan penting bila perlu)* |
+
+**Untuk video.** Panduan mewajibkan video memuat lima substansi, dua di
+antaranya penjaringan ide dan pemilihan ide. Bagian 7.1 dan 7.2 inilah bahannya.
 
 **Prosedur pendukung.** Sebelas SOP baku format PermenPAN-RB 35/2012, lengkap
 dengan Bagian Identitas 13 unsur dan diagram alir bercabang. Dilampirkan.
@@ -416,7 +481,7 @@ lebih tinggi lagi: 42 kegiatan dalam 10 hari.
 | Kegiatan Pimpinan tanpa rencana kegiatan | Terjadi ketika penyisipan tidak sempat | Tidak lagi terjadi karena penyisipan tidak lagi menuntut cetak ulang |
 
 **Dasar estimasi kolom "sebelum".** Angka 18–24 jam **bukan hasil pencatatan**,
-melainkan diturunkan dari alur yang diuraikan pada bagian 4.1: undangan yang
+melainkan diturunkan dari alur yang diuraikan pada bagian 4.2: undangan yang
 masuk pagi menunggu sampai jendela periksa menjelang pulang kantor (±8 jam),
 kemudian menunggu disposisi yang diterima malam atau pagi harinya (±12–15 jam).
 Disampaikan sebagai estimasi karena memang tidak pernah diukur, sesuai ketentuan
@@ -445,7 +510,21 @@ selama ini memaksa mereka menunggu.
   hanya menampilkan keterpakaian slot, tanpa identitas maupun nomor kontak
   pemohon.
 
-### 9.5 Testimoni pengguna
+### 9.5 Catatan atas pemanfaatan modul naskah sambutan
+
+Dari 521 kegiatan, baru **tiga naskah sambutan** yang disahkan melalui aplikasi.
+Angka ini disampaikan apa adanya beserta alasannya.
+
+Wali Kota dan Wakil Wali Kota **masih lebih nyaman membaca naskah tercetak**,
+dan menilai lembar kertas memberi keleluasaan berimprovisasi di atas panggung.
+Inovasi ini tidak memaksakan perubahan itu. Modulnya disiapkan lengkap dengan
+alur penyusun, penyelia, dan pengesah, sehingga **kemampuannya sudah tersedia
+bila sewaktu-waktu dibutuhkan** — sementara kebiasaan Pimpinan tetap dihormati.
+
+Prinsip yang dipegang: inovasi menyesuaikan diri dengan cara kerja Pimpinan,
+bukan sebaliknya.
+
+### 9.6 Testimoni pengguna
 
 ⬜ *Kumpulkan 3–5 keterangan singkat bertanda tangan dari Pimpinan, Ajudan,
 Kasubbag, petugas, dan bila memungkinkan satu pemohon audiensi dari luar
@@ -546,10 +625,10 @@ Berurut menurut kepentingannya:
 
 1. **Dua kursi tim yang tersisa** (bagian 3) — dipilih dari sebelas pelaksana
    pada bagian 8, karena panduan membatasi tim paling banyak 5 orang
-2. **Cerita tahapan**: penjaringan ide dan pemilihan ide — untuk bagian 7 dan
-   dua dari lima substansi wajib video
-3. **Keputusan soal modul naskah sambutan** — baru 3 naskah disahkan dari 521
-   kegiatan; perlu diputuskan apakah modul ini ditonjolkan atau tidak
-4. **Keputusan soal celah keamanan** — sebelum Tahap II
+2. **Peran masing-masing anggota tim dalam inovasi** (bagian 3) — panduan
+   meminta pembagian tugas, bukan sekadar nama dan jabatan
+3. **Keputusan soal celah keamanan** — sebelum Tahap II
+4. **Testimoni pengguna** (bagian 9.6) — 3 sampai 5 keterangan singkat
+5. **Tangkapan layar aplikasi** dan **tautan verifikasi** untuk lampiran
 
 **Jadwal yang mengikat:** pendaftaran ditutup **30 September 2026**.
