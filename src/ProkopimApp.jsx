@@ -20,7 +20,7 @@ import RoomManagement from "./components/RoomManagement.jsx";
 const PlhManagement = React.lazy(() => import("./components/PlhManagement.jsx"));
 import { clearAdminToken } from "./roomAuth";
 import { JADWAL_STATUS } from "./lib/statusColors.js";
-import { peranEfektif, plhAktif, punyaPeran, jejakPlh, LABEL_PERAN } from "./lib/plh.js";
+import { peranEfektif, plhAktif, punyaPeran, jejakPlh, bolehMemutus, LABEL_PERAN } from "./lib/plh.js";
 
 // ═══════════════════════════════════════════════════════
 // PENDAFTARAN AKUN (Register → Menunggu Persetujuan Kabag)
@@ -521,12 +521,18 @@ function loadUsers(){
   }catch{return DEFAULT_USERS;}
 }
 function saveUsers(u){
+  const sebelum=new Map((_usersCache||[]).map(x=>[x.username,x]));
   _usersCache=u;
   // Simpan ke localStorage sebagai cache offline
   try{localStorage.setItem("jp_users",JSON.stringify(u));}catch{}
-  // Sync ke Supabase (fire-and-forget)
+  // Sync ke Supabase (fire-and-forget) — HANYA baris yang benar-benar berubah.
+  // Mengirim seluruh daftar berarti setiap penyimpanan mengembalikan kolom yang
+  // diubah dari perangkat lain ke nilai lama, termasuk `disabled` dan
+  // `password`: akun yang baru dinonaktifkan bisa hidup kembali, dan sandi yang
+  // baru diganti bisa mundur ke hash sebelumnya.
   if(SUPA_OK){
-    Promise.all(u.map(user=>dbUpsertUser(user))).catch(e=>console.warn("saveUsers Supabase sync error:",e));
+    const berubah=u.filter(x=>JSON.stringify(sebelum.get(x.username))!==JSON.stringify(x));
+    if(berubah.length)Promise.all(berubah.map(user=>dbUpsertUser(user))).catch(e=>console.warn("saveUsers Supabase sync error:",e));
   }
 }
 
@@ -709,9 +715,18 @@ async function dbLoadUsers(){
   if(!r.ok)throw new Error(await r.text());
   return await r.json();
 }
+// Kolom yang HANYA boleh ditulis peladen (api/room-booking.js) atau halaman
+// superadmin. Peramban memegang salinannya di cache, dan cache itu basi begitu
+// nilainya berubah dari tempat lain. Karena upsert PostgREST menimpa setiap
+// kolom yang ikut dikirim, penyimpanan daftar pengguna apa pun akan
+// memundurkannya — begitulah penetapan PLH terhapus sendiri sesudah ditetapkan.
+const KOLOM_PELADEN=["plh_untuk","plh_mulai","plh_selesai","plh_dasar",
+  "can_manage_rooms","session_token","session_expires","session_version"];
+
 async function dbUpsertUser(u){
   if(!SUPA_OK)return;
   const{_newPw,...clean}=u; // jangan simpan field temp
+  for(const k of KOLOM_PELADEN)delete clean[k];
   await fetch(SUPA_URL+"/rest/v1/users",{
     method:"POST",
     headers:{...H(),Prefer:"resolution=merge-duplicates"},
@@ -3102,7 +3117,7 @@ function AuditPage({events,user,role,isMobile,embedded}){
 }
 
 // ==================== APPROVAL QUEUE VIEW (Kasubbag / Kabag) ====================
-function ApprovalQueueView({events,role,upd,showT,askConfirm,isMobile}){
+function ApprovalQueueView({events,role,user,upd,showT,askConfirm,isMobile}){
   const NAVY="#0A1628",GOLD="#C9A84C";
   const[rejectTexts,setRT]=React.useState({});
   // busyId: id event yang sedang diproses (anti dobel-klik untuk Verifikasi/Publikasi)
@@ -3193,6 +3208,9 @@ function ApprovalQueueView({events,role,upd,showT,askConfirm,isMobile}){
         {/* Zona aksi — selalu terlihat */}
         <div style={{padding:"0 18px 16px"}}>
           <div style={{height:1,background:"#F1F5F9",margin:"10px 0"}}/>
+          {!bolehMemutus(user,ev)?<div style={{background:"#FFFBEB",border:"1.5px solid #FCD34D",borderRadius:9,padding:"10px 13px",fontSize:12,color:"#78350F",lineHeight:1.6}}>
+            🛡️ Jadwal ini Anda sendiri yang mengajukan. Selama bertindak sebagai PLH, pengajuan dan pemeriksaan tidak boleh berada pada satu orang. Mintakan kepada Kabag — beliau dapat mengambil alih tahap ini.
+          </div>:<>
           <LocalTextarea evId={ev.id} placeholder="Catatan (wajib diisi bila mengembalikan ke staf)..." rows={2} onCommit={(id,v)=>setRT(p=>({...p,[id]:v}))}/>
           <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
             <button onClick={()=>askConfirm("Kembalikan untuk Diperbaiki?","Jadwal dikembalikan ke Admin RK dengan catatan di atas. Admin RK dapat mengedit ulang dan mengajukan kembali — tidak perlu input dari awal.",()=>{upd(ev.id,{alur:"ditolak",catatanTolak:rejectTexts[ev.id]||"Perlu perbaikan",_requiresEdit:true});showT("Dikembalikan ke Admin RK untuk diperbaiki","warn");const _ur=loadUsers().find(u=>u.username===ev.submittedBy);if(_ur?.noWA)sendWA({to:_ur.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,penyelenggara:ev.penyelenggara,event:"rejected",catatanTolak:rejectTexts[ev.id]||"",submittedBy:getNamaByUsername(ev.submittedBy)});sendPush({targetUser:ev.submittedBy,title:"↩ Jadwal Perlu Diperbaiki",body:ev.namaAcara+": "+(rejectTexts[ev.id]||"Perlu diperbaiki"),url:"/",tag:"rejected-"+ev.id});},"Ya, Kembalikan","#92400E")}
@@ -3232,6 +3250,7 @@ function ApprovalQueueView({events,role,upd,showT,askConfirm,isMobile}){
               {busyId===ev.id?"Memproses…":"✅ Setujui & Publikasi"}
             </button>}
           </div>
+          </>}
         </div>
       </div>;
     })}
@@ -3980,10 +3999,15 @@ function PenugasanModal({ev, onClose, onSave, currentUser, allUsers, allEvents})
   );
   const NAVY="#0A1628",GOLD="#C9A84C",GREEN="#0D6B4F";
 
+  // Peran EFEKTIF, bukan peran asli: PLH menugaskan personil atas nama jabatan
+  // yang diampunya. Dengan peran asli, staf pengampu jatuh ke daftar cadangan
+  // yang salah dan Timkom pengampu Kasubbag Komdokpim hanya melihat rekannya
+  // sendiri.
+  const peranPenugas=peranEfektif(currentUser);
   // Hanya staf, admin_rk, kasubbag, timkom yang bisa ditugaskan
-  const eligibleForAssigner=ASSIGN_ROLES[currentUser.role]||["staf","admin_rk","timkom"];
-  // Kasubbag bisa menugaskan diri sendiri juga
-  const isKasubbag=["kasubbag_protokol","kasubbag_komdokpim"].includes(currentUser.role);
+  const eligibleForAssigner=ASSIGN_ROLES[peranPenugas]||["staf","admin_rk","timkom"];
+  // Kasubbag — termasuk yang dijabat PLH — bisa menugaskan diri sendiri juga
+  const isKasubbag=["kasubbag_protokol","kasubbag_komdokpim"].includes(peranPenugas);
   const candidates=allUsers.filter(u=>eligibleForAssigner.includes(u.role)||(isKasubbag&&u.username===currentUser.username));
 
   const[selected,setSelected]=React.useState(ev.personil||[]);
@@ -6293,7 +6317,11 @@ function ExpandedDetail({ev,hariEv}){
 
     {/* KASUBBAG — Primary: Verifikasi | Destructive: Tolak (terpisah visual) */}
     {(role==="kasubbag_protokol"||role==="kasubbag_komdokpim")&&<div style={{display:"flex",flexDirection:"column",gap:8}}>
-      {ev.alur==="menunggu_kasubbag"&&!ev.alurHapus&&<>
+      {ev.alur==="menunggu_kasubbag"&&!ev.alurHapus&&!bolehMemutus(user,ev)&&
+        <div style={{background:"#FFFBEB",border:"1.5px solid #FCD34D",borderRadius:9,padding:"10px 13px",fontSize:12,color:"#78350F",lineHeight:1.6}}>
+          🛡️ Jadwal ini Anda sendiri yang mengajukan. Selama bertindak sebagai PLH, pengajuan dan pemeriksaan tidak boleh berada pada satu orang. Mintakan kepada Kabag — beliau dapat mengambil alih tahap ini.
+        </div>}
+      {ev.alur==="menunggu_kasubbag"&&!ev.alurHapus&&bolehMemutus(user,ev)&&<>
         {/* PRIMARY */}
         <button onClick={()=>askConfirm(
           "Verifikasi & Teruskan ke Kabag?",
@@ -7950,7 +7978,11 @@ const TH={
       (e.tanggal||"").includes(q)
     );
   })();
-  const showForm=tab==="form"&&(role==="admin_rk");  const isPantau=tab==="pantau"&&role==="admin_rk";
+  // Memakai peran ASLI juga, bukan hanya peran efektif: Admin RK yang sedang
+  // mengampu Kasubbag tetap harus dapat memasukkan jadwal, sebab kalau tidak,
+  // menunjuknya sebagai PLH justru menghentikan pemasukan jadwal.
+  const bolehInputJadwal=punyaPeran(user,"admin_rk");
+  const showForm=tab==="form"&&bolehInputJadwal;  const isPantau=tab==="pantau"&&bolehInputJadwal;
   const showPenugasan=tab==="penugasan";
 
   const CSS=`
@@ -8360,81 +8392,105 @@ const TH={
   );
 
   // ==================== SIDEBAR ====================
-  const navGroups=[
-  {label:"MENU UTAMA",items:[
-    // ── Staf Protokol ──
-    ...(role==="staf"?[
-      {key:"tayang",   icon:"📅", label:"Agenda"},
-      {key:"penugasan",icon:"🎯", label:"Penugasan"},
-    ]:[]),
-    // ── Admin Rencana Kegiatan ──
-    ...(role==="admin_rk"?[
-      {key:"pantau",  icon:"✏️", label:"Input & Pantau"},
-      {key:"tayang",  icon:"📅", label:"Agenda"},
-      {key:"tamu",    icon:"👥", label:"Manajemen Tamu"},
-      {key:"audit",   icon:"🕓", label:"Riwayat Alur"},
-    ]:[]),
-    // ── Admin Generator Undangan — hanya tampil menu generator ──
-    ...(role==="admin_undangan"?[
-      {key:"undangan",  icon:"📄", label:"Generator Undangan"},
-    ]:[]),
-    // ── Kasubbag Protokol ──
-    ...(role==="kasubbag_protokol"?[
-      {key:"dashboard",icon:"📋", label:"Antrian"},
-      {key:"tayang",  icon:"📅", label:"Agenda"},
-      {key:"tamu",    icon:"👥", label:"Manajemen Tamu"},
-    ]:[]),
-    // ── Kasubbag Komdokpim ──
-    ...(role==="kasubbag_komdokpim"?[
-      {key:"tayang",   icon:"📅", label:"Agenda"},
-      {key:"tamu",     icon:"👥", label:"Tamu (Lihat)"},
-      {key:"newsroom", icon:"📰", label:"AI Newsroom"},
-    ]:[]),
+  // Menu milik SATU peran. Disusun sebagai fungsi karena bagi PLH dipanggil dua
+  // kali — sekali untuk jabatan yang diampu, sekali untuk jabatannya sendiri —
+  // sesuai sifat kewenangan PLH yang GABUNGAN, bukan penggantian. Tanpa ini
+  // Admin RK yang mengampu Kasubbag kehilangan menu Input & Pantau, sehingga
+  // menunjuknya sebagai PLH justru mematikan pemasukan jadwal; staf kehilangan
+  // menu Penugasan sehingga tidak dapat melihat tugasnya sendiri.
+  //
+  // Jabatan yang dapat diampu diletakkan lebih dahulu supaya menu tugas PLH
+  // muncul di atas. Bagi pengguna tanpa PLH hanya satu cabang yang menyala,
+  // jadi urutan berkas ini tidak mengubah tampilan mereka.
+  const menuPeran=(r)=>[
     // ── Kabag ──
-    ...(role==="kabag"?[
+    ...(r==="kabag"?[
       {key:"dashboard",     icon:"📋", label:"Antrian"},
       {key:"tayang",        icon:"📅", label:"Agenda"},
       {key:"tamu",          icon:"👥", label:"Manajemen Tamu"},
       {key:"newsroom",      icon:"📰", label:"Monitoring Komdok"},
       {key:"ruangan",       icon:"🏛️", label:"Peminjaman Ruangan"},
     ]:[]),
-    // ── Staf/Kasubbag dengan akses kelola ruangan ──
-    ...((user?.can_manage_rooms&&role!=="kabag")?[
-      {key:"ruangan",icon:"🏛️",label:"Peminjaman Ruangan"},
+    // ── Kasubbag Protokol ──
+    ...(r==="kasubbag_protokol"?[
+      {key:"dashboard",icon:"📋", label:"Antrian"},
+      {key:"tayang",  icon:"📅", label:"Agenda"},
+      {key:"tamu",    icon:"👥", label:"Manajemen Tamu"},
     ]:[]),
-    // ── Ajudan Wali Kota / Wakil Wali Kota ──
-    ...((role==="ajudan_walikota"||role==="ajudan_wakilwalikota")?[
-      {key:"ajudan",   icon:"✅", label:"Konfirmasi"},
+    // ── Kasubbag Komdokpim ──
+    ...(r==="kasubbag_komdokpim"?[
       {key:"tayang",   icon:"📅", label:"Agenda"},
-      {key:"tamu",     icon:"👥", label:"Manajemen Tamu"},
+      {key:"tamu",     icon:"👥", label:"Tamu (Lihat)"},
+      {key:"newsroom", icon:"📰", label:"AI Newsroom"},
+    ]:[]),
+    // ── Staf Protokol ──
+    ...(r==="staf"?[
+      {key:"tayang",   icon:"📅", label:"Agenda"},
       {key:"penugasan",icon:"🎯", label:"Penugasan"},
     ]:[]),
+    // ── Admin Rencana Kegiatan ──
+    ...(r==="admin_rk"?[
+      {key:"pantau",  icon:"✏️", label:"Input & Pantau"},
+      {key:"tayang",  icon:"📅", label:"Agenda"},
+      {key:"tamu",    icon:"👥", label:"Manajemen Tamu"},
+      {key:"audit",   icon:"🕓", label:"Riwayat Alur"},
+    ]:[]),
     // ── Timkom ──
-    ...(role==="timkom"?[
+    ...(r==="timkom"?[
       {key:"tayang",   icon:"📅", label:"Agenda"},
       {key:"tamu",     icon:"👥", label:"Tamu (Lihat)"},
       {key:"penugasan",icon:"🎯", label:"Penugasan"},
       {key:"newsroom", icon:"📰", label:"AI Newsroom"},
     ]:[]),
+    // ── Admin Generator Undangan — hanya tampil menu generator ──
+    ...(r==="admin_undangan"?[
+      {key:"undangan",  icon:"📄", label:"Generator Undangan"},
+    ]:[]),
+    // ── Ajudan Wali Kota / Wakil Wali Kota ──
+    ...((r==="ajudan_walikota"||r==="ajudan_wakilwalikota")?[
+      {key:"ajudan",   icon:"✅", label:"Konfirmasi"},
+      {key:"tayang",   icon:"📅", label:"Agenda"},
+      {key:"tamu",     icon:"👥", label:"Manajemen Tamu"},
+      {key:"penugasan",icon:"🎯", label:"Penugasan"},
+    ]:[]),
     // ── Mitra Kerja ──
-    ...(role==="mitra_kerja"?[
+    ...(r==="mitra_kerja"?[
       {key:"mitra",icon:"📅", label:"Agenda"},
     ]:[]),
     // ── Walpri ──
-    ...(role==="walpri"?[
+    ...(r==="walpri"?[
       {key:"tayang",icon:"📅", label:"Agenda"},
     ]:[]),
     // ── Wali Kota ──
-    ...(role==="walikota"?[
+    ...(r==="walikota"?[
       {key:"tayang", icon:"📅", label:"Agenda Saya"},
       {key:"tamu",   icon:"👥", label:"Manajemen Tamu"},
     ]:[]),
     // ── Wakil Wali Kota ──
-    ...(role==="wakilwalikota"?[
+    ...(r==="wakilwalikota"?[
       {key:"tayang", icon:"📅", label:"Agenda Saya"},
       {key:"tamu",   icon:"👥", label:"Manajemen Tamu"},
     ]:[]),
-  ]},
+  ];
+
+  // Satu kunci dapat muncul dua kali bagi PLH (mis. `tayang` dimiliki staf
+  // maupun Kasubbag). Kemunculan pertama yang dipakai.
+  const dedupKunci=(a)=>a.filter((x,i)=>a.findIndex(y=>y.key===x.key)===i);
+  // `role` adalah peran efektif; `user.role` peran asli. Keduanya sama kecuali
+  // yang bersangkutan sedang mengampu.
+  const menuGabungan=(bawaan)=>dedupKunci([
+    ...menuPeran(role),
+    ...(user&&user.role!==role?menuPeran(user.role):[]),
+    ...bawaan,
+  ]);
+
+  const navGroups=[
+  {label:"MENU UTAMA",items:menuGabungan(
+    // ── Staf/Kasubbag dengan akses kelola ruangan ──
+    (user?.can_manage_rooms&&role!=="kabag")?[
+      {key:"ruangan",icon:"🏛️",label:"Peminjaman Ruangan"},
+    ]:[]
+  )},
   {label:"LAPORAN & TOOLS",items:[
     {key:"action:summary",icon:"💬",label:"Rekap WA Hari Ini"},
     {key:"action:report", icon:"📄",label:"Cetak Rekap PDF"},
@@ -8443,7 +8499,9 @@ const TH={
     ...(bolehRekapTim?[{key:"penugasan",icon:"📈",label:"Rekap Evaluasi Kinerja"}]:[]),
     ...(bolehRekapTim?[{key:"rekap_penugasan",icon:"🏆",label:"Rekap Penugasan Bulanan"}]:[]),
     ...(REKAP_SAYA_ROLES.includes(role)?[{key:"rekap_saya",icon:"🏅",label:"Rekap Kinerja Saya"}]:[]),
-    ...(role==="admin_rk"||role==="kabag"?[{key:"action:arsip",icon:"📦",label:"Unduh Arsip Berkas"}]:[]),
+    // punyaPeran, bukan role: pengarsipan berkas adalah pekerjaan Admin RK
+    // sendiri, jadi tidak boleh hilang ketika ia sedang mengampu Kasubbag.
+    ...(bolehInputJadwal||role==="kabag"?[{key:"action:arsip",icon:"📦",label:"Unduh Arsip Berkas"}]:[]),
     ...(!["walikota","wakilwalikota","ajudan_walikota","ajudan_wakilwalikota","admin_undangan","mitra_kerja"].includes(role)?[{key:"ekinerja",icon:"📊",label:"E-Kinerja"}]:[]),
     ...(["kabag","kasubbag_protokol","staf","admin_rk"].includes(role)?[{key:"action:undangan",icon:"📋",label:"Generator Undangan"}]:[]),
     ...(bolehKalenderRuangan?[{key:"kalender_ruangan",icon:"🏛️",label:"Kalender Ruangan"}]:[]),
@@ -8493,81 +8551,87 @@ const TH={
   </aside>);
 
   // ==================== MOBILE HEADER + iOS BOTTOM TAB BAR ====================
-  const mobTabs=[
-  // ── Staf ──
-  ...(role==="staf"?[
-    {key:"tayang",   label:"Agenda",   icon:"📅"},
-    {key:"penugasan",label:"Penugasan",icon:"🎯"},
-  ]:[]),
-  // ── Admin RK ──
-  ...(role==="admin_rk"?[
-    {key:"pantau", label:"Input & Pantau", icon:"✏️"},
-    {key:"tayang", label:"Agenda",          icon:"📅"},
-    {key:"tamu",   label:"Tamu",            icon:"👥"},
-    {key:"audit",  label:"Riwayat",         icon:"🕓"},
-  ]:[]),
-  // ── Admin Generator Undangan — hanya tampil generator ──
-  ...(role==="admin_undangan"?[
-    {key:"undangan", label:"Undangan", icon:"📄"},
-  ]:[]),
-  // ── Kasubbag Protokol ──
-  ...(role==="kasubbag_protokol"?[
-    {key:"dashboard",label:"Antrian", icon:"📋"},
-    {key:"tayang", label:"Agenda",  icon:"📅"},
-    {key:"tamu",   label:"Tamu",    icon:"👥"},
-  ]:[]),
-  // ── Kasubbag Komdokpim ──
-  ...(role==="kasubbag_komdokpim"?[
-    {key:"tayang",   label:"Agenda",    icon:"📅"},
-    {key:"tamu",     label:"Tamu 👁",   icon:"👥"},
-    {key:"newsroom", label:"Newsroom",  icon:"📰"},
-  ]:[]),
+  // Tab milik SATU peran — sepadan dengan menuPeran() pada sidebar, dipanggil
+  // dua kali bagi PLH sehingga tab jabatannya sendiri tidak hilang.
+  const mobTabPeran=(r)=>[
   // ── Kabag ──
-  ...(role==="kabag"?[
+  ...(r==="kabag"?[
     {key:"dashboard",    label:"Antrian", icon:"📋"},
     {key:"tayang",       label:"Agenda",  icon:"📅"},
     {key:"tamu",         label:"Tamu",    icon:"👥"},
     {key:"newsroom",     label:"Komdok",  icon:"📰"},
     {key:"ruangan",      label:"Ruangan", icon:"🏛️"},
   ]:[]),
-  // ── Peninjau Permohonan (non-kabag) ──
-  ...((user?.can_manage_rooms&&role!=="kabag")?[
-    {key:"ruangan",label:"Ruangan",icon:"🏛️"},
+  // ── Kasubbag Protokol ──
+  ...(r==="kasubbag_protokol"?[
+    {key:"dashboard",label:"Antrian", icon:"📋"},
+    {key:"tayang", label:"Agenda",  icon:"📅"},
+    {key:"tamu",   label:"Tamu",    icon:"👥"},
   ]:[]),
-  // ── Ajudan WK / WWK ──
-  ...((role==="ajudan_walikota"||role==="ajudan_wakilwalikota")?[
-    {key:"ajudan",   label:"Konfirmasi",icon:"✅"},
+  // ── Kasubbag Komdokpim ──
+  ...(r==="kasubbag_komdokpim"?[
     {key:"tayang",   label:"Agenda",    icon:"📅"},
-    {key:"tamu",     label:"Tamu",      icon:"👥"},
-    {key:"penugasan",label:"Penugasan", icon:"🎯"},
+    {key:"tamu",     label:"Tamu 👁",   icon:"👥"},
+    {key:"newsroom", label:"Newsroom",  icon:"📰"},
+  ]:[]),
+  // ── Staf ──
+  ...(r==="staf"?[
+    {key:"tayang",   label:"Agenda",   icon:"📅"},
+    {key:"penugasan",label:"Penugasan",icon:"🎯"},
+  ]:[]),
+  // ── Admin RK ──
+  ...(r==="admin_rk"?[
+    {key:"pantau", label:"Input & Pantau", icon:"✏️"},
+    {key:"tayang", label:"Agenda",          icon:"📅"},
+    {key:"tamu",   label:"Tamu",            icon:"👥"},
+    {key:"audit",  label:"Riwayat",         icon:"🕓"},
   ]:[]),
   // ── Timkom ──
-  ...(role==="timkom"?[
+  ...(r==="timkom"?[
     {key:"tayang",   label:"Agenda",    icon:"📅"},
     {key:"tamu",     label:"Tamu 👁",   icon:"👥"},
     {key:"penugasan",label:"Penugasan", icon:"🎯"},
     {key:"newsroom", label:"Newsroom",  icon:"📰"},
   ]:[]),
+  // ── Admin Generator Undangan — hanya tampil generator ──
+  ...(r==="admin_undangan"?[
+    {key:"undangan", label:"Undangan", icon:"📄"},
+  ]:[]),
+  // ── Ajudan WK / WWK ──
+  ...((r==="ajudan_walikota"||r==="ajudan_wakilwalikota")?[
+    {key:"ajudan",   label:"Konfirmasi",icon:"✅"},
+    {key:"tayang",   label:"Agenda",    icon:"📅"},
+    {key:"tamu",     label:"Tamu",      icon:"👥"},
+    {key:"penugasan",label:"Penugasan", icon:"🎯"},
+  ]:[]),
   // ── Mitra Kerja ──
-  ...(role==="mitra_kerja"?[
+  ...(r==="mitra_kerja"?[
     {key:"mitra",label:"Agenda",icon:"📅"},
   ]:[]),
   // ── Walpri ──
-  ...(role==="walpri"?[
+  ...(r==="walpri"?[
     {key:"tayang",label:"Agenda",icon:"📅"},
   ]:[]),
   // ── Wali Kota ──
-  ...(role==="walikota"?[
+  ...(r==="walikota"?[
     {key:"tayang", label:"Agenda",icon:"📅"},
     {key:"tamu",   label:"Tamu",  icon:"👥"},
   ]:[]),
   // ── Wakil Wali Kota ──
-  ...(role==="wakilwalikota"?[
+  ...(r==="wakilwalikota"?[
     {key:"tayang", label:"Agenda",icon:"📅"},
     {key:"tamu",   label:"Tamu",  icon:"👥"},
   ]:[]),
-  {key:"action:more", label:"Lainnya",icon:"⋯"},
 ];
+  const mobTabs=dedupKunci([
+  ...mobTabPeran(role),
+  ...(user&&user.role!==role?mobTabPeran(user.role):[]),
+  // ── Peninjau Permohonan (non-kabag) ──
+  ...((user?.can_manage_rooms&&role!=="kabag")?[
+    {key:"ruangan",label:"Ruangan",icon:"🏛️"},
+  ]:[]),
+  {key:"action:more", label:"Lainnya",icon:"⋯"},
+]);
  
   const TAB_BAR_H=56;
   const mobileHeaderJSX=(<>
@@ -8636,7 +8700,7 @@ const TH={
               {icon:"👤",label:"Profil",action:()=>{setShowProfile(true);setMobMenu(false);}},
               ...(role==="kabag"?[{icon:"⚙️",label:"Kelola User"+(loadPendingRegs().length>0?" ("+loadPendingRegs().length+")":""),action:()=>{setShowAdmin(true);setMobMenu(false);}}]:[]),
               ...(role==="kabag"?[{icon:"📢",label:"Kirim Pengumuman",action:()=>{setShowBroadcast(true);setMobMenu(false);}}]:[]),
-              ...((role==="admin_rk"||role==="kabag")?[{icon:"📦",label:"Arsip Berkas",action:()=>{setShowArsip(true);setMobMenu(false);}}]:[]),
+              ...((bolehInputJadwal||role==="kabag")?[{icon:"📦",label:"Arsip Berkas",action:()=>{setShowArsip(true);setMobMenu(false);}}]:[]),
               ...(["kabag","kasubbag_protokol","staf","admin_rk"].includes(role)?[{icon:"📋",label:"Generator Undangan",action:()=>{setShowUndanganTool(true);setMobMenu(false);}}]:[]),
             ].map((btn,i)=>(
               <button key={i} onClick={btn.action} className="btn-ios" style={{padding:"14px 12px",borderRadius:14,border:"1.5px solid #E4EAF2",background:"#F8FAFF",color:NAVY,cursor:"pointer",fontSize:13,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
@@ -10265,6 +10329,9 @@ function KasubbagDashboard({events, user, upd, showT, askConfirm, isMobile, onPe
 </div>}
           {/* Riwayat alur (audit) */}
           <div style={{marginTop:8,marginBottom:10}}><AuditTimeline ev={ev} compact/></div>
+          {!bolehMemutus(user,ev)?<div style={{background:"#FFFBEB",border:"1.5px solid #FCD34D",borderRadius:9,padding:"10px 13px",fontSize:12,color:"#78350F",lineHeight:1.6}}>
+            🛡️ Jadwal ini Anda sendiri yang mengajukan. Selama bertindak sebagai PLH, pengajuan dan pemeriksaan tidak boleh berada pada satu orang. Mintakan kepada Kabag — beliau dapat mengambil alih tahap ini.
+          </div>:
           <div style={{display:"flex",flexDirection:"column",gap:8}}>
             <button onClick={()=>askConfirm(
               "Verifikasi & Teruskan ke Kabag?",
@@ -10287,7 +10354,7 @@ function KasubbagDashboard({events, user, upd, showT, askConfirm, isMobile, onPe
                 ↩ Kembalikan untuk Diperbaiki
               </button>
             </div>
-          </div>
+          </div>}
         </div>}
       </div>
     );
@@ -11920,18 +11987,18 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
       :(["admin_rk","kasubbag_protokol","kabag"].includes(role)&&tab==="audit")
         ?<AuditPage events={events} user={user} role={role} isMobile={isMobile}/>
 
-      :(role==="admin_rk"&&tab==="pantau")
+      :(bolehInputJadwal&&tab==="pantau")
         ?<DraftProgressView events={events} user={user} upd={upd} showT={showT} askConfirm={askConfirm} setTab={setTab} isMobile={isMobile} setForm={setForm} setEditId={(id)=>{setUsulanMode(false);setEditId(id);}} deleteAndSync={deleteAndSync} onAddNew={()=>{setForm(emptyForm);setEditId(null);setTab("form");}}/>
 
       /* 6. Admin RK: Form input jadwal */
       :showForm
-        ?<FormView form={form} setForm={setForm} editId={editId} usulanMode={usulanMode} setEditId={setEditId} setTab={setTab} isMobile={isMobile} onSubmit={submit} onCancel={()=>{setForm(emptyForm);setEditId(null);setUsulanMode(false);setTab(role==="admin_rk"?"pantau":"jadwal");}} onOpenAI={()=>setShowAI(true)} onUndanganUpload={handleUndanganUpload} showT={showT} canUploadUndangan={role==="admin_rk"}/>
+        ?<FormView form={form} setForm={setForm} editId={editId} usulanMode={usulanMode} setEditId={setEditId} setTab={setTab} isMobile={isMobile} onSubmit={submit} onCancel={()=>{setForm(emptyForm);setEditId(null);setUsulanMode(false);setTab(bolehInputJadwal?"pantau":"jadwal");}} onOpenAI={()=>setShowAI(true)} onUndanganUpload={handleUndanganUpload} showT={showT} canUploadUndangan={bolehInputJadwal}/>
 
       /* 7. Admin RK: Rencana Kegiatan ──> SUDAH DIHAPUS SEPENUHNYA DARI SINI */
 
       /* 8. Kasubbag/Kabag: Antrian Approval (tab jadwal) */
       :(["kasubbag_protokol","kabag"].includes(role)&&tab==="jadwal")
-        ?<ApprovalQueueView events={events} role={role} upd={upd} showT={showT} askConfirm={askConfirm} isMobile={isMobile}/>
+        ?<ApprovalQueueView events={events} role={role} user={user} upd={upd} showT={showT} askConfirm={askConfirm} isMobile={isMobile}/>
 
       /* 8b. Peminjaman Ruangan — dashboard admin */
       :tab==="plh"&&(role==="kabag"||role==="superadmin")

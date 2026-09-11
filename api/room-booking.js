@@ -62,6 +62,16 @@ async function sbPatch(path, body) {
   return r.json();
 }
 
+async function sbDelete(path) {
+  const r = await fetch(`${SUPA_URL}/rest/v1/${path}`, { method: "DELETE", headers: H() });
+  if (!r.ok) throw new Error(await r.text());
+}
+
+// Tabel belum ada — BUKAN hak akses yang kurang. Dipakai untuk membedakan
+// "migrasi belum dijalankan" (boleh kembali ke perilaku lama) dari "kunci
+// layanan belum terpasang" (harus gagal, bukan diam-diam dilonggarkan).
+const tabelBelumAda = (e) => /PGRST205|Could not find the table/i.test(e?.message || "");
+
 // ── WA helper ─────────────────────────────────────────────────
 async function sendWA(to, message) {
   if (!FONNTE || !to) return;
@@ -187,20 +197,54 @@ function genToken() {
 }
 
 // Verifikasi via header Authorization: Bearer <token> (atau X-Admin-Token).
-// Token diterbitkan oleh op=auth & disimpan di users.session_token.
-// verifySession → pemegang akun mana pun yang tokennya masih berlaku.
+//
+// Token diterbitkan oleh op=auth dan disimpan pada tabel `sesi`, BUKAN pada
+// tabel `users`. Alasannya: `users` dibaca peramban dengan kunci anon dan
+// seluruh barisnya disalin ke localStorage, sehingga selama token tinggal di
+// situ, setiap pengguna memegang token sesi semua pengguna lain — cukup untuk
+// menyamar sebagai Kabag. Tabel `sesi` tidak dapat dibaca kunci anon sama
+// sekali; hanya kunci layanan yang dipakai berkas ini yang bisa.
+//
+// Butuh SUPABASE_SERVICE_KEY. Dengan kunci anon, pembacaan `sesi` ditolak
+// sehingga verifikasi selalu gagal — memang yang diinginkan, tetapi harus
+// terbaca sebagai kesalahan konfigurasi, bukan sebagai sesi kedaluwarsa. Jadi
+// hanya keadaan "tabel belum ada" yang dibiarkan kembali ke kolom lama;
+// penolakan hak akses TIDAK, supaya kekeliruan pemasangan kunci tidak
+// menyamar sebagai perbaikan yang berhasil.
 async function verifySession(req) {
   const auth = req.headers["authorization"] || "";
   const token = (auth.startsWith("Bearer ") ? auth.slice(7) : "")
     || req.headers["x-admin-token"] || "";
   if (!token) return null;
-  const rows = await sbGet(
-    `users?session_token=eq.${encodeURIComponent(token)}` +
-    `&select=username,nama,role,can_manage_rooms,disabled,session_expires`
-  );
-  const u = rows?.[0];
+
+  let username;
+  try {
+    const sesi = (await sbGet(
+      `sesi?token=eq.${encodeURIComponent(token)}&select=username,kedaluwarsa`
+    ))?.[0];
+    if (!sesi) return null;
+    if (!sesi.kedaluwarsa || new Date(sesi.kedaluwarsa) < new Date()) return null;
+    username = sesi.username;
+  } catch (e) {
+    if (!tabelBelumAda(e)) {
+      console.error("verifySession: tabel `sesi` tidak terbaca. Periksa SUPABASE_SERVICE_KEY.", e.message);
+      return null;
+    }
+    // Migrasi belum dijalankan — pakai kolom lama supaya urutan merge dan
+    // migrasi tidak menentukan hidup-matinya layar Peminjaman Ruangan & PLH.
+    const lama = (await sbGet(
+      `users?session_token=eq.${encodeURIComponent(token)}` +
+      `&select=username,session_expires`
+    ))?.[0];
+    if (!lama?.session_expires || new Date(lama.session_expires) < new Date()) return null;
+    username = lama.username;
+  }
+
+  const u = (await sbGet(
+    `users?username=eq.${encodeURIComponent(username)}` +
+    `&select=username,nama,role,can_manage_rooms,disabled`
+  ))?.[0];
   if (!u || u.disabled) return null;
-  if (!u.session_expires || new Date(u.session_expires) < new Date()) return null;
   return u;
 }
 
@@ -367,10 +411,25 @@ export default async function handler(req, res) {
         // meninjau permohonan tetap diperiksa terpisah lewat verifyAdmin().
         const TTL_MS = 12 * 3600 * 1000;
         const token = genToken();
-        await sbPatch(`users?username=eq.${encodeURIComponent(u.username)}`, {
-          session_token: token,
-          session_expires: new Date(Date.now() + TTL_MS).toISOString(),
-        });
+        // Sesi lama orang yang sama dibuang lebih dahulu supaya barisnya tidak
+        // menumpuk tiap kali login, dan supaya satu akun hanya punya satu sesi
+        // berlaku — sama seperti perilaku kolom tunggal sebelumnya.
+        try {
+          await sbDelete(`sesi?username=eq.${encodeURIComponent(u.username)}`);
+          await sbPost("sesi", {
+            token,
+            username: u.username,
+            kedaluwarsa: new Date(Date.now() + TTL_MS).toISOString(),
+          });
+        } catch (e) {
+          if (!tabelBelumAda(e)) throw e;
+          // Migrasi belum dijalankan — terbitkan pada kolom lama seperti
+          // sebelumnya. Sekali migrasi berjalan, cabang ini tidak terpakai lagi.
+          await sbPatch(`users?username=eq.${encodeURIComponent(u.username)}`, {
+            session_token: token,
+            session_expires: new Date(Date.now() + TTL_MS).toISOString(),
+          });
+        }
         return res.status(200).json({
           ok: true, token, ttl_ms: TTL_MS,
           username: u.username, nama: u.nama, role: u.role,
@@ -589,10 +648,16 @@ export default async function handler(req, res) {
         if (!target) return res.status(400).json({ error: "Field 'target' wajib ada" });
         const tgt = await sbGet(`users?username=eq.${encodeURIComponent(target)}&select=username,role,disabled`);
         if (!tgt?.length) return res.status(404).json({ error: "User tidak ditemukan" });
-        const patch = { can_manage_rooms: !!value };
-        // Cabut akses → sekalian akhiri sesi admin user tsb
-        if (!value) { patch.session_token = null; patch.session_expires = null; }
-        await sbPatch(`users?username=eq.${encodeURIComponent(target)}`, patch);
+        await sbPatch(`users?username=eq.${encodeURIComponent(target)}`, { can_manage_rooms: !!value });
+        // Cabut akses → sekalian akhiri sesi user tsb, supaya token yang sudah
+        // dipegangnya tidak tetap berlaku sampai 12 jam ke depan.
+        if (!value) {
+          await sbDelete(`sesi?username=eq.${encodeURIComponent(target)}`).catch(async (e) => {
+            if (!tabelBelumAda(e)) throw e;
+            await sbPatch(`users?username=eq.${encodeURIComponent(target)}`,
+              { session_token: null, session_expires: null });
+          });
+        }
         return res.status(200).json({ ok: true, username: target, can_manage_rooms: !!value });
       }
 

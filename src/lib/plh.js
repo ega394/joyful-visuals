@@ -129,6 +129,26 @@ export function periksaPenetapan({ peranPengampu, plh_untuk, plh_mulai, plh_sele
 }
 
 /**
+ * Apakah `u` boleh memutus jadwal `ev` — diverifikasi maupun disetujui.
+ *
+ * Keadaan yang dicegah: Admin RK yang mengampu Kasubbag memasukkan jadwal,
+ * lalu berwenang memverifikasi jadwal yang baru saja ia ajukan sendiri.
+ * Pengajuan dan pemeriksaan jatuh pada satu orang, dan jejak auditnya
+ * kehilangan makna. Antrian tidak ikut macet: Kabag dapat mengambil alih
+ * tahap Kasubbag lewat sakelar yang sudah tersedia.
+ *
+ * Yang TIDAK dibatasi di sini: Kasubbag yang meneruskan sebuah jadwal lalu,
+ * sebagai PLH Kabag, menyetujuinya. Dalam keadaan Kabag berhalangan memang
+ * tidak ada orang lain — melarangnya berarti mematikan justru fungsi yang
+ * hendak disediakan PLH. Pembatasannya hanya pada pengaju aslinya.
+ */
+export function bolehMemutus(u, ev, hari = hariIniWita()) {
+  if (!u || !ev) return true;
+  if (!plhAktif(u, hari)) return true;   // pejabat asli — tidak diatur di sini
+  return ev.submittedBy !== u.username;
+}
+
+/**
  * Keterangan pendelegasian untuk dilekatkan pada jejak audit.
  *
  * Jejak audit tetap mencatat peran ASLI pelakunya; keterangan ini ditambahkan
