@@ -15,27 +15,10 @@
 import { readFileSync, readdirSync, mkdirSync, existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { chromium } from "playwright";
+import { keHTML as uraiMd, sebaris, lolos } from "./_markdown.mjs";
 
 const DIR    = resolve("docs/sop");
 const TUJUAN = resolve(process.argv[2] || "docs/sop/SOP-Prokopim.pdf");
-
-// ── Pengurai markdown ────────────────────────────────────────────
-const lolos = (s) => s
-  .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-
-// Sebaris: **tebal**, *miring*, `kode`, dan <br> yang memang kita tulis sendiri.
-function sebaris(s) {
-  return lolos(s)
-    .replace(/&lt;br&gt;/g, "<br>")
-    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-    .replace(/(^|[^*])\*([^*\n]+?)\*/g, "$1<em>$2</em>")
-    .replace(/`(.+?)`/g, "<code>$1</code>");
-}
-
-const selDari = (baris) =>
-  baris.trim().replace(/^\|/, "").replace(/\|$/, "").split(/(?<!\\)\|/).map(s => s.trim());
-
-const pemisahTabel = (b) => /^\|[\s:|-]+\|$/.test(b.trim());
 
 // ── Diagram alir bercabang ───────────────────────────────────────
 // PermenPAN-RB 35/2012 menghendaki satu kolom Pelaksana untuk tiap aktor,
@@ -174,94 +157,6 @@ function tabelAlir(isi) {
      </div>`;
 }
 
-function keHTML(md) {
-  const baris = md.split("\n");
-  const out = [];
-  let i = 0;
-
-  const tutupDaftar = (jenis) => { if (jenis) out.push(`</${jenis}>`); };
-  let daftar = null;
-
-  while (i < baris.length) {
-    const b = baris[i];
-
-    // Tabel: baris berawalan "|" yang diikuti baris pemisah.
-    if (b.trim().startsWith("|") && pemisahTabel(baris[i + 1] || "")) {
-      tutupDaftar(daftar); daftar = null;
-      const kepala = selDari(b);
-      const lebar  = kepala.length;
-      i += 2;
-      const isi = [];
-      while (i < baris.length && baris[i].trim().startsWith("|")) {
-        isi.push(selDari(baris[i])); i++;
-      }
-      // Tabel prosedur (7 kolom) dirender sebagai diagram alir bercabang:
-      // kolom Pelaksana dipecah satu kolom per aktor, berisi simbol.
-      if (lebar === 7) { out.push(tabelAlir(isi)); continue; }
-
-      const kelas = lebar === 2 ? "identitas" : "ringkas";
-      out.push(`<table class="${kelas}"><thead><tr>` +
-        kepala.map(h => `<th>${sebaris(h)}</th>`).join("") +
-        `</tr></thead><tbody>` +
-        isi.map(r => `<tr>` +
-          r.map((c, k) => `<td class="k${k}">${sebaris(c)}</td>`).join("") +
-        `</tr>`).join("") +
-        `</tbody></table>`);
-      continue;
-    }
-
-    // Kutipan (blok peringatan)
-    if (b.startsWith(">")) {
-      tutupDaftar(daftar); daftar = null;
-      const isi = [];
-      while (i < baris.length && baris[i].startsWith(">")) {
-        isi.push(baris[i].replace(/^>\s?/, "")); i++;
-      }
-      out.push(`<div class="sorot">${keHTML(isi.join("\n"))}</div>`);
-      continue;
-    }
-
-    const judul = b.match(/^(#{1,4})\s+(.*)$/);
-    if (judul) {
-      tutupDaftar(daftar); daftar = null;
-      out.push(`<h${judul[1].length}>${sebaris(judul[2])}</h${judul[1].length}>`);
-      i++; continue;
-    }
-
-    if (/^---+$/.test(b.trim())) {
-      tutupDaftar(daftar); daftar = null;
-      out.push(`<hr>`); i++; continue;
-    }
-
-    const bernomor = b.match(/^(\d+)\.\s+(.*)$/);
-    const berbutir = b.match(/^[-*]\s+(.*)$/);
-    if (bernomor || berbutir) {
-      const jenis = bernomor ? "ol" : "ul";
-      if (daftar !== jenis) { tutupDaftar(daftar); out.push(`<${jenis}>`); daftar = jenis; }
-      // Baris lanjutan sebuah butir ditulis menjorok.
-      let teks = (bernomor ? bernomor[2] : berbutir[1]);
-      i++;
-      while (i < baris.length && /^\s{2,}\S/.test(baris[i])) { teks += " " + baris[i].trim(); i++; }
-      out.push(`<li>${sebaris(teks)}</li>`);
-      continue;
-    }
-
-    if (!b.trim()) { tutupDaftar(daftar); daftar = null; i++; continue; }
-
-    // Paragraf: kumpulkan sampai baris kosong.
-    tutupDaftar(daftar); daftar = null;
-    let par = b.trim(); i++;
-    while (i < baris.length && baris[i].trim() && !baris[i].trim().startsWith("|")
-           && !baris[i].startsWith(">") && !/^#{1,4}\s/.test(baris[i])
-           && !/^---+$/.test(baris[i].trim()) && !/^(\d+\.|[-*])\s/.test(baris[i])) {
-      par += " " + baris[i].trim(); i++;
-    }
-    out.push(`<p>${sebaris(par)}</p>`);
-  }
-  tutupDaftar(daftar);
-  return out.join("\n");
-}
-
 // ── Gaya cetak ───────────────────────────────────────────────────
 const GAYA = `
 @page { size: A4 landscape; margin: 12mm 10mm 14mm; }
@@ -353,6 +248,11 @@ td.alir .alir-isi { position: absolute; inset: 0; }
 .sorot h3 { margin-top: 0; color: #92400E; }
 .sorot p, .sorot li { text-align: left; }
 
+pre.blok { font-family: "DejaVu Sans Mono", "Liberation Mono", monospace;
+  font-size: 7.4pt; line-height: 1.3; background: #F8FAFC;
+  border: .6pt solid #CBD5E1; padding: 6pt 8pt; margin: 6pt 0;
+  white-space: pre; page-break-inside: avoid; }
+
 /* Sampul */
 .sampul { page: tegak; page-break-after: always; text-align: center;
           padding-top: 55mm; }
@@ -374,7 +274,7 @@ const berkas = readdirSync(DIR).filter(f => /^\d\d-.*\.md$/.test(f)).sort();
 if (!berkas.length) { console.error("Tidak ada berkas SOP di " + DIR); process.exit(1); }
 
 const bagian = berkas.map(f => {
-  const isi = keHTML(readFileSync(`${DIR}/${f}`, "utf8"));
+  const isi = uraiMd(readFileSync(`${DIR}/${f}`, "utf8"), { tabel7: tabelAlir });
   // Pengantar dibiarkan tegak; lembar SOP lanskap.
   const tegak = f.startsWith("00-");
   return `<section class="lembar${tegak ? " tegak" : ""}">${isi}</section>`;
