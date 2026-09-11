@@ -43,15 +43,21 @@ audiensi, peminjaman ruangan, daftar hadir digital, naskah sambutan, peliputan
 dan publikasi, penerbitan undangan, serta evaluasi kinerja. Setiap perpindahan
 status terekam dalam jejak audit lengkap dengan pelaku dan waktunya.
 
-**Pelaksanaan.** Mulai dipakai **9 Maret 2026** dan berjalan terus sejak itu.
+**Pelaksanaan.** Mulai dipakai **Maret 2026** dan berjalan terus sejak itu.
+Keberadaannya dikuatkan Surat Sekretaris Daerah Kota Tarakan Nomor
+300.2.10/XXX/SETDA/2026 tanggal **11 Maret 2026** perihal Permohonan Subdomain,
+yang menyatakan Bagian Prokopim *"telah mengembangkan sistem informasi berbasis
+web"*.
 
-**Penerima manfaat.** ⬜ *(jumlah pengguna aktif — dari keluaran skrip statistik)*
-pemegang akun pada 12 jenis peran, ditambah masyarakat dan instansi yang
-mengajukan audiensi maupun peminjaman ruangan melalui kanal publik.
+**Penerima manfaat.** **40 pemegang akun aktif** pada 12 jenis peran, ditambah
+masyarakat dan instansi yang mengajukan audiensi maupun peminjaman ruangan
+melalui kanal publik.
 
-**Bukti dampak utama.** ⬜ *(diisi dari keluaran skrip statistik: kecepatan
-pengajuan → tayang, persentase jadwal yang sempat dikembalikan, volume kegiatan
-per bulan)*
+**Bukti dampak utama.** Sampai 10 September 2026 tercatat **521 kegiatan**
+terkelola dengan **2.563 peristiwa terekam**. Median waktu dari pengajuan
+sampai jadwal tayang **2,1 jam**; **92,3%** kegiatan sudah memiliki penugasan
+petugas; **77,2%** berkas undangannya terarsip; dan **4,8%** sempat dikembalikan
+untuk diperbaiki — menunjukkan penelaahan berjalan sungguhan.
 
 **Biaya.** Berjalan pada kuota gratis: 12 fungsi peladen tanpa server, basis
 data terkelola, dan tanpa belanja perangkat keras.
@@ -84,7 +90,7 @@ sebagai bagian dari efisiensi sumber daya.
 ### 4.1 Kondisi sebelum inovasi
 
 ⬜ **Bagian ini paling menentukan dan hanya Bapak yang tahu jawabannya.**
-Uraikan keadaan sebelum 9 Maret 2026, sedapat mungkin dengan angka:
+Uraikan keadaan sebelum Maret 2026, sedapat mungkin dengan angka:
 
 - Berapa lama biasanya sebuah undangan masuk sampai tercantum di agenda Pimpinan?
 - Berapa kali dalam sebulan terjadi jadwal bentrok, salah tempat, atau salah jam?
@@ -140,6 +146,23 @@ Tata Kelola yang Kolaboratif dan Inovatif.
 **Dukungan sekunder pada Misi 1** (Transformasi Sosial yang Inklusif dan
 Berkeadilan): kanal audiensi daring membuka akses masyarakat kepada Pimpinan
 Daerah tanpa mengharuskan datang berulang kali untuk menanyakan kepastian.
+
+### 5.1 Menjawab instruksi daerah secara langsung
+
+Inovasi ini bukan gagasan yang berdiri sendiri, melainkan tindak lanjut
+kebijakan daerah yang tertulis:
+
+- **Surat Edaran Wali Kota Tarakan Nomor 000.7.2.4/70/Bappeda Litbang/2026
+  tanggal 11 Februari 2026** tentang Inovasi Daerah;
+- **Instruksi strategis Wali Kota Tarakan** untuk meningkatkan skor Indeks
+  Inovasi Daerah pada penilaian *Innovative Government Award* (IGA), dengan
+  prioritas inovasi berbasis digital;
+- **Visi Smart City Tarakan.**
+
+Ketiganya dikutip dalam Surat Sekretaris Daerah Nomor 300.2.10/XXX/SETDA/2026
+tanggal 11 Maret 2026. Artinya keselarasan inovasi ini dengan arah kebijakan
+bukan tafsiran penyusun proposal, melainkan tertulis dalam dokumen resmi yang
+ditandatangani Sekretaris Daerah — bukti kuat untuk kriteria **Kompatibilitas**.
 
 **Catatan tema.** Tema kompetisi 2026 berpusat pada kedaulatan pangan dan
 energi, tetapi panduan menegaskan tema itu "arah prioritas, **bukan pembatasan
@@ -219,10 +242,12 @@ Setiap perpindahan status terekam pada jejak audit beserta pelaku dan waktunya.
 
 | | |
 |---|---|
-| **Mulai dipakai** | 9 Maret 2026 |
-| **Masa berjalan** | 6 bulan 21 hari terhitung sampai penutupan pendaftaran |
+| **Mulai dipakai** | Maret 2026 |
+| **Bukti tertulis** | Surat Sekda Nomor 300.2.10/XXX/SETDA/2026 tanggal 11 Maret 2026 — menyatakan sistem *"telah dikembangkan"* dan memohon subdomain `prokopim.tarakankota.go.id` |
+| **Masa berjalan** | **6 bulan 19 hari** terhitung sampai penutupan pendaftaran 30 September 2026 — melampaui syarat minimal 6 bulan |
 | **Lokasi** | Bagian Prokopim, Sekretariat Daerah Kota Tarakan |
-| **Pengguna** | ⬜ *(dari keluaran skrip statistik)* |
+| **Pengguna** | 40 akun aktif pada 12 jenis peran |
+| **Volume** | 521 kegiatan terkelola, rata-rata **87 kegiatan per bulan** pada bulan-bulan penuh |
 
 **Tahapan.** ⬜ *Mohon dilengkapi: kapan gagasan muncul, bagaimana kebutuhan
 dijaring, kapan uji coba, kapan dipakai penuh, dan pengembangan apa saja yang
@@ -250,33 +275,82 @@ Daya berbobot 20% dan menilai "kreativitas dalam mengatasi keterbatasan".
 | **Perangkat pengguna** | Telepon pintar milik sendiri — aplikasi web progresif, tanpa perlu pengadaan |
 | **Sumber daya manusia** | ⬜ *(jumlah orang dan lama pengerjaan)* |
 
-**Kolaborasi.** ⬜ *Mohon disebutkan bila ada dukungan Bagian Organisasi,
-Diskominfo, atau perangkat daerah lain.*
+**Kolaborasi.**
+
+- **Dinas Komunikasi, Informatika, Statistik dan Persandian Kota Tarakan** —
+  dimohonkan memfasilitasi subdomain `prokopim.tarakankota.go.id` melalui Surat
+  Sekda Nomor 300.2.10/XXX/SETDA/2026 tanggal 11 Maret 2026, lengkap dengan
+  lampiran dokumentasi teknis konfigurasi DNS.
+- **Bappeda Litbang Kota Tarakan** — penerima tembusan surat tersebut, selaku
+  pengampu kebijakan Inovasi Daerah.
+- ⬜ *Bagian Organisasi, bila ada keterlibatan dalam penyusunan SOP.*
 
 ---
 
 ## 9. Hasil, Manfaat, dan Bukti Dampak
 
-> ⬜ **Bagian berbobot terbesar (25%) dan paling menentukan.**
-> Jalankan `scripts/statistik-lomba.mjs`, kirimkan keluarannya, dan saya isikan
-> ke tabel di bawah.
+### 9.1 Data terukur — keadaan sesudah
 
-### 9.1 Data sebelum–sesudah
+Ditarik langsung dari basis data aplikasi pada 10 September 2026.
 
-| Indikator | Sebelum *(estimasi)* | Sesudah *(terukur)* | Perubahan |
-|---|---|---|---|
-| Waktu undangan masuk → tercantum di agenda | ⬜ | ⬜ | |
-| Jadwal yang sempat dikembalikan untuk diperbaiki | ⬜ | ⬜ | |
-| Waktu menyusun rekapitulasi agenda | ⬜ | Seketika | |
-| Permohonan audiensi: masuk → diputuskan | ⬜ | ⬜ | |
-| Kegiatan terkelola per bulan | ⬜ | ⬜ | |
-| Arsip undangan dan naskah tersimpan terpusat | Tidak | ⬜ berkas | |
+| Indikator | Angka |
+|---|---|
+| **Median waktu pengajuan → jadwal tayang** | **2,1 jam** |
+| ├─ menunggu penelaahan Kasubbag Protokol | 1,5 jam |
+| └─ menunggu keputusan Kepala Bagian | 0,2 jam |
+| Kegiatan terkelola | **521** |
+| Peristiwa terekam pada jejak audit | **2.563** |
+| Kegiatan yang sudah memiliki penugasan petugas | 481 — **92,3%** |
+| Kegiatan yang berkas undangannya terarsip | 402 — **77,2%** |
+| Kegiatan yang sempat dikembalikan untuk diperbaiki | 25 — **4,8%** |
+| Permohonan audiensi masuk | 45, **15 di antaranya menjadi agenda** |
+| Akun pengguna aktif | **40** pada 12 jenis peran |
+
+**Dasar perhitungan waktu.** Median dihitung dari kegiatan yang jejak auditnya
+lengkap. Fitur jejak audit mulai merekam 12 Mei 2026, sehingga angka kecepatan
+di atas mencakup Mei–September 2026 — bukan sejak Maret. Disampaikan apa adanya
+agar tidak menimbulkan salah paham saat verifikasi.
+
+### 9.2 Pertumbuhan penggunaan
+
+| Bulan | Kegiatan |
+|---|---|
+| Maret 2026 | 45 |
+| April 2026 | 72 |
+| Mei 2026 | 71 |
+| Juni 2026 | 71 |
+| Juli 2026 | 99 |
+| Agustus 2026 | **120** |
+| September 2026 | 42 *(sampai tanggal 10)* |
+
+Dari 45 kegiatan pada bulan pertama menjadi 120 pada Agustus — **naik 167%**.
+Rata-rata 87 kegiatan per bulan pada bulan-bulan penuh. Laju September bahkan
+lebih tinggi lagi: 42 kegiatan dalam 10 hari.
+
+### 9.3 Data sebelum inovasi
+
+⬜ **Bagian ini belum terisi dan hanya Bapak yang tahu jawabannya.**
+
+Yang paling menentukan: **dahulu berapa lama undangan masuk sampai tercantum di
+agenda Pimpinan?** Angka 2,1 jam baru bermakna bila ada pembandingnya.
+
+| Indikator | Sebelum *(estimasi)* | Sesudah *(terukur)* |
+|---|---|---|
+| Undangan masuk → tercantum di agenda | ⬜ | **2,1 jam** |
+| Menyusun rekapitulasi agenda | ⬜ | Seketika |
+| Pemberitahuan penugasan sampai ke petugas | ⬜ | Otomatis, seketika |
+| Penelusuran permohonan audiensi oleh pemohon | ⬜ | Mandiri, daring |
+| Arsip undangan terpusat | Tidak ada | **402 berkas** |
+
+Kolom "sebelum" **wajib ditandai sebagai estimasi** bila tidak berasal dari
+catatan tertulis. Tahap verifikasi dapat berupa konfirmasi kepada pengguna, dan
+ketidaksesuaian substansial dapat menyebabkan diskualifikasi.
 
 **Kolom "Sebelum" wajib ditandai sebagai estimasi** bila tidak berasal dari
 catatan tertulis. Tahap verifikasi dapat berupa konfirmasi kepada pengguna, dan
 ketidaksesuaian substansial dapat menyebabkan diskualifikasi.
 
-### 9.2 Manfaat yang tidak berupa angka
+### 9.4 Manfaat yang tidak berupa angka
 
 - **Akuntabilitas.** Setiap keputusan atas agenda Pimpinan dapat ditelusuri
   pelakunya — hal yang sebelumnya mustahil.
@@ -288,7 +362,7 @@ ketidaksesuaian substansial dapat menyebabkan diskualifikasi.
   hanya menampilkan keterpakaian slot, tanpa identitas maupun nomor kontak
   pemohon.
 
-### 9.3 Testimoni pengguna
+### 9.5 Testimoni pengguna
 
 ⬜ *Kumpulkan 3–5 keterangan singkat bertanda tangan dari Pimpinan, Ajudan,
 Kasubbag, petugas, dan bila memungkinkan satu pemohon audiensi dari luar
@@ -355,7 +429,7 @@ keterangan dari perangkat daerah lain yang berminat mereplikasi.*
 | 3 | Bukti identitas anggota tim | ⬜ |
 | 4 | **Sebelas SOP format PermenPAN-RB 35/2012** | ✅ tersedia, `docs/sop/SOP-Prokopim.pdf` |
 | 5 | Tangkapan layar aplikasi tiap alur | ⬜ |
-| 6 | **Tangkapan layar jejak audit paling awal** — bukti tanggal mulai implementasi | ⬜ |
+| 6 | **Surat Sekda Nomor 300.2.10/XXX/SETDA/2026 tanggal 11 Maret 2026** — bukti utama tanggal mulai implementasi, sekaligus bukti keselarasan dengan Surat Edaran Wali Kota tentang Inovasi Daerah | ✅ tersedia |
 | 7 | Keluaran statistik penggunaan | ⬜ |
 | 8 | Testimoni pengguna | ⬜ |
 | 9 | Tautan video demonstrasi | ⬜ |
@@ -386,10 +460,14 @@ disiapkan sejak sekarang.
 
 Berurut menurut kepentingannya:
 
-1. **Keluaran `scripts/statistik-lomba.mjs`** — mengisi bagian 9 yang berbobot 25%
-2. **Kondisi sebelum inovasi** (bagian 4.1) — sekalipun berupa estimasi
-3. **Susunan tim** (bagian 3) — paling banyak 5 orang
-4. **Cerita tahapan**: penjaringan ide dan pemilihan ide — untuk bagian 7 dan video
+1. **Kondisi sebelum inovasi** (bagian 4.1 dan 9.3) — terutama: dahulu berapa
+   lama undangan masuk sampai tercantum di agenda? Angka 2,1 jam baru bermakna
+   bila ada pembandingnya.
+2. **Susunan tim** (bagian 3) — paling banyak 5 orang termasuk ketua
+3. **Cerita tahapan**: penjaringan ide dan pemilihan ide — untuk bagian 7 dan
+   dua dari lima substansi wajib video
+4. **Keputusan soal modul naskah sambutan** — baru 3 naskah disahkan dari 521
+   kegiatan; perlu diputuskan apakah modul ini ditonjolkan atau tidak
 5. **Keputusan soal celah keamanan** — sebelum Tahap II
 
 **Jadwal yang mengikat:** pendaftaran ditutup **30 September 2026**.
