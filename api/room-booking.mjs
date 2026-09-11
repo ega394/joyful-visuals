@@ -1,7 +1,34 @@
 /**
- * api/room-booking.js — Unified Room Booking Handler
+ * api/room-booking.mjs — Unified Room Booking Handler
  * Menggabungkan rooms.js + room-bookings.js + room-bookings-admin.js
  * agar tetap dalam batas 12 serverless functions Vercel Hobby.
+ *
+ * BEREKSTENSI .mjs — JANGAN dinamai ulang menjadi .js.
+ *
+ * api/package.json menyatakan "type": "commonjs", sehingga berkas .js di
+ * sini ditranspilasi menjadi CommonJS oleh pembangun Vercel. Berkas ini
+ * mengimpor ../src/lib/plh.js, yang berada di bawah package.json akar
+ * ("type": "module") dan karenanya tetap ESM. Impornya berubah menjadi
+ * require() terhadap modul ESM, dan fungsi ini mati saat dimuat:
+ *
+ *   Error [ERR_REQUIRE_ESM]: require() of ES Module src/lib/plh.js
+ *   from api/room-booking.js not supported
+ *
+ * Seluruh endpoint ini balas 500 — peminjaman ruangan, penerbitan token
+ * sesi (op=auth), dan penetapan PLH sekaligus. Kejadian nyata: 10–11
+ * September 2026, sekitar 18 jam, tanpa gejala lain selain "gagal
+ * memverifikasi akses pengelola" di layar pengguna.
+ *
+ * Ekstensi .mjs membuat berkas ini ESM tanpa bergantung pada package.json,
+ * sehingga impor ESM-ke-ESM berjalan wajar. Jalur rutenya tidak berubah:
+ * tetap /api/room-booking.
+ *
+ * `node --check` pada berkas api/*.js adalah alat yang tepat untuk
+ * mencurigai masalah ini, tetapi bukan untuk memastikannya — dan
+ * mem-bundel dengan esbuild JUSTRU MENYESATKAN, sebab esbuild menyisipkan
+ * plh.js ke dalam keluaran sehingga require()-nya tidak pernah terjadi.
+ * Pemastiannya: impor berkas ini dengan Node sungguhan (lihat
+ * package.json → skrip "cek:api").
  *
  * Routing:
  *   GET  ?op=rooms              → list ruangan
@@ -17,7 +44,7 @@
 // Aturan PLH sengaja tidak disalin ulang di sini: peramban dan peladen harus
 // memakai pemeriksaan yang sama persis, kalau tidak keduanya bisa berbeda
 // pendapat tentang penetapan yang sah.
-import { periksaPenetapan, PERAN_DAPAT_DIAMPU } from "../src/lib/plh.js";
+import { periksaPenetapan } from "../src/lib/plh.js";
 
 const SUPA_URL = process.env.SUPABASE_URL  || process.env.VITE_SUPABASE_URL;
 // Utamakan service key: dengan itu endpoint ini tetap berjalan meski kebijakan

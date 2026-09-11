@@ -1,5 +1,16 @@
 /**
- * api/notif-cron.js — Prokopim Notifikasi Harian
+ * api/notif-cron.mjs — Prokopim Notifikasi Harian
+ *
+ * BEREKSTENSI .mjs — JANGAN dinamai ulang menjadi .js. Berkas ini mengimpor
+ * ../src/lib/plh.js yang tetap ESM, sedangkan api/package.json menyatakan
+ * "type": "commonjs" sehingga berkas .js di sini ditranspilasi menjadi
+ * CommonJS dan impornya berubah menjadi require() terhadap modul ESM —
+ * fungsinya mati saat dimuat dengan ERR_REQUIRE_ESM. Keterangan lengkapnya
+ * ada di kepala api/room-booking.mjs.
+ *
+ * Akibatnya di sini lebih sulit disadari daripada di room-booking: cron
+ * gagal tanpa seorang pun melihat galat, sehingga pengingat harian berhenti
+ * dalam sunyi.
  *
  * PERBAIKAN DUPLIKAT:
  * Sebelumnya WA terkirim 2x karena Vercel kadang menjalankan cron
@@ -14,7 +25,7 @@
  *   type=personil  → "10 8 * * *"   = 16:10 WITA
  */
 
-const webpush   = require("web-push");
+import webpush from "web-push";
 // Satu sumber aturan PLH untuk peramban maupun peladen.
 import { plhAktif, hariIniWita } from "../src/lib/plh.js";
 
