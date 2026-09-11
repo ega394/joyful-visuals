@@ -77,11 +77,18 @@ Keprotokolan dan Komunikasi Pimpinan Pemerintah Kota Tarakan.
 
 | No | Nama | Jabatan | Kedudukan pada SK | Peran dalam Inovasi |
 |---|---|---|---|---|
-| 1 | **Anugrah Yega Pranatha, M.Si** | Kepala Bagian Protokol dan Komunikasi Pimpinan Setda Kota Tarakan | Ketua | **Ketua Tim** — penggagas dan pengarah |
-| 2 | **Saifullah, S.H** | Kepala Sub Bagian Protokol | Sekretaris I | ⬜ |
-| 3 | **Juliyanti, S.AP** | Kepala Sub Bagian Komunikasi dan Dokumentasi Pimpinan | Sekretaris II | ⬜ |
-| 4 | **Nuraini Wiliadewi, S.IP** | Penelaah Teknis Kebijakan pada Bagian Prokopim | Anggota (no. 33) | ⬜ |
-| 5 | **Ni Kade Sari Handayani, S.AP** | Penata Keprotokolan pada Bagian Prokopim | Anggota (no. 35) | ⬜ |
+| 1 | **Anugrah Yega Pranatha, M.Si** | Kepala Bagian Protokol dan Komunikasi Pimpinan Setda Kota Tarakan | Ketua | Penggagas, perancang alur, dan **penulis seluruh kode aplikasi** |
+| 2 | **Saifullah, S.H** | Kepala Sub Bagian Protokol | Sekretaris I | Penguji dan penyelia penerapan pada alur keprotokolan; pemberi pertimbangan atas rancangan |
+| 3 | **Juliyanti, S.AP** | Kepala Sub Bagian Komunikasi dan Dokumentasi Pimpinan | Sekretaris II | Penguji dan penyelia penerapan pada alur komunikasi dan dokumentasi; pemberi pertimbangan atas rancangan |
+| 4 | **Nuraini Wiliadewi, S.IP** | Penelaah Teknis Kebijakan pada Bagian Prokopim | Anggota (no. 33) | Penguji dan pelaksana penerapan di lapangan; menjaring hambatan pemakaian sehari-hari |
+| 5 | **Ni Kade Sari Handayani, S.AP** | Penata Keprotokolan pada Bagian Prokopim | Anggota (no. 35) | Penguji dan pelaksana penerapan di lapangan; menjaring hambatan pemakaian sehari-hari |
+
+**Cara kerja tim.** Seluruh kode aplikasi ditulis sendiri oleh Ketua Tim selaku
+Kepala Bagian — tanpa pengadaan, tanpa penyedia jasa, dan tanpa alih daya.
+Keempat anggota lainnya menjalankan pengujian, menerapkannya di lapangan,
+menemukan bagian yang belum nyaman dipakai, dan menjadi tempat bertanya sebelum
+setiap rancangan diputuskan. Kebutuhan tidak diterka dari balik meja: setiap
+penyempurnaan berangkat dari hambatan yang benar-benar dialami penggunanya.
 
 Surat pengantar diterbitkan Bagian Protokol dan Komunikasi Pimpinan Sekretariat
 Daerah Kota Tarakan selaku perangkat daerah ketua tim. ⬜
@@ -524,9 +531,34 @@ bukan sebaliknya.
 
 ### 9.6 Testimoni pengguna
 
-⬜ *Kumpulkan 3–5 keterangan singkat bertanda tangan dari Pimpinan, Ajudan,
-Kasubbag, petugas, dan bila memungkinkan satu pemohon audiensi dari luar
-instansi. Testimoni disebut panduan sebagai salah satu bukti manfaat.*
+Tiga narasumber telah ditetapkan, mewakili tiga jenjang pemakaian yang berbeda:
+
+| | Narasumber | Sudut pandang yang diwakili |
+|---|---|---|
+| 1 | **Wali Kota Tarakan** | Penerima manfaat tertinggi — kepastian agenda |
+| 2 | **Ajudan Wakil Wali Kota** | Pendamping harian — kesiapan bahan dan pemberitahuan dini |
+| 3 | **Staf Protokol** | Pelaksana lapangan — kejelasan penugasan |
+
+⬜ *Keterangan masing-masing menunggu pengumpulan.*
+
+**Pertanyaan yang disarankan** — cukup dijawab dua sampai empat kalimat, lalu
+ditandatangani. Testimoni yang menyebut keadaan *sebelum* jauh lebih bernilai
+bagi penilai daripada pujian umum.
+
+*Untuk Wali Kota:*
+> Bagaimana kepastian agenda dirasakan sebelum dan sesudah aplikasi ini dipakai?
+
+*Untuk Ajudan Wakil Wali Kota:*
+> Bagaimana Bapak/Ibu mengetahui agenda dan menyiapkan bahannya dahulu, dan apa
+> yang berubah sekarang?
+
+*Untuk Staf Protokol:*
+> Dahulu bagaimana mengetahui diri sedang ditugaskan, dan apakah pernah terjadi
+> pemberitahuan yang terlambat atau tidak sampai?
+
+**Yang perlu dihindari:** testimoni yang hanya berbunyi "aplikasi ini sangat
+membantu". Penilai mencari bukti manfaat, bukan pujian — satu kalimat yang
+menyebut kejadian nyata lebih kuat daripada satu paragraf pujian.
 
 ---
 
@@ -547,16 +579,19 @@ instansi. Testimoni disebut panduan sebagai salah satu bukti manfaat.*
 
 | Risiko | Penanganan |
 |---|---|
-| Ketergantungan pada satu pengembang | ⬜ *(perlu dijawab jujur — ini akan ditanya)* |
-| Batas kuota layanan gratis | Sudah pada batas 12/12; fungsi baru menumpang yang ada |
-| Kehilangan data | Pencadangan berkala; peringatan pencadangan pada setiap jalur penghapusan |
-| Keamanan data pribadi | ⬜ *(lihat catatan di bawah)* |
+| **Ketergantungan pada satu pengembang** | Diakui sebagai risiko nyata: seluruh kode ditulis satu orang. Penahannya, **pengetahuan kerjanya tidak ikut melekat pada orang itu** — sebelas SOP baku sudah mendokumentasikan seluruh prosedur, sehingga penerus dapat menjalankan dan mengembangkannya. Kode dan basis data tersimpan pada layanan terkelola milik instansi. ⬜ *(rencana alih pengetahuan, bila ada)* |
+| Batas kuota layanan gratis | Sudah pada batas 12/12; setiap fungsi baru menumpang yang sudah ada |
+| Kehilangan data | Pencadangan berkala; peringatan pencadangan muncul pada setiap jalur penghapusan |
+| Keamanan data pribadi | Kanal publik dirancang tidak memaparkan data pribadi: kalender ketersediaan ruangan hanya menampilkan keterpakaian slot tanpa identitas maupun nomor kontak pemohon, dan penelusuran permohonan menuntut nomor lengkap. Pengetatan kebijakan akses basis data **masih berjalan bertahap** ⬜ |
 
-> ⚠️ **Perlu diselesaikan sebelum Tahap II.** Tahap II mencakup pemeriksaan
-> sistem, dan panduan menyebut "ketidaksesuaian substansial dapat menyebabkan
-> diskualifikasi". Saat ini kebijakan akses tabel pengguna masih terlalu
-> terbuka. Menuliskan "perlindungan data terjamin" pada proposal sementara
-> celahnya masih ada berisiko besar bila penilai memeriksa.
+> **Catatan atas baris terakhir.** Pengetatan kebijakan akses pada tingkat basis
+> data belum tuntas dan ditunda atas pertimbangan internal. Selama belum
+> selesai, sebaiknya **jangan menuliskan klaim "perlindungan data terjamin"**
+> di bagian mana pun. Tahap II mencakup pemeriksaan sistem, dan panduan
+> menyebut ketidaksesuaian substansial antara proposal dan kondisi nyata dapat
+> menyebabkan diskualifikasi. Menyebut pengamanan yang memang sudah berjalan —
+> seperti pada kanal publik di atas — jauh lebih aman daripada klaim menyeluruh
+> yang belum dapat dibuktikan.
 
 ---
 
@@ -589,12 +624,66 @@ keterangan dari perangkat daerah lain yang berminat mereplikasi.*
 | 2b | **Keputusan Sekretaris Daerah Nomor 100.3.3.6/98/HK/VIII/2026** tentang Tim Koordinasi Peningkatan Pelayanan Keprotokolan dan Komunikasi Pimpinan — bukti dukungan kelembagaan | ✅ tersedia |
 | 3 | Bukti identitas anggota tim | ⬜ |
 | 4 | **Sebelas SOP format PermenPAN-RB 35/2012** | ✅ tersedia, `docs/sop/SOP-Prokopim.pdf` |
-| 5 | Tangkapan layar aplikasi tiap alur | ⬜ |
+| 5 | Tangkapan layar aplikasi tiap alur | ⬜ — panduan penyiapannya pada bagian 12.1 |
 | 6 | **Surat Sekda Nomor 300.2.10/XXX/SETDA/2026 tanggal 11 Maret 2026** — bukti utama tanggal mulai implementasi, sekaligus bukti keselarasan dengan Surat Edaran Wali Kota tentang Inovasi Daerah | ✅ tersedia |
 | 7 | Keluaran statistik penggunaan | ⬜ |
 | 8 | Testimoni pengguna | ⬜ |
 | 9 | Tautan video demonstrasi | ⬜ |
 | 10 | Tautan aplikasi untuk verifikasi penilai | ⬜ |
+
+### 12.1 Cara menyiapkan tangkapan layar
+
+**Delapan layar yang cukup mewakili** — tidak perlu seluruh sebelas alur:
+
+| | Layar | Menunjukkan |
+|---|---|---|
+| 1 | Antrian persetujuan Kasubbag atau Kabag | Alur berjenjang yang sesungguhnya berjalan |
+| 2 | Kartu kegiatan yang terbuka lengkap | Kekayaan data satu kegiatan |
+| 3 | **Riwayat Alur Jadwal (jejak audit)** | **Paling penting** — inti kebaruan inovasi ini |
+| 4 | Layar penugasan personil | Beban kerja yang terlihat dan terbagi |
+| 5 | Agenda pada telepon pintar | Bukti berjalan sebagai aplikasi web progresif |
+| 6 | Halaman publik permohonan tamu | Kanal layanan masyarakat |
+| 7 | Kalender ketersediaan ruangan | Menggantikan papan tulis |
+| 8 | Poster kode QR daftar hadir | Keluaran yang dapat diraba hasilnya |
+
+**Yang wajib diperhatikan sebelum menangkap layar:**
+
+- **Tutupi nomor telepon** narahubung dan PIC. Nomor pribadi warga maupun
+  pejabat tidak perlu ikut terkirim ke panitia provinsi.
+- **Pertimbangkan agenda yang tampil.** Layar agenda akan memuat kegiatan Wali
+  Kota yang sesungguhnya. Pilih tanggal yang kegiatannya sudah berlalu dan
+  bersifat terbuka, atau tutupi yang tidak patut ditampilkan.
+- **Jangan tangkap layar** yang memuat daftar pengguna beserta nomor
+  WhatsApp-nya.
+- Tangkap pada perangkat dengan tampilan bersih — tanpa notifikasi
+  pribadi di bilah atas.
+
+**Tangkapan layar jejak audit** sebaiknya memperlihatkan satu kegiatan yang
+alurnya lengkap: diajukan, ditelaah, diteruskan, lalu disetujui — dengan nama
+pelaku dan waktunya terbaca. Itu satu gambar yang menjelaskan seluruh gagasan
+inovasi ini.
+
+### 12.2 Tautan verifikasi bagi penilai
+
+Panduan menyebut verifikasi dapat berupa kunjungan lapangan, pertemuan virtual,
+pemeriksaan sistem, atau konfirmasi kepada pengguna. Untuk Tahap II, finalis
+inovasi terapan **wajib menyiapkan demonstrasi produk/layanan atau akses
+sistem**.
+
+Disarankan tiga lapis, dari yang paling aman:
+
+1. **Tautan halaman publik** — dapat dibuka siapa pun tanpa akun: halaman
+   permohonan tamu, halaman peminjaman ruangan, dan agenda kegiatan yang tayang.
+   Aman diberikan di proposal karena memang sudah terbuka untuk umum.
+2. **Demonstrasi langsung** saat presentasi — Ketua Tim membuka aplikasi dan
+   memperagakan alurnya. Inilah yang paling meyakinkan, dan tidak memerlukan
+   penyerahan akun apa pun.
+3. **Akun peninjau**, hanya bila panitia memintanya secara khusus. ⬜
+
+> **Saran:** jangan mencantumkan akun dan kata sandi di dalam proposal.
+> Proposal berpindah tangan dan tersimpan di banyak tempat, sementara akun
+> pemakaian penuh dapat membuka agenda Pimpinan beserta data narahubung.
+> Demonstrasi langsung memenuhi tuntutan panduan tanpa risiko itu.
 
 ---
 
@@ -621,11 +710,15 @@ disiapkan sejak sekarang.
 
 Berurut menurut kepentingannya:
 
-1. **Peran masing-masing anggota tim dalam inovasi** (bagian 3) — panduan
-   meminta pembagian tugas yang jelas, bukan sekadar nama dan jabatan. Empat
-   baris menunggu isian; peran Ketua sudah tercantum.
-2. **Keputusan soal celah keamanan** — sebelum Tahap II
-3. **Testimoni pengguna** (bagian 9.6) — 3 sampai 5 keterangan singkat
-4. **Tangkapan layar aplikasi** dan **tautan verifikasi** untuk lampiran
+1. **Testimoni dari tiga narasumber** (bagian 9.6) — pertanyaannya sudah
+   disiapkan, tinggal dikumpulkan dan ditandatangani
+2. **Tangkapan layar delapan layar** (bagian 12.1) — daftar dan rambunya sudah
+   disiapkan
+3. **Kelengkapan administrasi**: pakta integritas dan surat usulan perangkat
+   daerah
+4. **Video** maksimal 5 menit dengan lima substansi wajib — diunggah pada tahap
+   7 besar, 15–20 Oktober 2026
+5. **Pengetatan kebijakan akses basis data** — ditunda; selama belum selesai,
+   proposal tidak memuat klaim perlindungan data yang menyeluruh
 
 **Jadwal yang mengikat:** pendaftaran ditutup **30 September 2026**.
