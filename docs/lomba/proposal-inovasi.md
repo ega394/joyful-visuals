@@ -89,22 +89,65 @@ sebagai bagian dari efisiensi sumber daya.
 
 ### 4.1 Kondisi sebelum inovasi
 
-⬜ **Bagian ini paling menentukan dan hanya Bapak yang tahu jawabannya.**
-Uraikan keadaan sebelum Maret 2026, sedapat mungkin dengan angka:
+Sebelum Maret 2026, seluruh alur kerja Bagian Prokopim dijalankan secara manual.
 
-- Berapa lama biasanya sebuah undangan masuk sampai tercantum di agenda Pimpinan?
-- Berapa kali dalam sebulan terjadi jadwal bentrok, salah tempat, atau salah jam?
-- Berapa lama menyiapkan rekapitulasi agenda mingguan atau bulanan?
-- Bagaimana petugas mengetahui dirinya ditugaskan, dan berapa sering
-  pemberitahuan itu terlambat atau tidak sampai?
-- Bagaimana permohonan audiensi masyarakat ditelusuri, dan berapa lama
-  pemohon menunggu kepastian?
-- Di mana arsip undangan, naskah sambutan, dan daftar hadir disimpan?
+**Penyusunan agenda.** Rencana kegiatan ditulis pada lembar sebar, dicetak, lalu
+diperiksa Kasubbag dan Kepala Bagian dalam satu jendela waktu: **sekitar 30 menit
+menjelang jam pulang kantor, hanya pada hari kerja**. Setelah itu naskah
+dinaikkan kepada Wali Kota, dan disposisinya baru diterima malam atau pagi
+harinya.
 
-Angka yang tidak tercatat boleh direkonstruksi dari arsip manual atau
-keterangan pelaksana, tetapi **wajib ditandai sebagai estimasi**. Panduan lomba
-menyebut pemalsuan data sebagai alasan diskualifikasi, dan tahap verifikasi
-dapat berupa konfirmasi kepada pengguna.
+**Bila ada kegiatan mendesak**, Admin Rencana Kegiatan harus mencetak ulang
+bolak-balik untuk menyisipkannya — atau, bila tidak sempat, **Pimpinan hadir
+langsung tanpa rencana kegiatan**.
+
+**Naskah sambutan** menempuh jalur yang sama: disusun, dicetak, diperiksa
+berjenjang, dan dikembalikan secara fisik.
+
+**Penugasan petugas** tidak tercatat pada satu tempat, sehingga beban kerja
+tidak terbagi merata dan tidak terlaporkan kepada sesama anggota tim maupun
+atasan.
+
+**Ketersediaan ruangan** dicatat pada papan tulis dan dikoordinasikan lewat
+grup percakapan.
+
+### 4.1.1 Kelemahan yang ditimbulkannya
+
+**a. Jendela persetujuan sekali sehari menciptakan keterlambatan struktural.**
+Undangan yang masuk pagi menunggu sekitar delapan jam hanya untuk *mulai*
+ditelaah; yang masuk setelah jendela itu lewat menunggu hari kerja berikutnya.
+Keterlambatan ini melekat pada bentuk prosedurnya, bukan pada kecepatan
+pejabatnya — terbukti dari data sesudah inovasi, yang menunjukkan keputusan
+Kepala Bagian sesungguhnya hanya memerlukan **0,2 jam**.
+
+**b. Pemrosesan berkelompok menghapus urgensi.** Seluruh jadwal masuk satu
+antrean yang sama, mendesak maupun tidak. Satu-satunya cara menyisipkan kegiatan
+mendesak adalah mencetak ulang seluruh rencana kegiatan.
+
+**c. Naskah yang sudah tercetak langsung usang.** Setiap pencetakan ulang
+melahirkan versi baru, sementara versi sebelumnya masih berada di tangan orang
+lain. Tidak ada satu rujukan yang dapat dipastikan benar.
+
+**d. Kegiatan Pimpinan dapat berlangsung tanpa tercatat sama sekali.** Ini
+kegagalan yang paling berat akibatnya. Ketika Pimpinan hadir tanpa rencana
+kegiatan: tidak ada pendampingan protokol, tidak ada peliputan dan dokumentasi,
+tidak ada naskah sambutan, ajudan tidak siap, dan kegiatan tersebut hilang dari
+rekam jejak kinerja Bagian. Koordinasi untuk pendampingan maupun dokumentasi
+menjadi tergesa-gesa.
+
+**e. Beban kerja tidak terlihat sehingga tidak merata.** Penugasan bersandar
+pada ingatan perorangan, tidak terlaporkan kepada sesama tim maupun atasan, dan
+tidak dapat dipertanggungjawabkan. Gejalanya tampak di lapangan: petugas masih
+saling bertanya siapa yang sedang bertugas.
+
+**f. Informasi penting tenggelam.** Ketersediaan ruangan hanya tercatat di papan
+tulis — tidak dapat diperiksa dari luar kantor — dan dikoordinasikan lewat grup
+percakapan, tempat informasi mudah tertimbun pesan koordinasi lainnya.
+
+**Akar tunggalnya: tidak ada satu sumber kebenaran.** Seluruh alur bergantung
+pada ketelitian, ingatan, dan ketekunan perorangan. Ketika satu orang lupa,
+lalai, atau berhalangan, tidak ada sistem yang menahan. Lima kelemahan lainnya
+adalah gejala dari satu akar ini.
 
 ### 4.2 Akar masalah
 
@@ -228,7 +271,8 @@ Setiap perpindahan status terekam pada jejak audit beserta pelaku dan waktunya.
 
 | Aspek | Sebelum | Sesudah |
 |---|---|---|
-| Alur persetujuan | Percakapan gawai | Berjenjang dan terekam |
+| Alur persetujuan | Cetak, periksa sekali sehari menjelang pulang | Berjenjang, setiap saat, terekam |
+| Kegiatan mendesak | Cetak ulang bolak-balik, atau Pimpinan hadir tanpa RK | Masuk antrean sendiri |
 | Penelusuran keputusan | Tidak ada | Jejak audit tiap kegiatan |
 | Pemberitahuan petugas | Manual, mudah terlewat | Otomatis, hanya yang berubah |
 | Rekapitulasi | Disusun ulang tiap kali | Terbit seketika |
@@ -327,28 +371,37 @@ Dari 45 kegiatan pada bulan pertama menjadi 120 pada Agustus — **naik 167%**.
 Rata-rata 87 kegiatan per bulan pada bulan-bulan penuh. Laju September bahkan
 lebih tinggi lagi: 42 kegiatan dalam 10 hari.
 
-### 9.3 Data sebelum inovasi
-
-⬜ **Bagian ini belum terisi dan hanya Bapak yang tahu jawabannya.**
-
-Yang paling menentukan: **dahulu berapa lama undangan masuk sampai tercantum di
-agenda Pimpinan?** Angka 2,1 jam baru bermakna bila ada pembandingnya.
+### 9.3 Perbandingan sebelum dan sesudah
 
 | Indikator | Sebelum *(estimasi)* | Sesudah *(terukur)* |
 |---|---|---|
-| Undangan masuk → tercantum di agenda | ⬜ | **2,1 jam** |
-| Menyusun rekapitulasi agenda | ⬜ | Seketika |
-| Pemberitahuan penugasan sampai ke petugas | ⬜ | Otomatis, seketika |
-| Penelusuran permohonan audiensi oleh pemohon | ⬜ | Mandiri, daring |
-| Arsip undangan terpusat | Tidak ada | **402 berkas** |
+| Undangan masuk → tercantum di agenda | **±18–24 jam** bila tepat masuk jendela periksa sore; **24–48 jam** bila terlewat; **sampai 72 jam** bila melintasi akhir pekan | **2,1 jam** |
+| Kesempatan penelaahan | Sekali sehari, ±30 menit, hanya hari kerja | Setiap saat, termasuk di luar jam kantor |
+| Menyisipkan kegiatan mendesak | Cetak ulang seluruh rencana kegiatan | Masuk antrean sendiri, tanpa mengganggu yang lain |
+| Rujukan jadwal yang sahih | Beberapa versi cetakan beredar bersamaan | Satu sumber, terkini bagi semua peran |
+| Penugasan petugas | Bersandar pada ingatan, tidak terlaporkan | **92,3%** kegiatan berpenugasan tercatat |
+| Arsip undangan | Tersebar, tidak terpusat | **402 berkas** terarsip |
+| Ketersediaan ruangan | Papan tulis dan grup percakapan | Kalender daring, dapat diperiksa dari mana saja |
+| Jejak keputusan | Tidak ada | **2.563 peristiwa** terekam |
+| Kegiatan Pimpinan tanpa rencana kegiatan | Terjadi ketika penyisipan tidak sempat | Tidak lagi terjadi karena penyisipan tidak lagi menuntut cetak ulang |
 
-Kolom "sebelum" **wajib ditandai sebagai estimasi** bila tidak berasal dari
-catatan tertulis. Tahap verifikasi dapat berupa konfirmasi kepada pengguna, dan
-ketidaksesuaian substansial dapat menyebabkan diskualifikasi.
+**Dasar estimasi kolom "sebelum".** Angka 18–24 jam **bukan hasil pencatatan**,
+melainkan diturunkan dari alur yang diuraikan pada bagian 4.1: undangan yang
+masuk pagi menunggu sampai jendela periksa menjelang pulang kantor (±8 jam),
+kemudian menunggu disposisi yang diterima malam atau pagi harinya (±12–15 jam).
+Disampaikan sebagai estimasi karena memang tidak pernah diukur, sesuai ketentuan
+panduan yang menyebut pemalsuan data sebagai alasan diskualifikasi.
 
-**Kolom "Sebelum" wajib ditandai sebagai estimasi** bila tidak berasal dari
-catatan tertulis. Tahap verifikasi dapat berupa konfirmasi kepada pengguna, dan
-ketidaksesuaian substansial dapat menyebabkan diskualifikasi.
+**Pembacaan angkanya.** Dari ±18–24 jam menjadi 2,1 jam berarti percepatan
+**sekitar 9 sampai 11 kali lipat** pada jalur terbaik, dan jauh lebih besar lagi
+pada undangan yang sebelumnya terlewat jendela periksa atau melintasi akhir
+pekan.
+
+**Yang menarik dari rincian waktunya:** setelah sampai kepada Kepala Bagian,
+keputusan hanya memerlukan **0,2 jam**. Artinya hambatan lama memang terletak
+pada *jendela waktunya*, bukan pada kecepatan pejabat mengambil keputusan.
+Inovasi ini tidak membuat orang bekerja lebih cepat — ia menghapus antrean yang
+selama ini memaksa mereka menunggu.
 
 ### 9.4 Manfaat yang tidak berupa angka
 
@@ -460,14 +513,11 @@ disiapkan sejak sekarang.
 
 Berurut menurut kepentingannya:
 
-1. **Kondisi sebelum inovasi** (bagian 4.1 dan 9.3) — terutama: dahulu berapa
-   lama undangan masuk sampai tercantum di agenda? Angka 2,1 jam baru bermakna
-   bila ada pembandingnya.
-2. **Susunan tim** (bagian 3) — paling banyak 5 orang termasuk ketua
-3. **Cerita tahapan**: penjaringan ide dan pemilihan ide — untuk bagian 7 dan
+1. **Susunan tim** (bagian 3) — paling banyak 5 orang termasuk ketua
+2. **Cerita tahapan**: penjaringan ide dan pemilihan ide — untuk bagian 7 dan
    dua dari lima substansi wajib video
-4. **Keputusan soal modul naskah sambutan** — baru 3 naskah disahkan dari 521
+3. **Keputusan soal modul naskah sambutan** — baru 3 naskah disahkan dari 521
    kegiatan; perlu diputuskan apakah modul ini ditonjolkan atau tidak
-5. **Keputusan soal celah keamanan** — sebelum Tahap II
+4. **Keputusan soal celah keamanan** — sebelum Tahap II
 
 **Jadwal yang mengikat:** pendaftaran ditutup **30 September 2026**.
