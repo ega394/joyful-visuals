@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   plhAktif, peranEfektif, peranDipegang, punyaPeran,
-  periksaPenetapan, jejakPlh, hariIniWita,
+  periksaPenetapan, jejakPlh, hariIniWita, bolehMemutus,
 } from "../lib/plh.js";
 
 const staf = { username: "budi", role: "staf" };
@@ -134,6 +134,60 @@ describe("jejak audit", () => {
 
   it("tidak melekat apa pun bila tidak sedang mengampu", () => {
     expect(jejakPlh(ksbP, "2026-09-15")).toBeNull();
+  });
+});
+
+describe("PLH tidak memutus usulannya sendiri", () => {
+  const arsipRk = { username: "rina", role: "admin_rk" };
+  const HARI = "2026-09-15";
+  const rkAmpu = ampu(arsipRk, "kasubbag_protokol", "2026-09-10", "2026-09-20");
+
+  it("menolak jadwal yang diajukan oleh pengampu itu sendiri", () => {
+    expect(bolehMemutus(rkAmpu, { submittedBy: "rina" }, HARI)).toBe(false);
+  });
+
+  it("meloloskan jadwal yang diajukan orang lain", () => {
+    expect(bolehMemutus(rkAmpu, { submittedBy: "tono" }, HARI)).toBe(true);
+  });
+
+  it("tidak membatasi pejabat asli atas jadwal yang ia ajukan sendiri", () => {
+    // Kasubbag bukan PLH — aturan pemisahan tugas di sini tidak mengaturnya.
+    expect(bolehMemutus(ksbP, { submittedBy: "sari" }, HARI)).toBe(true);
+  });
+
+  it("tidak membatasi Kasubbag yang mengampu Kabag atas jadwal yang ia teruskan", () => {
+    // Kabag berhalangan; bila ini dilarang, antrian justru berhenti total —
+    // persis keadaan yang hendak dicegah PLH.
+    const ksbAmpuKabag = ampu(ksbP, "kabag", "2026-09-10", "2026-09-20");
+    expect(bolehMemutus(ksbAmpuKabag, { submittedBy: "rina" }, HARI)).toBe(true);
+  });
+
+  it("kembali tidak membatasi setelah masa PLH lewat", () => {
+    expect(bolehMemutus(rkAmpu, { submittedBy: "rina" }, "2026-09-21")).toBe(true);
+  });
+
+  it("aman terhadap masukan kosong", () => {
+    expect(bolehMemutus(null, { submittedBy: "rina" }, HARI)).toBe(true);
+    expect(bolehMemutus(rkAmpu, null, HARI)).toBe(true);
+  });
+});
+
+describe("kewenangan PLH bersifat gabungan", () => {
+  const HARI = "2026-09-15";
+  const rkAmpu = ampu({ username: "rina", role: "admin_rk" },
+                      "kasubbag_protokol", "2026-09-10", "2026-09-20");
+
+  it("Admin RK pengampu tetap memegang peran aslinya", () => {
+    // Inilah yang menjaga menu Input & Pantau tetap ada; tanpa itu,
+    // menunjuk Admin RK sebagai PLH mematikan pemasukan jadwal.
+    expect(punyaPeran(rkAmpu, "admin_rk", HARI)).toBe(true);
+    expect(punyaPeran(rkAmpu, "kasubbag_protokol", HARI)).toBe(true);
+    expect(peranEfektif(rkAmpu, HARI)).toBe("kasubbag_protokol");
+  });
+
+  it("staf pengampu tetap memegang peran staf", () => {
+    const stafAmpu = ampu(staf, "kasubbag_protokol", "2026-09-10", "2026-09-20");
+    expect(peranDipegang(stafAmpu, HARI)).toEqual(["staf", "kasubbag_protokol"]);
   });
 });
 

@@ -21,12 +21,57 @@ const supaHeaders = () => ({
 // pemegang peran, karena hanya penyaringan peran yang tersedia di sini.
 // Kolom username sudah ada di tabel sejak awal; hanya penyaringnya yang
 // belum pernah dipakai.
+const PILIH_SUB = "select=endpoint,subscription,role,username";
+
+// PLH yang sedang mengampu `role` hari ini.
+//
+// Masa berlakunya disaring lewat kueri, bukan lewat src/lib/plh.js, supaya
+// berkas ini tetap CommonJS murni. Aturannya sama: rentang tanggal inklusif di
+// kedua ujung, menurut WITA (UTC+8).
+async function pengampuJabatan(role) {
+  const hari = new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 10);
+  try {
+    const r = await fetch(
+      SUPA_URL + "/rest/v1/users?select=username" +
+      "&plh_untuk=eq." + encodeURIComponent(role) +
+      "&plh_mulai=lte." + hari + "&plh_selesai=gte." + hari +
+      "&disabled=not.is.true",
+      { headers: supaHeaders() }
+    );
+    return r.ok ? await r.json() : [];
+  } catch { return []; }   // kolom PLH belum ada → berjalan seperti semula
+}
+
 async function getSubs(role, username) {
-  let url = SUPA_URL + "/rest/v1/push_subscriptions?select=subscription,role,username";
+  let url = SUPA_URL + "/rest/v1/push_subscriptions?" + PILIH_SUB;
   if (username)  url += "&username=eq." + encodeURIComponent(username);
   else if (role) url += "&role=eq." + encodeURIComponent(role);
   const r = await fetch(url, { headers: supaHeaders() });
-  return r.ok ? await r.json() : [];
+  const subs = r.ok ? await r.json() : [];
+
+  // Notifikasi yang ditujukan ke sebuah JABATAN harus sampai ke pengampunya.
+  // `push_subscriptions.role` berisi peran ASLI pemasang langganan, sehingga
+  // tanpa tambahan ini seorang PLH tidak pernah diberi tahu ada jadwal yang
+  // menunggu diputus — antrian macet tanpa seorang pun menyadarinya, yang
+  // justru keadaan yang hendak dicegah PLH.
+  //
+  // Ditambahkan DI ATAS hasil pencocokan peran, tidak menggantikannya: PLH
+  // tetap menerima notifikasi jabatannya sendiri.
+  if (!username && role) {
+    const plh = await pengampuJabatan(role);
+    if (plh.length) {
+      const daftar = plh.map(u => encodeURIComponent(u.username)).join(",");
+      const r2 = await fetch(
+        SUPA_URL + "/rest/v1/push_subscriptions?" + PILIH_SUB + "&username=in.(" + daftar + ")",
+        { headers: supaHeaders() }
+      ).catch(() => null);
+      const tambahan = (r2 && r2.ok) ? await r2.json() : [];
+      // Satu perangkat bisa terjaring dua kali bila peran aslinya kebetulan sama.
+      const sudah = new Set(subs.map(s => s.endpoint));
+      for (const s of tambahan) if (!sudah.has(s.endpoint)) { sudah.add(s.endpoint); subs.push(s); }
+    }
+  }
+  return subs;
 }
 
 async function saveSub(sub, username, role) {

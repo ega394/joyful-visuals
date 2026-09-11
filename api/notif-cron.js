@@ -76,7 +76,9 @@ async function pengampuJabatan(role) {
     return await sbGet(
       `users?plh_untuk=eq.${encodeURIComponent(role)}` +
       `&plh_mulai=lte.${hari}&plh_selesai=gte.${hari}` +
-      `&disabled=is.false&select=username,nama,noWA`
+      // not.is.true, bukan is.false: baris lama yang `disabled`-nya NULL juga
+      // pengguna aktif, dan is.false membuangnya.
+      `&disabled=not.is.true&select=username,nama,noWA`
     ) || [];
   } catch { return []; }   // kolom PLH belum ada → berjalan seperti semula
 }

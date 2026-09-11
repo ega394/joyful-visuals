@@ -236,9 +236,11 @@ export default function PlhManagement({ user, isMobile }) {
         <div style={{ marginTop: 14, padding: "9px 12px", background: "#F1F5F9", borderRadius: 8,
           fontSize: 11, color: "#64748B", lineHeight: 1.6 }}>
           ℹ️ Selama masa PLH, yang bersangkutan memegang kewenangan jabatan yang diampu
-          <b> sekaligus</b> kewenangan jabatannya sendiri. Dua hal tidak diwariskan:
-          penghapusan acara daftar hadir tetap menunggu Kabag, dan rekap kinerja tim tidak
-          terbuka bagi pelaksana yang sedang mengampu.
+          <b> sekaligus</b> kewenangan jabatannya sendiri — menu yang selama ini dipakainya
+          tidak hilang. Tiga hal tidak diwariskan: penghapusan acara daftar hadir tetap
+          menunggu Kabag; rekap kinerja tim tidak terbuka bagi pelaksana yang sedang
+          mengampu; dan PLH tidak dapat memutus jadwal yang ia ajukan sendiri — untuk itu
+          Kabag mengambil alih tahap Kasubbag.
         </div>
       </div>
     </div>
