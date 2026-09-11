@@ -70,20 +70,18 @@ Susunan di bawah diambil dari **Keputusan Sekretaris Daerah Kota Tarakan Nomor
 100.3.3.6/98/HK/VIII/2026** tentang Tim Koordinasi Peningkatan Pelayanan
 Keprotokolan dan Komunikasi Pimpinan Pemerintah Kota Tarakan.
 
-> ⚠️ **Panduan lomba membatasi tim paling banyak 5 orang termasuk ketua.**
-> Tim Koordinasi pada SK beranggotakan 42 orang, sehingga tidak seluruhnya
-> dapat didaftarkan sebagai peserta. Tiga pejabat di bawah mengisi kedudukan
-> inti; **dua kursi tersisa** ⬜ dipilih dari sebelas pelaksana Bagian Prokopim
-> yang tercantum pada bagian 8. Seluruh anggota lainnya tetap disebut sebagai
-> pelaksana, dan SK-nya dilampirkan.
+> **Panduan lomba membatasi tim paling banyak 5 orang termasuk ketua.** Tim
+> Koordinasi pada SK beranggotakan 42 orang, sehingga tidak seluruhnya dapat
+> didaftarkan sebagai peserta. Lima orang di bawah mewakili tim; seluruh anggota
+> lainnya tetap disebut sebagai pelaksana pada bagian 8, dan SK-nya dilampirkan.
 
 | No | Nama | Jabatan | Kedudukan pada SK | Peran dalam Inovasi |
 |---|---|---|---|---|
-| 1 | **Anugrah Yega Pranatha, M.Si** | Kepala Bagian Protokol dan Komunikasi Pimpinan Setda Kota Tarakan | Ketua | Ketua Tim — penggagas dan pengarah |
+| 1 | **Anugrah Yega Pranatha, M.Si** | Kepala Bagian Protokol dan Komunikasi Pimpinan Setda Kota Tarakan | Ketua | **Ketua Tim** — penggagas dan pengarah |
 | 2 | **Saifullah, S.H** | Kepala Sub Bagian Protokol | Sekretaris I | ⬜ |
 | 3 | **Juliyanti, S.AP** | Kepala Sub Bagian Komunikasi dan Dokumentasi Pimpinan | Sekretaris II | ⬜ |
-| 4 | ⬜ *(dipilih dari daftar pada bagian 8)* | | Anggota | ⬜ |
-| 5 | ⬜ *(dipilih dari daftar pada bagian 8)* | | Anggota | ⬜ |
+| 4 | **Nuraini Wiliadewi, S.IP** | Penelaah Teknis Kebijakan pada Bagian Prokopim | Anggota (no. 33) | ⬜ |
+| 5 | **Ni Kade Sari Handayani, S.AP** | Penata Keprotokolan pada Bagian Prokopim | Anggota (no. 35) | ⬜ |
 
 Surat pengantar diterbitkan Bagian Protokol dan Komunikasi Pimpinan Sekretariat
 Daerah Kota Tarakan selaku perangkat daerah ketua tim. ⬜
@@ -623,12 +621,11 @@ disiapkan sejak sekarang.
 
 Berurut menurut kepentingannya:
 
-1. **Dua kursi tim yang tersisa** (bagian 3) — dipilih dari sebelas pelaksana
-   pada bagian 8, karena panduan membatasi tim paling banyak 5 orang
-2. **Peran masing-masing anggota tim dalam inovasi** (bagian 3) — panduan
-   meminta pembagian tugas, bukan sekadar nama dan jabatan
-3. **Keputusan soal celah keamanan** — sebelum Tahap II
-4. **Testimoni pengguna** (bagian 9.6) — 3 sampai 5 keterangan singkat
-5. **Tangkapan layar aplikasi** dan **tautan verifikasi** untuk lampiran
+1. **Peran masing-masing anggota tim dalam inovasi** (bagian 3) — panduan
+   meminta pembagian tugas yang jelas, bukan sekadar nama dan jabatan. Empat
+   baris menunggu isian; peran Ketua sudah tercantum.
+2. **Keputusan soal celah keamanan** — sebelum Tahap II
+3. **Testimoni pengguna** (bagian 9.6) — 3 sampai 5 keterangan singkat
+4. **Tangkapan layar aplikasi** dan **tautan verifikasi** untuk lampiran
 
 **Jadwal yang mengikat:** pendaftaran ditutup **30 September 2026**.
