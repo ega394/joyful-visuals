@@ -66,15 +66,27 @@ data terkelola, dan tanpa belanja perangkat keras.
 
 ## 3. Profil Inovator / Tim
 
-⬜ **Seluruh bagian ini menunggu isian Bapak.** Panitia membatasi tim paling
-banyak 5 orang termasuk ketua, dan menuntut surat pengantar dari perangkat
-daerah ketua tim.
+Susunan di bawah diambil dari **Keputusan Sekretaris Daerah Kota Tarakan Nomor
+100.3.3.6/98/HK/VIII/2026** tentang Tim Koordinasi Peningkatan Pelayanan
+Keprotokolan dan Komunikasi Pimpinan Pemerintah Kota Tarakan.
 
-| No | Nama | NIP | Jabatan | Peran dalam Inovasi | Kontak |
-|---|---|---|---|---|---|
-| 1 | ⬜ | ⬜ | ⬜ | Ketua Tim | ⬜ |
-| 2 | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| 3 | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+> ⚠️ **Panduan lomba membatasi tim paling banyak 5 orang termasuk ketua.**
+> Tim Koordinasi pada SK beranggotakan 42 orang, sehingga tidak seluruhnya
+> dapat didaftarkan sebagai peserta. Tiga pejabat di bawah mengisi kedudukan
+> inti; **dua kursi tersisa** ⬜ dipilih dari sebelas pelaksana Bagian Prokopim
+> yang tercantum pada bagian 8. Seluruh anggota lainnya tetap disebut sebagai
+> pelaksana, dan SK-nya dilampirkan.
+
+| No | Nama | Jabatan | Kedudukan pada SK | Peran dalam Inovasi |
+|---|---|---|---|---|
+| 1 | **Anugrah Yega Pranatha, M.Si** | Kepala Bagian Protokol dan Komunikasi Pimpinan Setda Kota Tarakan | Ketua | Ketua Tim — penggagas dan pengarah |
+| 2 | **Saifullah, S.H** | Kepala Sub Bagian Protokol | Sekretaris I | ⬜ |
+| 3 | **Juliyanti, S.AP** | Kepala Sub Bagian Komunikasi dan Dokumentasi Pimpinan | Sekretaris II | ⬜ |
+| 4 | ⬜ *(dipilih dari daftar pada bagian 8)* | | Anggota | ⬜ |
+| 5 | ⬜ *(dipilih dari daftar pada bagian 8)* | | Anggota | ⬜ |
+
+Surat pengantar diterbitkan Bagian Protokol dan Komunikasi Pimpinan Sekretariat
+Daerah Kota Tarakan selaku perangkat daerah ketua tim. ⬜
 
 **Catatan yang perlu disepakati tim:** aplikasi ini disusun dengan bantuan
 kecerdasan buatan, dan riwayat pengembangannya mencatat hal itu secara terbuka.
@@ -82,8 +94,6 @@ Itu bukan pelanggaran ketentuan keaslian karya maupun hak kekayaan intelektual �
 seluruh pustaka yang dipakai berlisensi terbuka. Bila ditanya pada tahap
 wawancara, sampaikan apa adanya; pemanfaatan alat bantu justru dapat diceritakan
 sebagai bagian dari efisiensi sumber daya.
-
----
 
 ## 4. Latar Belakang dan Analisis Masalah
 
@@ -317,7 +327,27 @@ Daya berbobot 20% dan menilai "kreativitas dalam mengatasi keterbatasan".
 | **Daftar hadir** | Menumpang layanan lembar sebar dan penyimpanan berkas yang sudah dimiliki instansi |
 | **Pemberitahuan** | Notifikasi web push (gratis) + WhatsApp lewat penyedia berbayar sangat murah |
 | **Perangkat pengguna** | Telepon pintar milik sendiri — aplikasi web progresif, tanpa perlu pengadaan |
-| **Sumber daya manusia** | ⬜ *(jumlah orang dan lama pengerjaan)* |
+| **Sumber daya manusia** | Dilaksanakan oleh **Tim Koordinasi beranggotakan 42 orang** berdasarkan Keputusan Sekretaris Daerah Nomor 100.3.3.6/98/HK/VIII/2026, terdiri atas Ketua, dua Sekretaris, para Sekretaris Dinas se-Kota Tarakan, dan sebelas pelaksana Bagian Prokopim. ⬜ *(lama pengerjaan)* |
+
+**Pelaksana Bagian Prokopim pada Tim Koordinasi** (nomor 32–42 pada SK):
+
+| No | Nama | Jabatan |
+|---|---|---|
+| 32 | Darwis, S.T | Penelaah Teknis Kebijakan |
+| 33 | Nuraini Wiliadewi, S.IP | Penelaah Teknis Kebijakan |
+| 34 | Mastura, S.Sos | Penelaah Teknis Kebijakan |
+| 35 | Ni Kade Sari Handayani, S.AP | Penata Keprotokolan |
+| 36 | Pebriadi Banne, S.IP | Pengelola Layanan Operasional |
+| 37 | Muhammad Rizky Dinata Putra, S.Tr.IP | Pengelola Keprotokolan |
+| 38 | Putri Yunis Mudhaika | Pengadministrasi Perkantoran |
+| 39 | Riki Arianto, S.T | Penata Layanan Operasional |
+| 40 | Muhammad Safi'i, S.Kom | Penata Layanan Operasional |
+| 41 | Sri Jamaliah Safari, S.S | Penata Layanan Operasional |
+| 42 | Risca Saputri Samtika, S.Pd | Penata Layanan Operasional |
+
+Seluruhnya menjabat pada Bagian Protokol dan Komunikasi Pimpinan Sekretariat
+Daerah Kota Tarakan. Merekalah pengguna harian aplikasi ini sekaligus sumber
+kebutuhan yang menjadi dasar pengembangannya.
 
 **Kolaborasi.**
 
@@ -479,6 +509,7 @@ keterangan dari perangkat daerah lain yang berminat mereplikasi.*
 |---|---|---|
 | 1 | Pakta integritas | ⬜ |
 | 2 | Surat usulan dari perangkat daerah | ⬜ |
+| 2b | **Keputusan Sekretaris Daerah Nomor 100.3.3.6/98/HK/VIII/2026** tentang Tim Koordinasi Peningkatan Pelayanan Keprotokolan dan Komunikasi Pimpinan — bukti dukungan kelembagaan | ✅ tersedia |
 | 3 | Bukti identitas anggota tim | ⬜ |
 | 4 | **Sebelas SOP format PermenPAN-RB 35/2012** | ✅ tersedia, `docs/sop/SOP-Prokopim.pdf` |
 | 5 | Tangkapan layar aplikasi tiap alur | ⬜ |
@@ -513,7 +544,8 @@ disiapkan sejak sekarang.
 
 Berurut menurut kepentingannya:
 
-1. **Susunan tim** (bagian 3) — paling banyak 5 orang termasuk ketua
+1. **Dua kursi tim yang tersisa** (bagian 3) — dipilih dari sebelas pelaksana
+   pada bagian 8, karena panduan membatasi tim paling banyak 5 orang
 2. **Cerita tahapan**: penjaringan ide dan pemilihan ide — untuk bagian 7 dan
    dua dari lima substansi wajib video
 3. **Keputusan soal modul naskah sambutan** — baru 3 naskah disahkan dari 521
