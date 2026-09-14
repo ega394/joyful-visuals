@@ -278,6 +278,26 @@ async function syncAgendaJadwal(guestId, agendaPatch, opts) {
 // pola modul tamu yang ada, bukan batas keamanan.
 var BOLEH_TAYANG_ULANG = ["kabag", "kasubbag_protokol", "admin_rk"];
 
+// Peramban mengirim `roles` berisi SELURUH peran yang dipegang — peran asli
+// ditambah jabatan yang sedang diampu sebagai PLH. Cukup satu yang berwenang.
+//
+// `role` tunggal tetap diterima sebagai jalan kembali: sesudah deploy, sebagian
+// pengguna masih memegang bundel lama di perambannya yang hanya mengirim itu.
+//
+// Aturan masa berlaku PLH tidak diperiksa di sini. Berkas ini berekstensi .js
+// sehingga tidak boleh mengimpor src/lib/plh.js — lihat kepala
+// api/room-booking.mjs. Itu dapat diterima karena, sebagaimana catatan di atas,
+// gerbang ini adalah pagar antarmuka: endpoint tamu memang belum bergerbang
+// token, jadi `roles` pun sudah berasal dari klien sejak semula.
+function bolehTayangUlang(body) {
+  var daftar = Array.isArray(body.roles) ? body.roles
+             : (body.role ? [body.role] : []);
+  for (var i = 0; i < daftar.length; i++) {
+    if (BOLEH_TAYANG_ULANG.indexOf(String(daftar[i])) >= 0) return true;
+  }
+  return false;
+}
+
 // POST: sync_agenda — tombol "Tambahkan ke Agenda" (buat bila belum ada,
 // perbarui + rapikan duplikat bila sudah ada)
 async function actionSyncAgenda(body) {
@@ -295,7 +315,7 @@ async function actionSyncAgenda(body) {
 
   // Penayangan ulang membatalkan tindakan koreksi Kabag, jadi dibatasi pada
   // peran yang memang berwenang atas alur tayang.
-  var bolehTayang = BOLEH_TAYANG_ULANG.indexOf(String(body.role || "")) >= 0;
+  var bolehTayang = bolehTayangUlang(body);
 
   var agenda = await syncAgendaJadwal(body.id, patch, {
     createIfMissing: true,

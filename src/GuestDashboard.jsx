@@ -10,6 +10,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { TAMU_STATUS, PRIORITY_COLORS } from "./lib/statusColors.js";
+import { punyaPeran, peranDipegang } from "./lib/plh.js";
 
 // ── Design Tokens ─────────────────────────────────────────────
 var NAVY     = "#0A1628";
@@ -1042,7 +1043,14 @@ function SyncAgendaBox({ guest, events, user, showT, reloadEvents }) {
   // ketahuan sesudahnya.
   var linkedEv  = findGuestAgenda(guest, events);
   var ditarikUI = !!(linkedEv && linkedEv.alur && linkedEv.alur !== "disetujui");
-  var bolehTayang = BOLEH_TAYANG_ULANG.indexOf(user?.role) >= 0;
+  // Peran yang DIPEGANG, bukan peran asli saja: seorang PLH memegang kewenangan
+  // jabatan yang diampunya. Memakai user.role membuat izinnya bergantung pada
+  // jabatan asli pengampu secara kebetulan — staf yang mengampu Kasubbag
+  // tertolak, sedangkan Admin RK yang mengampu jabatan yang sama justru lolos.
+  //
+  // Gabungan, bukan penggantian: Kasubbag Protokol yang sedang mengampu
+  // Kasubbag Komdokpim tidak boleh kehilangan kewenangan jabatannya sendiri.
+  var bolehTayang = BOLEH_TAYANG_ULANG.some(function (r) { return punyaPeran(user, r); });
 
   async function kirim(tayangkan) {
     var res = await apiPost("sync_agenda", {
@@ -1050,7 +1058,11 @@ function SyncAgendaBox({ guest, events, user, showT, reloadEvents }) {
       scheduled_date: guest.jadwal_tanggal || guest.scheduled_date || "",
       scheduled_time: guest.jadwal_jam || guest.scheduled_time || "",
       tempat: (linkedEv && linkedEv.lokasi) || TEMPAT_DEFAULT,
+      // `role` tetap dikirim supaya bundel lama yang masih tersimpan di
+      // peramban pengguna berperilaku seperti sebelumnya; `roles` yang dipakai
+      // peladen bila ada.
       role: user?.role || "",
+      roles: peranDipegang(user),
       tayangkan: !!tayangkan,
     });
     return (res && res.agenda) || {};
