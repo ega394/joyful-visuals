@@ -189,6 +189,25 @@ describe("kewenangan PLH bersifat gabungan", () => {
     const stafAmpu = ampu(staf, "kasubbag_protokol", "2026-09-10", "2026-09-20");
     expect(peranDipegang(stafAmpu, HARI)).toEqual(["staf", "kasubbag_protokol"]);
   });
+
+  it("Kasubbag Protokol yang mengampu Komdokpim tidak kehilangan kewenangan sendiri", () => {
+    // Penting bagi gerbang tayang ulang agenda tamu: daftar yang berwenang
+    // memuat kasubbag_protokol tetapi tidak kasubbag_komdokpim. Kalau
+    // gerbangnya memakai peran efektif (mengganti), kewenangan yang sudah
+    // dimilikinya justru hilang selama ia mengampu.
+    const ksbAmpuKomdok = ampu(ksbP, "kasubbag_komdokpim", "2026-09-10", "2026-09-20");
+    const BOLEH = ["kabag", "kasubbag_protokol", "admin_rk"];
+    expect(BOLEH.some(r => punyaPeran(ksbAmpuKomdok, r, HARI))).toBe(true);
+    expect(peranEfektif(ksbAmpuKomdok, HARI)).toBe("kasubbag_komdokpim");
+  });
+
+  it("staf yang mengampu Kasubbag Protokol memperoleh kewenangan tayang ulang", () => {
+    const stafAmpu = ampu(staf, "kasubbag_protokol", "2026-09-10", "2026-09-20");
+    const BOLEH = ["kabag", "kasubbag_protokol", "admin_rk"];
+    expect(BOLEH.some(r => punyaPeran(stafAmpu, r, HARI))).toBe(true);
+    // Dan padam sendiri sesudah masa PLH lewat.
+    expect(BOLEH.some(r => punyaPeran(stafAmpu, r, "2026-09-21"))).toBe(false);
+  });
 });
 
 describe("hariIniWita", () => {
