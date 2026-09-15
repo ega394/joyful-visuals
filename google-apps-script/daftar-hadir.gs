@@ -88,13 +88,61 @@ function setup() {
     var h = ss.insertSheet(TAB_HADIR);
     h.appendRow([
       "waktu_isi", "kode_acara", "judul_acara", "nama", "jabatan",
-      "instansi", "no_hp", "foto", "tambahan",
+      "instansi", "no_hp", "foto", "tambahan", "ttd",
     ]);
     h.setFrozenRows(1);
   }
 
+  pastikanKolomTtd();
   folderFoto();
   return "Setup selesai.";
+}
+
+/**
+ * Menambahkan kolom "ttd" pada tab Hadir yang SUDAH TERLANJUR ADA.
+ *
+ * setup() hanya menulis baris judul ketika tab-nya belum ada, sehingga
+ * pemasangan yang sudah berjalan tidak akan pernah mendapat kolom baru dan
+ * datanya tertulis di kolom tanpa judul — laporan lalu bergeser tanpa ada
+ * yang menyadarinya. Fungsi ini dipanggil setup() dan juga dijalankan sendiri
+ * sekali pada penyimpanan pertama, supaya tidak ada langkah manual yang harus
+ * diingat.
+ *
+ * Aman dijalankan berulang: kalau kolomnya sudah ada, tidak melakukan apa pun.
+ */
+var KOLOM_TTD = 10;   // kolom J
+// Batas keras satu sel Google Sheets. Tanda tangan disimpan langsung di sel,
+// bukan di Drive, sehingga inilah pagarnya. Peramban sudah menjaga di bawah
+// 35.000; pemeriksaan di sini menahan permintaan yang datang dari luar aplikasi.
+var BATAS_SEL = 50000;
+
+// Batas jumlah peserta yang tanda tangannya ikut dikirim ke laporan.
+//
+// Jauh lebih longgar daripada batas 80 untuk foto, sebab tanda tangan tidak
+// memerlukan perjalanan ke Drive satu per satu — sekali baca rentang saja.
+// Yang membatasi di sini adalah besar balasan yang harus diunduh peramban:
+// 250 peserta × ±20 KB ≈ 5 MB. Di atas itu laporan tetap terbit, hanya tanpa
+// gambar tanda tangan, DAN aplikasi memberi tahu dengan jelas — bukan
+// mencetak kolom kosong tanpa penjelasan.
+var BATAS_TTD = 250;
+
+// Dijalankan sekali saja seumur pemasangan, ditandai lewat properti skrip,
+// supaya tiap penyimpanan tidak perlu menyentuh struktur sheet.
+function pastikanKolomTtdSekali() {
+  var p = PropertiesService.getScriptProperties();
+  if (p.getProperty("kolom_ttd_siap") === "1") return;
+  pastikanKolomTtd();
+  p.setProperty("kolom_ttd_siap", "1");
+}
+
+function pastikanKolomTtd() {
+  var s = sheet(TAB_HADIR);
+  if (!s) return;
+  if (s.getMaxColumns() < KOLOM_TTD) {
+    s.insertColumnsAfter(s.getMaxColumns(), KOLOM_TTD - s.getMaxColumns());
+  }
+  var judul = s.getRange(1, KOLOM_TTD).getValue();
+  if (String(judul || "").trim() === "") s.getRange(1, KOLOM_TTD).setValue("ttd");
 }
 
 function folderFoto() {
@@ -313,10 +361,16 @@ function doGet(e) {
       if (!ac) return balas({ ok: false, error: "Acara tidak ditemukan." });
 
       var sh = sheet(TAB_HADIR);
-      var rows = sh ? sh.getDataRange().getValues() : [];
-      var peserta = [];
-      for (var r = 1; r < rows.length; r++) {
+      var akhirBaris = sh ? sh.getLastRow() : 0;
+      // Kolom A..I saja. Kolom ttd (J) sengaja TIDAK ikut dibaca di sini:
+      // isinya base64 belasan KB per baris, dan membacanya untuk SELURUH tabel
+      // membuat laporan melambat drastis begitu tabelnya tumbuh — padahal yang
+      // dibutuhkan hanya baris milik acara ini.
+      var rows = akhirBaris > 1 ? sh.getRange(2, 1, akhirBaris - 1, 9).getValues() : [];
+      var peserta = [], barisTtd = [];
+      for (var r = 0; r < rows.length; r++) {
         if (String(rows[r][1]).toUpperCase() !== String(ac.kode).toUpperCase()) continue;
+        barisTtd.push(r + 2);   // nomor baris sesungguhnya di sheet
         peserta.push({
           waktu:    rows[r][0] ? Utilities.formatDate(new Date(rows[r][0]), ZONA, "dd/MM/yyyy HH:mm") : "",
           nama:     rows[r][3],
@@ -326,6 +380,23 @@ function doGet(e) {
           fotoUrl:  rows[r][7],
           tambahan: rows[r][8] ? JSON.parse(rows[r][8]) : {},
         });
+      }
+
+      // Tanda tangan diambil dalam SATU pembacaan rentang, sebatas baris acara
+      // ini. Tidak ada perjalanan ke Drive sama sekali, jadi batasnya jauh lebih
+      // longgar daripada foto — yang membatasi bukan kecepatan, melainkan besar
+      // balasan yang harus diunduh peramban.
+      var ttdDipotong = false;
+      if (ac.fieldAktif.indexOf("ttd") >= 0 && barisTtd.length) {
+        if (barisTtd.length > BATAS_TTD) {
+          ttdDipotong = true;   // dilaporkan ke aplikasi, bukan didiamkan
+        } else {
+          var awal = barisTtd[0], ujung = barisTtd[barisTtd.length - 1];
+          var kolomTtd = sh.getRange(awal, KOLOM_TTD, ujung - awal + 1, 1).getValues();
+          for (var t = 0; t < barisTtd.length; t++) {
+            peserta[t].ttd = String(kolomTtd[barisTtd[t] - awal][0] || "");
+          }
+        }
       }
 
       // Foto hanya bila diminta. Berkas di Drive bersifat privat, jadi URL-nya
@@ -351,6 +422,8 @@ function doGet(e) {
                  tanggal: ac.tanggal, lokasi: ac.lokasi,
                  fieldAktif: ac.fieldAktif, fieldTambahan: ac.fieldTambahan },
         peserta: peserta,
+        ttdDipotong: ttdDipotong,
+        batasTtd: BATAS_TTD,
       });
     }
 
@@ -526,6 +599,21 @@ function simpanKehadiran(b) {
   // cepat melewati batas tunggu dan sebagian orang gagal mengisi. Berkas
   // dibiarkan privat (bawaan Drive): jangan diubah jadi "anyone with link",
   // isinya wajah orang.
+  // Tanda tangan disimpan sebagai base64 langsung di sel, bukan di Drive:
+  // berkasnya kecil (belasan KB), sehingga laporan dapat mencetaknya tanpa
+  // sekali pun menyentuh Drive — dan batas 80 peserta yang berlaku bagi foto
+  // tidak mengikat di sini.
+  var ttd = String(b.ttd || "");
+  if (ttd) {
+    if (!/^data:image\/png;base64,/i.test(ttd)) {
+      return balas({ ok: false, error: "Format tanda tangan tidak dikenali." });
+    }
+    if (ttd.length > BATAS_SEL) {
+      return balas({ ok: false, error: "Tanda tangan terlalu besar. Mohon hapus lalu bubuhkan lebih ringkas." });
+    }
+    pastikanKolomTtdSekali();
+  }
+
   var berkasFoto = null, urlFoto = "";
   if (b.foto) {
     var cocok = String(b.foto).match(/^data:(image\/[a-z+.-]+);base64,(.+)$/i);
@@ -576,6 +664,7 @@ function simpanKehadiran(b) {
       hp ? "'" + hp : "",     // apostrof: cegah Sheets memotong angka nol depan
       urlFoto,
       b.tambahan ? JSON.stringify(b.tambahan) : "",
+      ttd,
     ]);
 
     return balas({ ok: true });

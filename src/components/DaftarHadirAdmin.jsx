@@ -42,6 +42,10 @@ const FIELD_BAKU = [
   { k: "instansi", l: "Instansi" },
   { k: "noHP",     l: "Nomor Ponsel" },
   { k: "selfie",   l: "Foto Selfie" },
+  // Tanda tangan digoreskan di layar — padanan daftar hadir kertas. Berdampingan
+  // dengan selfie, bukan menggantikannya: acara resmi menuntut tanda tangan,
+  // sedangkan kegiatan lapangan lebih cocok dengan foto.
+  { k: "ttd",      l: "Tanda Tangan" },
 ];
 
 export default function DaftarHadirAdmin({ user, isMobile, showT }) {
