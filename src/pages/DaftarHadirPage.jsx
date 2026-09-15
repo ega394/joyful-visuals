@@ -78,6 +78,7 @@ export default function DaftarHadirPage() {
   const [err, setErr]       = useState("");
   const [kirim, setKirim]   = useState(false);
   const [sukses, setSukses] = useState(false);
+  const [sudahPernah, setSudahPernah] = useState(false);   // terjaring pencegahan ganda
 
   const [f, setF] = useState({ nama: "", jabatan: "", instansi: "", noHP: "" });
   const [tambahan, setTambahan] = useState({});
@@ -131,8 +132,13 @@ export default function DaftarHadirPage() {
         ttd:  aktif("ttd")    ? ttd  : "",
         tambahan,
       });
-      if (!d.ok) throw new Error(d.error || "Gagal menyimpan");
-      setSukses(true);
+      // Sudah pernah mengisi bukan kegagalan dari sudut pandang tamu —
+      // kehadirannya memang sudah tercatat. Ditampilkan sebagai layar
+      // terima kasih, bukan kotak merah yang membuatnya mengira gagal lalu
+      // mencoba lagi berulang kali di depan pintu.
+      if (d.sudahTercatat) { setSudahPernah(true); setSukses(true); }
+      else if (!d.ok) throw new Error(d.error || "Gagal menyimpan");
+      else setSukses(true);
     } catch (e) {
       setErr(e.message || "Gagal mengirim. Periksa koneksi lalu coba lagi.");
     }
@@ -197,8 +203,18 @@ export default function DaftarHadirPage() {
         <div style={{ fontSize: 44, marginBottom: 12 }}>✅</div>
         <div style={{ fontSize: 18, fontWeight: 900, color: GREEN, marginBottom: 6 }}>Terima kasih!</div>
         <div style={{ fontSize: 14, color: "#475569", lineHeight: 1.6 }}>
-          Kehadiran Anda pada <b>{acara.judul}</b> sudah tercatat.
+          Kehadiran Anda pada <b>{acara.judul}</b> telah tercatat.
         </div>
+        {/* Dikatakan apa adanya: tidak ada baris baru yang ditambahkan. Tanpa
+            keterangan ini, tamu yang tadi salah mengetik namanya akan mengira
+            perbaikannya tersimpan. */}
+        {sudahPernah && (
+          <div style={{ fontSize: 12.5, color: "#64748B", lineHeight: 1.6, marginTop: 10,
+            background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 10, padding: "9px 12px" }}>
+            Anda sudah mengisi sebelumnya, jadi tidak perlu mengisi ulang. Bila ada data
+            yang keliru, sampaikan kepada panitia untuk diperbaiki.
+          </div>
+        )}
       </div>
     </div>
   );
