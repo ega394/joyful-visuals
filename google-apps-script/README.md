@@ -101,6 +101,15 @@ Nomor Ponsel diaktifkan pada acara tersebut. Nomor disamakan bentuknya lebih
 dulu (`0812…`, `+62812…`, `62812…` dianggap sama), jika tidak pencegahannya
 mudah ditembus hanya dengan mengubah format penulisan.
 
+Tamu yang terjaring tidak melihat pesan galat, melainkan layar terima kasih
+dengan keterangan **“Kehadiran Anda telah tercatat pada acara ini.”** — sebab
+dari sudut pandangnya memang tidak ada yang gagal. Ditambah satu baris bahwa
+ia sudah mengisi sebelumnya, supaya tamu yang tadi salah mengetik namanya tidak
+mengira perbaikannya tersimpan. Barisnya tetap tidak ditulis ulang.
+
+> Acara yang **tidak** mengaktifkan Nomor Ponsel tidak punya pencegahan ganda
+> sama sekali — termasuk acara yang hanya memakai Tanda Tangan.
+
 ---
 
 ## Batas yang perlu diketahui

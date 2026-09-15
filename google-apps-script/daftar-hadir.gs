@@ -651,7 +651,15 @@ function simpanKehadiran(b) {
           if (String(kol[i][0]).toUpperCase() === String(a.kode).toUpperCase() &&
               normalHP(kol[i][5]) === hp) {
             if (berkasFoto) { try { berkasFoto.setTrashed(true); } catch (e) {} }
-            return balas({ ok: false, error: "Nomor ponsel ini sudah terdaftar pada acara ini." });
+            // Bagi tamu ini bukan kegagalan: kehadirannya memang sudah tercatat
+            // dari pengisian sebelumnya. Penanda `sudahTercatat` dipakai
+            // formulir untuk menampilkannya sebagai kabar baik, bukan galat
+            // merah — barisnya tetap TIDAK ditulis ulang, karena itu ok:false.
+            return balas({
+              ok: false,
+              sudahTercatat: true,
+              error: "Kehadiran Anda telah tercatat pada acara ini.",
+            });
           }
         }
       }
