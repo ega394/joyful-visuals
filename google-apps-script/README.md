@@ -46,6 +46,20 @@ Semua langkah ini **harus dikerjakan sendiri** — perlu akses ke akun Google.
 > **Deploy → Manage deployments → (pensil) → Version: New version → Deploy**.
 > Kalau hanya menekan *Save*, perubahannya **tidak** aktif di URL yang sama.
 
+### Memperbarui pemasangan yang sudah berjalan
+
+Isian **Tanda Tangan** menambah satu kolom (`ttd`) pada tab `Hadir`. Tab yang
+sudah ada tidak mendapat kolom baru dengan sendirinya, karena baris judul hanya
+ditulis saat tab-nya pertama kali dibuat. Setelah menempelkan skrip versi baru:
+
+1. Jalankan fungsi **`setup`** sekali lagi — aman diulang, dan kolom `ttd`
+   ditambahkan bila belum ada.
+2. Baru **Deploy → New version**.
+
+Kalau langkah 1 terlewat, skrip tetap menambahkannya sendiri pada penyimpanan
+pertama yang memuat tanda tangan; menjalankan `setup` hanya membuatnya pasti
+lebih dulu.
+
 ---
 
 ## Cara pakai
@@ -54,8 +68,14 @@ Semua langkah ini **harus dikerjakan sendiri** — perlu akses ke akun Google.
 Tersedia untuk Kabag, kedua Kasubbag, staf Protokol, dan Admin RK.
 
 Isi judul acara, lalu pilih isian yang ditampilkan (Jabatan, Instansi, Nomor
-Ponsel, Foto Selfie) — bisa ditambah hingga 3 isian bebas. Tekan **Buat &
-Dapatkan Tautan**, lalu bagikan tautannya ke tamu.
+Ponsel, Foto Selfie, Tanda Tangan) — bisa ditambah hingga 3 isian bebas. Tekan
+**Buat & Dapatkan Tautan**, lalu bagikan tautannya ke tamu.
+
+**Foto Selfie dan Tanda Tangan berdampingan, bukan saling menggantikan.**
+Keduanya boleh dicentang sekaligus, atau salah satu saja. Tanda tangan digores
+langsung di layar dengan jari — tidak butuh kamera, bekerja di dalam gedung, dan
+merupakan padanan langsung daftar hadir kertas. Kekuatan buktinya setara tanda
+tangan di kertas: ia tidak membuktikan identitas.
 
 **Melihat rekap** — tombol **📊 Buka Rekap di Spreadsheet**. Dari sana bisa
 disortir, difilter, dan diekspor ke Excel.
@@ -92,3 +112,12 @@ mudah ditembus hanya dengan mengubah format penulisan.
 - Pemeriksaan ganda membaca seluruh tab `Hadir`. Bila daftar sudah mencapai
   puluhan ribu baris, pengisian akan terasa melambat — arsipkan ke Spreadsheet
   lain bila sudah sebesar itu.
+- **Tanda tangan tidak disimpan di Drive**, melainkan langsung di sel kolom
+  `ttd` sebagai gambar base64. Berkasnya kecil — terukur 11.600–23.600 karakter
+  — sedangkan batas satu sel Sheets 50.000, jadi lapang. Peramban memangkasnya
+  sampai batas goresan dan menyusutkannya hanya bila melewati 35.000.
+- Pada cetakan laporan, tanda tangan disertakan sampai **250 peserta**. Di atas
+  itu laporan tetap terbit lengkap, hanya tanpa kolom tanda tangan, dan
+  aplikasi memberi tahu dengan jelas. Batasnya jauh lebih longgar daripada foto
+  (80) karena tanda tangan tidak perlu diambil satu per satu dari Drive; yang
+  membatasi hanyalah besar berkas yang harus diunduh peramban.

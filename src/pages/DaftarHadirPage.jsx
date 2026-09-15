@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import TandaTanganPad from "../components/TandaTanganPad.jsx";
 
 /**
  * /daftarhadir?e=KODE — halaman publik pengisian daftar hadir.
@@ -81,6 +82,7 @@ export default function DaftarHadirPage() {
   const [f, setF] = useState({ nama: "", jabatan: "", instansi: "", noHP: "" });
   const [tambahan, setTambahan] = useState({});
   const [foto, setFoto] = useState("");      // data URI hasil kompresi
+  const [ttd, setTtd]   = useState("");      // data URI tanda tangan, disimpan di sel Sheets
   const [fotoErr, setFotoErr] = useState("");
   const kameraRef = useRef(null);
   const galeriRef = useRef(null);
@@ -113,6 +115,7 @@ export default function DaftarHadirPage() {
     if (!f.nama.trim()) { setErr("Nama wajib diisi."); return; }
     if (aktif("noHP") && !f.noHP.trim()) { setErr("Nomor ponsel wajib diisi."); return; }
     if (aktif("selfie") && !foto) { setErr("Foto selfie wajib diambil."); return; }
+    if (aktif("ttd") && !ttd) { setErr("Tanda tangan wajib dibubuhkan."); return; }
     for (const t of acara?.fieldTambahan || []) {
       if (t.wajib && !String(tambahan[t.label] || "").trim()) {
         setErr(`"${t.label}" wajib diisi.`); return;
@@ -125,6 +128,7 @@ export default function DaftarHadirPage() {
         nama: f.nama.trim(), jabatan: f.jabatan.trim(),
         instansi: f.instansi.trim(), noHP: f.noHP.trim(),
         foto: aktif("selfie") ? foto : "",
+        ttd:  aktif("ttd")    ? ttd  : "",
         tambahan,
       });
       if (!d.ok) throw new Error(d.error || "Gagal menyimpan");
@@ -315,6 +319,13 @@ export default function DaftarHadirPage() {
                   onChange={e => { pilihFoto(e.target.files?.[0]); e.target.value = ""; }}
                   style={{ display: "none" }}/>
                 {fotoErr && <div style={{ fontSize: 12, color: RED, marginTop: 6 }}>{fotoErr}</div>}
+              </div>
+            )}
+
+            {aktif("ttd") && (
+              <div style={{ marginBottom: 15 }}>
+                <label style={lbl}>Tanda Tangan <span style={{ color: RED }}>*</span></label>
+                <TandaTanganPad nilai={ttd} onChange={setTtd}/>
               </div>
             )}
 

@@ -61,6 +61,9 @@ export default function LaporanHadir({ acara, user, onClose, showT }) {
     if (aktif("noHP"))     kolom.push("Nomor Ponsel");
     tambahan.forEach(t => kolom.push(t.label));
     if (aktif("selfie"))   kolom.push("Tautan Foto");
+    // Sel lembar kerja tidak dapat memuat gambar, jadi yang dicatat hanya
+    // keterangannya. Tanda tangannya sendiri ada pada cetakan PDF.
+    if (aktif("ttd"))      kolom.push("Tanda Tangan");
 
     // Bungkus setiap sel dengan tanda kutip & gandakan kutip di dalamnya —
     // nama instansi kerap memuat koma dan akan memecah kolom bila dibiarkan.
@@ -72,6 +75,7 @@ export default function LaporanHadir({ acara, user, onClose, showT }) {
       if (aktif("noHP"))     b.push(p.noHP);
       tambahan.forEach(t => b.push(p.tambahan?.[t.label] || ""));
       if (aktif("selfie"))   b.push(p.fotoUrl);
+      if (aktif("ttd"))      b.push(p.ttd ? "Ada" : "");
       return b.map(sel).join(",");
     });
 
@@ -99,6 +103,8 @@ export default function LaporanHadir({ acara, user, onClose, showT }) {
     if (aktif("noHP"))     kolom.push("No. Ponsel");
     tambahan.forEach(t => kolom.push(t.label));
     kolom.push("Waktu Isi");
+    // Kolom terakhir, seperti daftar hadir kertas.
+    if (aktif("ttd"))      kolom.push("Tanda Tangan");
 
     const baris = peserta.map((p, i) => {
       const sel = [`<td class="c">${i + 1}</td>`];
@@ -113,6 +119,11 @@ export default function LaporanHadir({ acara, user, onClose, showT }) {
       if (aktif("noHP"))     sel.push(`<td class="c">${esc(p.noHP)}</td>`);
       tambahan.forEach(t => sel.push(`<td>${esc(p.tambahan?.[t.label] || "")}</td>`));
       sel.push(`<td class="c">${esc(p.waktu)}</td>`);
+      if (aktif("ttd")) {
+        sel.push(`<td class="c">${p.ttd
+          ? `<img class="t" src="${p.ttd}" alt=""/>`
+          : `<span class="kosong">—</span>`}</td>`);
+      }
       return `<tr>${sel.join("")}</tr>`;
     }).join("");
 
@@ -150,6 +161,9 @@ tbody td { padding:5px 7px; border:1px solid #CBD5E1; font-size:9pt; vertical-al
 tbody tr:nth-child(even) td { background:#F8FAFC; }
 .c { text-align:center; }
 .f { width:26mm; height:26mm; object-fit:cover; border-radius:3px; display:block; margin:0 auto; }
+/* Tanda tangan sudah dipangkas sampai batas goresan, jadi tingginya dikunci
+   dan lebarnya dibiarkan mengikuti — supaya tidak gepeng atau melar. */
+.t { height:11mm; width:auto; max-width:34mm; display:block; margin:0 auto; }
 .kosong { color:#CBD5E1; }
 .empty { text-align:center; padding:26px; color:#94A3B8; font-style:italic; }
 .ttd { margin-top:26px; display:flex; justify-content:flex-end; page-break-inside:avoid; }
@@ -268,6 +282,18 @@ ${peserta.length
                     )}
                   </span>
                 </label>
+              )}
+
+              {/* Kolom tanda tangan yang kosong tanpa penjelasan adalah cacat
+                  diam. Kalau melewati batas, katakan dan tawarkan jalan lain. */}
+              {data?.ttdDipotong && (
+                <div style={{ background: "#FFFBEB", border: "1.5px solid #FCD34D",
+                  borderRadius: 10, padding: "10px 12px", marginBottom: 14,
+                  fontSize: 12.5, color: "#78350F", lineHeight: 1.6 }}>
+                  ⚠ Peserta lebih dari {data.batasTtd} orang, sehingga <b>tanda tangan tidak
+                  disertakan</b> pada cetakan. Daftar hadir tetap terbit lengkap tanpa
+                  kolom tanda tangan; untuk arsip bertanda tangan, buka berkas Sheets acara ini.
+                </div>
               )}
 
               {peserta.length === 0 ? (
