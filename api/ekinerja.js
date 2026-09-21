@@ -160,7 +160,7 @@ export default async function handler(req, res) {
         if (!ev.tanggal) return false;
         if (ev.tanggal < startDate || ev.tanggal > endDate) return false;
         // Untuk staf/timkom: hanya jadwal yang mereka ditugaskan
-        if (["staf", "timkom"].includes(role) && username) {
+        if (["staf", "pramu_tamu", "timkom"].includes(role) && username) {
           return (ev.personil || []).includes(username);
         }
         return true;
