@@ -46,6 +46,12 @@ const FIELD_BAKU = [
   // dengan selfie, bukan menggantikannya: acara resmi menuntut tanda tangan,
   // sedangkan kegiatan lapangan lebih cocok dengan foto.
   { k: "ttd",      l: "Tanda Tangan" },
+  // Sengaja TIDAK tercentang secara bawaan. Di dalam gedung pemerintah, GPS
+  // jatuh ke triangulasi Wi-Fi/seluler dengan galat ratusan meter yang jarang
+  // menjawab pertanyaan "apakah beliau ada di ruangan itu" — sementara
+  // koordinat tetap data pribadi yang tidak pantas dikumpulkan tanpa guna.
+  // Bermanfaat untuk kegiatan lapangan, jadi disediakan sebagai pilihan.
+  { k: "lokasi",   l: "Titik Lokasi" },
 ];
 
 // Isian yang tercentang saat membuat acara baru. Tanda tangan ikut tercentang

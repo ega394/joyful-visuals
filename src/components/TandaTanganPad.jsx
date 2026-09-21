@@ -22,7 +22,7 @@ const ANGGARAN = 35000;
 const TINGGI_MIN = 90;
 
 const TINTA = "#0A1628";
-const NAVY = "#0A1628", RED = "#991B1B", GREEN = "#0D6B4F";
+const NAVY = "#0A1628", RED = "#991B1B", GREEN = "#0D6B4F", AMBER = "#B45309";
 
 /**
  * Memangkas kanvas sampai batas goresan.
@@ -88,12 +88,41 @@ export function eksporTandaTangan(kanvas) {
   return data.length > BATAS_SEL ? null : data;
 }
 
+/**
+ * Ambang agar goresan dianggap tanda tangan, bukan sekadar ketukan.
+ *
+ * Diukur dalam piksel CSS, bukan jumlah karakter berkas. Jumlah karakter
+ * bergantung kerapatan layar — ponsel ber-DPR 3 menghasilkan berkas jauh lebih
+ * besar untuk gerakan yang sama persis — sehingga satu ambang karakter akan
+ * ketat di satu perangkat dan longgar di perangkat lain. Piksel CSS sama di
+ * mana pun, dan pemisahannya terukur tegas:
+ *
+ *   satu ketukan          panjang   0 px, diagonal   0 px
+ *   tiga ketukan          panjang   0 px, diagonal  40 px
+ *   coretan cilik         panjang  25 px, diagonal  18 px
+ *   coretan 40 px         panjang  60 px, diagonal  44 px
+ *   paraf pendek          panjang 144 px, diagonal 116 px   ← sah
+ *   tanda tangan wajar    panjang 478 px, diagonal 243 px   ← sah
+ *
+ * Ambangnya sengaja tidak ketat: menolak tamu yang sungguh hadir di depan
+ * pintu lebih merugikan daripada satu paraf malas yang lolos.
+ *
+ * Diagonal kotak pembatas dipakai, bukan lebar dan tinggi terpisah, supaya
+ * tanda tangan yang tinggi dan ramping — monogram 30×60 — tidak ikut tertolak.
+ */
+export const PANJANG_MIN  = 100;   // jumlah panjang lintasan seluruh goresan
+export const DIAGONAL_MIN = 60;    // diagonal kotak pembatas
+
 export default function TandaTanganPad({ nilai, onChange, tinggi = 170 }) {
   const kanvasRef = useRef(null);
   const ctxRef = useRef(null);
   const menggoresRef = useRef(false);
   const sebelumRef = useRef(null);
+  // Diukur dalam piksel CSS sepanjang gerakan, bukan dibaca ulang dari gambar.
+  const ukurRef = useRef({ panjang: 0, x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity });
   const [adaGoresan, setAdaGoresan] = useState(!!nilai);
+  const [ukur, setUkur] = useState({ panjang: 0, diagonal: 0 });
+  const cukup = ukur.panjang >= PANJANG_MIN && ukur.diagonal >= DIAGONAL_MIN;
 
   const siapkan = useCallback((pertahankan) => {
     const k = kanvasRef.current;
@@ -136,12 +165,33 @@ export default function TandaTanganPad({ nilai, onChange, tinggi = 170 }) {
     return { x: ev.clientX - kotak.left, y: ev.clientY - kotak.top };
   };
 
+  // Kotak pembatas tumbuh mengikuti setiap titik; panjang lintasan hanya
+  // bertambah dari perpindahan, sehingga ketukan di tempat tetap bernilai nol.
+  const catat = (t, jarak) => {
+    const u = ukurRef.current;
+    u.panjang += jarak;
+    if (t.x < u.x0) u.x0 = t.x;
+    if (t.x > u.x1) u.x1 = t.x;
+    if (t.y < u.y0) u.y0 = t.y;
+    if (t.y > u.y1) u.y1 = t.y;
+  };
+
+  const segarkanUkur = () => {
+    const u = ukurRef.current;
+    const lebar = u.x1 - u.x0, tggi = u.y1 - u.y0;
+    setUkur({
+      panjang: Math.round(u.panjang),
+      diagonal: Number.isFinite(lebar) ? Math.round(Math.hypot(lebar, tggi)) : 0,
+    });
+  };
+
   const mulai = (ev) => {
     if (ev.button !== undefined && ev.button !== 0) return;
     ev.preventDefault();
     kanvasRef.current.setPointerCapture(ev.pointerId);
     menggoresRef.current = true;
     const t = posisi(ev);
+    catat(t, 0);
     sebelumRef.current = t;
     const g = ctxRef.current;
     g.beginPath();
@@ -162,6 +212,7 @@ export default function TandaTanganPad({ nilai, onChange, tinggi = 170 }) {
     for (const e of daftar) {
       const t = posisi(e);
       const s = sebelumRef.current;
+      catat(t, Math.hypot(t.x - s.x, t.y - s.y));
       const tengah = { x: (s.x + t.x) / 2, y: (s.y + t.y) / 2 };
       g.beginPath();
       g.moveTo(s.x, s.y);
@@ -169,6 +220,7 @@ export default function TandaTanganPad({ nilai, onChange, tinggi = 170 }) {
       g.stroke();
       sebelumRef.current = t;
     }
+    segarkanUkur();   // supaya keterangannya hidup selama jari bergerak
   };
 
   const selesai = (ev) => {
@@ -176,6 +228,12 @@ export default function TandaTanganPad({ nilai, onChange, tinggi = 170 }) {
     menggoresRef.current = false;
     sebelumRef.current = null;
     try { kanvasRef.current.releasePointerCapture(ev.pointerId); } catch { /* sudah lepas */ }
+    segarkanUkur();
+    const u = ukurRef.current;
+    const diagonal = Math.hypot(u.x1 - u.x0, u.y1 - u.y0);
+    // Belum cukup → kirim kosong, sehingga tombol Kirim di formulir tetap mati.
+    // Titiknya tetap tergambar supaya kanvas tidak terasa tidak menanggapi.
+    if (u.panjang < PANJANG_MIN || !(diagonal >= DIAGONAL_MIN)) { onChange(""); return; }
     onChange(eksporTandaTangan(kanvasRef.current) || "");
   };
 
@@ -186,14 +244,20 @@ export default function TandaTanganPad({ nilai, onChange, tinggi = 170 }) {
     g.clearRect(0, 0, k.width, k.height);
     g.restore();
     setAdaGoresan(false);
+    ukurRef.current = { panjang: 0, x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity };
+    setUkur({ panjang: 0, diagonal: 0 });
     onChange("");
   };
 
   return (
     <div>
+      {/* Tepi kanvas ikut menandakan keadaan: putus-putus saat kosong, kuning
+          saat goresannya belum cukup, hijau saat sudah — supaya tamu tahu
+          sebelum menekan Kirim, bukan sesudah ditolak. */}
       <div style={{ position: "relative", borderRadius: 12, overflow: "hidden",
         background: "white",
-        border: `1.5px ${adaGoresan ? "solid" : "dashed"} ${adaGoresan ? GREEN : "#CBD5E1"}` }}>
+        border: `1.5px ${adaGoresan ? "solid" : "dashed"} ${
+          !adaGoresan ? "#CBD5E1" : cukup ? GREEN : AMBER}` }}>
         <canvas
           ref={kanvasRef}
           onPointerDown={mulai}
@@ -226,11 +290,16 @@ export default function TandaTanganPad({ nilai, onChange, tinggi = 170 }) {
             cursor: adaGoresan ? "pointer" : "not-allowed", opacity: adaGoresan ? 1 : 0.45 }}>
           Hapus
         </button>
-        <span style={{ fontSize: 11.5, color: adaGoresan ? GREEN : "#94A3B8" }}>
-          {adaGoresan ? "✓ Tanda tangan terbubuh" : "Gunakan jari atau stilus"}
+        <span style={{ fontSize: 11.5, fontWeight: cukup ? 700 : 400,
+          color: !adaGoresan ? "#94A3B8" : cukup ? GREEN : AMBER }}>
+          {!adaGoresan
+            ? "Gunakan jari atau stilus"
+            : cukup
+              ? "✓ Tanda tangan cukup"
+              : "Goresan masih terlalu pendek — lanjutkan tanda tangan Anda"}
         </span>
       </div>
-      {adaGoresan && !nilai && (
+      {cukup && !nilai && (
         <div style={{ fontSize: 12, color: RED, marginTop: 6 }}>
           Tanda tangan terlalu besar untuk disimpan. Mohon tekan Hapus lalu bubuhkan lebih ringkas.
         </div>

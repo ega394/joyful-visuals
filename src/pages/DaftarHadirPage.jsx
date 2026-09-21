@@ -85,6 +85,11 @@ export default function DaftarHadirPage() {
   const [foto, setFoto] = useState("");      // data URI hasil kompresi
   const [ttd, setTtd]   = useState("");      // data URI tanda tangan, disimpan di sel Sheets
   const [fotoErr, setFotoErr] = useState("");
+  // Lokasi bersifat pelengkap dan TIDAK PERNAH menghalangi pengiriman:
+  // izin yang ditolak di depan pintu tidak boleh membuat tamu gagal mengisi.
+  const [lokasi, setLokasi] = useState(null);          // {lat, lon, akurasi}
+  const [statusLokasi, setStatusLokasi] = useState(""); // "" | minta | ada | tolak | gagal
+  const lokasiDiminta = useRef(false);
   const kameraRef = useRef(null);
   const galeriRef = useRef(null);
 
@@ -112,6 +117,32 @@ export default function DaftarHadirPage() {
 
   const aktif = (k) => (acara?.fieldAktif || []).includes(k);
 
+  /**
+   * Meminta izin lokasi sekali saja, di latar belakang.
+   *
+   * Tidak dipanggil saat halaman dibuka: permintaan izin yang muncul tiba-tiba
+   * sebelum tamu sempat membaca apa pun hampir selalu ditolak refleks. Dipanggil
+   * saat tamu mulai mengetik nama, atau saat tanda tangannya selesai — mana yang
+   * lebih dulu — sehingga jawabannya biasanya sudah siap ketika Kirim ditekan.
+   */
+  const mintaLokasi = useCallback(() => {
+    if (lokasiDiminta.current || !aktif("lokasi")) return;
+    if (!navigator.geolocation) { setStatusLokasi("gagal"); return; }
+    lokasiDiminta.current = true;
+    setStatusLokasi("minta");
+    navigator.geolocation.getCurrentPosition(
+      (p) => {
+        setLokasi({ lat: p.coords.latitude, lon: p.coords.longitude,
+                    akurasi: Math.round(p.coords.accuracy) });
+        setStatusLokasi("ada");
+      },
+      (e) => setStatusLokasi(e.code === 1 ? "tolak" : "gagal"),
+      // Batas tunggu pendek: ini pelengkap, bukan syarat. Di dalam gedung GPS
+      // sering tidak pernah terkunci, dan menunggu lama tidak mengubah apa pun.
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
+    );
+  }, [acara]);
+
   const submit = async () => {
     if (!f.nama.trim()) { setErr("Nama wajib diisi."); return; }
     if (aktif("noHP") && !f.noHP.trim()) { setErr("Nomor ponsel wajib diisi."); return; }
@@ -130,6 +161,9 @@ export default function DaftarHadirPage() {
         instansi: f.instansi.trim(), noHP: f.noHP.trim(),
         foto: aktif("selfie") ? foto : "",
         ttd:  aktif("ttd")    ? ttd  : "",
+        lat:     aktif("lokasi") && lokasi ? lokasi.lat.toFixed(6) : "",
+        lon:     aktif("lokasi") && lokasi ? lokasi.lon.toFixed(6) : "",
+        akurasi: aktif("lokasi") && lokasi ? lokasi.akurasi : "",
         tambahan,
       });
       // Sudah pernah mengisi bukan kegagalan dari sudut pandang tamu —
@@ -221,6 +255,15 @@ export default function DaftarHadirPage() {
 
   const ditutup = acara.status === "tutup";
 
+  // Syarat yang sama persis dengan yang diperiksa submit(). Lokasi sengaja
+  // TIDAK termasuk — ia pelengkap, bukan syarat.
+  const siapKirim =
+    !!f.nama.trim() &&
+    (!aktif("noHP")   || !!f.noHP.trim()) &&
+    (!aktif("selfie") || !!foto) &&
+    (!aktif("ttd")    || !!ttd) &&
+    (acara.fieldTambahan || []).every(t => !t.wajib || String(tambahan[t.label] || "").trim());
+
   return (
     <div style={kotak}>
       <div style={{ maxWidth: 460, margin: "0 auto" }}>
@@ -273,7 +316,7 @@ export default function DaftarHadirPage() {
 
             <div style={{ marginBottom: 13 }}>
               <label style={lbl}>Nama Lengkap <span style={{ color: RED }}>*</span></label>
-              <input value={f.nama} onChange={e => setF(p => ({ ...p, nama: e.target.value }))}
+              <input value={f.nama} onChange={e => { setF(p => ({ ...p, nama: e.target.value })); mintaLokasi(); }}
                 placeholder="Nama dan gelar" style={inp}/>
             </div>
 
@@ -341,7 +384,23 @@ export default function DaftarHadirPage() {
             {aktif("ttd") && (
               <div style={{ marginBottom: 15 }}>
                 <label style={lbl}>Tanda Tangan <span style={{ color: RED }}>*</span></label>
-                <TandaTanganPad nilai={ttd} onChange={setTtd}/>
+                <TandaTanganPad nilai={ttd} onChange={v => { setTtd(v); if (v) mintaLokasi(); }}/>
+              </div>
+            )}
+
+            {aktif("lokasi") && (
+              <div style={{ marginBottom: 15, fontSize: 12.5, lineHeight: 1.6,
+                background: "#F8FAFC", border: "1px solid #E2E8F0",
+                borderRadius: 10, padding: "9px 12px", color: "#475569" }}>
+                {statusLokasi === "ada" && lokasi
+                  ? <>📍 Lokasi tercatat <span style={{ color: "#64748B" }}>(±{lokasi.akurasi} m)</span></>
+                  : statusLokasi === "minta"
+                    ? "📍 Meminta izin lokasi…"
+                    : statusLokasi === "tolak"
+                      ? "Lokasi tidak diberikan — tidak menghalangi pengisian."
+                      : statusLokasi === "gagal"
+                        ? "Lokasi tidak terbaca — tidak menghalangi pengisian."
+                        : "📍 Lokasi akan dicatat bila Anda mengizinkan. Boleh ditolak."}
               </div>
             )}
 
@@ -350,12 +409,27 @@ export default function DaftarHadirPage() {
                 borderRadius: 10, padding: "10px 12px", marginBottom: 12, fontSize: 13 }}>{err}</div>
             )}
 
-            <button onClick={submit} disabled={kirim}
+            {/* Kewajiban yang ditagih SESUDAH tombol ditekan adalah pengalaman
+                terburuk — tamu tidak tahu apa yang salah. Tombolnya karena itu
+                mati sampai syaratnya benar-benar terpenuhi, sementara kanvas dan
+                kotak isian menunjukkan apa yang masih kurang. */}
+            <button onClick={submit} disabled={kirim || !siapKirim}
               style={{ width: "100%", padding: "14px", borderRadius: 12, border: "none",
-                background: kirim ? "#94A3B8" : `linear-gradient(135deg,${NAVY},#1B4080)`,
-                color: "white", cursor: kirim ? "default" : "pointer", fontSize: 15, fontWeight: 800 }}>
-              {kirim ? "Mengirim… mohon tunggu" : "Kirim Daftar Hadir"}
+                background: (kirim || !siapKirim) ? "#94A3B8" : `linear-gradient(135deg,${NAVY},#1B4080)`,
+                color: "white", cursor: (kirim || !siapKirim) ? "not-allowed" : "pointer",
+                fontSize: 15, fontWeight: 800 }}>
+              {kirim ? "Mengirim… mohon tunggu"
+                     : !siapKirim ? "Lengkapi isian di atas"
+                     : "Kirim Daftar Hadir"}
             </button>
+
+            {/* UU PDP 27/2022 — tamu berhak tahu apa yang direkam dan untuk apa. */}
+            <div style={{ fontSize: 11.5, color: "#94A3B8", lineHeight: 1.7, marginTop: 11 }}>
+              Dengan menekan Kirim, Anda menyetujui pencatatan data yang Anda isi di atas
+              untuk keperluan administrasi kehadiran kegiatan ini oleh Bagian Protokol dan
+              Komunikasi Pimpinan, Setda Kota Tarakan.
+              {aktif("lokasi") && " Titik lokasi hanya direkam bila Anda mengizinkan, dan boleh ditolak tanpa menghalangi pengisian."}
+            </div>
           </div>
         )}
 
