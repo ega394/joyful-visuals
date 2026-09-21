@@ -48,17 +48,18 @@ Semua langkah ini **harus dikerjakan sendiri** — perlu akses ke akun Google.
 
 ### Memperbarui pemasangan yang sudah berjalan
 
-Isian **Tanda Tangan** menambah satu kolom (`ttd`) pada tab `Hadir`. Tab yang
+Isian **Tanda Tangan** dan **Titik Lokasi** menambah tiga kolom pada tab
+`Hadir`: `ttd`, `lokasi`, dan `akurasi_m`. Tab yang
 sudah ada tidak mendapat kolom baru dengan sendirinya, karena baris judul hanya
 ditulis saat tab-nya pertama kali dibuat. Setelah menempelkan skrip versi baru:
 
-1. Jalankan fungsi **`setup`** sekali lagi — aman diulang, dan kolom `ttd`
-   ditambahkan bila belum ada.
+1. Jalankan fungsi **`setup`** sekali lagi — aman diulang, dan kolom yang belum
+   ada ditambahkan.
 2. Baru **Deploy → New version**.
 
 Kalau langkah 1 terlewat, skrip tetap menambahkannya sendiri pada penyimpanan
-pertama yang memuat tanda tangan; menjalankan `setup` hanya membuatnya pasti
-lebih dulu.
+pertama yang memuat tanda tangan atau lokasi; menjalankan `setup` hanya
+membuatnya pasti lebih dulu.
 
 ---
 
@@ -68,8 +69,16 @@ lebih dulu.
 Tersedia untuk Kabag, kedua Kasubbag, staf Protokol, dan Admin RK.
 
 Isi judul acara, lalu pilih isian yang ditampilkan (Jabatan, Instansi, Nomor
-Ponsel, Foto Selfie, Tanda Tangan) — bisa ditambah hingga 3 isian bebas. Tekan
+Ponsel, Foto Selfie, Tanda Tangan, Titik Lokasi) — bisa ditambah hingga 3 isian
+bebas. Tekan
 **Buat & Dapatkan Tautan**, lalu bagikan tautannya ke tamu.
+
+**Titik Lokasi tidak tercentang secara bawaan**, dan memang sebaiknya begitu
+untuk acara di dalam gedung: GPS di sana jatuh ke triangulasi Wi-Fi/seluler
+dengan galat 50–2.000 meter, yang jarang menjawab pertanyaan “apakah beliau ada
+di ruangan itu”. Bermanfaat untuk kegiatan lapangan. Koordinat **tidak pernah
+menghalangi pengisian**: izin yang ditolak, gagal, atau kehabisan waktu tetap
+membiarkan tamu mengirim, dan kolomnya dibiarkan kosong.
 
 **Foto Selfie dan Tanda Tangan berdampingan, bukan saling menggantikan.**
 Keduanya boleh dicentang sekaligus, atau salah satu saja. Tanda tangan digores
@@ -125,6 +134,16 @@ mengira perbaikannya tersimpan. Barisnya tetap tidak ditulis ulang.
   `ttd` sebagai gambar base64. Berkasnya kecil — terukur 11.600–23.600 karakter
   — sedangkan batas satu sel Sheets 50.000, jadi lapang. Peramban memangkasnya
   sampai batas goresan dan menyusutkannya hanya bila melewati 35.000.
+- **Goresan harus cukup panjang** sebelum diterima sebagai tanda tangan:
+  minimal **100 px** panjang lintasan dan **60 px** diagonal kotak pembatas,
+  diukur dalam piksel CSS. Satu ketukan bernilai 0 px, paraf pendek 144 px.
+  Satuannya sengaja bukan jumlah karakter berkas — itu bergantung kerapatan
+  layar, sehingga satu ambang akan ketat di satu ponsel dan longgar di ponsel
+  lain. Peladen ikut menolak gambar di bawah 100×25 piksel sebagai jaring
+  terakhir, tetapi pagar sesungguhnya ada di peramban.
+- Tidak ada uji otomatis yang dapat memastikan goresan itu **tanda tangan orang
+  tersebut**. Ambang di atas menaikkan lantai dari “asal tekan” menjadi “sengaja
+  menggores” — tidak lebih, sama seperti daftar hadir kertas.
 - Pada cetakan laporan, tanda tangan disertakan sampai **250 peserta**. Di atas
   itu laporan tetap terbit lengkap, hanya tanpa kolom tanda tangan, dan
   aplikasi memberi tahu dengan jelas. Batasnya jauh lebih longgar daripada foto

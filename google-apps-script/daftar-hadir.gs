@@ -93,24 +93,37 @@ function setup() {
     h.setFrozenRows(1);
   }
 
-  pastikanKolomTtd();
+  pastikanKolom();
   folderFoto();
   return "Setup selesai.";
 }
 
 /**
- * Menambahkan kolom "ttd" pada tab Hadir yang SUDAH TERLANJUR ADA.
+ * Kolom susulan pada tab Hadir.
  *
  * setup() hanya menulis baris judul ketika tab-nya belum ada, sehingga
  * pemasangan yang sudah berjalan tidak akan pernah mendapat kolom baru dan
  * datanya tertulis di kolom tanpa judul — laporan lalu bergeser tanpa ada
- * yang menyadarinya. Fungsi ini dipanggil setup() dan juga dijalankan sendiri
- * sekali pada penyimpanan pertama, supaya tidak ada langkah manual yang harus
- * diingat.
+ * yang menyadarinya. pastikanKolom() menambahkannya; dipanggil setup() dan
+ * juga sekali sendiri pada penyimpanan pertama, supaya tidak ada langkah
+ * manual yang harus diingat.
  *
- * Aman dijalankan berulang: kalau kolomnya sudah ada, tidak melakukan apa pun.
+ * Aman dijalankan berulang: kolom yang sudah berjudul tidak disentuh.
  */
-var KOLOM_TTD = 10;   // kolom J
+var KOLOM_TTD     = 10;   // kolom J
+var KOLOM_LOKASI  = 11;   // kolom K — "lat, lon", siap ditempel ke Google Maps
+var KOLOM_AKURASI = 12;   // kolom L — galat dalam meter
+
+// Judul kolom yang ditambahkan sesudah pemasangan pertama, berurut dari J.
+var KOLOM_SUSULAN = ["ttd", "lokasi", "akurasi_m"];
+
+// Ambang ukuran gambar tanda tangan, dalam piksel perangkat, dibaca dari kepala
+// berkas PNG. Ini JARING TERAKHIR, bukan pagar utama: pagar sungguhannya ada di
+// peramban yang mengukur panjang goresan dalam piksel CSS. Angkanya longgar
+// karena ponsel ber-DPR rendah menghasilkan gambar lebih kecil untuk gerakan
+// yang sama. Satu ketukan menghasilkan 22×22, paraf pendek 239×98.
+var TTD_LEBAR_MIN  = 100;
+var TTD_TINGGI_MIN = 25;
 // Batas keras satu sel Google Sheets. Tanda tangan disimpan langsung di sel,
 // bukan di Drive, sehingga inilah pagarnya. Peramban sudah menjaga di bawah
 // 35.000; pemeriksaan di sini menahan permintaan yang datang dari luar aplikasi.
@@ -128,21 +141,54 @@ var BATAS_TTD = 250;
 
 // Dijalankan sekali saja seumur pemasangan, ditandai lewat properti skrip,
 // supaya tiap penyimpanan tidak perlu menyentuh struktur sheet.
-function pastikanKolomTtdSekali() {
+// Kuncinya BERVERSI dan harus dinaikkan setiap kali KOLOM_SUSULAN bertambah.
+// Kalau tidak, pemasangan yang sudah menandai dirinya siap pada versi
+// sebelumnya akan melewati penambahan kolom baru — dan datanya tertulis ke
+// kolom tanpa judul tanpa ada yang menyadarinya.
+var PENANDA_KOLOM = "kolom_siap_v2";
+
+function pastikanKolomSekali() {
   var p = PropertiesService.getScriptProperties();
-  if (p.getProperty("kolom_ttd_siap") === "1") return;
-  pastikanKolomTtd();
-  p.setProperty("kolom_ttd_siap", "1");
+  if (p.getProperty(PENANDA_KOLOM) === "1") return;
+  pastikanKolom();
+  p.setProperty(PENANDA_KOLOM, "1");
 }
 
-function pastikanKolomTtd() {
+function pastikanKolom() {
   var s = sheet(TAB_HADIR);
   if (!s) return;
-  if (s.getMaxColumns() < KOLOM_TTD) {
-    s.insertColumnsAfter(s.getMaxColumns(), KOLOM_TTD - s.getMaxColumns());
+  var terakhir = KOLOM_TTD + KOLOM_SUSULAN.length - 1;
+  if (s.getMaxColumns() < terakhir) {
+    s.insertColumnsAfter(s.getMaxColumns(), terakhir - s.getMaxColumns());
   }
-  var judul = s.getRange(1, KOLOM_TTD).getValue();
-  if (String(judul || "").trim() === "") s.getRange(1, KOLOM_TTD).setValue("ttd");
+  for (var i = 0; i < KOLOM_SUSULAN.length; i++) {
+    var kol = KOLOM_TTD + i;
+    if (String(s.getRange(1, kol).getValue() || "").trim() === "") {
+      s.getRange(1, kol).setValue(KOLOM_SUSULAN[i]);
+    }
+  }
+}
+
+/**
+ * Lebar dan tinggi PNG, dibaca dari kepala berkas tanpa membongkar isinya.
+ *
+ * Tanda tangan PNG 8 byte, lalu chunk IHDR: 4 byte panjang, 4 byte "IHDR",
+ * 4 byte lebar, 4 byte tinggi. Jadi 24 byte pertama sudah memuat semuanya, dan
+ * 32 karakter base64 — kelipatan 4, sehingga terurai bersih — cukup untuk itu.
+ */
+function ukuranPng(dataUri) {
+  var koma = String(dataUri || "").indexOf(",");
+  if (koma < 0) return null;
+  var b;
+  try { b = Utilities.base64Decode(String(dataUri).substr(koma + 1, 32)); }
+  catch (e) { return null; }
+  if (!b || b.length < 24) return null;
+  // base64Decode mengembalikan byte bertanda; & 255 mengembalikannya ke 0..255.
+  var angka = function (i) {
+    return ((b[i] & 255) * 16777216) + ((b[i + 1] & 255) * 65536) +
+           ((b[i + 2] & 255) * 256) + (b[i + 3] & 255);
+  };
+  return { lebar: angka(16), tinggi: angka(20) };
 }
 
 function folderFoto() {
@@ -387,14 +433,29 @@ function doGet(e) {
       // longgar daripada foto — yang membatasi bukan kecepatan, melainkan besar
       // balasan yang harus diunduh peramban.
       var ttdDipotong = false;
-      if (ac.fieldAktif.indexOf("ttd") >= 0 && barisTtd.length) {
-        if (barisTtd.length > BATAS_TTD) {
-          ttdDipotong = true;   // dilaporkan ke aplikasi, bukan didiamkan
-        } else {
-          var awal = barisTtd[0], ujung = barisTtd[barisTtd.length - 1];
-          var kolomTtd = sh.getRange(awal, KOLOM_TTD, ujung - awal + 1, 1).getValues();
+      if (barisTtd.length) {
+        var awal = barisTtd[0], ujung = barisTtd[barisTtd.length - 1];
+        var tinggi = ujung - awal + 1;
+        var adaTtd = ac.fieldAktif.indexOf("ttd") >= 0;
+        var adaLok = ac.fieldAktif.indexOf("lokasi") >= 0;
+        // Tanda tangan besar; lokasi hanya belasan karakter. Karena itu batas
+        // 250 peserta mengikat tanda tangan saja — lokasi tetap ikut terbawa
+        // berapa pun jumlah pesertanya.
+        ttdDipotong = adaTtd && barisTtd.length > BATAS_TTD;
+        var ambilTtd = adaTtd && !ttdDipotong;
+        if (ambilTtd || adaLok) {
+          // Satu pembacaan rentang saja: J..L bila tanda tangan ikut, K..L bila
+          // hanya lokasi — kolom ttd yang berat tidak dibaca kalau tidak dipakai.
+          var kolAwal = ambilTtd ? KOLOM_TTD : KOLOM_LOKASI;
+          var lebarKol = KOLOM_AKURASI - kolAwal + 1;
+          var petak = sh.getRange(awal, kolAwal, tinggi, lebarKol).getValues();
           for (var t = 0; t < barisTtd.length; t++) {
-            peserta[t].ttd = String(kolomTtd[barisTtd[t] - awal][0] || "");
+            var baris = petak[barisTtd[t] - awal];
+            if (ambilTtd) peserta[t].ttd = String(baris[0] || "");
+            if (adaLok) {
+              peserta[t].lokasi  = String(baris[KOLOM_LOKASI  - kolAwal] || "");
+              peserta[t].akurasi = String(baris[KOLOM_AKURASI - kolAwal] || "");
+            }
           }
         }
       }
@@ -617,7 +678,27 @@ function simpanKehadiran(b) {
     if (ttd.length > BATAS_SEL) {
       return balas({ ok: false, error: "Tanda tangan terlalu besar. Mohon hapus lalu bubuhkan lebih ringkas." });
     }
-    pastikanKolomTtdSekali();
+    // Jaring terakhir terhadap ketukan tunggal atau coretan sekenanya yang
+    // dikirim langsung tanpa lewat formulir. Formulirlah yang menegakkan
+    // aturan sesungguhnya — ia mengukur panjang goresan, bukan ukuran gambar.
+    var uk = ukuranPng(ttd);
+    if (!uk || uk.lebar < TTD_LEBAR_MIN || uk.tinggi < TTD_TINGGI_MIN) {
+      return balas({ ok: false, error: "Tanda tangan terlalu ringkas. Mohon bubuhkan tanda tangan Anda selengkapnya." });
+    }
+    pastikanKolomSekali();
+  }
+
+  // Koordinat bersifat pelengkap dan boleh kosong — izin yang ditolak tidak
+  // boleh membuat tamu gagal mengisi. Disimpan sebagai "lat, lon" agar dapat
+  // langsung ditempel ke Google Maps, dengan akurasinya di kolom tersendiri
+  // supaya angkanya tidak memberi kesan presisi yang tidak dimilikinya.
+  var lokasi = "", akurasi = "";
+  var lat = parseFloat(b.lat), lon = parseFloat(b.lon);
+  if (isFinite(lat) && isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180) {
+    lokasi = lat.toFixed(6) + ", " + lon.toFixed(6);
+    var ak = parseFloat(b.akurasi);
+    if (isFinite(ak) && ak >= 0) akurasi = Math.round(ak);
+    pastikanKolomSekali();
   }
 
   var berkasFoto = null, urlFoto = "";
@@ -678,7 +759,7 @@ function simpanKehadiran(b) {
       hp ? "'" + hp : "",     // apostrof: cegah Sheets memotong angka nol depan
       urlFoto,
       b.tambahan ? JSON.stringify(b.tambahan) : "",
-      ttd,
+      ttd, lokasi, akurasi,
     ]);
 
     return balas({ ok: true });

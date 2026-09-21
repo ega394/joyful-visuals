@@ -64,6 +64,7 @@ export default function LaporanHadir({ acara, user, onClose, showT }) {
     // Sel lembar kerja tidak dapat memuat gambar, jadi yang dicatat hanya
     // keterangannya. Tanda tangannya sendiri ada pada cetakan PDF.
     if (aktif("ttd"))      kolom.push("Tanda Tangan");
+    if (aktif("lokasi")) { kolom.push("Lokasi"); kolom.push("Akurasi (m)"); }
 
     // Bungkus setiap sel dengan tanda kutip & gandakan kutip di dalamnya —
     // nama instansi kerap memuat koma dan akan memecah kolom bila dibiarkan.
@@ -76,6 +77,7 @@ export default function LaporanHadir({ acara, user, onClose, showT }) {
       tambahan.forEach(t => b.push(p.tambahan?.[t.label] || ""));
       if (aktif("selfie"))   b.push(p.fotoUrl);
       if (aktif("ttd"))      b.push(p.ttd ? "Ada" : "");
+      if (aktif("lokasi")) { b.push(p.lokasi || ""); b.push(p.akurasi || ""); }
       return b.map(sel).join(",");
     });
 
@@ -105,6 +107,7 @@ export default function LaporanHadir({ acara, user, onClose, showT }) {
     kolom.push("Waktu Isi");
     // Kolom terakhir, seperti daftar hadir kertas.
     if (aktif("ttd"))      kolom.push("Tanda Tangan");
+    if (aktif("lokasi")) { kolom.push("Lokasi"); kolom.push("Akurasi (m)"); }
 
     const baris = peserta.map((p, i) => {
       const sel = [`<td class="c">${i + 1}</td>`];
@@ -123,6 +126,10 @@ export default function LaporanHadir({ acara, user, onClose, showT }) {
         sel.push(`<td class="c">${p.ttd
           ? `<img class="t" src="${p.ttd}" alt=""/>`
           : `<span class="kosong">—</span>`}</td>`);
+      }
+      if (aktif("lokasi")) {
+        sel.push(`<td class="kor">${p.lokasi ? esc(p.lokasi) : `<span class="kosong">—</span>`}</td>`);
+        sel.push(`<td class="c">${p.akurasi ? `±${esc(p.akurasi)}` : `<span class="kosong">—</span>`}</td>`);
       }
       return `<tr>${sel.join("")}</tr>`;
     }).join("");
@@ -164,6 +171,9 @@ tbody tr:nth-child(even) td { background:#F8FAFC; }
 /* Tanda tangan sudah dipangkas sampai batas goresan, jadi tingginya dikunci
    dan lebarnya dibiarkan mengikuti — supaya tidak gepeng atau melar. */
 .t { height:11mm; width:auto; max-width:34mm; display:block; margin:0 auto; }
+/* Koordinat: angka rata dan seragam supaya kolomnya terbaca sebagai deret. */
+.kor { font-family:"DejaVu Sans Mono",Consolas,monospace; font-size:7.5pt;
+       white-space:nowrap; font-variant-numeric:tabular-nums; }
 .kosong { color:#CBD5E1; }
 .empty { text-align:center; padding:26px; color:#94A3B8; font-style:italic; }
 .ttd { margin-top:26px; display:flex; justify-content:flex-end; page-break-inside:avoid; }
