@@ -604,6 +604,12 @@ function simpanKehadiran(b) {
   // sekali pun menyentuh Drive — dan batas 80 peserta yang berlaku bagi foto
   // tidak mengikat di sini.
   var ttd = String(b.ttd || "");
+  // Ditegakkan di peladen juga, bukan hanya di formulir. Gerbang di peramban
+  // menjaga pengalaman; gerbang di sini yang menjaga datanya, sebab endpoint
+  // ini terbuka bagi siapa pun yang memegang tautan acara.
+  if (a.fieldAktif.indexOf("ttd") >= 0 && !ttd) {
+    return balas({ ok: false, error: "Tanda tangan wajib dibubuhkan." });
+  }
   if (ttd) {
     if (!/^data:image\/png;base64,/i.test(ttd)) {
       return balas({ ok: false, error: "Format tanda tangan tidak dikenali." });

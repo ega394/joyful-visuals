@@ -48,6 +48,11 @@ const FIELD_BAKU = [
   { k: "ttd",      l: "Tanda Tangan" },
 ];
 
+// Isian yang tercentang saat membuat acara baru. Tanda tangan ikut tercentang
+// supaya tidak perlu diingat satu per satu — tetap boleh dilepas per acara,
+// misalnya untuk kegiatan lapangan yang lebih cocok dengan foto saja.
+const BAWAAN_FIELD = ["jabatan", "instansi", "noHP", "selfie", "ttd"];
+
 export default function DaftarHadirAdmin({ user, isMobile, showT }) {
   const [acara, setAcara]   = useState([]);
   const [sheetUrl, setSheetUrl] = useState("");
@@ -64,7 +69,7 @@ export default function DaftarHadirAdmin({ user, isMobile, showT }) {
   const [lokasi, setLokasi]     = useState("");
   const [jamMulai, setJamMulai]     = useState("");
   const [jamSelesai, setJamSelesai] = useState("");
-  const [fieldAktif, setFieldAktif] = useState(["jabatan", "instansi", "noHP", "selfie"]);
+  const [fieldAktif, setFieldAktif] = useState(BAWAAN_FIELD);
   const [tambahan, setTambahan] = useState([]);   // [{label,wajib}]
 
   const muatAcara = useCallback(async () => {
@@ -113,7 +118,7 @@ export default function DaftarHadirAdmin({ user, isMobile, showT }) {
       setBuka(false);
       setJudul(""); setSubjudul(""); setTanggal(""); setLokasi("");
       setJamMulai(""); setJamSelesai("");
-      setFieldAktif(["jabatan", "instansi", "noHP", "selfie"]); setTambahan([]);
+      setFieldAktif(BAWAAN_FIELD); setTambahan([]);
       muatAcara();
     } catch (e) { showT?.("Gagal: " + e.message, "error"); }
     setSibuk(false);
