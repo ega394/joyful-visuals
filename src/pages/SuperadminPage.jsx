@@ -22,7 +22,7 @@ const ROLES = [
   "superadmin",
   "kabag", "kasubbag_protokol", "kasubbag_komdokpim",
   "admin_rk", "admin_undangan",
-  "staf", "timkom",
+  "staf", "pramu_tamu", "timkom",
   "ajudan_walikota", "ajudan_wakilwalikota",
   "walikota", "wakilwalikota",
   "mitra_kerja", "walpri",

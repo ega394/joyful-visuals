@@ -382,6 +382,7 @@ const ALL_ROLE_DEFS=[
   {key:"ajudan_wakilwalikota",label:"Ajudan Wakil Wali Kota",       icon:"clip"},
   {key:"timkom",             label:"Tim Komunikasi & Dokumentasi",  icon:"attach"},
   {key:"staf",               label:"Staf Protokol",                 icon:"pencil"},
+  {key:"pramu_tamu",         label:"Pramu Tamu",                    icon:"pencil"},
   {key:"admin_rk",           label:"Admin Rencana Kegiatan",        icon:"pencil"},
   {key:"admin_undangan",    label:"Admin Generator Undangan",       icon:"document"},
   {key:"kasubbag_protokol",  label:"Kasubbag Protokol",             icon:"search"},
@@ -405,11 +406,47 @@ const ROLE_LABEL={
   mitra_kerja:"Mitra Kerja Pemkot",
   walpri:"Walpri",
 };
+// Peran petugas lapangan yang tugasnya sama persis. Pramu Tamu dibuat sebagai
+// peran tersendiri hanya karena satu pembatasan: ia tidak boleh ditugaskan pada
+// Sabtu/Minggu kecuali untuk audiensi tamu. Selain itu identik dengan Staf
+// Protokol — karena itu setiap daftar kemampuan di bawah memakai tetapan ini,
+// bukan menyebut "staf" satu per satu dan berisiko ada yang terlewat.
+const PERAN_PETUGAS=["staf","pramu_tamu"];
+
+// ── Pembatasan akhir pekan bagi Pramu Tamu ───────────────────
+//
+// Pramu Tamu tidak ditugaskan pada Sabtu/Minggu, KECUALI pada agenda yang
+// memang audiensi tamu. Penandanya `created_from: "guest_module"` — dipasang
+// saat permohonan tamu dikonversi menjadi agenda, baik dari aplikasi maupun
+// dari api/guest.js.
+//
+// Konsekuensi yang disengaja: audiensi yang diketik manual oleh Admin RK tidak
+// bertanda, sehingga ikut tertahan. Untuk itulah ada jalur penembusan dengan
+// alasan tertulis — bukan melonggarkan aturannya diam-diam.
+//
+// Hari libur nasional BELUM ikut dihitung; aplikasi tidak punya data hari
+// libur, dan menaruhnya sebagai daftar tetap di dalam kode akan basi sendiri
+// tiap pergantian tahun tanpa ada yang menyadarinya. Sementara ini hari libur
+// ditangani lewat jalur penembusan yang sama.
+const akhirPekan=(tgl)=>{const h=tgl?new Date(tgl+"T00:00:00").getDay():-1;return h===0||h===6;};
+const audiensiTamu=(ev)=>ev?.created_from==="guest_module";
+const pramuTertahan=(ev)=>akhirPekan(ev?.tanggal)&&!audiensiTamu(ev);
+
+// Tanggal jadwal dapat bergeser SESUDAH penugasan dibuat. Bila geserannya jatuh
+// ke akhir pekan sementara Pramu Tamu masih tertugas, keadaan itu DITANDAI —
+// bukan dicabut diam-diam: yang bersangkutan mungkin sudah diberi tahu dan
+// sudah mengatur harinya. Kasubbag yang memutuskan.
+const pramuTamuMelanggar=(ev)=>{
+  if(!pramuTertahan(ev))return [];
+  const semua=loadUsers();
+  return (ev?.personil||[]).filter(un=>semua.find(u=>u.username===un)?.role==="pramu_tamu");
+};
+
 // Role hierarchy untuk penugasan: siapa bisa menugaskan siapa
 const ASSIGN_ROLES={
-  kasubbag_protokol:["staf","admin_rk","kasubbag_protokol"],
+  kasubbag_protokol:[...PERAN_PETUGAS,"admin_rk","kasubbag_protokol"],
   kasubbag_komdokpim:["timkom","kasubbag_komdokpim"],
-  kabag:["staf","admin_rk","timkom","ajudan_walikota","ajudan_wakilwalikota","kasubbag_protokol","kasubbag_komdokpim"],
+  kabag:[...PERAN_PETUGAS,"admin_rk","timkom","ajudan_walikota","ajudan_wakilwalikota","kasubbag_protokol","kasubbag_komdokpim"],
   timkom:["timkom"],
   admin_rk:["admin_rk"],
 };
@@ -452,17 +489,17 @@ function sambutanPeran(ev,username){
   return p.join(" & ");
 }
 const PEJABAT=["Sekda","Asisten Pemerintahan dan Kesra","Asisten Perekonomian dan Pembangunan","Asisten Administrasi Umum"];
-const ROLES_WITH_REPORT=["staf","admin_rk","kasubbag_protokol","kasubbag_komdokpim","kabag","timkom"];
-const STAF_ROLES=["staf","admin_rk","timkom"];
+const ROLES_WITH_REPORT=[...PERAN_PETUGAS,"admin_rk","kasubbag_protokol","kasubbag_komdokpim","kabag","timkom"];
+const STAF_ROLES=[...PERAN_PETUGAS,"admin_rk","timkom"];
 const KASUBBAG_ROLES=["kasubbag_protokol","kasubbag_komdokpim"];
 // Peran yang boleh membuka rekap kinerja DIRINYA SENDIRI + cetak bukti dukung.
 // Staf hanya melihat datanya sendiri — papan peringkat tim tetap milik Kabag/Kasubbag.
 // Staf yang boleh melihat kalender peminjaman ruangan (lihat saja).
 // Hanya staf Protokol — staf Komdokpim tidak memakai akses ini.
-const KALENDER_RUANGAN_ROLES=["staf"];
+const KALENDER_RUANGAN_ROLES=[...PERAN_PETUGAS];
 // Peran yang boleh membuat & mengelola acara daftar hadir digital.
-const DAFTAR_HADIR_ROLES=["kabag","kasubbag_protokol","kasubbag_komdokpim","staf","admin_rk"];
-const REKAP_SAYA_ROLES=["staf","admin_rk","timkom","kasubbag_protokol","kasubbag_komdokpim","kabag",
+const DAFTAR_HADIR_ROLES=["kabag","kasubbag_protokol","kasubbag_komdokpim",...PERAN_PETUGAS,"admin_rk"];
+const REKAP_SAYA_ROLES=[...PERAN_PETUGAS,"admin_rk","timkom","kasubbag_protokol","kasubbag_komdokpim","kabag",
   "ajudan_walikota","ajudan_wakilwalikota"];
 
 // ==================== USERS ====================
@@ -1012,7 +1049,14 @@ function appendTimelineEntries(prevEv, patch, actor) {
   // 6. Penugasan personil
   if (patch.personil !== undefined &&
       JSON.stringify(patch.personil || []) !== JSON.stringify(prevEv.personil || [])) {
-    out.push({ ...base, action: "penugasan_personil", note: (patch.personil || []).length + " personil" });
+    // Alasan penembusan aturan akhir pekan ikut dicatat. Tanpa itu, kelonggaran
+    // A3 tidak berbeda dari tidak ada aturan sama sekali — tidak ada yang bisa
+    // ditanyai setahun kemudian mengapa Pramu Tamu bertugas di hari Minggu.
+    var _catatanTugas = (patch.personil || []).length + " personil";
+    if (patch._alasanAkhirPekan) {
+      _catatanTugas += " · Pramu Tamu di akhir pekan: " + patch._alasanAkhirPekan;
+    }
+    out.push({ ...base, action: "penugasan_personil", note: _catatanTugas });
   }
 
   // 7. Naskah sambutan disahkan
@@ -3278,7 +3322,7 @@ function ImportUsersTab({users,save,showT}){
   const[preview,setPreview]=React.useState([]);
   const[loading,setLoading]=React.useState(false);
   const[done,setDone]=React.useState(false);
-  const ROLES=["staf","admin_rk","kasubbag_protokol","kasubbag_komdokpim","kabag","ajudan_walikota","ajudan_wakilwalikota","timkom","walikota","wakilwalikota","mitra_kerja","walpri"];
+  const ROLES=[...PERAN_PETUGAS,"admin_rk","kasubbag_protokol","kasubbag_komdokpim","kabag","ajudan_walikota","ajudan_wakilwalikota","timkom","walikota","wakilwalikota","mitra_kerja","walpri"];
   const parseCSV=(text)=>{
     const lines=text.trim().split('\n').filter(Boolean);
     if(lines.length<2)return[];
@@ -4005,13 +4049,20 @@ function PenugasanModal({ev, onClose, onSave, currentUser, allUsers, allEvents})
   // sendiri.
   const peranPenugas=peranEfektif(currentUser);
   // Hanya staf, admin_rk, kasubbag, timkom yang bisa ditugaskan
-  const eligibleForAssigner=ASSIGN_ROLES[peranPenugas]||["staf","admin_rk","timkom"];
+  const eligibleForAssigner=ASSIGN_ROLES[peranPenugas]||[...PERAN_PETUGAS,"admin_rk","timkom"];
   // Kasubbag — termasuk yang dijabat PLH — bisa menugaskan diri sendiri juga
   const isKasubbag=["kasubbag_protokol","kasubbag_komdokpim"].includes(peranPenugas);
   const candidates=allUsers.filter(u=>eligibleForAssigner.includes(u.role)||(isKasubbag&&u.username===currentUser.username));
 
   const[selected,setSelected]=React.useState(ev.personil||[]);
   const[catatan,setCatatan]=React.useState(ev.catatanPenugasan||"");
+  // Penembusan aturan akhir pekan: terbuka hanya setelah alasan tertulis diisi.
+  // Tanpa alasan yang tercatat, penembusan tidak berbeda dari tidak ada aturan.
+  const[bukaTembus,setBukaTembus]=React.useState(false);
+  const[alasanTembus,setAlasanTembus]=React.useState("");
+  const tertahan=pramuTertahan(ev);
+  const tembusSah=!!alasanTembus.trim();
+  const terkunci=(u)=>tertahan&&u.role==="pramu_tamu"&&!tembusSah;
 
   // Cek konflik jadwal untuk satu personil (dalam 2 jam)
   function getConflicts(username){
@@ -4063,9 +4114,10 @@ function PenugasanModal({ev, onClose, onSave, currentUser, allUsers, allEvents})
                 const conflicts=getConflicts(u.username);
                 const isMe=u.username===currentUser.username;
                 const checked=selected.includes(u.username);
+                const kunci=terkunci(u);
                 return(
-                  <div key={u.username} onClick={()=>toggle(u.username)}
-                    style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:10,border:"1.5px solid "+(checked?"#0A1628":"#e2e8f0"),background:checked?"#EEF2FF":"#fafafa",cursor:"pointer",transition:"all 0.15s"}}>
+                  <div key={u.username} onClick={()=>{ if(!kunci) toggle(u.username); }}
+                    style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:10,border:"1.5px solid "+(kunci?"#FCD34D":checked?"#0A1628":"#e2e8f0"),background:kunci?"#FFFBEB":checked?"#EEF2FF":"#fafafa",opacity:kunci?0.7:1,cursor:kunci?"not-allowed":"pointer",transition:"all 0.15s"}}>
                     <div style={{width:22,height:22,borderRadius:6,border:"2px solid "+(checked?NAVY:"#cbd5e1"),background:checked?NAVY:"white",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all 0.15s"}}>
                       {checked&&<span style={{color:"white",fontSize:13,lineHeight:1}}>✓</span>}
                     </div>
@@ -4074,6 +4126,9 @@ function PenugasanModal({ev, onClose, onSave, currentUser, allUsers, allEvents})
                         {u.nama}{isMe&&<span style={{fontSize:12,background:"#dbeafe",color:"#1d4ed8",borderRadius:4,padding:"1px 6px",fontWeight:600}}>Saya</span>}
                       </div>
                       <div style={{fontSize:13,color:"#64748b"}}>{u.jabatan}</div>
+                      {kunci&&<div style={{fontSize:12,color:"#B45309",marginTop:2,fontWeight:600}}>
+                        🔒 Akhir pekan — hanya untuk audiensi tamu
+                      </div>}
                     </div>
                     {conflicts.length>0&&<div style={{fontSize:12,background:"#fef2f2",border:"1px solid #fecaca",color:"#dc2626",borderRadius:6,padding:"2px 8px",fontWeight:700,flexShrink:0}}>
                       ⚡ {conflicts.length} acara berdekatan
@@ -4105,10 +4160,31 @@ function PenugasanModal({ev, onClose, onSave, currentUser, allUsers, allEvents})
           </div>}
         </div>
 
+          {tertahan&&<div style={{margin:"0 16px 14px",background:"#FFFBEB",border:"1.5px solid #FCD34D",
+            borderRadius:11,padding:"11px 13px"}}>
+            <div style={{fontSize:12.5,color:"#78350F",lineHeight:1.6,fontWeight:600}}>
+              🔒 Jadwal ini jatuh pada akhir pekan dan bukan audiensi tamu, sehingga Pramu Tamu tidak dapat ditugaskan.
+            </div>
+            {!bukaTembus
+              ? <button onClick={()=>setBukaTembus(true)}
+                  style={{marginTop:9,padding:"7px 13px",borderRadius:8,border:"1.5px solid #B45309",
+                    background:"white",color:"#B45309",cursor:"pointer",fontSize:12.5,fontWeight:700}}>
+                  Tetap tugaskan dengan alasan
+                </button>
+              : <div style={{marginTop:9}}>
+                  <textarea value={alasanTembus} onChange={e=>setAlasanTembus(e.target.value)} rows={2}
+                    placeholder="Alasan menugaskan Pramu Tamu di akhir pekan — tercatat pada jejak audit"
+                    style={{width:"100%",padding:"9px 11px",borderRadius:8,border:"1.5px solid #FCD34D",
+                      fontSize:13,boxSizing:"border-box",resize:"vertical",outline:"none"}}/>
+                  <div style={{fontSize:11.5,color:tembusSah?"#0D6B4F":"#92400E",marginTop:5,fontWeight:600}}>
+                    {tembusSah ? "✓ Pramu Tamu sudah dapat dipilih" : "Alasan wajib diisi sebelum dapat dipilih"}
+                  </div>
+                </div>}
+          </div>}
         {/* Footer */}
         <div style={{padding:"12px 16px",borderTop:"1px solid #e2e8f0",display:"flex",gap:8,flexShrink:0}}>
           <button onClick={onClose} style={{flex:1,padding:"12px",borderRadius:10,border:"1.5px solid #e2e8f0",background:"white",color:"#64748b",cursor:"pointer",fontSize:13,fontWeight:600}}>Batal</button>
-          <button onClick={()=>onSave(selected,catatan)} style={{flex:2,padding:"12px",borderRadius:10,border:"none",background:NAVY,color:"white",cursor:"pointer",fontSize:14,fontWeight:800}}>
+          <button onClick={()=>onSave(selected,catatan,tembusSah?alasanTembus.trim():"")} style={{flex:2,padding:"12px",borderRadius:10,border:"none",background:NAVY,color:"white",cursor:"pointer",fontSize:14,fontWeight:800}}>
             Simpan Penugasan ({selected.length})
           </button>
         </div>
@@ -5019,7 +5095,7 @@ function EventCard({ev}){
       <span style={{fontSize:12}}>💬</span>{ev.catatanPimpinan}
     </div>}
     {/* Banner penugasan — semua role yang terlibat penugasan */}
-    {["kabag","ajudan_walikota","ajudan_wakilwalikota","kasubbag_protokol","kasubbag_komdokpim","timkom","staf","admin_rk","walpri"].includes(role)&&ev.alur==="disetujui"&&<PersonilBanner ev={ev} role={role} user={user} setPenugasanEv={setPenugasanEv} setEvaluasiEv={setEvaluasiEv} onCabutPersonil={cabutPersonilSatu}/>}
+    {["kabag","ajudan_walikota","ajudan_wakilwalikota","kasubbag_protokol","kasubbag_komdokpim","timkom",...PERAN_PETUGAS,"admin_rk","walpri"].includes(role)&&ev.alur==="disetujui"&&<PersonilBanner ev={ev} role={role} user={user} setPenugasanEv={setPenugasanEv} setEvaluasiEv={setEvaluasiEv} onCabutPersonil={cabutPersonilSatu}/>}
     <div onClick={()=>setExp(exp?null:ev.id)} style={{padding:"14px",cursor:"pointer",userSelect:"none"}}>
       <div style={{display:"flex",alignItems:"flex-start",gap:11}}>
         {/* Date badge */}
@@ -5191,12 +5267,22 @@ function TableView({evList}){
             <div style={{display:"flex",gap:4,marginTop:3,flexWrap:"wrap"}}>
               <span style={{fontSize:12,padding:"1px 5px",borderRadius:10,background:"#EFF6FF",color:"#1E40AF",fontWeight:700,border:"1px solid #BFDBFE"}}>🎯 {tujuanPimpinanLabel(ev)}</span>
             </div>
-            {ev.alur==="disetujui"&&["kabag","kasubbag_protokol","kasubbag_komdokpim","admin_rk","timkom","staf"].includes(role)&&(
+            {ev.alur==="disetujui"&&["kabag","kasubbag_protokol","kasubbag_komdokpim","admin_rk","timkom",...PERAN_PETUGAS].includes(role)&&(
               (ev.personil||[]).length>0
                 ? <div style={{fontSize:12,color:"#065F46",marginTop:4,fontWeight:600,lineHeight:1.4,display:"flex",gap:4,flexWrap:"wrap",alignItems:"flex-start"}}>
                     <span style={{flexShrink:0}}>👥</span>
                     <span>{(ev.personil||[]).map(un=>(loadUsers().find(u=>u.username===un)?.nama||un)).join(", ")}</span>
                   </div>
+                : null
+            )}
+            {(() => { const m=pramuTamuMelanggar(ev); return m.length>0 && (
+              <div style={{fontSize:12,color:"#92400E",marginTop:4,fontWeight:600,lineHeight:1.45}}>
+                ⚠️ Jadwal ini jatuh pada akhir pekan dan bukan audiensi tamu, tetapi
+                Pramu Tamu masih tertugas: {m.map(un=>(loadUsers().find(u=>u.username===un)?.nama||un)).join(", ")}
+              </div>); })()}
+            {ev.alur==="disetujui"&&["kabag","kasubbag_protokol","kasubbag_komdokpim","admin_rk","timkom",...PERAN_PETUGAS].includes(role)&&(
+              (ev.personil||[]).length>0
+                ? null
                 : <div style={{fontSize:12,color:"#92400E",marginTop:4,fontWeight:600}}>⚠️ Belum ada personil</div>
             )}
           </td>
@@ -6122,7 +6208,7 @@ function ExpandedDetail({ev,hariEv}){
     {/* KONFIRMASI KEHADIRAN — Admin RK bisa isi untuk WK dan WWK */}
     {role==="admin_rk"&&ev.alur==="disetujui"&&<AdminRKKehadiran ev={ev} upd={upd} showT={showT} setDelegTarget={setDelegTarget}/>}
     {/* REKAN KERJA — tampilkan untuk staf & timkom yang ditugaskan */}
-    {["staf","timkom"].includes(role)&&(ev.personil||[]).includes(user.username)&&ev.alur==="disetujui"&&<div style={{marginBottom:12,padding:"11px 14px",borderRadius:11,background:"linear-gradient(90deg,#ECFDF5,#F0FDF4)",border:"1.5px solid #6EE7B7"}}>
+    {[...PERAN_PETUGAS,"timkom"].includes(role)&&(ev.personil||[]).includes(user.username)&&ev.alur==="disetujui"&&<div style={{marginBottom:12,padding:"11px 14px",borderRadius:11,background:"linear-gradient(90deg,#ECFDF5,#F0FDF4)",border:"1.5px solid #6EE7B7"}}>
       <div style={{fontSize:12,fontWeight:800,color:"#065F46",letterSpacing:1,textTransform:"uppercase",marginBottom:8,display:"flex",alignItems:"center",gap:5}}>
         🎯 Tim Bertugas di Acara Ini
       </div>
@@ -7259,7 +7345,7 @@ export default function App(){
   // Rekap kinerja tim memuat nilai evaluasi seluruh anggota. Pejabat yang
   // mengampu jabatan lain tetap melihatnya seperti biasa, tetapi pelaksana
   // yang sedang mengampu tidak — ia kembali menjadi rekan sejawat pekan depan.
-  const PERAN_PELAKSANA=["staf","admin_rk","timkom"];
+  const PERAN_PELAKSANA=[...PERAN_PETUGAS,"admin_rk","timkom"];
   const bolehRekapTim=(role==="kabag"||KASUBBAG_ROLES.includes(role))
     && !(plh&&PERAN_PELAKSANA.includes(user?.role));
   // Penghapusan acara daftar hadir dikunci pada Kabag asli — lihat
@@ -7545,6 +7631,14 @@ export default function App(){
         const tlNew=appendTimelineEntries(prev,patch,user);
         if(tlNew){finalPatch={...patch,timeline:[...(prev.timeline||[]),...tlNew]};}
       }
+      // `_alasanAkhirPekan` hanya bahan bagi jejak audit di atas — alasannya
+      // sudah tersalin ke timeline, jadi tidak perlu ikut menempel selamanya
+      // pada data jadwal. Medan berawalan garis bawah lain (mis. _requiresEdit)
+      // memang disimpan dengan sengaja, sehingga yang dibuang hanya yang ini.
+      if("_alasanAkhirPekan" in finalPatch){
+        const{_alasanAkhirPekan,...bersih}=finalPatch;
+        finalPatch=bersih;
+      }
       const next=p.map(e=>e.id===id?{...e,...finalPatch}:e);
       const ev=next.find(e=>e.id===id);
       if(ev)dbUpsert(ev).catch(e=>{console.error(e);if(_toast.fn)_toast.fn("⚠ Gagal menyimpan ke server — perubahan mungkin belum tersimpan. Periksa koneksi.","error");});
@@ -7646,7 +7740,7 @@ export default function App(){
       });
     };
 
-    const savePenugasan=async(evId,personilArr,catatanPenugasan)=>{
+    const savePenugasan=async(evId,personilArr,catatanPenugasan,alasanAkhirPekan)=>{
     setGlobalLoading(true);
     const ev=events.find(e=>e.id===evId);
     // Selisih dihitung SEBELUM daftarnya ditimpa.
@@ -7654,7 +7748,10 @@ export default function App(){
     const ditambah=personilArr.filter(un=>!sebelum.includes(un));
     const dicabut =sebelum.filter(un=>!personilArr.includes(un));
 
-    upd(evId,{personil:personilArr,catatanPenugasan});
+    // `_alasanAkhirPekan` dibaca pembuat jejak audit, lalu dibuang updAndSync()
+    // sebelum jadwalnya disimpan.
+    upd(evId,{personil:personilArr,catatanPenugasan,
+      ...(alasanAkhirPekan?{_alasanAkhirPekan:alasanAkhirPekan}:{})});
     setPenugasanEv(null);
     showT("Penugasan disimpan untuk "+personilArr.length+" personil ✓");
 
@@ -7728,7 +7825,7 @@ export default function App(){
     let base=events;
     // Staf: lihat semua jadwal disetujui sebagai konteks agenda mendatang
     // Admin RK: lihat draft milik sendiri + semua disetujui
-    if(role==="staf"){
+    if(PERAN_PETUGAS.includes(role)){
       const base=events.filter(e=>e.alur==="disetujui");
       const filtered=filterDate?base.filter(e=>e.tanggal===filterDate):base;
       return filtered.sort((a,b)=>(a.tanggal+a.jam).localeCompare(b.tanggal+b.jam));
@@ -8424,7 +8521,7 @@ const TH={
       {key:"newsroom", icon:"📰", label:"AI Newsroom"},
     ]:[]),
     // ── Staf Protokol ──
-    ...(r==="staf"?[
+    ...(PERAN_PETUGAS.includes(r)?[
       {key:"tayang",   icon:"📅", label:"Agenda"},
       {key:"penugasan",icon:"🎯", label:"Penugasan"},
     ]:[]),
@@ -8503,7 +8600,7 @@ const TH={
     // sendiri, jadi tidak boleh hilang ketika ia sedang mengampu Kasubbag.
     ...(bolehInputJadwal||role==="kabag"?[{key:"action:arsip",icon:"📦",label:"Unduh Arsip Berkas"}]:[]),
     ...(!["walikota","wakilwalikota","ajudan_walikota","ajudan_wakilwalikota","admin_undangan","mitra_kerja"].includes(role)?[{key:"ekinerja",icon:"📊",label:"E-Kinerja"}]:[]),
-    ...(["kabag","kasubbag_protokol","staf","admin_rk"].includes(role)?[{key:"action:undangan",icon:"📋",label:"Generator Undangan"}]:[]),
+    ...(["kabag","kasubbag_protokol",...PERAN_PETUGAS,"admin_rk"].includes(role)?[{key:"action:undangan",icon:"📋",label:"Generator Undangan"}]:[]),
     ...(bolehKalenderRuangan?[{key:"kalender_ruangan",icon:"🏛️",label:"Kalender Ruangan"}]:[]),
     ...(DAFTAR_HADIR_ROLES.includes(role)?[{key:"daftar_hadir",icon:"✍️",label:"Daftar Hadir Digital"}]:[]),
     ...(role==="kabag"?[{key:"plh",icon:"🛡️",label:"Pelaksana Harian"}]:[]),
@@ -8575,7 +8672,7 @@ const TH={
     {key:"newsroom", label:"Newsroom",  icon:"📰"},
   ]:[]),
   // ── Staf ──
-  ...(r==="staf"?[
+  ...(PERAN_PETUGAS.includes(r)?[
     {key:"tayang",   label:"Agenda",   icon:"📅"},
     {key:"penugasan",label:"Penugasan",icon:"🎯"},
   ]:[]),
@@ -8701,7 +8798,7 @@ const TH={
               ...(role==="kabag"?[{icon:"⚙️",label:"Kelola User"+(loadPendingRegs().length>0?" ("+loadPendingRegs().length+")":""),action:()=>{setShowAdmin(true);setMobMenu(false);}}]:[]),
               ...(role==="kabag"?[{icon:"📢",label:"Kirim Pengumuman",action:()=>{setShowBroadcast(true);setMobMenu(false);}}]:[]),
               ...((bolehInputJadwal||role==="kabag")?[{icon:"📦",label:"Arsip Berkas",action:()=>{setShowArsip(true);setMobMenu(false);}}]:[]),
-              ...(["kabag","kasubbag_protokol","staf","admin_rk"].includes(role)?[{icon:"📋",label:"Generator Undangan",action:()=>{setShowUndanganTool(true);setMobMenu(false);}}]:[]),
+              ...(["kabag","kasubbag_protokol",...PERAN_PETUGAS,"admin_rk"].includes(role)?[{icon:"📋",label:"Generator Undangan",action:()=>{setShowUndanganTool(true);setMobMenu(false);}}]:[]),
             ].map((btn,i)=>(
               <button key={i} onClick={btn.action} className="btn-ios" style={{padding:"14px 12px",borderRadius:14,border:"1.5px solid #E4EAF2",background:"#F8FAFF",color:NAVY,cursor:"pointer",fontSize:13,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
                 <span style={{fontSize:20}}>{btn.icon}</span>{btn.label}
@@ -9325,7 +9422,7 @@ function NotifCenter({events, user, onClose, isMobile}){
     todayEvs.forEach(e=>list.push({id:"today-"+e.id,icon:"📅",type:"info",title:"Jadwal Hari Ini",body:e.namaAcara+" · "+e.jam+" WITA",ev:e}));
 
     // Staf & admin_rk: draft lama (>3 hari)
-    if(["staf","admin_rk"].includes(role)){
+    if([...PERAN_PETUGAS,"admin_rk"].includes(role)){
       const drafts=events.filter(e=>e.alur==="draft"&&e.submittedBy===user.username);
       drafts.forEach(e=>{
         const age=(now-new Date(e.id))/86400000;
@@ -10279,7 +10376,7 @@ function KasubbagDashboard({events, user, upd, showT, askConfirm, isMobile, onPe
   // Hierarki staf sesuai kasubbag
   const stafBawahan=React.useMemo(()=>{
     const allUsers=loadUsers();
-    if(isProto)return allUsers.filter(u=>["staf","admin_rk"].includes(u.role));
+    if(isProto)return allUsers.filter(u=>[...PERAN_PETUGAS,"admin_rk"].includes(u.role));
     return allUsers.filter(u=>u.role==="timkom");
   },[role]);
 
@@ -10401,7 +10498,7 @@ function KasubbagDashboard({events, user, upd, showT, askConfirm, isMobile, onPe
           {personilList.map(p=>{
             const uObj=loadUsers().find(u=>u.username===p.un);
             const pRole=uObj?.role||"";
-            const myScope=isProto?["staf","admin_rk","kasubbag_protokol"]:["timkom","kasubbag_komdokpim"];
+            const myScope=isProto?[...PERAN_PETUGAS,"admin_rk","kasubbag_protokol"]:["timkom","kasubbag_komdokpim"];
             const bisaCabut=myScope.includes(pRole);
             return <div key={p.un} style={{display:"flex",gap:10,alignItems:"center",padding:"8px 10px",background:bisaCabut?"#FAFCFF":"white",borderRadius:9,marginBottom:5,border:"1.5px solid "+(bisaCabut?"#BFDBFE":"#E2E8F0")}}>
               <div style={{width:30,height:30,borderRadius:8,background:"#EFF6FF",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,color:NAVY,flexShrink:0}}>{p.nama.slice(0,1)}</div>
@@ -10742,7 +10839,7 @@ function EKinerjaGenerator({ events, role, user, isMobile }) {
         if (ev.alur !== "disetujui") return false;
         if (ev.tanggal < startDate || ev.tanggal > endDate) return false;
         // Untuk staf/timkom: hanya jadwal yang mereka ditugaskan
-        if (["staf","timkom"].includes(role)) {
+        if ([...PERAN_PETUGAS,"timkom"].includes(role)) {
           return (ev.personil||[]).includes(user?.username);
         }
         return true;
@@ -12192,7 +12289,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
     {penugasanEv&&<PenugasanModal
       ev={penugasanEv}
       onClose={()=>setPenugasanEv(null)}
-      onSave={(personil,catatan)=>savePenugasan(penugasanEv.id,personil,catatan)}
+      onSave={(personil,catatan,alasan)=>savePenugasan(penugasanEv.id,personil,catatan,alasan)}
       currentUser={user}
       allUsers={loadUsers()}
       allEvents={events}

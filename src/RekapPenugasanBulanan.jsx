@@ -70,7 +70,7 @@ export default function RekapPenugasanBulanan({ events, user, isMobile, allUsers
   const allUsers = React.useMemo(() => allUsersProp || [], [allUsersProp]);
 
   const stafProto  = React.useMemo(
-    () => allUsers.filter(u => ["staf","admin_rk"].includes(u.role)),
+    () => allUsers.filter(u => ["staf","pramu_tamu","admin_rk"].includes(u.role)),
     [allUsers]
   );
   const stafKomdok = React.useMemo(

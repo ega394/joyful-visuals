@@ -854,7 +854,7 @@ function OperationalView({ events, role, user, upd, showT, isMobile }) {
 
         <div style={{ color:`${roleColor}99`, fontSize:10, fontWeight:700,
           letterSpacing:2, textTransform:"uppercase", marginBottom:5 }}>
-          {role === "timkom" ? "Tim Komunikasi" : role === "staf" ? "Staf Protokol" : `Ajudan ${pimLabel}`}
+          {role === "timkom" ? "Tim Komunikasi" : role === "staf" ? "Staf Protokol" : role === "pramu_tamu" ? "Pramu Tamu" : `Ajudan ${pimLabel}`}
         </div>
         <div style={{ color:"white", fontSize: isMobile ? 19 : 23,
           fontWeight:900, marginBottom:10 }}>

@@ -15,7 +15,7 @@ const RED   = "#dc2626";
 const SUPA_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPA_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-const ELIGIBLE_ROLES = ["staf", "admin_rk", "kasubbag_protokol", "kasubbag_komdokpim"];
+const ELIGIBLE_ROLES = ["staf", "pramu_tamu", "admin_rk", "kasubbag_protokol", "kasubbag_komdokpim"];
 
 const ROLE_LABELS = {
   staf:               "Staf Protokol",

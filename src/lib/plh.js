@@ -37,6 +37,9 @@ export const PERAN_DAPAT_DIAMPU = ["kabag", "kasubbag_protokol", "kasubbag_komdo
  */
 export const PENGAMPU_SAH = {
   kabag:              ["kasubbag_protokol", "kasubbag_komdokpim"],
+  // `pramu_tamu` sengaja TIDAK di sini meski tugasnya sama dengan staf. Ia
+  // peran khusus penerimaan tamu; membiarkannya mengampu Kasubbag Protokol
+  // berarti menyerahkan antrian persetujuan seluruh bagian kepadanya.
   kasubbag_protokol:  ["kasubbag_protokol", "kasubbag_komdokpim", "staf", "admin_rk"],
   kasubbag_komdokpim: ["kasubbag_protokol", "kasubbag_komdokpim", "timkom"],
 };
