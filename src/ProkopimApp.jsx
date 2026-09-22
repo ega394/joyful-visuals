@@ -3303,7 +3303,7 @@ function DaftarPeriksa({ ev, tahap, events, onBerubah }) {
 }
 
 // ==================== APPROVAL QUEUE VIEW (Kasubbag / Kabag) ====================
-function ApprovalQueueView({events,role,user,upd,showT,askConfirm,isMobile}){
+function ApprovalQueueView({events,role,user,upd,showT,askConfirm,deleteAndSync,isMobile}){
   const NAVY="#0A1628",GOLD="#C9A84C";
   // Per jadwal, sebab layar ini menampilkan seluruh kartu antrian sekaligus
   // dengan zona aksinya masing-masing.
@@ -3323,20 +3323,47 @@ function ApprovalQueueView({events,role,user,upd,showT,askConfirm,isMobile}){
   }
   const KASUBBAG_ROLES=["kasubbag_protokol","kasubbag_komdokpim"];
   const isKasubbag=KASUBBAG_ROLES.includes(role);
-  const pending=events.filter(e=>isKasubbag?e.alur==="menunggu_kasubbag":e.alur==="menunggu_kabag")
+  // Tahap yang menjadi tanggung jawab pemakai layar ini, dipakai oleh ketiga
+  // antrian di bawah agar semuanya menyaring hal yang sama.
+  const tahap=isKasubbag?"menunggu_kasubbag":"menunggu_kabag";
+  const pending=events.filter(e=>e.alur===tahap)
     .sort((a,b)=>a.tanggal.localeCompare(b.tanggal));
+  // Usulan perubahan dan permintaan pembatalan menumpang pada jadwal yang
+  // `alur`-nya sudah "disetujui". Selama layar ini hanya menyaring `alur`,
+  // keduanya tidak pernah muncul sebagai antrian — padahal lencana merah
+  // "Pending Approval" menghitungnya, sehingga angkanya tidak pernah cocok
+  // dengan isi layar dan usulan yang menunggu keputusan tersamar sebagai
+  // jadwal biasa yang sudah tayang.
+  // Usulan perubahan hanya ditinjau Kasubbag PROTOKOL — Komdokpim tidak
+  // berwenang memutusnya, jadi jangan dimunculkan sebagai antriannya.
+  // Permintaan pembatalan berlaku bagi kedua Kasubbag.
+  const bolehPutusUsulan=role==="kasubbag_protokol"||role==="kabag";
+  const usulanUbah=bolehPutusUsulan?events.filter(e=>e.alurEdit===tahap).sort(bandingUsulan):[];
+  const permintaanBatal=events.filter(e=>e.alurHapus===tahap)
+    .sort((a,b)=>(a.tanggal||"").localeCompare(b.tanggal||""));
+  const totalAntrian=pending.length+usulanUbah.length+permintaanBatal.length;
   const todayForRecent = new Date().toISOString().slice(0,10);
-  const recent = events.filter(e => e.alur==="disetujui" && e.tanggal >= todayForRecent)
+  // Jadwal yang sedang menunggu keputusan di atas dikeluarkan dari "Riwayat
+  // Terkini" — menampilkannya di sana sebagai "✅ Disetujui" justru menutupi
+  // kenyataan bahwa ia sedang menunggu tindakan.
+  const menungguKeputusan=new Set([...usulanUbah,...permintaanBatal].map(e=>e.id));
+  const recent = events.filter(e => e.alur==="disetujui" && e.tanggal >= todayForRecent && !menungguKeputusan.has(e.id))
   .sort((a,b) => a.tanggal.localeCompare(b.tanggal));
   const fmt=d=>{if(!d)return"";const[y,m,dd]=d.split("-");const M=["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];return dd+" "+M[parseInt(m)-1]+" "+y;};
   return <div style={{padding:isMobile?"12px":"20px",maxWidth:700,margin:"0 auto"}}>
     <div style={{fontSize:15,fontWeight:700,color:NAVY,marginBottom:4}}>
       {isKasubbag?"🔍 Antrian Verifikasi Kasubbag":"✅ Antrian Persetujuan Kabag"}
     </div>
-    <div style={{fontSize:12,color:"#94a3b8",marginBottom:16}}>{pending.length} jadwal menunggu</div>
-    {pending.length===0&&<div style={{background:"#f8fafc",borderRadius:12,padding:24,textAlign:"center",color:"#94a3b8",fontSize:13,marginBottom:20}}>
+    <div style={{fontSize:12,color:"#94a3b8",marginBottom:16}}>
+      {totalAntrian} hal menunggu tindakan Anda
+      {totalAntrian>0&&(usulanUbah.length>0||permintaanBatal.length>0)&&
+        " — "+[pending.length&&pending.length+" jadwal baru",
+               usulanUbah.length&&usulanUbah.length+" usulan perubahan",
+               permintaanBatal.length&&permintaanBatal.length+" permintaan pembatalan"].filter(Boolean).join(" · ")}
+    </div>
+    {totalAntrian===0&&<div style={{background:"#f8fafc",borderRadius:12,padding:24,textAlign:"center",color:"#94a3b8",fontSize:13,marginBottom:20}}>
       <div style={{fontSize:28,marginBottom:8}}>✅</div>
-      Tidak ada jadwal yang menunggu {isKasubbag?"verifikasi":"persetujuan"}.
+      Tidak ada yang menunggu {isKasubbag?"verifikasi":"persetujuan"} Anda.
     </div>}
     {pending.map(ev=>{
       const BULAN=["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
@@ -3445,6 +3472,51 @@ function ApprovalQueueView({events,role,user,upd,showT,askConfirm,isMobile}){
         </div>
       </div>;
     })}
+    {/* ── Usulan perubahan jadwal terbit ── */}
+    {usulanUbah.length>0&&<>
+      <div style={{fontSize:13,fontWeight:800,color:NAVY,marginTop:18,marginBottom:4}}>
+        ✏️ Usulan Perubahan Jadwal Terbit ({usulanUbah.length})
+      </div>
+      <div style={{fontSize:12,color:"#64748b",marginBottom:10,lineHeight:1.55}}>
+        Jadwal ini <b>tetap tayang dengan data lama</b> selama usulannya belum diputus.
+      </div>
+      {usulanUbah.map(ev=>
+        <div key={"u"+ev.id} style={{background:"white",borderRadius:14,marginBottom:12,border:"2px solid #BFDBFE",overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,0.05)"}}>
+          <div style={{background:"#EFF6FF",padding:"10px 14px",borderBottom:"1px solid #BFDBFE"}}>
+            <div style={{fontSize:13,fontWeight:800,color:"#1D4ED8"}}>{ev.namaAcara}</div>
+            <div style={{fontSize:13,color:"#64748B",marginTop:2}}>🕐 {fmtJamWita(ev)} · 📅 {fmt(ev.tanggal)}</div>
+            <div style={{fontSize:13,color:"#94A3B8",marginTop:1}}>Diusulkan oleh: {getNamaByUsername(ev.usulanEditOleh||ev.submittedBy)}</div>
+            <UmurUsulan ev={ev}/>
+          </div>
+          <div style={{padding:"12px 14px"}}>
+            {isKasubbag
+              ?<UsulanEditKasubbag ev={ev} upd={upd} showT={showT} askConfirm={askConfirm} rejectTexts={rejectTexts} setRT={setRT} user={user}/>
+              :<UsulanEditKabag    ev={ev} upd={upd} showT={showT} askConfirm={askConfirm} rejectTexts={rejectTexts} setRT={setRT} user={user}/>}
+          </div>
+        </div>
+      )}
+    </>}
+
+    {/* ── Permintaan pembatalan jadwal terbit ── */}
+    {permintaanBatal.length>0&&<>
+      <div style={{fontSize:13,fontWeight:800,color:"#B91C1C",marginTop:18,marginBottom:10}}>
+        🚫 Permintaan Pembatalan Jadwal ({permintaanBatal.length})
+      </div>
+      {permintaanBatal.map(ev=>
+        <div key={"b"+ev.id} style={{background:"white",borderRadius:14,marginBottom:12,border:"2px solid #FECDD3",overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,0.05)"}}>
+          <div style={{background:"#FFF1F2",padding:"10px 14px",borderBottom:"1px solid #FECDD3"}}>
+            <div style={{fontSize:13,fontWeight:800,color:"#B91C1C"}}>{ev.namaAcara}</div>
+            <div style={{fontSize:13,color:"#64748B",marginTop:2}}>🕐 {fmtJamWita(ev)} · 📅 {fmt(ev.tanggal)}</div>
+            <div style={{fontSize:13,color:"#94A3B8",marginTop:1}}>Diajukan oleh: {getNamaByUsername(ev.submittedBy)}</div>
+          </div>
+          <div style={{padding:"12px 14px"}}>
+            <KeputusanBatal ev={ev} tahap={tahap} upd={upd} showT={showT} askConfirm={askConfirm}
+              deleteAndSync={deleteAndSync} rejectTexts={rejectTexts} setRT={setRT} user={user}/>
+          </div>
+        </div>
+      )}
+    </>}
+
     {recent.length>0&&<><div style={{fontSize:13,fontWeight:700,color:"#64748b",marginTop:8,marginBottom:10}}>Riwayat Terkini</div>
     {recent.map(ev=><div key={ev.id} style={{background:"#f8fafc",borderRadius:10,padding:"10px 14px",marginBottom:8}}>
       <div style={{display:"flex",alignItems:"center",gap:10}}>
@@ -6278,6 +6350,84 @@ function UsulanEditKabag({ev,upd,showT,askConfirm,rejectTexts,setRT,user}){
   </div>;
 }
 
+/**
+ * Kartu keputusan atas permintaan PEMBATALAN jadwal terbit.
+ *
+ * Perilakunya disalin apa adanya dari panel detail agenda, yang selama ini
+ * satu-satunya tempat permintaan pembatalan dapat diputus. Dipisah menjadi
+ * komponen agar layar Antrian Approval memakai logika yang sama persis —
+ * dua salinan logika keputusan adalah cara paling mudah bagi kedua layar
+ * untuk perlahan berbeda perilaku tanpa ada yang menyadari.
+ *
+ * `tahap` menentukan keputusan siapa: Kasubbag meneruskan atau menolak,
+ * Kabag menghapus permanen atau menolak.
+ */
+function KeputusanBatal({ev,tahap,upd,showT,askConfirm,deleteAndSync,rejectTexts,setRT,user,onSelesai}){
+  if(ev.alurHapus!==tahap)return null;
+  const kasubbag=tahap==="menunggu_kasubbag";
+  const tolak=()=>{
+    upd(ev.id,{alurHapus:null,alasanHapus:""});
+    const pengaju=loadUsers().find(u=>u.username===ev.submittedBy);
+    if(pengaju?.noWA)sendWA({to:pengaju.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,
+      penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"batal_ditolak",submittedBy:user?.nama});
+    showT("Permintaan ditolak — jadwal tetap aktif");
+  };
+  return <div style={{display:"flex",flexDirection:"column",gap:8}}>
+    <div style={{background:kasubbag?"#FFF8DC":"#FEF3C7",border:"1.5px solid "+(kasubbag?"#FCD34D":"#FDE68A"),borderRadius:10,padding:"10px 14px"}}>
+      <div style={{fontSize:13,fontWeight:800,color:kasubbag?"#92400E":"#78350F",marginBottom:4}}>
+        {kasubbag?"⚠️ Permintaan Pembatalan Jadwal":"⚠️ Permintaan Pembatalan — Keputusan Akhir"}
+      </div>
+      <div style={{fontSize:12,color:kasubbag?"#78350F":"#92400E",lineHeight:1.6}}>
+        <span style={{fontWeight:700}}>Alasan: </span>{ev.alasanHapus||"Tidak ada alasan"}
+      </div>
+    </div>
+
+    {kasubbag&&<div style={{borderRadius:9,border:"1.5px solid #E2E8F0",overflow:"hidden"}}>
+      <div style={{padding:"8px 12px",background:"#F8FAFC",borderBottom:"1px solid #E2E8F0",fontSize:13,color:"#475569",fontWeight:600}}>
+        Catatan tambahan (opsional):
+      </div>
+      <textarea value={rejectTexts[ev.id+"_kass_batal"]||""}
+        onChange={e=>setRT(p=>({...p,[ev.id+"_kass_batal"]:e.target.value}))}
+        rows={2} placeholder="Tambahkan catatan untuk Kabag..."
+        style={{width:"100%",padding:"8px 10px",border:"none",fontSize:12,resize:"none",boxSizing:"border-box",color:"#374151"}}/>
+    </div>}
+
+    <div style={{display:"flex",gap:8}}>
+      {kasubbag
+        ?<button onClick={()=>{
+          upd(ev.id,{alurHapus:"menunggu_kabag"});
+          const catatan=(rejectTexts[ev.id+"_kass_batal"]||"").trim();
+          loadUsers().filter(u=>u.role==="kabag"&&u.noWA).forEach(u=>
+            sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,
+              penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"batal_ke_kabag",
+              alasanHapus:(ev.alasanHapus||"")+(catatan?" | Catatan Kasubbag: "+catatan:""),submittedBy:user?.nama})
+          );
+          sendPush({targetRole:"kabag",title:"⚠️ Permintaan Pembatalan — Perlu Persetujuan",body:ev.namaAcara,url:"/",tag:"batal-kabag-"+ev.id});
+          showT("Diteruskan ke Kabag","warn");
+        }} style={{flex:2,padding:"11px",borderRadius:10,border:"none",background:"#DC2626",color:"white",cursor:"pointer",fontSize:12,fontWeight:800}}>
+          Teruskan ke Kabag →
+        </button>
+        :<button onClick={()=>askConfirm(
+          "Setujui Pembatalan & Hapus Permanen?",
+          "Jadwal '"+ev.namaAcara+"' akan DIHAPUS SELAMANYA. Seluruh data terkait akan hilang. Tindakan ini tidak dapat dibatalkan.",
+          ()=>{
+            const pengaju=loadUsers().find(u=>u.username===ev.submittedBy);
+            if(pengaju?.noWA)sendWA({to:pengaju.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,
+              penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"batal_disetujui_kabag",submittedBy:user?.nama});
+            deleteAndSync(ev.id);if(onSelesai)onSelesai();showT("Jadwal dibatalkan & dihapus","warn");
+          },
+          "Hapus Permanen","#DC2626"
+        )} style={{flex:2,padding:"11px",borderRadius:10,border:"none",background:"#DC2626",color:"white",cursor:"pointer",fontSize:12,fontWeight:800}}>
+          🗑️ Setujui &amp; Hapus Permanen
+        </button>}
+      <button onClick={tolak}
+        style={{flex:1,padding:"11px",borderRadius:10,border:"1.5px solid #94A3B8",background:"white",color:"#334155",cursor:"pointer",fontSize:12,fontWeight:700}}>
+        Tolak
+      </button>
+    </div>
+  </div>;
+}
+
 function ExpandedDetail({ev,hariEv}){
   const [periksa,setPeriksa]=React.useState({siap:false,ringkasan:""});
   const simpanPeriksa=(v)=>setPeriksa(p=>(p.siap===v.siap&&p.ringkasan===v.ringkasan)?p:v);
@@ -6592,50 +6742,8 @@ function ExpandedDetail({ev,hariEv}){
       </>}
       {role==="kasubbag_protokol"&&<UsulanEditKasubbag ev={ev} upd={upd} showT={showT} askConfirm={askConfirm} rejectTexts={rejectTexts} setRT={setRT} user={user}/>}
 
-      {ev.alurHapus==="menunggu_kasubbag"&&<>
-        <div style={{background:"#FFF8DC",border:"1.5px solid #FCD34D",borderRadius:10,padding:"10px 14px",marginBottom:4}}>
-          <div style={{fontSize:13,fontWeight:800,color:"#92400E",marginBottom:4}}>⚠️ Permintaan Pembatalan Jadwal</div>
-          <div style={{fontSize:12,color:"#78350F",lineHeight:1.6}}>
-            <span style={{fontWeight:700}}>Alasan: </span>{ev.alasanHapus||"Tidak ada alasan"}
-          </div>
-        </div>
-        <div style={{borderRadius:9,border:"1.5px solid #E2E8F0",overflow:"hidden"}}>
-          <div style={{padding:"8px 12px",background:"#F8FAFC",borderBottom:"1px solid #E2E8F0",fontSize:13,color:"#475569",fontWeight:600}}>
-            Catatan tambahan (opsional):
-          </div>
-          <textarea
-            value={rejectTexts[ev.id+"_kass_batal"]||""}
-            onChange={e=>setRT(p=>({...p,[ev.id+"_kass_batal"]:e.target.value}))}
-            rows={2} placeholder="Tambahkan catatan untuk Kabag..."
-            style={{width:"100%",padding:"8px 10px",border:"none",fontSize:12,resize:"none",boxSizing:"border-box",color:"#374151"}}
-          />
-        </div>
-        <div style={{display:"flex",gap:8}}>
-          <button onClick={()=>{
-            upd(ev.id,{alurHapus:"menunggu_kabag"});
-            const catatan=(rejectTexts[ev.id+"_kass_batal"]||"").trim();
-            loadUsers().filter(u=>u.role==="kabag"&&u.noWA).forEach(u=>
-              sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,
-                penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,
-                event:"batal_ke_kabag",alasanHapus:(ev.alasanHapus||"")+(catatan?" | Catatan Kasubbag: "+catatan:""),submittedBy:user?.nama})
-            );
-            sendPush({targetRole:"kabag",title:"⚠️ Permintaan Pembatalan — Perlu Persetujuan",body:ev.namaAcara,url:"/",tag:"batal-kabag-"+ev.id});
-            showT("Diteruskan ke Kabag","warn");
-          }} style={{flex:2,padding:"10px",borderRadius:10,border:"none",background:"#DC2626",color:"white",cursor:"pointer",fontSize:12,fontWeight:700}}>
-            Teruskan ke Kabag →
-          </button>
-          <button onClick={()=>{
-            upd(ev.id,{alurHapus:null,alasanHapus:""});
-            const _adminUser=loadUsers().find(u=>u.username===ev.submittedBy);
-            if(_adminUser?.noWA)sendWA({to:_adminUser.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,
-              penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,
-              event:"batal_ditolak",submittedBy:user?.nama});
-            showT("Permintaan ditolak — jadwal tetap aktif");
-          }} style={{flex:1,padding:"10px",borderRadius:10,border:"1.5px solid #94A3B8",background:"white",color:"#334155",cursor:"pointer",fontSize:12,fontWeight:700}}>
-            Tolak
-          </button>
-        </div>
-      </>}
+      <KeputusanBatal ev={ev} tahap="menunggu_kasubbag" upd={upd} showT={showT} askConfirm={askConfirm}
+        deleteAndSync={deleteAndSync} rejectTexts={rejectTexts} setRT={setRT} user={user} onSelesai={()=>setExp(null)}/>
       {ev.alur==="disetujui"&&["kasubbag_protokol","kasubbag_komdokpim","kabag"].includes(role)&&(
         <div style={{marginTop:8}}>
           {(!ev.personil||ev.personil.length===0)&&new Date(ev.tanggal+"T"+ev.jam)>=new Date()
@@ -6687,40 +6795,8 @@ function ExpandedDetail({ev,hariEv}){
       </>}
       <UsulanEditKabag ev={ev} upd={upd} showT={showT} askConfirm={askConfirm} rejectTexts={rejectTexts} setRT={setRT} user={user}/>
 
-      {ev.alurHapus==="menunggu_kabag"&&<>
-        <div style={{background:"#FEF3C7",border:"1.5px solid #FDE68A",borderRadius:10,padding:"10px 14px",marginBottom:6}}>
-          <div style={{fontSize:13,fontWeight:800,color:"#78350F",marginBottom:4}}>⚠️ Permintaan Pembatalan — Keputusan Akhir</div>
-          <div style={{fontSize:12,color:"#92400E",lineHeight:1.6}}>
-            <span style={{fontWeight:700}}>Alasan: </span>{ev.alasanHapus||"Tidak ada alasan"}
-          </div>
-        </div>
-        <div style={{display:"flex",gap:8}}>
-          <button onClick={()=>askConfirm(
-            "Setujui Pembatalan & Hapus Permanen?",
-            "Jadwal '"+ev.namaAcara+"' akan DIHAPUS SELAMANYA. Seluruh data terkait akan hilang. Tindakan ini tidak dapat dibatalkan.",
-            ()=>{
-              const _adminUser=loadUsers().find(u=>u.username===ev.submittedBy);
-              if(_adminUser?.noWA)sendWA({to:_adminUser.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,
-                penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,
-                event:"batal_disetujui_kabag",submittedBy:user?.nama});
-              deleteAndSync(ev.id);setExp(null);showT("Jadwal dibatalkan & dihapus","warn");
-            },
-            "Hapus Permanen","#DC2626"
-          )} style={{flex:2,padding:"11px",borderRadius:10,border:"none",background:"#DC2626",color:"white",cursor:"pointer",fontSize:12,fontWeight:800}}>
-            🗑️ Setujui & Hapus Permanen
-          </button>
-          <button onClick={()=>{
-            upd(ev.id,{alurHapus:null,alasanHapus:""});
-            const _adminUser2=loadUsers().find(u=>u.username===ev.submittedBy);
-            if(_adminUser2?.noWA)sendWA({to:_adminUser2.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,
-              penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,
-              event:"batal_ditolak",submittedBy:user?.nama});
-            showT("Permintaan ditolak — jadwal tetap aktif");
-          }} style={{flex:1,padding:"11px",borderRadius:10,border:"1.5px solid #94A3B8",background:"white",color:"#334155",cursor:"pointer",fontSize:12,fontWeight:700}}>
-            Tolak
-          </button>
-        </div>
-      </>}
+      <KeputusanBatal ev={ev} tahap="menunggu_kabag" upd={upd} showT={showT} askConfirm={askConfirm}
+        deleteAndSync={deleteAndSync} rejectTexts={rejectTexts} setRT={setRT} user={user} onSelesai={()=>setExp(null)}/>
     </div>}
 
     {/* TIMKOM / KASUBBAG_KOMINFO PENUGASAN */}
@@ -11858,10 +11934,18 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
   const isMorningWindow=nowHr>=5&&nowHr<10;
   const todayEvents=events.filter(e=>e.alur==="disetujui"&&e.tanggal===todayStr()).sort((a,b)=>a.jam.localeCompare(b.jam));
   const tmrwEvents=events.filter(e=>e.alur==="disetujui"&&e.tanggal===tomorrowStr());
+  // Usulan perubahan dan permintaan pembatalan sama-sama menunggu tindakan,
+  // meski `alur`-nya sudah "disetujui". Menghitung `alur` saja membuat sapaan
+  // ini menyebut angka yang lebih kecil daripada lencana "Pending Approval"
+  // di layar yang sama.
   const pendingMyAction=events.filter(e=>{
     if(role==="admin_rk"&&(e.alur==="draft"||e.alur==="ditolak")&&e.submittedBy===user?.username)return true;
-    if(KASUBBAG_ROLES.includes(role)&&e.alur==="menunggu_kasubbag")return true;
-    if(role==="kabag"&&e.alur==="menunggu_kabag")return true;
+    // Usulan perubahan hanya urusan Kasubbag Protokol; pembatalan urusan keduanya.
+    if(KASUBBAG_ROLES.includes(role))
+      return e.alur==="menunggu_kasubbag"||e.alurHapus==="menunggu_kasubbag"
+        ||(role==="kasubbag_protokol"&&e.alurEdit==="menunggu_kasubbag");
+    if(role==="kabag")
+      return e.alur==="menunggu_kabag"||e.alurEdit==="menunggu_kabag"||e.alurHapus==="menunggu_kabag";
     if((role==="ajudan_walikota")&&e.alur==="disetujui"&&e.untukPimpinan?.includes("walikota")&&!e.statusWK&&!e.delegasiKeWWK)return true;
     if((role==="ajudan_wakilwalikota")&&e.alur==="disetujui"&&(e.untukPimpinan?.includes("wakilwalikota")||e.delegasiKeWWK)&&!e.statusWWK)return true;
     return false;
@@ -12298,7 +12382,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
 
       /* 8. Kasubbag/Kabag: Antrian Approval (tab jadwal) */
       :(["kasubbag_protokol","kabag"].includes(role)&&tab==="jadwal")
-        ?<ApprovalQueueView events={events} role={role} user={user} upd={upd} showT={showT} askConfirm={askConfirm} isMobile={isMobile}/>
+        ?<ApprovalQueueView events={events} role={role} user={user} upd={upd} showT={showT} askConfirm={askConfirm} deleteAndSync={deleteAndSync} isMobile={isMobile}/>
 
       /* 8b. Peminjaman Ruangan — dashboard admin */
       :tab==="plh"&&(role==="kabag"||role==="superadmin")
