@@ -4382,10 +4382,10 @@ const fld=(k,l,type="text",full=false)=>(
         </button>
         <div style={{background:"#F0FDF4",borderRadius:10,padding:"10px 14px",marginBottom:16,
           border:"1px solid #BBFAFE",fontSize:12,color:"#065F46",fontWeight:600}}>
-          ✅ Data pokok sudah tersimpan. Tambahkan detail berikut (opsional)
+          ✅ Data pokok sudah tersimpan. Lengkapi detail berikut — bertanda * wajib diisi
         </div>
         {fld("penyelenggara","Penyelenggara")}
-        {fld("kontak","Kontak / Narahubung")}
+        {fld("kontak","Kontak / Narahubung *")}
         {fld("buktiUndangan","No. Surat / Bukti Undangan")}
         {/* Jenis Kegiatan */}
         <div style={{marginBottom:12}}>
@@ -4452,7 +4452,7 @@ const fld=(k,l,type="text",full=false)=>(
       {/* Edit mode: tampilkan semua sekaligus + tombol simpan */}
       {editId&&<>
         {fld("penyelenggara","Penyelenggara")}
-        {fld("kontak","Kontak")}
+        {fld("kontak","Kontak / Narahubung *")}
         {fld("buktiUndangan","No. Surat")}
         <div style={{marginBottom:12}}>
           <label style={{display:"block",fontSize:12,color:"#475569",fontWeight:600,marginBottom:4}}>Jenis Kegiatan</label>
@@ -7902,6 +7902,11 @@ const submit = async () => {
     if(form.tanggal<_todayStr){showT("Tanggal tidak boleh lebih kecil dari hari ini.","error");setGlobalLoading(false);return;}
     if(form.tanggal>_maxStr){showT("Tanggal maksimum 180 hari ke depan. Untuk jadwal lebih jauh, hubungi Kabag.","error");setGlobalLoading(false);return;}
     if(!form.untukPimpinan||!form.untukPimpinan.length){showT("Pilih tujuan undangan (Wali Kota dan/atau Wakil Wali Kota) sebelum menyimpan.","error");setGlobalLoading(false);return;}
+    // Narahubung wajib. Kasubbag dan Kabag memakainya untuk mengonfirmasi
+    // kegiatan sebelum memutus — tanpa itu, satu-satunya jalan bertanya adalah
+    // menghubungi Admin RK dan menunggu. Sebelumnya hanya jalur unggah undangan
+    // (REQUIRED_FIELDS) yang mewajibkannya, sedangkan formulir manual tidak.
+    if(!form.kontak||!form.kontak.trim()){showT("Narahubung wajib diisi — Kasubbag dan Kabag memerlukannya untuk konfirmasi.","error");setGlobalLoading(false);return;}
     
     const evId = editId || Date.now();
     let finalUndanganFile = form.undanganFile;
@@ -10003,12 +10008,27 @@ function KabagDashboard({events, user, upd, showT, askConfirm, deleteAndSync, is
         </div>
         {exp&&<div style={{borderTop:"1px solid #EFF6FF",padding:"12px 16px",background:"#FAFBFF"}}>
           {/* Detail event */}
-          {[{l:"Tanggal",v:fmt(ev.tanggal)},{l:"Jam",v:fmtJamWita(ev)},{l:"Penyelenggara",v:ev.penyelenggara},{l:"Lokasi",v:ev.lokasi},{l:"Pakaian",v:ev.pakaian},{l:"Catatan",v:ev.catatan}].filter(f=>f.v).map(f=>(
+          {[{l:"Tanggal",v:fmt(ev.tanggal)},{l:"Jam",v:fmtJamWita(ev)},{l:"Untuk",v:(ev.untukPimpinan||[]).map(x=>x==="walikota"?"Wali Kota":"Wakil Wali Kota").join(" & ")},{l:"Jenis",v:ev.jenisKegiatan},{l:"Penyelenggara",v:ev.penyelenggara},{l:"Lokasi",v:ev.lokasi},{l:"Pakaian",v:ev.pakaian},{l:"Narahubung",v:ev.kontak},{l:"No. Surat",v:ev.buktiUndangan},{l:"Catatan",v:ev.catatan}].filter(f=>f.v).map(f=>(
             <div key={f.l} style={{display:"flex",gap:8,marginBottom:5}}>
               <span style={{minWidth:90,fontSize:13,color:"#94A3B8",fontWeight:600}}>{f.l}</span>
               <span style={{fontSize:12,color:"#1E293B",flex:1}}>{f.v}</span>
             </div>
           ))}
+          {/* Berkas undangan — bahan utama pemeriksaan sebelum memutus */}
+          {ev.undanganFile
+            ? <div style={{display:"flex",gap:7,margin:"8px 0 10px",flexWrap:"wrap"}}>
+                <a href={ev.undanganFile} target="_blank" rel="noopener noreferrer"
+                  style={{flex:1,minWidth:130,padding:"8px",borderRadius:8,border:"none",background:"#0284c7",
+                    color:"white",textDecoration:"none",textAlign:"center",fontSize:12,fontWeight:700}}>📄 Lihat Undangan</a>
+                <a href={ev.undanganFile} download={ev.undanganNama||"undangan"}
+                  style={{flex:1,minWidth:110,padding:"8px",borderRadius:8,border:"1.5px solid #0284c7",
+                    background:"white",color:"#0284c7",textDecoration:"none",textAlign:"center",fontSize:12,fontWeight:700}}>⬇ Unduh</a>
+              </div>
+            : <div style={{margin:"8px 0 10px",padding:"8px 11px",borderRadius:8,background:"#FFFBEB",
+                border:"1px solid #FDE68A",fontSize:12,color:"#92400E",fontWeight:600}}>
+                ⚠️ Berkas undangan belum dilampirkan
+              </div>}
+
           {/* Keterangan beserta istri */}
           {(ev.besertaIstriWK||ev.besertaIstriWWK)&&<div style={{display:"flex",gap:6,marginTop:4,marginBottom:6,flexWrap:"wrap"}}>
             {ev.besertaIstriWK&&<span title="Wali Kota hadir bersama istri" style={{fontSize:13,padding:"2px 8px",borderRadius:10,background:"#F1F5F9",border:"1px solid #CBD5E1",color:"#334155",fontWeight:600}}>Wali Kota beserta Istri</span>}
@@ -10418,6 +10438,43 @@ function KasubbagDashboard({events, user, upd, showT, askConfirm, isMobile, onPe
           <span style={{fontSize:14,color:"#94A3B8",flexShrink:0}}>{exp?"▲":"▼"}</span>
         </div>
         {exp&&<div style={{borderTop:"1px solid #EFF6FF",padding:"12px 16px",background:"#FAFBFF"}}>
+          {/* Rincian lengkap. Sebelumnya layar ini — yang justru layar bawaan
+              Kasubbag dan tempat keputusan diambil — hanya menampilkan nama,
+              jam, dan penyelenggara. Pakaian, narahubung, nomor surat, tujuan
+              undangan, dan BERKAS UNDANGANNYA sendiri tidak terlihat sama
+              sekali, sehingga persetujuan diberikan tanpa dasar yang utuh. */}
+          <div style={{marginBottom:10}}>
+            {[{l:"Tanggal",v:fmt(ev.tanggal)},
+              {l:"Jam",v:fmtJamWita(ev)},
+              {l:"Untuk",v:(ev.untukPimpinan||[]).map(x=>x==="walikota"?"Wali Kota":"Wakil Wali Kota").join(" & ")},
+              {l:"Jenis",v:ev.jenisKegiatan},
+              {l:"Penyelenggara",v:ev.penyelenggara},
+              {l:"Lokasi",v:ev.lokasi},
+              {l:"Pakaian",v:ev.pakaian},
+              {l:"Narahubung",v:ev.kontak},
+              {l:"No. Surat",v:ev.buktiUndangan},
+              {l:"Catatan",v:ev.catatan}].filter(f=>f.v).map(f=>(
+              <div key={f.l} style={{display:"flex",gap:8,marginBottom:5}}>
+                <span style={{minWidth:96,fontSize:12.5,color:"#94A3B8",fontWeight:600,flexShrink:0}}>{f.l}</span>
+                <span style={{fontSize:12.5,color:"#1E293B",flex:1,minWidth:0,overflowWrap:"anywhere"}}>{f.v}</span>
+              </div>
+            ))}
+          </div>
+
+          {ev.undanganFile
+            ? <div style={{display:"flex",gap:7,marginBottom:10,flexWrap:"wrap"}}>
+                <a href={ev.undanganFile} target="_blank" rel="noopener noreferrer"
+                  style={{flex:1,minWidth:130,padding:"8px",borderRadius:8,border:"none",background:"#0284c7",
+                    color:"white",textDecoration:"none",textAlign:"center",fontSize:12,fontWeight:700}}>📄 Lihat Undangan</a>
+                <a href={ev.undanganFile} download={ev.undanganNama||"undangan"}
+                  style={{flex:1,minWidth:110,padding:"8px",borderRadius:8,border:"1.5px solid #0284c7",
+                    background:"white",color:"#0284c7",textDecoration:"none",textAlign:"center",fontSize:12,fontWeight:700}}>⬇ Unduh</a>
+              </div>
+            : <div style={{marginBottom:10,padding:"8px 11px",borderRadius:8,background:"#FFFBEB",
+                border:"1px solid #FDE68A",fontSize:12,color:"#92400E",fontWeight:600}}>
+                ⚠️ Berkas undangan belum dilampirkan
+              </div>}
+
           {ev._kabagRecall&&<div style={{background:"#FEF2F2",border:"1.5px solid #FECACA",borderRadius:9,padding:"9px 12px",marginBottom:10,fontSize:12,color:"#991B1B",fontWeight:600}}>
   ↩ Jadwal ini ditarik Kabag — periksa, edit, atau ajukan ulang
   {ev.catatanKabag&&<div style={{marginTop:6,padding:"6px 10px",background:"white",borderRadius:7,border:"1px solid #FECACA",fontSize:12,color:"#7C2D12",fontWeight:500,lineHeight:1.5}}>
