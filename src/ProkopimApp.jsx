@@ -621,33 +621,65 @@ const forDB=ev=>{const d={...ev};if(d.sambutanFile?.startsWith("data:"))d.sambut
 let _adaUpdatedAt=null;
 let _sinkronTerakhir=null;
 
+// ── Pengambilan berhalaman ───────────────────────────────────
+//
+// Supabase memasang batas "Max rows" pada API-nya (bawaannya 1000). Permintaan
+// tanpa halaman TIDAK menghasilkan galat bila melewatinya — ia hanya
+// mengembalikan sebagian, diam-diam. Karena `id` jadwal berasal dari
+// `Date.now()` dan urutannya menaik, yang terpotong justru jadwal PALING BARU:
+// gejalanya jadwal atau usulan yang baru dibuat seperti tidak pernah ada,
+// sementara yang lama baik-baik saja. Tidak ada pesan galat sama sekali.
+//
+// Karena itu seluruh isi tabel diambil per halaman sampai halaman kosong.
+// Berhenti pada halaman yang "kurang dari yang diminta" tidak cukup: bila
+// batas peladen lebih kecil daripada ukuran halaman kita, potongannya justru
+// tidak terdeteksi. Satu permintaan tambahan di akhir jauh lebih murah
+// daripada data yang hilang tanpa disadari.
+const HAL_JADWAL=1000;
+async function ambilHalaman(kueri){
+  const out=[];
+  for(let dari=0;;){
+    const r=await fetch(SUPA_URL+"/rest/v1/jadwal?"+kueri+"&limit="+HAL_JADWAL+"&offset="+dari,{headers:H()});
+    if(!r.ok)return {ok:false,res:r};
+    const rows=await r.json();
+    out.push(...rows);
+    if(rows.length===0)break;
+    dari+=rows.length;
+    if(dari>100000){console.warn("dbLoadAll: berhenti pada 100.000 baris");break;}
+  }
+  return {ok:true,rows:out};
+}
+
 async function dbLoadAll(){
   if(!SUPA_OK)return null;
   // Sekalian ambil updated_at supaya polling berikutnya bisa bertahap.
   // Bila migrasi belum dijalankan, PostgREST membalas 400 → pakai cara lama.
   if(_adaUpdatedAt!==false){
-    const r=await fetch(SUPA_URL+"/rest/v1/jadwal?select=data,updated_at&order=id",{headers:H()});
-    if(r.ok){
+    const h=await ambilHalaman("select=data,updated_at&order=id");
+    if(h.ok){
       _adaUpdatedAt=true;
-      const rows=await r.json();
-      _sinkronTerakhir=rows.reduce((m,x)=>(x.updated_at&&x.updated_at>m?x.updated_at:m),"")||null;
-      return rows.map(x=>x.data);
+      _sinkronTerakhir=h.rows.reduce((m,x)=>(x.updated_at&&x.updated_at>m?x.updated_at:m),"")||null;
+      return h.rows.map(x=>x.data);
     }
     _adaUpdatedAt=false;
   }
-  const r2=await fetch(SUPA_URL+"/rest/v1/jadwal?select=data&order=id",{headers:H()});
-  if(!r2.ok)throw new Error(await r2.text());
-  return(await r2.json()).map(x=>x.data);
+  const h2=await ambilHalaman("select=data&order=id");
+  if(!h2.ok)throw new Error(await h2.res.text());
+  return h2.rows.map(x=>x.data);
 }
 
 // Hanya baris yang berubah. Mengembalikan null bila tidak bisa dipakai,
 // supaya pemanggil jatuh kembali ke dbLoadAll().
 async function dbLoadChanged(){
   if(!SUPA_OK||!_adaUpdatedAt||!_sinkronTerakhir)return null;
-  const r=await fetch(SUPA_URL+"/rest/v1/jadwal?select=data,updated_at&updated_at=gt."+
-    encodeURIComponent(_sinkronTerakhir)+"&order=updated_at.asc",{headers:H()});
-  if(!r.ok)return null;
-  const rows=await r.json();
+  // Biasanya hanya beberapa baris, tetapi sesudah aplikasi lama tidak dibuka
+  // selisihnya bisa melewati batas "Max rows" juga — dan potongannya akan
+  // memajukan `_sinkronTerakhir` melewati baris yang belum pernah terbaca,
+  // sehingga baris itu hilang selamanya sampai muat ulang penuh.
+  const h=await ambilHalaman("select=data,updated_at&updated_at=gt."+
+    encodeURIComponent(_sinkronTerakhir)+"&order=updated_at.asc");
+  if(!h.ok)return null;
+  const rows=h.rows;
   if(rows.length) _sinkronTerakhir=rows.reduce((m,x)=>(x.updated_at>m?x.updated_at:m),_sinkronTerakhir);
   return rows.map(x=>x.data);
 }
