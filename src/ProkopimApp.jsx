@@ -7568,15 +7568,29 @@ export default function App(){
   useEffect(()=>{
     if(!user||!isMobile)return;
     let startY=0,pulling=false;
-    const onTS=e=>{if(window.scrollY<=0){startY=e.touches[0].clientY;pulling=true;}};
+    // Tidak diaktifkan saat ada kartu/entri yang sedang dibuka. Sebelumnya
+    // penahan `_readingFocus` hanya dipatuhi polling berkala, sedangkan gerakan
+    // tarik ini menerobosnya — sehingga entri Riwayat Alur yang sedang dibaca
+    // bisa tertutup sendiri hanya karena jari menyapu ke bawah.
+    const onTS=e=>{if(window.scrollY<=0&&!_readingFocus){startY=e.touches[0].clientY;pulling=true;}};
     const onTM=e=>{
       if(!pulling)return;
+      // Halaman bisa saja sudah tergulir sejak jari menyentuh. Tanpa
+      // pemeriksaan ulang ini, sapuan biasa di tengah daftar panjang —
+      // gerakan yang wajar ketika menelusuri riwayat ke atas — ikut terbaca
+      // sebagai tarik-untuk-segarkan.
+      if(window.scrollY>0||_readingFocus){pulling=false;return;}
       const diff=e.touches[0].clientY-startY;
       if(diff>90&&!pullRefreshing){
         pulling=false;setPullRefreshing(true);
         (async()=>{
           let ok=true;
-          try{if(SUPA_OK){const rows=await dbLoadAll();if(rows&&rows.length>0)setEvents(rows);}}catch(e){ok=false;console.error(e);}
+          // Digabung, bukan diganti. Mengganti seluruh larik membuat SETIAP
+          // kartu kehilangan identitasnya dan dirender ulang walau tidak ada
+          // yang berubah — posisi gulir melompat dan tampak seperti aplikasi
+          // memuat ulang sendiri. Polling berkala sudah memakai mergeEvents;
+          // hanya jalur ini yang tertinggal.
+          try{if(SUPA_OK){const rows=await dbLoadAll();if(rows&&rows.length>0)setEvents(prev=>mergeEvents(prev,rows));}}catch(e){ok=false;console.error(e);}
           setTimeout(()=>{setPullRefreshing(false);showT(ok?"Data diperbarui ✓":"⚠ Gagal memperbarui — periksa koneksi",ok?"ok":"error");},600);
         })();
       }
