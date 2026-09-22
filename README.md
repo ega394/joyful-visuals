@@ -8,7 +8,7 @@
 Prokopim Hibot adalah platform manajemen birokrasi berbasis *cloud* yang dirancang khusus untuk mengotomatisasi seluruh alur keprotokolan dan jadwal pimpinan daerah (Wali Kota dan Wakil Wali Kota Tarakan). Sistem ini memangkas proses manual melalui *workflow* persetujuan berjenjang, manajemen tamu cerdas, pengarsipan dokumen otomatis, hingga sistem notifikasi *real-time*, memastikan setiap agenda tersusun dengan presisi dan aman.
 
 ## ✨ Fitur Unggulan
-* **Alur Persetujuan Berlapis (Multi-Role Workflow):** Sistem *routing* dokumen cerdas mulai dari Staf (Input) ➔ Kasubbag (Verifikasi) ➔ Kabag (Telaah & Persetujuan) ➔ Pimpinan & Ajudan (Tayang).
+* **Alur Persetujuan Berlapis (Multi-Role Workflow):** Sistem *routing* dokumen cerdas mulai dari Staf (Input) ➔ Kasubbag (Verifikasi) ➔ Kabag (Telaah & Persetujuan) ➔ Pimpinan & Ajudan (Tayang). Tiap tahap dikunci **daftar periksa wajib**: tombol persetujuan baru hidup setelah seluruh butir tercentang, dan butir yang dicentang ikut tercatat pada Riwayat Alur.
 * **Manajemen Tamu Terintegrasi (Guest to Agenda Bridge):** Modul penerimaan tamu dengan sistem kurasi prioritas (VVIP/Reguler). Tamu yang disetujui pimpinan secara otomatis dibuatkan jadwal di tabel Agenda utama tanpa perlu input ulang.
 * **Integrasi Google Drive Workspace:** Pengarsipan otomatis yang mengamankan *storage* server dengan mengirim langsung file lampiran (Undangan PDF & Teks Sambutan) ke Google Drive Prokopim secara terorganisir.
 * **Notifikasi & Keamanan (OTP) via WhatsApp:** Terhubung dengan *Gateway* WhatsApp untuk memberikan notifikasi jadwal harian otomatis (*Cron Jobs*) dan pemulihan *password* (*One-Time Password*) bagi pengguna secara *real-time*.

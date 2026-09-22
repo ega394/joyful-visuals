@@ -845,7 +845,10 @@ const JamRingkas=({ev})=>jamSelesaiValid(ev)
   ? <>{ev.jam}<span style={{display:"block",fontSize:10,fontWeight:600,opacity:0.75,whiteSpace:"nowrap"}}>{"s.d. "+ev.jamSelesai}</span></>
   : <>{ev.jam}</>;
 
-const hasConflict=(events,ev)=>{const s=toMin(ev.jam),e2=menitSelesai(ev);return events.some(e=>e.id!==ev.id&&e.alur==="disetujui"&&e.tanggal===ev.tanggal&&e.untukPimpinan.some(p=>ev.untukPimpinan?.includes(p))&&(()=>{const es=toMin(e.jam),ee=menitSelesai(e);return s<ee&&e2>es;})());};
+// `untukPimpinan` dibungkus `||[]` karena sejak daftar periksa Kabag fungsi ini
+// dipanggil saat render, bukan hanya saat submit: satu jadwal lama tanpa kolom
+// itu cukup untuk melempar galat dan memblankan layar persetujuan.
+const hasConflict=(events,ev)=>{const s=toMin(ev.jam),e2=menitSelesai(ev);return (events||[]).some(e=>e.id!==ev.id&&e.alur==="disetujui"&&e.tanggal===ev.tanggal&&(e.untukPimpinan||[]).some(p=>(ev.untukPimpinan||[]).includes(p))&&(()=>{const es=toMin(e.jam),ee=menitSelesai(e);return s<ee&&e2>es;})());};
 
 // ==================== USULAN PERUBAHAN JADWAL TERBIT ====================
 // Jadwal yang sudah terbit tidak boleh langsung diubah. Admin RK mengajukan
@@ -1004,7 +1007,9 @@ function appendTimelineEntries(prevEv, patch, actor) {
       action: inferTimelineAction(prevEv.alur, patch.alur, prevEv, patch),
       from:   prevEv.alur,
       to:     patch.alur,
-      note:   patch.catatanTolak || patch.catatanKabag || patch.catatanKasubbag || null,
+      // Ringkasan daftar periksa dilekatkan bila ada. Inilah satu-satunya
+      // hal yang tersimpan dari centang itu — centangnya sendiri sesaat.
+      note:   patch.catatanTolak || patch.catatanKabag || patch.catatanKasubbag || patch._periksa || null,
     });
   }
 
@@ -3160,9 +3165,133 @@ function AuditPage({events,user,role,isMobile,embedded}){
   );
 }
 
+
+// ══════════════════════════════════════════════════════════════
+//  DAFTAR PERIKSA SEBELUM PERSETUJUAN
+// ══════════════════════════════════════════════════════════════
+//
+// Daftar centang mudah berubah menjadi ritual: dalam dua minggu orang
+// mencentangnya tanpa membaca, dan jejaknya justru berbunyi "sudah diperiksa".
+// Itu lebih buruk daripada tidak ada. Karena itu butirnya dipisah dua jenis:
+//
+//   auto:"klik"     tercentang sendiri ketika undangan BENAR-BENAR dibuka —
+//                   bukti perbuatan, bukan pengakuan. Tombolnya karena itu
+//                   berada di dalam komponen ini, bukan di luar.
+//   auto:"otomatis" fakta yang dihitung aplikasi (tidak ada bentrok jadwal)
+//   tanpa auto      pernyataan sadar, dan jumlahnya ditekan sesedikit mungkin
+//                   supaya tetap bermakna.
+//
+// Butirnya berbeda antara Kasubbag dan Kabag karena keduanya memutus hal yang
+// berbeda: Kasubbag memeriksa kelengkapan dan kebenaran, Kabag memutus
+// kelayakan kehadiran pimpinan.
+//
+// Centangnya SESAAT — hidup selama kartu terbuka, tidak disimpan. Yang masuk
+// ke jejak audit adalah satu entri saat persetujuan diberikan, memuat butir
+// yang dikonfirmasi. Karena centang dan persetujuan terjadi dalam satu duduk,
+// tidak ada keadaan "jadwalnya diubah sesudah dicentang" yang perlu diurus.
+function DaftarPeriksa({ ev, tahap, events, onBerubah }) {
+  const adaUndangan = !!ev.undanganFile;
+  const bentrok = tahap === "kabag" ? hasConflict(events || [], ev) : false;
+
+  const butir = React.useMemo(() => {
+    const undangan = adaUndangan
+      ? { k: "undangan", l: "Undangan sudah dibuka", auto: "klik" }
+      : { k: "undangan", l: "Saya mengetahui undangan belum dilampirkan dan tetap melanjutkan", awas: true };
+    if (tahap === "kabag") return [
+      undangan,
+      bentrok
+        ? { k: "bentrok", l: "Bentrok dengan agenda pimpinan lain — saya tetap melanjutkan", awas: true }
+        : { k: "bentrok", l: "Tidak bentrok dengan agenda pimpinan", auto: "otomatis" },
+      { k: "kelayakan", l: "Kehadiran pimpinan pada acara ini layak" },
+    ];
+    return [
+      undangan,
+      { k: "data",       l: "Tanggal, jam, dan lokasi sesuai undangan" },
+      { k: "atribut",    l: "Pakaian dan jenis kegiatan sudah benar" },
+      { k: "narahubung", l: "Narahubung dapat dihubungi" },
+    ];
+  }, [tahap, adaUndangan, bentrok]);
+
+  const [centang, setCentang] = React.useState(() => new Set());
+  // Butir yang berupa fakta terhitung dicentang sejak awal — ia bukan klaim.
+  React.useEffect(() => {
+    setCentang(prev => {
+      const n = new Set(prev); let ubah = false;
+      for (const b of butir) if (b.auto === "otomatis" && !n.has(b.k)) { n.add(b.k); ubah = true; }
+      return ubah ? n : prev;
+    });
+  }, [butir]);
+
+  const semua = butir.every(b => centang.has(b.k));
+  const ringkasan = butir.filter(b => centang.has(b.k))
+    .map(b => (b.awas ? "\u26a0 " : "") + b.l).join(" \u00b7 ");
+  React.useEffect(() => { if (onBerubah) onBerubah({ siap: semua, ringkasan }); }, [semua, ringkasan]);
+
+  const alih = (k) => setCentang(p => { const n = new Set(p); n.has(k) ? n.delete(k) : n.add(k); return n; });
+
+  return (
+    <div style={{ background:"#F8FAFC", border:"1.5px solid #E2E8F0", borderRadius:11,
+      padding:"11px 13px", marginBottom:11 }}>
+      <div style={{ fontSize:11.5, fontWeight:800, letterSpacing:.7, textTransform:"uppercase",
+        color:"#64748B", marginBottom:8 }}>
+        Periksa sebelum {tahap === "kabag" ? "menyetujui" : "meneruskan"}
+      </div>
+
+      {adaUndangan && (
+        <div style={{ display:"flex", gap:7, marginBottom:9, flexWrap:"wrap" }}>
+          <a href={ev.undanganFile} target="_blank" rel="noopener noreferrer"
+            onClick={() => setCentang(p => new Set(p).add("undangan"))}
+            style={{ flex:1, minWidth:130, padding:"8px", borderRadius:8, border:"none",
+              background:"#0284c7", color:"white", textDecoration:"none", textAlign:"center",
+              fontSize:12, fontWeight:700 }}>📄 Lihat Undangan</a>
+          <a href={ev.undanganFile} download={ev.undanganNama || "undangan"}
+            style={{ flex:1, minWidth:105, padding:"8px", borderRadius:8, border:"1.5px solid #0284c7",
+              background:"white", color:"#0284c7", textDecoration:"none", textAlign:"center",
+              fontSize:12, fontWeight:700 }}>⬇ Unduh</a>
+        </div>
+      )}
+
+      {bentrok && (
+        <div style={{ background:"#FEF2F2", border:"1.5px solid #FCA5A5", color:"#991B1B",
+          borderRadius:9, padding:"8px 11px", marginBottom:9, fontSize:12, fontWeight:600, lineHeight:1.55 }}>
+          ⚡ Jadwal ini beririsan waktu dengan agenda pimpinan lain pada hari yang sama.
+        </div>
+      )}
+
+      <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+        {butir.map(b => {
+          const ok = centang.has(b.k);
+          const terkunci = b.auto === "otomatis";
+          return (
+            <label key={b.k}
+              onClick={(e) => { if (terkunci) e.preventDefault(); }}
+              style={{ display:"flex", gap:9, alignItems:"flex-start",
+                cursor: terkunci ? "default" : "pointer", opacity: terkunci ? .75 : 1 }}>
+              <input type="checkbox" checked={ok} readOnly={terkunci}
+                onChange={() => { if (!terkunci) alih(b.k); }}
+                style={{ width:17, height:17, marginTop:1, flexShrink:0, accentColor:"#0D6B4F" }}/>
+              <span style={{ fontSize:12.5, lineHeight:1.5,
+                color: ok ? (b.awas ? "#92400E" : "#0F172A") : "#64748B",
+                fontWeight: ok ? 600 : 400 }}>
+                {b.l}
+                {b.auto === "klik" && !ok && <span style={{ color:"#94A3B8" }}> — tercentang saat undangan dibuka</span>}
+                {terkunci && <span style={{ color:"#94A3B8" }}> — diperiksa aplikasi</span>}
+              </span>
+            </label>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ==================== APPROVAL QUEUE VIEW (Kasubbag / Kabag) ====================
 function ApprovalQueueView({events,role,user,upd,showT,askConfirm,isMobile}){
   const NAVY="#0A1628",GOLD="#C9A84C";
+  // Per jadwal, sebab layar ini menampilkan seluruh kartu antrian sekaligus
+  // dengan zona aksinya masing-masing.
+  const[periksa,setPeriksa]=React.useState({});
+  const setP=(id,v)=>setPeriksa(p=>(p[id]&&p[id].siap===v.siap&&p[id].ringkasan===v.ringkasan)?p:{...p,[id]:v});
   const[rejectTexts,setRT]=React.useState({});
   // busyId: id event yang sedang diproses (anti dobel-klik untuk Verifikasi/Publikasi)
   const[busyId,setBusy]=React.useState(null);
@@ -3235,8 +3364,7 @@ function ApprovalQueueView({events,role,user,upd,showT,askConfirm,isMobile}){
             {ev.submittedBy&&<span style={{fontSize:12,color:"#94A3B8"}}>· Diajukan: {getNamaByUsername(ev.submittedBy)}</span>}
           </div>
           {/* Berkas — Undangan & Sambutan */}
-          {(ev.undanganFile||ev.sambutanFile)&&<div style={{display:"flex",gap:7,marginBottom:12,flexWrap:"wrap"}}>
-            {ev.undanganFile&&<a href={ev.undanganFile} target="_blank" rel="noopener noreferrer" style={{flex:1,minWidth:140,display:"flex",alignItems:"center",justifyContent:"center",gap:6,padding:"9px",borderRadius:8,border:"none",background:"#0284c7",color:"white",textDecoration:"none",textAlign:"center",fontSize:12,fontWeight:700}}>📄 Lihat Undangan</a>}
+          {ev.sambutanFile&&<div style={{display:"flex",gap:7,marginBottom:12,flexWrap:"wrap"}}>
             {ev.sambutanFile&&<a href={ev.sambutanFile} target="_blank" rel="noopener noreferrer" style={{flex:1,minWidth:140,display:"flex",alignItems:"center",justifyContent:"center",gap:6,padding:"9px",borderRadius:8,border:"none",background:"#0D6B4F",color:"white",textDecoration:"none",textAlign:"center",fontSize:12,fontWeight:700}}>📝 Lihat Sambutan</a>}
           </div>}
           {/* Catatan recall */}
@@ -3255,33 +3383,35 @@ function ApprovalQueueView({events,role,user,upd,showT,askConfirm,isMobile}){
           {!bolehMemutus(user,ev)?<div style={{background:"#FFFBEB",border:"1.5px solid #FCD34D",borderRadius:9,padding:"10px 13px",fontSize:12,color:"#78350F",lineHeight:1.6}}>
             🛡️ Jadwal ini Anda sendiri yang mengajukan. Selama bertindak sebagai PLH, pengajuan dan pemeriksaan tidak boleh berada pada satu orang. Mintakan kepada Kabag — beliau dapat mengambil alih tahap ini.
           </div>:<>
+          <DaftarPeriksa ev={ev} tahap={isKasubbag?"kasubbag":"kabag"} events={events}
+            onBerubah={v=>setP(ev.id,v)}/>
           <LocalTextarea evId={ev.id} placeholder="Catatan (wajib diisi bila mengembalikan ke staf)..." rows={2} onCommit={(id,v)=>setRT(p=>({...p,[id]:v}))}/>
           <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
             <button onClick={()=>askConfirm("Kembalikan untuk Diperbaiki?","Jadwal dikembalikan ke Admin RK dengan catatan di atas. Admin RK dapat mengedit ulang dan mengajukan kembali — tidak perlu input dari awal.",()=>{upd(ev.id,{alur:"ditolak",catatanTolak:rejectTexts[ev.id]||"Perlu perbaikan",_requiresEdit:true});showT("Dikembalikan ke Admin RK untuk diperbaiki","warn");const _ur=loadUsers().find(u=>u.username===ev.submittedBy);if(_ur?.noWA)sendWA({to:_ur.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,penyelenggara:ev.penyelenggara,event:"rejected",catatanTolak:rejectTexts[ev.id]||"",submittedBy:getNamaByUsername(ev.submittedBy)});sendPush({targetUser:ev.submittedBy,title:"↩ Jadwal Perlu Diperbaiki",body:ev.namaAcara+": "+(rejectTexts[ev.id]||"Perlu diperbaiki"),url:"/",tag:"rejected-"+ev.id});},"Ya, Kembalikan","#92400E")}
               style={{flex:1,padding:"10px 14px",borderRadius:10,border:"1.5px solid #D97706",background:"#FFFBEB",color:"#92400E",cursor:"pointer",fontSize:12,fontWeight:700}}>
               ↩ Kembalikan untuk Diperbaiki
             </button>
-            {isKasubbag&&<button disabled={busyId===ev.id} onClick={()=>askConfirm(
+            {isKasubbag&&<button disabled={busyId===ev.id||!periksa[ev.id]?.siap} onClick={()=>askConfirm(
               "Verifikasi & Teruskan ke Kabag?",
               "Jadwal '"+ev.namaAcara+"' akan diteruskan ke Kabag Prokopim untuk persetujuan akhir. Pastikan dokumen undangan, lokasi, dan pakaian sudah benar — Anda tetap bisa menarik kembali sebelum Kabag memproses.",
               ()=>{
                 if(busyId===ev.id)return;setBusy(ev.id);
-                upd(ev.id,{alur:"menunggu_kabag",_kabagRecall:false});showT("Diteruskan ke Kabag ✓","ok");
+                upd(ev.id,{alur:"menunggu_kabag",_kabagRecall:false,_periksa:periksa[ev.id]?.ringkasan});showT("Diteruskan ke Kabag ✓","ok");
                 loadUsers().filter(u=>u.role==="kabag"&&u.noWA).forEach(u=>sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"kasubbag_approve"}));
                 sendPush({targetRole:"kabag",title:"✅ Menunggu Persetujuan Anda",body:ev.namaAcara+" — "+fmtJamWita(ev),url:"/",tag:"approve-"+ev.id});
                 setTimeout(()=>setBusy(null),1500);
               },
               "Ya, Teruskan","#0A1628"
             )}
-              style={{flex:2,padding:"10px 14px",borderRadius:10,border:"none",background:busyId===ev.id?"#94A3B8":"#0A1628",color:"white",cursor:busyId===ev.id?"default":"pointer",fontSize:12,fontWeight:800,opacity:busyId===ev.id?0.7:1}}>
-              {busyId===ev.id?"Memproses…":"✅ Verifikasi & Teruskan ke Kabag →"}
+              style={{flex:2,padding:"10px 14px",borderRadius:10,border:"none",background:(busyId===ev.id||!periksa[ev.id]?.siap)?"#94A3B8":"#0A1628",color:"white",cursor:busyId===ev.id?"default":"pointer",fontSize:12,fontWeight:800,opacity:busyId===ev.id?0.7:1}}>
+              {busyId===ev.id?"Memproses…":periksa[ev.id]?.siap?"✅ Verifikasi & Teruskan ke Kabag →":"Lengkapi daftar periksa di atas"}
             </button>}
-            {!isKasubbag&&<button disabled={busyId===ev.id} onClick={()=>askConfirm(
+            {!isKasubbag&&<button disabled={busyId===ev.id||!periksa[ev.id]?.siap} onClick={()=>askConfirm(
               "Setujui & Tayangkan ke Pimpinan?",
               "Jadwal '"+ev.namaAcara+"' akan langsung TAYANG di dashboard Wali Kota / Wakil dan notifikasi WhatsApp dikirim ke Ajudan. Pastikan data sudah benar — Anda masih bisa menarik kembali dari menu 'Riwayat Terkini'.",
               ()=>{
                 if(busyId===ev.id)return;setBusy(ev.id);
-                upd(ev.id,{alur:"disetujui"});showT("Jadwal disetujui & tayang!","ok");
+                upd(ev.id,{alur:"disetujui",_periksa:periksa[ev.id]?.ringkasan});showT("Jadwal disetujui & tayang!","ok");
                 const _u=loadUsers().find(u=>u.username===ev.submittedBy);
                 if(_u?.noWA)sendWA({to:_u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"approved",submittedBy:getNamaByUsername(ev.submittedBy)});
                 sendPush({targetUser:ev.submittedBy,title:"✅ Jadwal Disetujui",body:ev.namaAcara+" sudah dipublikasi",url:"/",tag:"approved-"+ev.id});
@@ -3290,8 +3420,8 @@ function ApprovalQueueView({events,role,user,upd,showT,askConfirm,isMobile}){
               },
               "Ya, Tayangkan Sekarang","#059669"
             )}
-              style={{flex:2,padding:"10px 14px",borderRadius:10,border:"none",background:busyId===ev.id?"#94A3B8":"#059669",color:"white",cursor:busyId===ev.id?"default":"pointer",fontSize:13,fontWeight:800,opacity:busyId===ev.id?0.7:1}}>
-              {busyId===ev.id?"Memproses…":"✅ Setujui & Publikasi"}
+              style={{flex:2,padding:"10px 14px",borderRadius:10,border:"none",background:(busyId===ev.id||!periksa[ev.id]?.siap)?"#94A3B8":"#059669",color:"white",cursor:busyId===ev.id?"default":"pointer",fontSize:13,fontWeight:800,opacity:busyId===ev.id?0.7:1}}>
+              {busyId===ev.id?"Memproses…":periksa[ev.id]?.siap?"✅ Setujui & Publikasi":"Lengkapi daftar periksa di atas"}
             </button>}
           </div>
           </>}
@@ -6132,7 +6262,9 @@ function UsulanEditKabag({ev,upd,showT,askConfirm,rejectTexts,setRT,user}){
 }
 
 function ExpandedDetail({ev,hariEv}){
-  const {role,user,isMobile,handleUndanganUpload,handleSambutanDocx,handleSambutanUpload,commitSambutan,discardSambutan,updAndSync,storageDelete,showT,upd,setDelegTarget,setTab,setForm,setEditId,setUsulanMode,setPenugasanEv,setEvaluasiEv,rejectTexts,setRT,askConfirm,deleteAndSync,makeICS,getNamaByUsername,setExp}=React.useContext(AppCtx);
+  const [periksa,setPeriksa]=React.useState({siap:false,ringkasan:""});
+  const simpanPeriksa=(v)=>setPeriksa(p=>(p.siap===v.siap&&p.ringkasan===v.ringkasan)?p:v);
+  const {role,user,isMobile,events,handleUndanganUpload,handleSambutanDocx,handleSambutanUpload,commitSambutan,discardSambutan,updAndSync,storageDelete,showT,upd,setDelegTarget,setTab,setForm,setEditId,setUsulanMode,setPenugasanEv,setEvaluasiEv,rejectTexts,setRT,askConfirm,deleteAndSync,makeICS,getNamaByUsername,setExp}=React.useContext(AppCtx);
   // Membuka form dalam mode usulan, terisi nilai jadwal yang sedang tayang.
   const bukaUsulanEdit=()=>{
     setForm({tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai||"",namaAcara:ev.namaAcara,
@@ -6408,19 +6540,20 @@ function ExpandedDetail({ev,hariEv}){
           🛡️ Jadwal ini Anda sendiri yang mengajukan. Selama bertindak sebagai PLH, pengajuan dan pemeriksaan tidak boleh berada pada satu orang. Mintakan kepada Kabag — beliau dapat mengambil alih tahap ini.
         </div>}
       {ev.alur==="menunggu_kasubbag"&&!ev.alurHapus&&bolehMemutus(user,ev)&&<>
+        <DaftarPeriksa ev={ev} tahap="kasubbag" events={events} onBerubah={simpanPeriksa}/>
         {/* PRIMARY */}
-        <button onClick={()=>askConfirm(
+        <button disabled={!periksa.siap} onClick={()=>askConfirm(
           "Verifikasi & Teruskan ke Kabag?",
           "Jadwal '"+ev.namaAcara+"' akan diteruskan ke Kabag Prokopim untuk persetujuan akhir. Pastikan dokumen undangan, lokasi, dan pakaian sudah benar.",
           ()=>{
-            upd(ev.id,{alur:"menunggu_kabag"});showT("Diteruskan ke Kabag ✓","ok");
+            upd(ev.id,{alur:"menunggu_kabag",_periksa:periksa.ringkasan});showT("Diteruskan ke Kabag ✓","ok");
             loadUsers().filter(u=>u.role==="kabag"&&u.noWA).forEach(u=>sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"kasubbag_approve"}));
             sendPush({targetRole:"kabag",title:"✅ Menunggu Persetujuan Anda",body:ev.namaAcara+" — "+fmtJamWita(ev),url:"/",tag:"approve-"+ev.id});
           },
           "Ya, Teruskan","#10B981"
         )}
-          style={{width:"100%",padding:"13px",borderRadius:10,border:"none",background:"#10B981",color:"white",cursor:"pointer",fontSize:13,fontWeight:800,boxShadow:"0 4px 12px rgba(16,185,129,0.3)"}}>
-          ✅ Verifikasi & Teruskan ke Kabag
+          style={{width:"100%",padding:"13px",borderRadius:10,border:"none",background:periksa.siap?"#10B981":"#94A3B8",color:"white",cursor:periksa.siap?"pointer":"not-allowed",fontSize:13,fontWeight:800,boxShadow:periksa.siap?"0 4px 12px rgba(16,185,129,0.3)":"none"}}>
+          {periksa.siap?"✅ Verifikasi & Teruskan ke Kabag":"Lengkapi daftar periksa di atas"}
         </button>
         {/* DESTRUCTIVE — dipisah garis */}
         <div style={{display:"flex",alignItems:"center",gap:8,margin:"2px 0"}}>
@@ -6510,11 +6643,12 @@ function ExpandedDetail({ev,hariEv}){
     {/* KABAG */}
     {role==="kabag"&&<div style={{display:"flex",flexDirection:"column",gap:7}}>
       {ev.alur==="menunggu_kabag"&&!ev.alurHapus&&<>
+        <DaftarPeriksa ev={ev} tahap="kabag" events={events} onBerubah={simpanPeriksa}/>
         {/* PRIMARY */}
-        <button onClick={()=>{upd(ev.id,{alur:"disetujui"});showT("Jadwal disetujui & dipublikasi");
+        <button disabled={!periksa.siap} onClick={()=>{upd(ev.id,{alur:"disetujui",_periksa:periksa.ringkasan});showT("Jadwal disetujui & dipublikasi");
           {const _u=loadUsers().find(u=>u.username===ev.submittedBy);if(_u?.noWA)sendWA({to:_u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"approved",submittedBy:getNamaByUsername(ev.submittedBy)});}sendPush({targetUser:ev.submittedBy,title:"✅ Jadwal Disetujui",body:ev.namaAcara+" sudah dipublikasi",url:"/",tag:"approved-"+ev.id});loadUsers().filter(u=>(u.role==="ajudan_walikota"||u.role==="ajudan_wakilwalikota")&&u.noWA).forEach(u=>{const isWK=u.role==="ajudan_walikota"&&(ev.untukPimpinan||[]).includes("walikota");const isWWK=u.role==="ajudan_wakilwalikota"&&((ev.untukPimpinan||[]).includes("wakilwalikota")||ev.delegasiKeWWK);if(isWK||isWWK)sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"approved"});});}}
-          style={{width:"100%",padding:"13px",borderRadius:10,border:"none",background:NAVY,color:"white",cursor:"pointer",fontSize:14,fontWeight:800,boxShadow:"0 4px 14px rgba(10,22,40,0.3)"}}>
-          ✅ Setujui & Publikasi
+          style={{width:"100%",padding:"13px",borderRadius:10,border:"none",background:periksa.siap?NAVY:"#94A3B8",color:"white",cursor:periksa.siap?"pointer":"not-allowed",fontSize:14,fontWeight:800,boxShadow:periksa.siap?"0 4px 14px rgba(10,22,40,0.3)":"none"}}>
+          {periksa.siap?"✅ Setujui & Publikasi":"Lengkapi daftar periksa di atas"}
         </button>
         {/* DESTRUCTIVE — dipisah garis */}
         <div style={{display:"flex",alignItems:"center",gap:8,margin:"2px 0"}}>
@@ -7649,8 +7783,8 @@ export default function App(){
       // sudah tersalin ke timeline, jadi tidak perlu ikut menempel selamanya
       // pada data jadwal. Medan berawalan garis bawah lain (mis. _requiresEdit)
       // memang disimpan dengan sengaja, sehingga yang dibuang hanya yang ini.
-      if("_alasanAkhirPekan" in finalPatch){
-        const{_alasanAkhirPekan,...bersih}=finalPatch;
+      if("_alasanAkhirPekan" in finalPatch||"_periksa" in finalPatch){
+        const{_alasanAkhirPekan,_periksa,...bersih}=finalPatch;
         finalPatch=bersih;
       }
       const next=p.map(e=>e.id===id?{...e,...finalPatch}:e);
@@ -9980,6 +10114,7 @@ function KabagDashboard({events, user, upd, showT, askConfirm, deleteAndSync, is
 
   const AntrianCard=({ev})=>{
     const exp=expandedId===ev.id;
+    const [periksa,setPeriksa]=useState({siap:false,ringkasan:""});
     const ALUR_STEPS=[
       {key:"draft",            label:"Draft",    color:"#94A3B8"},
       {key:"menunggu_kasubbag",label:"Kasubbag", color:"#3B82F6"},
@@ -10028,21 +10163,6 @@ function KabagDashboard({events, user, upd, showT, askConfirm, deleteAndSync, is
               <span style={{fontSize:12,color:"#1E293B",flex:1}}>{f.v}</span>
             </div>
           ))}
-          {/* Berkas undangan — bahan utama pemeriksaan sebelum memutus */}
-          {ev.undanganFile
-            ? <div style={{display:"flex",gap:7,margin:"8px 0 10px",flexWrap:"wrap"}}>
-                <a href={ev.undanganFile} target="_blank" rel="noopener noreferrer"
-                  style={{flex:1,minWidth:130,padding:"8px",borderRadius:8,border:"none",background:"#0284c7",
-                    color:"white",textDecoration:"none",textAlign:"center",fontSize:12,fontWeight:700}}>📄 Lihat Undangan</a>
-                <a href={ev.undanganFile} download={ev.undanganNama||"undangan"}
-                  style={{flex:1,minWidth:110,padding:"8px",borderRadius:8,border:"1.5px solid #0284c7",
-                    background:"white",color:"#0284c7",textDecoration:"none",textAlign:"center",fontSize:12,fontWeight:700}}>⬇ Unduh</a>
-              </div>
-            : <div style={{margin:"8px 0 10px",padding:"8px 11px",borderRadius:8,background:"#FFFBEB",
-                border:"1px solid #FDE68A",fontSize:12,color:"#92400E",fontWeight:600}}>
-                ⚠️ Berkas undangan belum dilampirkan
-              </div>}
-
           {/* Keterangan beserta istri */}
           {(ev.besertaIstriWK||ev.besertaIstriWWK)&&<div style={{display:"flex",gap:6,marginTop:4,marginBottom:6,flexWrap:"wrap"}}>
             {ev.besertaIstriWK&&<span title="Wali Kota hadir bersama istri" style={{fontSize:13,padding:"2px 8px",borderRadius:10,background:"#F1F5F9",border:"1px solid #CBD5E1",color:"#334155",fontWeight:600}}>Wali Kota beserta Istri</span>}
@@ -10050,14 +10170,16 @@ function KabagDashboard({events, user, upd, showT, askConfirm, deleteAndSync, is
           </div>}
           {/* Riwayat alur (audit) */}
           <div style={{marginTop:10,marginBottom:6}}><AuditTimeline ev={ev} compact/></div>
+          <DaftarPeriksa ev={ev} tahap="kabag" events={events}
+            onBerubah={v=>setPeriksa(p=>(p.siap===v.siap&&p.ringkasan===v.ringkasan)?p:v)}/>
           {/* Aksi */}
           <div style={{marginTop:12,display:"flex",flexDirection:"column",gap:8}}>
-            <button disabled={busyId===ev.id} onClick={()=>askConfirm(
+            <button disabled={busyId===ev.id||!periksa.siap} onClick={()=>askConfirm(
               "Setujui & Tayangkan ke Pimpinan?",
               "Jadwal '"+ev.namaAcara+"' akan langsung TAYANG di dashboard Wali Kota / Wakil dan notifikasi WhatsApp dikirim ke Ajudan. Pastikan data sudah benar — Anda masih bisa menarik kembali dari tab 'Jadwal & Penugasan'.",
               ()=>{
                 if(busyId===ev.id)return;setBusyId(ev.id);
-                upd(ev.id,{alur:"disetujui"});showT("Jadwal disetujui & dipublikasi");
+                upd(ev.id,{alur:"disetujui",_periksa:periksa.ringkasan});showT("Jadwal disetujui & dipublikasi");
                 const u=loadUsers().find(x=>x.username===ev.submittedBy);
                 if(u?.noWA)sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"approved",submittedBy:getNamaByUsername(ev.submittedBy)});
                 sendPush({targetUser:ev.submittedBy,title:"✅ Jadwal Disetujui",body:ev.namaAcara+" sudah dipublikasi",url:"/",tag:"approved-"+ev.id});
@@ -10067,8 +10189,8 @@ function KabagDashboard({events, user, upd, showT, askConfirm, deleteAndSync, is
               },
               "Ya, Tayangkan Sekarang","#0D6B4F"
             )}
-              style={{width:"100%",padding:"12px",borderRadius:10,border:"none",background:busyId===ev.id?"#94A3B8":NAVY,color:"white",cursor:busyId===ev.id?"default":"pointer",fontSize:13,fontWeight:800,opacity:busyId===ev.id?0.7:1}}>
-              {busyId===ev.id?"Memproses…":"✅ Setujui & Publikasi"}
+              style={{width:"100%",padding:"12px",borderRadius:10,border:"none",background:(busyId===ev.id||!periksa.siap)?"#94A3B8":NAVY,color:"white",cursor:busyId===ev.id?"default":"pointer",fontSize:13,fontWeight:800,opacity:busyId===ev.id?0.7:1}}>
+              {busyId===ev.id?"Memproses…":periksa.siap?"✅ Setujui & Publikasi":"Lengkapi daftar periksa di atas"}
             </button>
             <div style={{borderRadius:10,overflow:"hidden",border:"1.5px solid #FECACA"}}>
               <RejectTextarea evId={ev.id} placeholder="Catatan penolakan..." rows={2}
@@ -10437,6 +10559,7 @@ function KasubbagDashboard({events, user, upd, showT, askConfirm, isMobile, onPe
 
   const AntrianCard=({ev})=>{
     const exp=expandedId===ev.id;
+    const [periksa,setPeriksa]=useState({siap:false,ringkasan:""});
     return(
       <div style={{background:"white",borderRadius:14,marginBottom:10,overflow:"hidden",border:"1.5px solid #DBEAFE",boxShadow:"0 2px 8px rgba(10,22,40,0.06)"}}>
         <div style={{padding:"13px 16px",cursor:"pointer",display:"flex",gap:12,alignItems:"flex-start"}} onClick={()=>setExpanded(exp?null:ev.id)}>
@@ -10475,20 +10598,6 @@ function KasubbagDashboard({events, user, upd, showT, askConfirm, isMobile, onPe
             ))}
           </div>
 
-          {ev.undanganFile
-            ? <div style={{display:"flex",gap:7,marginBottom:10,flexWrap:"wrap"}}>
-                <a href={ev.undanganFile} target="_blank" rel="noopener noreferrer"
-                  style={{flex:1,minWidth:130,padding:"8px",borderRadius:8,border:"none",background:"#0284c7",
-                    color:"white",textDecoration:"none",textAlign:"center",fontSize:12,fontWeight:700}}>📄 Lihat Undangan</a>
-                <a href={ev.undanganFile} download={ev.undanganNama||"undangan"}
-                  style={{flex:1,minWidth:110,padding:"8px",borderRadius:8,border:"1.5px solid #0284c7",
-                    background:"white",color:"#0284c7",textDecoration:"none",textAlign:"center",fontSize:12,fontWeight:700}}>⬇ Unduh</a>
-              </div>
-            : <div style={{marginBottom:10,padding:"8px 11px",borderRadius:8,background:"#FFFBEB",
-                border:"1px solid #FDE68A",fontSize:12,color:"#92400E",fontWeight:600}}>
-                ⚠️ Berkas undangan belum dilampirkan
-              </div>}
-
           {ev._kabagRecall&&<div style={{background:"#FEF2F2",border:"1.5px solid #FECACA",borderRadius:9,padding:"9px 12px",marginBottom:10,fontSize:12,color:"#991B1B",fontWeight:600}}>
   ↩ Jadwal ini ditarik Kabag — periksa, edit, atau ajukan ulang
   {ev.catatanKabag&&<div style={{marginTop:6,padding:"6px 10px",background:"white",borderRadius:7,border:"1px solid #FECACA",fontSize:12,color:"#7C2D12",fontWeight:500,lineHeight:1.5}}>
@@ -10497,23 +10606,25 @@ function KasubbagDashboard({events, user, upd, showT, askConfirm, isMobile, onPe
 </div>}
           {/* Riwayat alur (audit) */}
           <div style={{marginTop:8,marginBottom:10}}><AuditTimeline ev={ev} compact/></div>
+          {bolehMemutus(user,ev)&&<DaftarPeriksa ev={ev} tahap="kasubbag" events={events}
+            onBerubah={v=>setPeriksa(p=>(p.siap===v.siap&&p.ringkasan===v.ringkasan)?p:v)}/>}
           {!bolehMemutus(user,ev)?<div style={{background:"#FFFBEB",border:"1.5px solid #FCD34D",borderRadius:9,padding:"10px 13px",fontSize:12,color:"#78350F",lineHeight:1.6}}>
             🛡️ Jadwal ini Anda sendiri yang mengajukan. Selama bertindak sebagai PLH, pengajuan dan pemeriksaan tidak boleh berada pada satu orang. Mintakan kepada Kabag — beliau dapat mengambil alih tahap ini.
           </div>:
           <div style={{display:"flex",flexDirection:"column",gap:8}}>
-            <button onClick={()=>askConfirm(
+            <button disabled={!periksa.siap} onClick={()=>askConfirm(
               "Verifikasi & Teruskan ke Kabag?",
               "Jadwal '"+ev.namaAcara+"' akan diteruskan ke Kabag Prokopim untuk persetujuan akhir. Pastikan dokumen undangan, lokasi, dan pakaian sudah benar.",
               ()=>{
-                upd(ev.id,{alur:"menunggu_kabag",_kabagRecall:false});showT("Diteruskan ke Kabag ✓","ok");
+                upd(ev.id,{alur:"menunggu_kabag",_kabagRecall:false,_periksa:periksa.ringkasan});showT("Diteruskan ke Kabag ✓","ok");
                 loadUsers().filter(u=>u.role==="kabag"&&u.noWA).forEach(u=>sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"kasubbag_approve"}));
                 sendPush({targetRole:"kabag",title:"✅ Menunggu Persetujuan Anda",body:ev.namaAcara+" — "+fmtJamWita(ev),url:"/",tag:"approve-"+ev.id});
                 setExpanded(null);
               },
               "Ya, Teruskan",GREEN
             )}
-              style={{width:"100%",padding:"12px",borderRadius:10,border:"none",background:GREEN,color:"white",cursor:"pointer",fontSize:13,fontWeight:800}}>
-              ✅ Verifikasi & Teruskan ke Kabag
+              style={{width:"100%",padding:"12px",borderRadius:10,border:"none",background:periksa.siap?GREEN:"#94A3B8",color:"white",cursor:periksa.siap?"pointer":"not-allowed",fontSize:13,fontWeight:800}}>
+              {periksa.siap?"✅ Verifikasi & Teruskan ke Kabag":"Lengkapi daftar periksa di atas"}
             </button>
             <div style={{borderRadius:10,overflow:"hidden",border:"1.5px solid #FECACA"}}>
               <LocalRejectTA evId={ev.id} onCommit={(id,v)=>setRT(p=>({...p,[id]:v}))}/>
@@ -11832,7 +11943,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
 
   // ── AppCtx value ──
   const _ctxValue={
-    expandedId,setExp,role,user,isMobile,
+    expandedId,setExp,role,user,isMobile,events,
     getHari,fmt,fmtShort,todayStr,
     handleUndanganUpload,handleSambutanDocx,handleSambutanUpload,commitSambutan,discardSambutan,updAndSync,storageDelete,
     showT,upd,setDelegTarget,setTab,setForm,setEditId,setUsulanMode,setPenugasanEv,setEvaluasiEv,
