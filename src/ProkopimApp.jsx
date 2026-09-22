@@ -21,6 +21,7 @@ const PlhManagement = React.lazy(() => import("./components/PlhManagement.jsx"))
 import { clearAdminToken } from "./roomAuth";
 import { JADWAL_STATUS } from "./lib/statusColors.js";
 import { peranEfektif, plhAktif, punyaPeran, jejakPlh, bolehMemutus, LABEL_PERAN } from "./lib/plh.js";
+import { umurUsulan, bandingUsulan } from "./lib/usulan.js";
 
 // ═══════════════════════════════════════════════════════
 // PENDAFTARAN AKUN (Register → Menunggu Persetujuan Kabag)
@@ -928,6 +929,22 @@ function buangBerkasUsulan(url,masihDipakai){
   if(!url||url===masihDipakai)return;
   if(typeof url!=="string"||!url.includes("supabase.co"))return;
   storageDelete("undangan",url).catch(e=>console.warn("Sisa berkas undangan:",e?.message||e));
+}
+
+/**
+ * Lencana umur usulan perubahan — aturannya di `src/lib/usulan.js`.
+ * Tidak menghasilkan apa pun bila belum perlu ditandai.
+ */
+function UmurUsulan({ev,rapat}){
+  const u=umurUsulan(ev);
+  if(!u)return null;
+  const ikon=u.tingkat==="merah"?"⏰":u.tingkat==="kuning"?"⏳":"\u{1f5c3}";
+  return <div style={{display:"inline-flex",alignItems:"center",gap:6,
+    background:u.bg,border:"1.5px solid "+u.garis,color:u.warna,
+    borderRadius:8,padding:rapat?"5px 10px":"4px 10px",
+    fontSize:rapat?11.5:12,fontWeight:700,lineHeight:1.45,marginTop:rapat?0:5}}>
+    <span aria-hidden="true">{ikon}</span><span>{u.label}</span>
+  </div>;
 }
 
 // Kartu perbandingan "nilai lama → nilai baru" untuk peninjau.
@@ -6520,6 +6537,7 @@ function ExpandedDetail({ev,hariEv}){
             ?"⏳ Usulan perubahan menunggu review Kasubbag Protokol"
             :"⏳ Usulan perubahan menunggu persetujuan Kabag"}
         </div>
+        <UmurUsulan ev={ev} rapat/>
         <DiffUsulan ev={ev} rapat/>
       </div>}
 
@@ -10087,7 +10105,7 @@ function KabagDashboard({events, user, upd, showT, askConfirm, deleteAndSync, is
 
   const antrian=events.filter(e=>e.alur==="menunggu_kabag"&&!e.alurHapus).sort((a,b)=>(a.tanggal+a.jam).localeCompare(b.tanggal+b.jam));
   const permintaanBatal=events.filter(e=>e.alurHapus==="menunggu_kabag");
-  const usulanPerubahan=events.filter(e=>e.alurEdit==="menunggu_kabag").sort((a,b)=>(a.tanggal+a.jam).localeCompare(b.tanggal+b.jam));
+  const usulanPerubahan=events.filter(e=>e.alurEdit==="menunggu_kabag").sort(bandingUsulan);
   const approved=events.filter(e=>e.alur==="disetujui").sort((a,b)=>(a.tanggal+a.jam).localeCompare(b.tanggal+b.jam));
 
   // Pisah: mendatang (belum berlangsung) vs riwayat (sudah berlangsung)
@@ -10455,6 +10473,7 @@ function KabagDashboard({events, user, upd, showT, askConfirm, deleteAndSync, is
                   <div style={{fontSize:13,fontWeight:800,color:"#1D4ED8"}}>{ev.namaAcara}</div>
                   <div style={{fontSize:13,color:"#64748B",marginTop:2}}>🕐 {fmtJam(ev)} · 📅 {fmt(ev.tanggal)}</div>
                   <div style={{fontSize:13,color:"#94A3B8",marginTop:1}}>Diusulkan oleh: {getNamaByUsername(ev.usulanEditOleh||ev.submittedBy)}</div>
+                  <UmurUsulan ev={ev}/>
                 </div>
                 <div style={{padding:"12px 14px"}}>
                   <UsulanEditKabag ev={ev} upd={upd} showT={showT} askConfirm={askConfirm} rejectTexts={rejectTexts} setRT={setRT} user={user}/>
@@ -10538,7 +10557,7 @@ function KasubbagDashboard({events, user, upd, showT, askConfirm, isMobile, onPe
 
   const antrian=events.filter(e=>e.alur==="menunggu_kasubbag"&&!e.alurHapus).sort((a,b)=>(a.tanggal+a.jam).localeCompare(b.tanggal+b.jam));
   // Usulan perubahan jadwal terbit — hanya ditinjau Kasubbag Protokol
-  const usulanUbah=isProto?events.filter(e=>e.alurEdit==="menunggu_kasubbag").sort((a,b)=>(a.tanggal+a.jam).localeCompare(b.tanggal+b.jam)):[];
+  const usulanUbah=isProto?events.filter(e=>e.alurEdit==="menunggu_kasubbag").sort(bandingUsulan):[];
   const approved=events.filter(e=>e.alur==="disetujui").sort((a,b)=>(a.tanggal+a.jam).localeCompare(b.tanggal+b.jam));
 
   // Penugasan per staf
@@ -10749,6 +10768,8 @@ function KasubbagDashboard({events, user, upd, showT, askConfirm, isMobile, onPe
                 <div style={{background:"#EFF6FF",padding:"10px 14px",borderBottom:"1px solid #BFDBFE"}}>
                   <div style={{fontSize:13,fontWeight:800,color:"#1D4ED8"}}>{ev.namaAcara}</div>
                   <div style={{fontSize:13,color:"#64748B",marginTop:2}}>🕐 {fmtJam(ev)} · 📅 {fmt(ev.tanggal)}</div>
+                  <div style={{fontSize:13,color:"#94A3B8",marginTop:1}}>Diusulkan oleh: {getNamaByUsername(ev.usulanEditOleh||ev.submittedBy)}</div>
+                  <UmurUsulan ev={ev}/>
                 </div>
                 <div style={{padding:"12px 14px"}}>
                   <UsulanEditKasubbag ev={ev} upd={upd} showT={showT} askConfirm={askConfirm} rejectTexts={rejectTexts} setRT={setRT} user={user}/>
