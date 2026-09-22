@@ -621,33 +621,65 @@ const forDB=ev=>{const d={...ev};if(d.sambutanFile?.startsWith("data:"))d.sambut
 let _adaUpdatedAt=null;
 let _sinkronTerakhir=null;
 
+// ── Pengambilan berhalaman ───────────────────────────────────
+//
+// Supabase memasang batas "Max rows" pada API-nya (bawaannya 1000). Permintaan
+// tanpa halaman TIDAK menghasilkan galat bila melewatinya — ia hanya
+// mengembalikan sebagian, diam-diam. Karena `id` jadwal berasal dari
+// `Date.now()` dan urutannya menaik, yang terpotong justru jadwal PALING BARU:
+// gejalanya jadwal atau usulan yang baru dibuat seperti tidak pernah ada,
+// sementara yang lama baik-baik saja. Tidak ada pesan galat sama sekali.
+//
+// Karena itu seluruh isi tabel diambil per halaman sampai halaman kosong.
+// Berhenti pada halaman yang "kurang dari yang diminta" tidak cukup: bila
+// batas peladen lebih kecil daripada ukuran halaman kita, potongannya justru
+// tidak terdeteksi. Satu permintaan tambahan di akhir jauh lebih murah
+// daripada data yang hilang tanpa disadari.
+const HAL_JADWAL=1000;
+async function ambilHalaman(kueri){
+  const out=[];
+  for(let dari=0;;){
+    const r=await fetch(SUPA_URL+"/rest/v1/jadwal?"+kueri+"&limit="+HAL_JADWAL+"&offset="+dari,{headers:H()});
+    if(!r.ok)return {ok:false,res:r};
+    const rows=await r.json();
+    out.push(...rows);
+    if(rows.length===0)break;
+    dari+=rows.length;
+    if(dari>100000){console.warn("dbLoadAll: berhenti pada 100.000 baris");break;}
+  }
+  return {ok:true,rows:out};
+}
+
 async function dbLoadAll(){
   if(!SUPA_OK)return null;
   // Sekalian ambil updated_at supaya polling berikutnya bisa bertahap.
   // Bila migrasi belum dijalankan, PostgREST membalas 400 → pakai cara lama.
   if(_adaUpdatedAt!==false){
-    const r=await fetch(SUPA_URL+"/rest/v1/jadwal?select=data,updated_at&order=id",{headers:H()});
-    if(r.ok){
+    const h=await ambilHalaman("select=data,updated_at&order=id");
+    if(h.ok){
       _adaUpdatedAt=true;
-      const rows=await r.json();
-      _sinkronTerakhir=rows.reduce((m,x)=>(x.updated_at&&x.updated_at>m?x.updated_at:m),"")||null;
-      return rows.map(x=>x.data);
+      _sinkronTerakhir=h.rows.reduce((m,x)=>(x.updated_at&&x.updated_at>m?x.updated_at:m),"")||null;
+      return h.rows.map(x=>x.data);
     }
     _adaUpdatedAt=false;
   }
-  const r2=await fetch(SUPA_URL+"/rest/v1/jadwal?select=data&order=id",{headers:H()});
-  if(!r2.ok)throw new Error(await r2.text());
-  return(await r2.json()).map(x=>x.data);
+  const h2=await ambilHalaman("select=data&order=id");
+  if(!h2.ok)throw new Error(await h2.res.text());
+  return h2.rows.map(x=>x.data);
 }
 
 // Hanya baris yang berubah. Mengembalikan null bila tidak bisa dipakai,
 // supaya pemanggil jatuh kembali ke dbLoadAll().
 async function dbLoadChanged(){
   if(!SUPA_OK||!_adaUpdatedAt||!_sinkronTerakhir)return null;
-  const r=await fetch(SUPA_URL+"/rest/v1/jadwal?select=data,updated_at&updated_at=gt."+
-    encodeURIComponent(_sinkronTerakhir)+"&order=updated_at.asc",{headers:H()});
-  if(!r.ok)return null;
-  const rows=await r.json();
+  // Biasanya hanya beberapa baris, tetapi sesudah aplikasi lama tidak dibuka
+  // selisihnya bisa melewati batas "Max rows" juga — dan potongannya akan
+  // memajukan `_sinkronTerakhir` melewati baris yang belum pernah terbaca,
+  // sehingga baris itu hilang selamanya sampai muat ulang penuh.
+  const h=await ambilHalaman("select=data,updated_at&updated_at=gt."+
+    encodeURIComponent(_sinkronTerakhir)+"&order=updated_at.asc");
+  if(!h.ok)return null;
+  const rows=h.rows;
   if(rows.length) _sinkronTerakhir=rows.reduce((m,x)=>(x.updated_at>m?x.updated_at:m),_sinkronTerakhir);
   return rows.map(x=>x.data);
 }
@@ -935,7 +967,7 @@ function buangBerkasUsulan(url,masihDipakai){
  * Lencana umur usulan perubahan — aturannya di `src/lib/usulan.js`.
  * Tidak menghasilkan apa pun bila belum perlu ditandai.
  */
-function UmurUsulan({ev,rapat}){
+function UmurUsulan({ev,rapat,pantau}){
   const u=umurUsulan(ev);
   if(!u)return null;
   const ikon=u.tingkat==="merah"?"⏰":u.tingkat==="kuning"?"⏳":"\u{1f5c3}";
@@ -943,7 +975,46 @@ function UmurUsulan({ev,rapat}){
     background:u.bg,border:"1.5px solid "+u.garis,color:u.warna,
     borderRadius:8,padding:rapat?"5px 10px":"4px 10px",
     fontSize:rapat?11.5:12,fontWeight:700,lineHeight:1.45,marginTop:rapat?0:5}}>
-    <span aria-hidden="true">{ikon}</span><span>{u.label}</span>
+    <span aria-hidden="true">{ikon}</span><span>{pantau&&u.labelPantau?u.labelPantau:u.label}</span>
+  </div>;
+}
+
+/**
+ * Kartu PANTAU usulan perubahan yang masih berada di tahap sebelumnya.
+ *
+ * Kabag perlu mengetahui usulan yang belum sampai ke mejanya — untuk tahu
+ * apa yang sedang berjalan dan berapa lama sudah menunggu. Tanpa ini, usulan
+ * yang masih di Kasubbag hanya tampak sebagai jadwal biasa bertanda
+ * "disetujui", tanpa petunjuk apa pun bahwa ada perubahan yang sedang
+ * diajukan atasnya.
+ *
+ * SENGAJA TANPA TOMBOL KEPUTUSAN. Ini jendela, bukan pintu: urutan
+ * kewenangannya tetap Kasubbag lebih dulu, baru Kabag. Menaruh tombol di sini
+ * akan melangkahi tahap yang belum selesai — dan itu justru yang tidak
+ * dikehendaki.
+ */
+function UsulanPantau({ev,labelTahap}){
+  return <div style={{background:"white",borderRadius:12,marginBottom:10,border:"1.5px solid #E2E8F0",overflow:"hidden",opacity:0.94}}>
+    <div style={{background:"#F8FAFC",padding:"10px 14px",borderBottom:"1px solid #E2E8F0"}}>
+      <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginBottom:3}}>
+        <span style={{fontSize:11,fontWeight:800,letterSpacing:.6,textTransform:"uppercase",
+          background:"#E2E8F0",color:"#475569",borderRadius:6,padding:"2px 7px"}}>Pantau</span>
+        <span style={{fontSize:13,fontWeight:800,color:"#334155"}}>{ev.namaAcara}</span>
+      </div>
+      <div style={{fontSize:13,color:"#64748B"}}>🕐 {fmtJamWita(ev)} · 📅 {ev.tanggal}</div>
+      <div style={{fontSize:13,color:"#94A3B8",marginTop:1}}>
+        Diusulkan oleh: {(loadUsers().find(u=>u.username===(ev.usulanEditOleh||ev.submittedBy))||{}).nama
+          ||(ev.usulanEditOleh||ev.submittedBy||"—")}
+      </div>
+      <UmurUsulan ev={ev} pantau/>
+    </div>
+    <div style={{padding:"11px 14px"}}>
+      <div style={{background:"#FFFBEB",border:"1.5px solid #FDE68A",borderRadius:9,padding:"8px 11px",
+        fontSize:12,color:"#78350F",fontWeight:600,lineHeight:1.55,marginBottom:9}}>
+        ⏳ Masih menunggu {labelTahap}. Keputusan Anda tersedia setelah usulannya diteruskan.
+      </div>
+      <DiffUsulan ev={ev} rapat/>
+    </div>
   </div>;
 }
 
@@ -3342,11 +3413,15 @@ function ApprovalQueueView({events,role,user,upd,showT,askConfirm,deleteAndSync,
   const permintaanBatal=events.filter(e=>e.alurHapus===tahap)
     .sort((a,b)=>(a.tanggal||"").localeCompare(b.tanggal||""));
   const totalAntrian=pending.length+usulanUbah.length+permintaanBatal.length;
+  // Usulan yang belum sampai ke meja Kabag — untuk dipantau, bukan diputus.
+  // Tidak ikut dihitung pada `totalAntrian` karena tidak menuntut tindakan.
+  const usulanTahapSebelum=role==="kabag"
+    ?events.filter(e=>e.alurEdit==="menunggu_kasubbag").sort(bandingUsulan):[];
   const todayForRecent = new Date().toISOString().slice(0,10);
   // Jadwal yang sedang menunggu keputusan di atas dikeluarkan dari "Riwayat
   // Terkini" — menampilkannya di sana sebagai "✅ Disetujui" justru menutupi
   // kenyataan bahwa ia sedang menunggu tindakan.
-  const menungguKeputusan=new Set([...usulanUbah,...permintaanBatal].map(e=>e.id));
+  const menungguKeputusan=new Set([...usulanUbah,...permintaanBatal,...usulanTahapSebelum].map(e=>e.id));
   const recent = events.filter(e => e.alur==="disetujui" && e.tanggal >= todayForRecent && !menungguKeputusan.has(e.id))
   .sort((a,b) => a.tanggal.localeCompare(b.tanggal));
   const fmt=d=>{if(!d)return"";const[y,m,dd]=d.split("-");const M=["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];return dd+" "+M[parseInt(m)-1]+" "+y;};
@@ -3514,6 +3589,20 @@ function ApprovalQueueView({events,role,user,upd,showT,askConfirm,deleteAndSync,
               deleteAndSync={deleteAndSync} rejectTexts={rejectTexts} setRT={setRT} user={user}/>
           </div>
         </div>
+      )}
+    </>}
+
+    {/* ── Pantau: usulan yang belum sampai ke meja Kabag ── */}
+    {usulanTahapSebelum.length>0&&<>
+      <div style={{fontSize:13,fontWeight:800,color:"#475569",marginTop:18,marginBottom:4}}>
+        👁️ Masih di Kasubbag Protokol ({usulanTahapSebelum.length})
+      </div>
+      <div style={{fontSize:12,color:"#94A3B8",marginBottom:10,lineHeight:1.55}}>
+        Ditampilkan agar Anda mengetahui apa yang sedang berjalan. <b>Belum dapat diputus</b> —
+        keputusan Anda tersedia setelah Kasubbag Protokol meneruskannya.
+      </div>
+      {usulanTahapSebelum.map(ev=>
+        <UsulanPantau key={"p"+ev.id} ev={ev} labelTahap="tinjauan Kasubbag Protokol"/>
       )}
     </>}
 
@@ -10182,6 +10271,10 @@ function KabagDashboard({events, user, upd, showT, askConfirm, deleteAndSync, is
   const antrian=events.filter(e=>e.alur==="menunggu_kabag"&&!e.alurHapus).sort((a,b)=>(a.tanggal+a.jam).localeCompare(b.tanggal+b.jam));
   const permintaanBatal=events.filter(e=>e.alurHapus==="menunggu_kabag");
   const usulanPerubahan=events.filter(e=>e.alurEdit==="menunggu_kabag").sort(bandingUsulan);
+  // Usulan yang belum sampai ke meja Kabag — ditampilkan untuk DIPANTAU saja.
+  // Tanpa ini, usulan yang masih di Kasubbag tidak meninggalkan jejak apa pun
+  // di layar Kabag: jadwalnya tampak biasa saja, bertanda "disetujui".
+  const usulanDiKasubbag=events.filter(e=>e.alurEdit==="menunggu_kasubbag").sort(bandingUsulan);
   const approved=events.filter(e=>e.alur==="disetujui").sort((a,b)=>(a.tanggal+a.jam).localeCompare(b.tanggal+b.jam));
 
   // Pisah: mendatang (belum berlangsung) vs riwayat (sudah berlangsung)
@@ -10542,7 +10635,9 @@ function KabagDashboard({events, user, upd, showT, askConfirm, deleteAndSync, is
             ✏️ Usulan perubahan jadwal yang sudah terbit, diajukan Admin RK dan sudah ditinjau Kasubbag Protokol. Selama menunggu keputusan Anda, jadwal tetap tayang dengan data lama.
           </div>
           {usulanPerubahan.length===0
-            ?<div style={{textAlign:"center",padding:"40px 20px",color:"#94A3B8"}}><div style={{fontSize:36,marginBottom:8}}>✅</div><div style={{fontSize:13,fontWeight:600}}>Tidak ada usulan perubahan</div></div>
+            ?<div style={{textAlign:"center",padding:"40px 20px",color:"#94A3B8"}}><div style={{fontSize:36,marginBottom:8}}>✅</div><div style={{fontSize:13,fontWeight:600}}>
+              {usulanDiKasubbag.length>0?"Belum ada usulan yang menunggu keputusan Anda":"Tidak ada usulan perubahan"}
+            </div></div>
             :usulanPerubahan.map(ev=>(
               <div key={ev.id} style={{background:"white",borderRadius:14,marginBottom:10,border:"2px solid #BFDBFE",overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,0.05)"}}>
                 <div style={{background:"#EFF6FF",padding:"10px 14px",borderBottom:"1px solid #BFDBFE"}}>
@@ -10556,6 +10651,20 @@ function KabagDashboard({events, user, upd, showT, askConfirm, deleteAndSync, is
                 </div>
               </div>
             ))}
+
+          {/* ── Pantau: usulan yang belum sampai ke meja Kabag ── */}
+          {usulanDiKasubbag.length>0&&<>
+            <div style={{fontSize:13,fontWeight:800,color:"#475569",marginTop:usulanPerubahan.length?20:4,marginBottom:4}}>
+              👁️ Masih di Kasubbag Protokol ({usulanDiKasubbag.length})
+            </div>
+            <div style={{fontSize:12,color:"#94A3B8",marginBottom:10,lineHeight:1.55}}>
+              Ditampilkan agar Anda mengetahui apa yang sedang berjalan. <b>Belum dapat diputus</b> —
+              keputusan Anda tersedia setelah Kasubbag Protokol meneruskannya.
+            </div>
+            {usulanDiKasubbag.map(ev=>
+              <UsulanPantau key={"p"+ev.id} ev={ev} labelTahap="tinjauan Kasubbag Protokol"/>
+            )}
+          </>}
         </>}
 
         {/* TAB BATAL TAYANG */}

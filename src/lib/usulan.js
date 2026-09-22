@@ -98,6 +98,10 @@ export function umurUsulan(ev, hari = hariIniWita()) {
     return {
       tingkat: "merah", umur, sisa,
       label: "Perlu segera diputus — " + sebab,
+      // Pada kartu pantau, pembacanya BELUM berwenang memutus. Menyuruhnya
+      // "segera memutus" di kartu yang sekaligus berkata "belum dapat
+      // diputus" hanya membuat layar bertengkar dengan dirinya sendiri.
+      labelPantau: "Sudah mendesak — " + sebab,
       warna: "#991B1B", bg: "#FEF2F2", garis: "#FCA5A5",
     };
   }

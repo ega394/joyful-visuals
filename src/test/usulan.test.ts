@@ -208,3 +208,22 @@ describe("bandingUsulan — urutan antrian", () => {
     expect(() => urut([R, A, D])).not.toThrow();
   });
 });
+
+describe("labelPantau — kalimat bagi yang belum berwenang memutus", () => {
+  it("tingkat merah tidak menyuruh memutus", () => {
+    const u = umurUsulan(ev("2026-09-18", "2026-10-30"), HARI);
+    expect(u.label).toContain("Perlu segera diputus");
+    expect(u.labelPantau).toBe("Sudah mendesak — menunggu 4 hari");
+    expect(u.labelPantau).not.toContain("diputus");
+  });
+
+  it("acara besok tetap menyebut sebabnya", () => {
+    const u = umurUsulan(ev(HARI, "2026-09-23"), HARI);
+    expect(u.labelPantau).toBe("Sudah mendesak — acara BESOK");
+  });
+
+  it("tingkat kuning dan lewat sudah netral — tanpa labelPantau tersendiri", () => {
+    expect(umurUsulan(ev("2026-09-20", "2026-10-30"), HARI).labelPantau).toBeUndefined();
+    expect(umurUsulan(ev("2026-09-10", "2026-09-15"), HARI).labelPantau).toBeUndefined();
+  });
+});
