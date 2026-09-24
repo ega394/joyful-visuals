@@ -1,0 +1,12 @@
+{
+  "name": "proposal-lomba",
+  "private": true,
+  "type": "module",
+  "description": "Pembuat berkas proposal Kaltara Innovation Awards 2026 (DOCX + PDF). Terpisah dari aplikasi agar tidak memengaruhi build Vercel.",
+  "scripts": {
+    "buat": "node buat-proposal.mjs"
+  },
+  "dependencies": {
+    "docx": "^9.5.1"
+  }
+}
