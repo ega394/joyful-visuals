@@ -781,9 +781,38 @@ function isi() {
 }
 
 // ── 12. LAMPIRAN ───────────────────────────────────────────────────
+// Urutan mengikuti Daftar Lampiran (Tabel L.1), yang mengikuti urutan pedoman.
+// Lampiran yang berupa pindaian (identitas, SK, surat) tidak dapat dibuat di
+// sini; tempatnya ditandai halaman pembatas supaya urutan tetap utuh saat
+// pindaiannya disisipkan. SOP disisipkan dari berkas PDF-nya oleh gabung.py.
+const NAMA_KETUA = "Anugrah Yega Pranatha, M.Si.";
+const JUDUL_LENGKAP = `Prokopim Hibot: ${SUBJUDUL}`;
+
 function lampiran() {
   const out = [];
   const tambah = (...x) => out.push(...x.flat());
+  const halamanBaru = () => out.push(new Paragraph({ children: [new PageBreak()] }));
+  const judulL = (nomor, teks) => {
+    halamanBaru();
+    out.push(new Paragraph({ spacing: { after: 160 }, children: [new TextRun({ text: `Lampiran ${nomor}. ${teks}`, bold: true, size: UK, font: FONT })] }));
+  };
+  const pembatas = (nomor, teks, keterangan) => {
+    judulL(nomor, teks);
+    out.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 3000, after: 200 }, children: runs(`[[${keterangan}]]`, { size: UK, font: FONT }) }));
+  };
+  const tengahTebal = (teks, o = {}) => new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: o.after ?? 0, before: o.before ?? 0 }, children: [new TextRun({ text: teks, bold: true, size: o.size ?? UK, font: FONT, underline: o.garis ? {} : undefined })] });
+  const baris2 = (pasangan, lebarKiri = 0.28) => {
+    const l = Math.round(LEBAR * lebarKiri), t = 250, r = LEBAR - l - t;
+    return new Table({ width: { size: LEBAR, type: WidthType.DXA }, columnWidths: [l, t, r],
+      rows: pasangan.map(([a, b]) => new TableRow({ children: [sel(a, l, { borders: tanpaGaris, size: UK }), sel(":", t, { borders: tanpaGaris, size: UK }), sel(b, r, { borders: tanpaGaris, size: UK })] })) });
+  };
+  const tandaTangan = (atas, nama, bawah, o = {}) => {
+    const kiri = Math.round(LEBAR * 0.5), kanan = LEBAR - kiri;
+    const isi = [...atas, ...(o.meterai ? ["", "[[meterai Rp10.000]]", ""] : ["", "", "", ""]), nama.startsWith("[[") ? nama : `**${nama}**`, ...bawah];
+    return new Table({ width: { size: LEBAR, type: WidthType.DXA }, columnWidths: [kiri, kanan],
+      rows: [new TableRow({ children: [sel("", kiri, { borders: tanpaGaris }), sel(isi, kanan, { borders: tanpaGaris, size: UK, align: AlignmentType.LEFT })] })] });
+  };
+
   tambah(h1("b12"));
   awalanTabel = "L."; nomorTabel = 0;
   tambah(tabel({
@@ -793,24 +822,110 @@ function lampiran() {
     baris: [
       ["No", "Lampiran"],
       ["1", "Pakta integritas"],
-      ["2", "Surat usulan dari Bagian Protokol dan Komunikasi Pimpinan Sekretariat Daerah Kota Tarakan"],
+      ["2", "Surat usulan dari Sekretariat Daerah Kota Tarakan"],
       ["3", "Bukti identitas anggota tim"],
-      ["4", "Tangkapan layar setiap alur kerja"],
-      ["5", "Tautan video demonstrasi: [[tautan video]]"],
+      ["4", "Tangkapan layar aplikasi"],
+      ["5", "Tautan video demonstrasi"],
       ["6", `Dokumen keputusan: (a) Keputusan Sekretaris Daerah Nomor ${SK_SEKDA}; (b) Surat Sekretaris Daerah Nomor ${NOMOR_SURAT_SEKDA}`],
       ["7", "Sebelas SOP format PermenPAN-RB 35/2012"],
       ["8", `Keluaran statistik penggunaan per ${PER_TGL}`],
       ["9", "Testimoni pengguna"],
-      ["10", "Tautan aplikasi untuk verifikasi: [[alamat halaman publik aplikasi]]"],
+      ["10", "Tautan aplikasi untuk verifikasi"],
     ],
   }));
 
-  // Lampiran 8 disusun langsung dari data, supaya angka pada naskah dan
-  // lampiran selalu berasal dari sumber yang sama.
-  out.push(new Paragraph({ children: [new PageBreak()] }));
-  out.push(new Paragraph({ alignment: AlignmentType.LEFT, spacing: { after: 120 }, children: [new TextRun({ text: `Lampiran 8. Keluaran Statistik Penggunaan per ${PER_LENGKAP}`, bold: true, size: UK, font: FONT })] }));
-  out.push(PN(`Ditarik langsung dari basis data Prokopim Hibot menggunakan kueri baca-saja. Seluruh angka pada naskah proposal bersumber dari keluaran ini.`, { size: UK_TABEL }));
+  // ── Lampiran 1: Pakta integritas ──
+  judulL(1, "Pakta Integritas");
+  out.push(tengahTebal("PAKTA INTEGRITAS", { size: 24, after: 280, garis: true }));
+  out.push(PN("Saya yang bertanda tangan di bawah ini:"));
+  out.push(baris2([["Nama", NAMA_KETUA], ["NIP", "[[NIP]]"], ["Jabatan", "Kepala Bagian Protokol dan Komunikasi Pimpinan"], ["Instansi", "Sekretariat Daerah Kota Tarakan"], ["Kedudukan", "Ketua Tim Inovasi Prokopim Hibot"]]));
+  out.push(P(`selaku ketua tim peserta Lomba Inovasi Daerah Provinsi Kalimantan Utara Tahun 2026 (Kaltara Innovation Awards) kategori Inovasi Terapan – ASN Pemerintah Kabupaten/Kota dengan judul *${JUDUL_LENGKAP}*, dengan ini menyatakan bahwa:`, { before: 120, indent: false }));
+  tambah(angka([
+    "usulan inovasi merupakan karya asli tim, tidak mengandung plagiarisme, tidak melanggar hak kekayaan intelektual pihak lain, dan tidak sedang dalam sengketa;",
+    "usulan yang sama belum pernah menjadi Juara I, II, atau III pada Kaltara Innovation Awards maupun memperoleh penghargaan tingkat nasional;",
+    "seluruh data, informasi, dan dokumen yang disampaikan adalah benar dan dapat dipertanggungjawabkan;",
+    "perangkat lunak, data, dan materi pihak lain yang digunakan telah memenuhi ketentuan lisensi dan ketentuan penggunaannya;",
+    "bersedia mengikuti seluruh tahapan penilaian, termasuk klarifikasi, presentasi, demonstrasi, dan verifikasi; dan",
+    "bersedia didiskualifikasi atau dicabut penghargaannya apabila di kemudian hari terbukti melanggar pernyataan ini.",
+  ]));
+  out.push(P("Demikian pakta integritas ini dibuat dengan sebenarnya untuk dipergunakan sebagaimana mestinya.", { before: 120 }));
+  out.push(new Paragraph({ spacing: { after: 120 }, children: [] }));
+  out.push(tandaTangan(["Tarakan, [[tanggal]] September 2026", "Yang membuat pernyataan,"], NAMA_KETUA, ["NIP [[NIP]]"], { meterai: true }));
 
+  // ── Lampiran 2: Surat usulan ──
+  judulL(2, "Surat Usulan");
+  const lLogo = 1300, lKop = LEBAR - lLogo;
+  out.push(new Table({ width: { size: LEBAR, type: WidthType.DXA }, columnWidths: [lLogo, lKop],
+    rows: [new TableRow({ children: [
+      new TableCell({ width: { size: lLogo, type: WidthType.DXA }, borders: tanpaGaris, verticalAlign: VerticalAlign.CENTER,
+        children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [gambar("logo_tarakan.png", 70)] })] }),
+      sel(["**PEMERINTAH KOTA TARAKAN**", "**SEKRETARIAT DAERAH**", "[[alamat kantor, telepon, laman]]", "**TARAKAN**"], lKop, { borders: tanpaGaris, align: AlignmentType.CENTER, size: 24, vAlign: VerticalAlign.CENTER }),
+    ] })] }));
+  out.push(new Paragraph({ border: { bottom: { style: BorderStyle.THICK_THIN_SMALL_GAP, size: 18, color: HITAM, space: 1 } }, spacing: { after: 200 }, children: [] }));
+  out.push(new Paragraph({ alignment: AlignmentType.RIGHT, spacing: { after: 120 }, children: runs("Tarakan, [[tanggal]] September 2026", { size: UK, font: FONT }) }));
+  out.push(baris2([["Nomor", "[[nomor surat]]"], ["Sifat", "Biasa"], ["Lampiran", "1 (satu) berkas"], ["Hal", "Usulan Peserta Kaltara Innovation Awards Tahun 2026"]], 0.16));
+  out.push(PN("Yth. Kepala Badan Perencanaan Pembangunan, Riset dan Inovasi Daerah Provinsi Kalimantan Utara", { before: 200, after: 0 }));
+  out.push(PN("di", { after: 0 }));
+  out.push(PN("Tanjung Selor", { after: 200 }));
+  out.push(P(`Menindaklanjuti Panduan Teknis Lomba Inovasi Daerah Provinsi Kalimantan Utara Tahun 2026 (Kaltara Innovation Awards), dengan ini kami mengusulkan inovasi dari lingkungan Sekretariat Daerah Kota Tarakan sebagai peserta dengan keterangan sebagai berikut:`));
+  out.push(baris2([
+    ["Judul inovasi", JUDUL_LENGKAP],
+    ["Kategori", "Inovasi Terapan – ASN Pemerintah Kabupaten/Kota"],
+    ["Bidang fokus", "3. Tata Kelola Kolaboratif dan Pelayanan Publik"],
+    ["Ketua tim", `${NAMA_KETUA} (Kepala Bagian Protokol dan Komunikasi Pimpinan)`],
+    ["Anggota tim", "Saifullah, S.H.; Juliyanti, S.AP.; Nuraini Wiliadewi, S.IP.; Ni Kade Sari Handayani, S.AP."],
+    ["Unit pelaksana", "Bagian Protokol dan Komunikasi Pimpinan"],
+  ]));
+  out.push(P(`Inovasi tersebut telah diterapkan sejak Maret 2026 dan didukung Keputusan Sekretaris Daerah Kota Tarakan Nomor ${SK_SEKDA}. Bersama ini kami sampaikan proposal beserta kelengkapannya. Demikian disampaikan, atas perhatian Bapak/Ibu kami ucapkan terima kasih.`, { before: 160 }));
+  out.push(new Paragraph({ spacing: { after: 120 }, children: [] }));
+  out.push(tandaTangan(["SEKRETARIS DAERAH KOTA TARAKAN,"], "[[nama Sekretaris Daerah]]", ["[[pangkat/golongan]]", "NIP [[NIP]]"]));
+
+  // ── Lampiran 3 ──
+  pembatas(3, "Bukti Identitas Anggota Tim", "Sisipkan pindaian KTP atau kartu pegawai kelima anggota tim pada halaman ini");
+
+  // ── Lampiran 4: Tangkapan layar ──
+  judulL(4, "Tangkapan Layar Aplikasi");
+  out.push(PN("Tangkapan layar diambil dari aplikasi Prokopim Hibot yang dijalankan dengan data contoh, untuk menghindari penyebaran nomor telepon narahubung dan agenda Pimpinan yang belum terbuka untuk umum. Seluruh tampilan dan alurnya sama dengan sistem yang berjalan.", { size: UK_TABEL, after: 160 }));
+  const tangkap = (file, lebarPx) => {
+    const data = fs.readFileSync(path.join(LOMBA, "lampiran/tangkapan", file));
+    const w = data.readUInt32BE(16), h = data.readUInt32BE(20);
+    return new ImageRun({ type: "png", data, transformation: { width: lebarPx, height: Math.round(lebarPx * h / w) } });
+  };
+  const keterangan = (teks) => new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 60, after: 200 }, children: [new TextRun({ text: teks, bold: true, size: UK_TABEL, font: FONT })] });
+  let g = 0;
+  const layarLebar = [
+    ["01-antrian-persetujuan.png", "Antrian persetujuan Kepala Bagian dengan daftar periksa wajib"],
+    ["02-riwayat-alur.png", "Riwayat alur (jejak audit) mencatat pelaku, waktu, dan butir pemeriksaan"],
+    ["04-kartu-kegiatan.png", "Jadwal tayang pada dasbor Kepala Subbagian, dengan peringatan kegiatan yang belum berpetugas"],
+  ];
+  for (const [f, t] of layarLebar) {
+    out.push(new Paragraph({ alignment: AlignmentType.CENTER, keepNext: true, spacing: { after: 0, line: 240, lineRule: AUTO }, children: [tangkap(f, 540)] }));
+    out.push(keterangan(`Gambar L.${++g}. ${t}`));
+  }
+  const lk = Math.floor(LEBAR / 2);
+  out.push(new Table({ width: { size: LEBAR, type: WidthType.DXA }, columnWidths: [lk, LEBAR - lk], rows: [new TableRow({ cantSplit: true, children: [
+    ["03-agenda-pimpinan-ponsel.png", "Agenda Wali Kota pada telepon pintar"],
+    ["06-permohonan-audiensi-publik.png", "Halaman publik permohonan audiensi"],
+  ].map(([f, t], i) => new TableCell({ width: { size: i ? LEBAR - lk : lk, type: WidthType.DXA }, borders: tanpaGaris, children: [
+    new Paragraph({ alignment: AlignmentType.CENTER, spacing: { line: 240, lineRule: AUTO }, children: [tangkap(f, 200)] }),
+    keterangan(`Gambar L.${++g}. ${t}`),
+  ] })) })] }));
+
+  // ── Lampiran 5 ──
+  judulL(5, "Tautan Video Demonstrasi");
+  out.push(PN("Video demonstrasi paling lama lima menit yang memuat latar belakang inovasi, penjaringan ide, pemilihan ide, manfaat, dan dampak inovasi dapat diakses melalui tautan berikut:"));
+  out.push(PN("[[tautan video]]", { before: 120 }));
+
+  // ── Lampiran 6 ──
+  pembatas(6, "Dokumen Keputusan", `Sisipkan pindaian (a) Keputusan Sekretaris Daerah Nomor ${SK_SEKDA} dan (b) Surat Sekretaris Daerah tanggal 11 Maret 2026 pada halaman ini`);
+
+  // ── Lampiran 7 (isi disisipkan dari SOP-Prokopim.pdf) ──
+  judulL(7, "Sebelas Standar Operasional Prosedur");
+  out.push(PN("Halaman-halaman berikut memuat sebelas SOP format PermenPAN-RB 35/2012 yang menjadi dasar alur kerja Prokopim Hibot."));
+
+  // ── Lampiran 8 ──
+  judulL(8, `Keluaran Statistik Penggunaan per ${PER_LENGKAP}`);
+  out.push(PN(`Ditarik langsung dari basis data Prokopim Hibot menggunakan kueri baca-saja. Seluruh angka pada naskah proposal bersumber dari keluaran ini.`, { size: UK_TABEL }));
   const LABEL_AKSI = {
     create: "Jadwal dibuat", submit: "Diajukan Admin Rencana Kegiatan", forward_to_kabag: "Diteruskan Kepala Subbagian",
     publish: "Disetujui dan tayang", return_by_kasubbag: "Dikembalikan Kepala Subbagian", reject_by_kabag: "Ditolak Kepala Bagian",
@@ -865,6 +980,34 @@ function lampiran() {
       ["Perangkat berlangganan notifikasi", `${D.perangkat_notifikasi.perangkat} perangkat milik ${D.perangkat_notifikasi.pengguna} pengguna`],
     ],
   }));
+
+  // ── Lampiran 9: Testimoni ──
+  const narasumber = [
+    ["dr. H. Khairul, M.Kes.", "Wali Kota Tarakan", "Bagaimana kepastian agenda dirasakan sebelum dan sesudah aplikasi ini dipakai?"],
+    ["[[nama]]", "Ajudan Wakil Wali Kota Tarakan", "Bagaimana Bapak/Ibu mengetahui agenda dan menyiapkan bahannya dahulu, dan apa yang berubah sekarang?"],
+    ["[[nama]]", "Staf Protokol, Bagian Protokol dan Komunikasi Pimpinan", "Dahulu bagaimana mengetahui diri sedang ditugaskan, dan apakah pernah terjadi pemberitahuan yang terlambat atau tidak sampai?"],
+  ];
+  narasumber.forEach(([nama, jabatan, tanya], i) => {
+    judulL(9, `Testimoni Pengguna (${i + 1} dari ${narasumber.length})`);
+    out.push(tengahTebal("KETERANGAN PENGGUNA APLIKASI PROKOPIM HIBOT", { after: 240 }));
+    out.push(PN("Yang bertanda tangan di bawah ini:"));
+    out.push(baris2([["Nama", nama], ["Jabatan", jabatan], ["Instansi", "Pemerintah Kota Tarakan"]]));
+    out.push(PN(`memberikan keterangan atas pemakaian aplikasi Prokopim Hibot, menjawab pertanyaan: *${tanya}*`, { before: 160 }));
+    out.push(new Table({ width: { size: LEBAR, type: WidthType.DXA }, columnWidths: [LEBAR],
+      rows: [new TableRow({ height: { value: 4200, rule: "atLeast" }, children: [sel("[[keterangan dua sampai empat kalimat; sebutkan keadaan sebelum dan sesudah]]", LEBAR, { size: UK })] })] }));
+    out.push(new Paragraph({ spacing: { after: 200 }, children: [] }));
+    out.push(tandaTangan(["Tarakan, [[tanggal]] September 2026"], nama, i === 0 ? [] : ["NIP [[NIP]]"]));
+  });
+
+  // ── Lampiran 10 ──
+  judulL(10, "Tautan Aplikasi untuk Verifikasi");
+  out.push(PN("Halaman publik berikut dapat dibuka tanpa akun. Demonstrasi seluruh alur dengan akun pengguna disiapkan pada Tahap II."));
+  tambah(tabel({ kolom: [45, 55], baris: [
+    ["Layanan", "Alamat"],
+    ["Permohonan audiensi", "[[alamat aplikasi]]/tamu"],
+    ["Peminjaman ruangan", "[[alamat aplikasi]]/pinjamruangan"],
+    ["Daftar hadir digital (contoh acara)", "[[alamat aplikasi]]/daftarhadir"],
+  ] }));
   return out;
 }
 
@@ -979,4 +1122,5 @@ const judulSemua = urutanJudul.map((j) => j.teks);
 const hasil = JSON.parse(execFileSync("python3", [path.join(DIR, "halaman.py"), KELUAR + ".pdf", BAB.b2, ...judulSemua], { encoding: "utf8" }));
 await tulisDanRender(hasil.halaman);
 const akhir = JSON.parse(execFileSync("python3", [path.join(DIR, "halaman.py"), KELUAR + ".pdf", BAB.b2, ...judulSemua], { encoding: "utf8" }));
+execFileSync("python3", [path.join(DIR, "gabung.py"), KELUAR + ".pdf", path.join(REPO, "docs/sop/SOP-Prokopim.pdf")], { stdio: "inherit" });
 console.log(JSON.stringify({ ...akhir, keluaran: [KELUAR + ".docx", KELUAR + ".pdf"] }, null, 2));
