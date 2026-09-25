@@ -22,6 +22,10 @@ Penomoran lampiran di bawah mengikuti **Daftar Lampiran pada proposal baru**
 | ✅ | **Visi-misi Kaltara & Tarakan** | Misi 3 & 8 RPJMD Kaltara; visi Kota Cerdas, Misi 4, dan semboyan HIBOT Kota Tarakan |
 | ✅ | **Fitur terbaru masuk naskah** | Daftar periksa wajib, Pelaksana Harian, penanda kegentingan usulan |
 | ✅ | **Isian diseminasi** | Bagian 11.4 (yang telah dilakukan, berbasis data) dan 11.5 (rencana) |
+| ✅ | **Nomor & tanggal Surat Sekda** | 300.2.10/265/SETDA/2026 tanggal **12 Maret 2026** (sebelumnya tertulis 11 Maret) |
+| ✅ | **Lampiran 1 — Pakta integritas** | NIP dan tanggal terisi; tinggal meterai dan tanda tangan |
+| ✅ | **Lampiran 2 — Surat usulan** | Kop resmi; ditandatangani Sekda Abd. Azis Hasan; tinggal nomor dan tanggal surat |
+| ✅ | **Lampiran 6 — SK dan Surat Sekda** | Pindaian tersisip di PDF |
 | ✅ | **Lampiran 7 — Sebelas SOP** | `docs/sop/SOP-Prokopim.pdf` |
 | ✅ | **Lampiran 8 — Keluaran statistik** | Sudah tercetak di dalam PDF proposal |
 
@@ -31,8 +35,6 @@ Penomoran lampiran di bawah mengikuti **Daftar Lampiran pada proposal baru**
 
 | | Isian | Letak |
 |---|---|---|
-| ⬜ | **Nomor Surat Sekda `300.2.10/XXX/SETDA/2026`** | Muncul di beberapa tempat — cari "XXX" |
-| ⬜ | Telepon dan surel ketua tim | Bagian 3 |
 | ⬜ | Tiga kutipan testimoni | Tabel 17 (Bagian 9.8) |
 | ⬜ | Tautan video demonstrasi | Daftar lampiran, nomor 5 |
 | ⬜ | Alamat halaman publik aplikasi | Daftar lampiran, nomor 10 |
@@ -47,7 +49,6 @@ Penomoran lampiran di bawah mengikuti **Daftar Lampiran pada proposal baru**
 | ⬜ | **2 — Surat usulan perangkat daerah** | Bagian Prokopim Setda Kota Tarakan |
 | ⬜ | **3 — Bukti identitas anggota tim** | 5 orang |
 | ⬜ | **4 — Tangkapan layar setiap alur** | Tutupi nomor telepon; jangan tangkap daftar pengguna |
-| ⬜ | **6 — Pindaian SK Sekda dan Surat Sekda** | Belum ada berkasnya di repositori |
 | ⬜ | **9 — Testimoni bertanda tangan** | Wali Kota, Ajudan Wakil Wali Kota, Staf Protokol |
 
 ---

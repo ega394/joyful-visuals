@@ -249,7 +249,7 @@ function bagan(kotak, keterangan, judul) {
 // ═══════════════════════════════════════════════════════════════════
 //  NASKAH
 // ═══════════════════════════════════════════════════════════════════
-const NOMOR_SURAT_SEKDA = "300.2.10/[[XXX]]/SETDA/2026";
+const NOMOR_SURAT_SEKDA = "300.2.10/265/SETDA/2026";
 const SK_SEKDA = "100.3.3.6/98/HK/VIII/2026";
 const SE_WALIKOTA = "000.7.2.4/70/Bappeda Litbang/2026";
 const JUDUL = "PROKOPIM HIBOT";
@@ -283,7 +283,7 @@ function isi() {
   tambah(P(`Bagian Protokol dan Komunikasi Pimpinan (Bagian Prokopim) Sekretariat Daerah Kota Tarakan bertugas menyusun, memeriksa, dan mengawal agenda Wali Kota dan Wakil Wali Kota. Volume yang ditangani rata-rata mencapai ${rataBulan} kegiatan setiap bulan, dan setiap kegiatan melewati paling sedikit tiga jenjang pemeriksaan sebelum ditetapkan.`));
   tambah(P(`**Masalah.** Sampai awal tahun 2026 seluruh proses tersebut berjalan secara manual. Rencana kegiatan disusun pada lembar sebar lalu dicetak, penelaahan hanya dapat dilakukan dalam satu jendela waktu sekitar 30 menit menjelang jam pulang kantor, dokumen disposisi diteruskan dalam bentuk foto melalui grup percakapan, dan penugasan petugas bergantung pada ingatan perorangan. Pada Januari 2026 satu lembar disposisi agenda tidak ikut terkirim tanpa ada pihak yang dapat mengetahuinya. Peristiwa itu memperlihatkan akar masalahnya, yaitu tidak tersedianya satu sumber data yang sahih dan dapat diperiksa oleh semua pihak.`));
   tambah(P(`**Solusi.** Prokopim Hibot adalah aplikasi web progresif yang menyatukan sebelas alur kerja keprotokolan dan komunikasi pimpinan dalam satu sistem, mulai dari penetapan jadwal berjenjang, penugasan petugas, pelayanan audiensi dan peminjaman ruangan, sampai daftar hadir digital dan evaluasi kinerja petugas. Setiap perpindahan status terekam dalam jejak audit beserta nama pelaku dan waktunya, sehingga setiap keputusan atas agenda Pimpinan dapat ditelusuri kembali.`));
-  tambah(P(`**Pelaksanaan.** Aplikasi mulai digunakan pada Maret 2026. Kegiatan pertama tercatat pada ${tglPanjang(D.tanggal_kegiatan.awal)}, dan penggunaannya dikuatkan Surat Sekretaris Daerah Kota Tarakan Nomor ${NOMOR_SURAT_SEKDA} tanggal 11 Maret 2026. Pada saat pendaftaran ditutup, inovasi ini telah berjalan ${MASA}. Pelaksanaannya didukung Keputusan Sekretaris Daerah Kota Tarakan Nomor ${SK_SEKDA} dan sebelas standar operasional prosedur (SOP).`));
+  tambah(P(`**Pelaksanaan.** Aplikasi mulai digunakan pada Maret 2026. Kegiatan pertama tercatat pada ${tglPanjang(D.tanggal_kegiatan.awal)}, dan penggunaannya dikuatkan Surat Sekretaris Daerah Kota Tarakan Nomor ${NOMOR_SURAT_SEKDA} tanggal 12 Maret 2026. Pada saat pendaftaran ditutup, inovasi ini telah berjalan ${MASA}. Pelaksanaannya didukung Keputusan Sekretaris Daerah Kota Tarakan Nomor ${SK_SEKDA} dan sebelas standar operasional prosedur (SOP).`));
   tambah(P(`**Penerima manfaat.** Sebanyak ${D.pengguna.aktif} pemegang akun aktif pada ${jumlahPeran} jenis peran, meliputi Pimpinan Daerah, ajudan, pengawal pribadi, pejabat struktural, petugas protokol dan dokumentasi, serta mitra kerja Pemerintah Kota. Masyarakat dan instansi memanfaatkan kanal publiknya: permohonan audiensi datang dari ${D.tamu.instansi_berbeda} instansi dan layanan peminjaman ruangan telah dipakai oleh ${D.ruang.instansi_berbeda} instansi.`));
   tambah(P(`**Bukti dampak.** Capaian utama ditunjukkan pada Tabel 1.`, { keepNext: true }));
   tambah(tabel({
@@ -322,7 +322,7 @@ function isi() {
     sumber: `Sumber: Keputusan Sekretaris Daerah Kota Tarakan Nomor ${SK_SEKDA} (Lampiran 6).`,
   }));
   tambah(PN(`**Instansi:** Bagian Protokol dan Komunikasi Pimpinan, Sekretariat Daerah Kota Tarakan, Provinsi Kalimantan Utara.`, { after: 40 }));
-  tambah(PN(`**Kontak ketua tim:** telepon [[nomor telepon]]; surel [[alamat surel]].`));
+  tambah(PN(`**Kontak ketua tim:** ponsel/WhatsApp 0811-5900-394; surel anugrahyegapranatha@gmail.com.`));
   tambah(P(`Ketua tim merancang alur kerja dan mengembangkan aplikasi secara swakelola. Keempat anggota lainnya menguji setiap perubahan, menerapkannya dalam pekerjaan sehari-hari, dan menghimpun kendala dari pengguna, sehingga setiap penyempurnaan berangkat dari hambatan yang benar-benar dialami di lapangan.`));
 
   // ── 4. LATAR BELAKANG ───────────────────────────────────────────
@@ -435,7 +435,7 @@ function isi() {
     `Peraturan Menteri PANRB Nomor 35 Tahun 2012 tentang Pedoman Penyusunan Standar Operasional Prosedur Administrasi Pemerintahan, sebagai dasar penyusunan sebelas SOP;`,
     `Surat Edaran Wali Kota Tarakan Nomor ${SE_WALIKOTA} tentang Inovasi Daerah;`,
     `Keputusan Sekretaris Daerah Kota Tarakan Nomor ${SK_SEKDA} tentang Tim Koordinasi Peningkatan Pelayanan Keprotokolan dan Komunikasi Pimpinan; dan`,
-    `Surat Sekretaris Daerah Kota Tarakan Nomor ${NOMOR_SURAT_SEKDA} tanggal 11 Maret 2026 perihal Permohonan Subdomain.`,
+    `Surat Sekretaris Daerah Kota Tarakan Nomor ${NOMOR_SURAT_SEKDA} tanggal 12 Maret 2026 perihal Permohonan Subdomain.`,
   ]));
   tambah(P(`Tema kompetisi tahun 2026 berfokus pada kedaulatan pangan dan energi. Panduan menegaskan bahwa tema tersebut merupakan arah prioritas dan bukan pembatasan tunggal, sehingga inovasi pada bidang lain tetap dapat diikutsertakan sepanjang selaras dengan salah satu bidang fokus dan misi RPJMD.`, { before: 60 }));
 
@@ -524,7 +524,7 @@ function isi() {
     kepala: false,
     baris: [
       [{ t: "Mulai digunakan", bold: true, shade: ABU_MUDA }, `Maret 2026; kegiatan pertama tercatat ${tglPanjang(D.tanggal_kegiatan.awal)}`],
-      [{ t: "Bukti tertulis", bold: true, shade: ABU_MUDA }, `Surat Sekda Nomor ${NOMOR_SURAT_SEKDA} tanggal 11 Maret 2026, yang menyatakan sistem telah dikembangkan dan memohon subdomain prokopim.tarakankota.go.id`],
+      [{ t: "Bukti tertulis", bold: true, shade: ABU_MUDA }, `Surat Sekda Nomor ${NOMOR_SURAT_SEKDA} tanggal 12 Maret 2026, yang menyatakan sistem telah dikembangkan dan memohon subdomain prokopim.tarakankota.go.id`],
       [{ t: "Masa implementasi", bold: true, shade: ABU_MUDA }, `${MASA} pada 30 September 2026, melampaui syarat minimal 6 bulan`],
       [{ t: "Lokasi", bold: true, shade: ABU_MUDA }, "Bagian Prokopim Setda Kota Tarakan; dapat diakses dari mana saja"],
       [{ t: "Pengguna", bold: true, shade: ABU_MUDA }, `${D.pengguna.aktif} akun aktif pada ${jumlahPeran} jenis peran`],
@@ -582,7 +582,7 @@ function isi() {
   const sopBaris = [];
   for (let i = 0; i < 6; i++) sopBaris.push([`SOP ${i + 1}. ${SOP[i]}`, SOP[i + 6] ? `SOP ${i + 7}. ${SOP[i + 6]}` : ""]);
   tambah(tabel({ kolom: [50, 50], kepala: false, baris: sopBaris }));
-  tambah(P(`Keputusan pendukung berupa Keputusan Sekretaris Daerah Nomor ${SK_SEKDA} dan Surat Sekretaris Daerah tanggal 11 Maret 2026 (Lampiran 6). Dokumentasi berupa tangkapan layar setiap alur dan video demonstrasi disertakan pada Lampiran 4 dan Lampiran 5.`));
+  tambah(P(`Keputusan pendukung berupa Keputusan Sekretaris Daerah Nomor ${SK_SEKDA} dan Surat Sekretaris Daerah tanggal 12 Maret 2026 (Lampiran 6). Dokumentasi berupa tangkapan layar setiap alur dan video demonstrasi disertakan pada Lampiran 4 dan Lampiran 5.`));
 
   // ── 8. SUMBER DAYA ──────────────────────────────────────────────
   tambah(h1("b8"));
@@ -711,7 +711,7 @@ function isi() {
       ["Pengelola", "Bagian Protokol dan Komunikasi Pimpinan Setda Kota Tarakan"],
       ["Pemeliharaan", pembaruan ? `Pembaruan berkelanjutan berdasarkan masukan pengguna; lebih dari ${bulatBawah(pembaruan, 10)} pembaruan sejak Maret 2026` : "Pembaruan berkelanjutan berdasarkan masukan pengguna"],
       ["SOP", "Sebelas SOP format PermenPAN-RB 35/2012 disusun untuk disahkan Sekretaris Daerah"],
-      ["Dukungan kebijakan", "Keputusan Sekda tentang Tim Koordinasi; Surat Sekda tanggal 11 Maret 2026; Surat Edaran Wali Kota tentang Inovasi Daerah"],
+      ["Dukungan kebijakan", "Keputusan Sekda tentang Tim Koordinasi; Surat Sekda tanggal 12 Maret 2026; Surat Edaran Wali Kota tentang Inovasi Daerah"],
       ["Kelembagaan", "Kewenangan melekat pada jabatan dan dapat dilimpahkan kepada Pelaksana Harian, sehingga mutasi pejabat tidak memutus alur kerja"],
     ],
   }));
@@ -763,7 +763,7 @@ function isi() {
     `**Lintas perangkat daerah melalui Tim Koordinasi.** Keputusan Sekretaris Daerah melibatkan para Sekretaris Dinas di lingkungan Pemerintah Kota Tarakan dalam Tim Koordinasi, sehingga pelaksanaan inovasi ini diketahui dan melibatkan perangkat daerah lain.`,
     `**Melalui layanan publik.** Sebanyak ${D.ruang.instansi_berbeda} instansi telah menggunakan layanan peminjaman ruangan dan ${D.tamu.instansi_berbeda} instansi mengajukan audiensi melalui kanal daring, sehingga mengenal langsung cara kerja baru ini.`,
     `**Pengguna di luar Bagian Prokopim.** Pimpinan Daerah, ajudan, pengawal pribadi, dan ${peran.mitra_kerja || 0} akun mitra kerja Pemerintah Kota menggunakan aplikasi secara rutin.`,
-    `**Koordinasi dengan perangkat daerah teknis.** Dinas Komunikasi, Informatika, Statistik dan Persandian serta Bappeda Litbang telah menerima pemberitahuan resmi melalui Surat Sekretaris Daerah tanggal 11 Maret 2026.`,
+    `**Pemberitahuan resmi.** Melalui Surat Sekretaris Daerah Nomor ${NOMOR_SURAT_SEKDA} tanggal 12 Maret 2026, Dinas Komunikasi, Informatika, Statistik dan Persandian dimohonkan memfasilitasi subdomain, dengan tembusan kepada Wali Kota Tarakan dan Kepala Bappeda Litbang.`,
   ]));
   tambah(h2("11.5 Rencana Diseminasi"));
   tambah(tabel({
@@ -786,6 +786,7 @@ function isi() {
 // sini; tempatnya ditandai halaman pembatas supaya urutan tetap utuh saat
 // pindaiannya disisipkan. SOP disisipkan dari berkas PDF-nya oleh gabung.py.
 const NAMA_KETUA = "Anugrah Yega Pranatha, M.Si.";
+const NIP_KETUA = "19881103 200701 1 003";
 const JUDUL_LENGKAP = `Prokopim Hibot: ${SUBJUDUL}`;
 
 function lampiran() {
@@ -838,7 +839,7 @@ function lampiran() {
   judulL(1, "Pakta Integritas");
   out.push(tengahTebal("PAKTA INTEGRITAS", { size: 24, after: 280, garis: true }));
   out.push(PN("Saya yang bertanda tangan di bawah ini:"));
-  out.push(baris2([["Nama", NAMA_KETUA], ["NIP", "[[NIP]]"], ["Jabatan", "Kepala Bagian Protokol dan Komunikasi Pimpinan"], ["Instansi", "Sekretariat Daerah Kota Tarakan"], ["Kedudukan", "Ketua Tim Inovasi Prokopim Hibot"]]));
+  out.push(baris2([["Nama", NAMA_KETUA], ["NIP", NIP_KETUA], ["Jabatan", "Kepala Bagian Protokol dan Komunikasi Pimpinan"], ["Instansi", "Sekretariat Daerah Kota Tarakan"], ["Kedudukan", "Ketua Tim Inovasi Prokopim Hibot"]]));
   out.push(P(`selaku ketua tim peserta Lomba Inovasi Daerah Provinsi Kalimantan Utara Tahun 2026 (Kaltara Innovation Awards) kategori Inovasi Terapan – ASN Pemerintah Kabupaten/Kota dengan judul *${JUDUL_LENGKAP}*, dengan ini menyatakan bahwa:`, { before: 120, indent: false }));
   tambah(angka([
     "usulan inovasi merupakan karya asli tim, tidak mengandung plagiarisme, tidak melanggar hak kekayaan intelektual pihak lain, dan tidak sedang dalam sengketa;",
@@ -850,7 +851,7 @@ function lampiran() {
   ]));
   out.push(P("Demikian pakta integritas ini dibuat dengan sebenarnya untuk dipergunakan sebagaimana mestinya.", { before: 120 }));
   out.push(new Paragraph({ spacing: { after: 120 }, children: [] }));
-  out.push(tandaTangan(["Tarakan, [[tanggal]] September 2026", "Yang membuat pernyataan,"], NAMA_KETUA, ["NIP [[NIP]]"], { meterai: true }));
+  out.push(tandaTangan(["Tarakan, 24 September 2026", "Yang membuat pernyataan,"], NAMA_KETUA, [`NIP ${NIP_KETUA}`], { meterai: true }));
 
   // ── Lampiran 2: Surat usulan ──
   judulL(2, "Surat Usulan");
@@ -859,7 +860,7 @@ function lampiran() {
     rows: [new TableRow({ children: [
       new TableCell({ width: { size: lLogo, type: WidthType.DXA }, borders: tanpaGaris, verticalAlign: VerticalAlign.CENTER,
         children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [gambar("logo_tarakan.png", 70)] })] }),
-      sel(["**PEMERINTAH KOTA TARAKAN**", "**SEKRETARIAT DAERAH**", "[[alamat kantor, telepon, laman]]", "**TARAKAN**"], lKop, { borders: tanpaGaris, align: AlignmentType.CENTER, size: 24, vAlign: VerticalAlign.CENTER }),
+      sel(["**PEMERINTAH KOTA TARAKAN**", "**SEKRETARIAT DAERAH**", "Jalan Pulau Kalimantan No. 1 Kota Tarakan 77113", "Telp (0551) 21620, 21623 Fax (0551) 33846", "Laman: www.tarakankota.go.id Pos-el: setda@tarakankota.go.id"], lKop, { borders: tanpaGaris, align: AlignmentType.CENTER, size: 22, vAlign: VerticalAlign.CENTER }),
     ] })] }));
   out.push(new Paragraph({ border: { bottom: { style: BorderStyle.THICK_THIN_SMALL_GAP, size: 18, color: HITAM, space: 1 } }, spacing: { after: 200 }, children: [] }));
   out.push(new Paragraph({ alignment: AlignmentType.RIGHT, spacing: { after: 120 }, children: runs("Tarakan, [[tanggal]] September 2026", { size: UK, font: FONT }) }));
@@ -878,7 +879,7 @@ function lampiran() {
   ]));
   out.push(P(`Inovasi tersebut telah diterapkan sejak Maret 2026 dan didukung Keputusan Sekretaris Daerah Kota Tarakan Nomor ${SK_SEKDA}. Bersama ini kami sampaikan proposal beserta kelengkapannya. Demikian disampaikan, atas perhatian Bapak/Ibu kami ucapkan terima kasih.`, { before: 160 }));
   out.push(new Paragraph({ spacing: { after: 120 }, children: [] }));
-  out.push(tandaTangan(["SEKRETARIS DAERAH KOTA TARAKAN,"], "[[nama Sekretaris Daerah]]", ["[[pangkat/golongan]]", "NIP [[NIP]]"]));
+  out.push(tandaTangan(["SEKRETARIS DAERAH KOTA TARAKAN,"], "ABD. AZIS HASAN, A.P., M.H., CGCAE.", ["Pembina Utama Muda (IV/c)", "NIP 19750212 199501 1 001"]));
 
   // ── Lampiran 3 ──
   pembatas(3, "Bukti Identitas Anggota Tim", "Sisipkan pindaian KTP atau kartu pegawai kelima anggota tim pada halaman ini");
@@ -917,7 +918,8 @@ function lampiran() {
   out.push(PN("[[tautan video]]", { before: 120 }));
 
   // ── Lampiran 6 ──
-  pembatas(6, "Dokumen Keputusan", `Sisipkan pindaian (a) Keputusan Sekretaris Daerah Nomor ${SK_SEKDA} dan (b) Surat Sekretaris Daerah tanggal 11 Maret 2026 pada halaman ini`);
+  judulL(6, "Dokumen Keputusan");
+  out.push(PN(`Halaman-halaman berikut memuat (a) Keputusan Sekretaris Daerah Kota Tarakan Nomor ${SK_SEKDA} tentang Tim Koordinasi Peningkatan Pelayanan Keprotokolan dan Komunikasi Pimpinan, dan (b) Surat Sekretaris Daerah Kota Tarakan Nomor ${NOMOR_SURAT_SEKDA} tanggal 12 Maret 2026 perihal Permohonan Subdomain.`));
 
   // ── Lampiran 7 (isi disisipkan dari SOP-Prokopim.pdf) ──
   judulL(7, "Sebelas Standar Operasional Prosedur");
@@ -1122,5 +1124,8 @@ const judulSemua = urutanJudul.map((j) => j.teks);
 const hasil = JSON.parse(execFileSync("python3", [path.join(DIR, "halaman.py"), KELUAR + ".pdf", BAB.b2, ...judulSemua], { encoding: "utf8" }));
 await tulisDanRender(hasil.halaman);
 const akhir = JSON.parse(execFileSync("python3", [path.join(DIR, "halaman.py"), KELUAR + ".pdf", BAB.b2, ...judulSemua], { encoding: "utf8" }));
-execFileSync("python3", [path.join(DIR, "gabung.py"), KELUAR + ".pdf", path.join(REPO, "docs/sop/SOP-Prokopim.pdf")], { stdio: "inherit" });
+execFileSync("python3", [path.join(DIR, "gabung.py"), KELUAR + ".pdf",
+  "7=" + path.join(REPO, "docs/sop/SOP-Prokopim.pdf"),
+  "6=" + path.join(LOMBA, "lampiran/SK-Tim-Koordinasi-2026.pdf") + "," + path.join(LOMBA, "lampiran/Surat-Sekda-300.2.10-265-2026.pdf"),
+], { stdio: "inherit" });
 console.log(JSON.stringify({ ...akhir, keluaran: [KELUAR + ".docx", KELUAR + ".pdf"] }, null, 2));
