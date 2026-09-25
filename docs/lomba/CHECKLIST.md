@@ -26,6 +26,8 @@ Penomoran lampiran di bawah mengikuti **Daftar Lampiran pada proposal baru**
 | ✅ | **Lampiran 1 — Pakta integritas** | NIP dan tanggal terisi; tinggal meterai dan tanda tangan |
 | ✅ | **Lampiran 2 — Surat usulan** | Kop resmi; ditandatangani Sekda Abd. Azis Hasan; tinggal nomor dan tanggal surat |
 | ✅ | **Lampiran 6 — SK dan Surat Sekda** | Pindaian tersisip di PDF |
+| ✅ | **Lampiran 5 — Video** | Menurut jadwal pedoman diunggah pada tahap 7 besar (15–20 Oktober) |
+| ✅ | **Lampiran 10 — Alamat aplikasi** | https://prokopim.tarakankota.go.id |
 | ✅ | **Lampiran 7 — Sebelas SOP** | `docs/sop/SOP-Prokopim.pdf` |
 | ✅ | **Lampiran 8 — Keluaran statistik** | Sudah tercetak di dalam PDF proposal |
 
@@ -36,8 +38,7 @@ Penomoran lampiran di bawah mengikuti **Daftar Lampiran pada proposal baru**
 | | Isian | Letak |
 |---|---|---|
 | ⬜ | Tiga kutipan testimoni | Tabel 17 (Bagian 9.8) |
-| ⬜ | Tautan video demonstrasi | Daftar lampiran, nomor 5 |
-| ⬜ | Alamat halaman publik aplikasi | Daftar lampiran, nomor 10 |
+| ⬜ | Nomor dan tanggal surat usulan | Diisi saat naskah difinalkan |
 
 ---
 
@@ -47,9 +48,9 @@ Penomoran lampiran di bawah mengikuti **Daftar Lampiran pada proposal baru**
 |---|---|---|
 | ⬜ | **1 — Pakta integritas** | Ditandatangani ketua tim |
 | ⬜ | **2 — Surat usulan perangkat daerah** | Bagian Prokopim Setda Kota Tarakan |
-| ⬜ | **3 — Bukti identitas anggota tim** | 5 orang |
+| ⬜ | **3 — Bukti identitas anggota tim** | 5 orang — menyusul |
 | ⬜ | **4 — Tangkapan layar setiap alur** | Tutupi nomor telepon; jangan tangkap daftar pengguna |
-| ⬜ | **9 — Testimoni bertanda tangan** | Wali Kota, Ajudan Wakil Wali Kota, Staf Protokol |
+| ⬜ | **9 — Testimoni bertanda tangan** | Tidak wajib, tetapi disarankan (bukti kepuasan pengguna). Bila tidak terkumpul sampai 30 September, Bagian 9.8 dan formulirnya dihapus |
 
 ---
 

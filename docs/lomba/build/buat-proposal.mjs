@@ -594,7 +594,7 @@ function isi() {
     `**Sekretaris Daerah Kota Tarakan:** menetapkan Tim Koordinasi dan menguatkan penggunaan sistem melalui surat resmi.`,
     `**Wali Kota dan Wakil Wali Kota:** pengguna langsung; Wali Kota memakai fitur disposisi kepada Wakil Wali Kota pada ${aksi.delegasi_to_wwk || 0} kegiatan.`,
     `**Ajudan dan pengawal pribadi Pimpinan:** mengonfirmasi kehadiran Pimpinan melalui aplikasi sebanyak ${n(konfirmasiHadir)} kali.`,
-    `**Dinas Komunikasi, Informatika, Statistik dan Persandian:** dimohonkan memfasilitasi subdomain prokopim.tarakankota.go.id.`,
+    `**Dinas Komunikasi, Informatika, Statistik dan Persandian:** memfasilitasi subdomain prokopim.tarakankota.go.id yang kini menjadi alamat resmi aplikasi.`,
     `**Bappeda Litbang:** pengampu kebijakan inovasi daerah dan penerima tembusan surat penguatan.`,
     `**Mitra kerja Pemerintah Kota:** ${peran.mitra_kerja || 0} akun mitra kerja memantau agenda yang telah tayang.`,
   ]));
@@ -721,7 +721,7 @@ function isi() {
     kolom: [24, 76],
     baris: [
       ["Waktu", "Rencana"],
-      ["Oktober–Desember 2026", "Pemindahan ke subdomain resmi prokopim.tarakankota.go.id; pengesahan SOP; pengalihan akun layanan ke akun resmi instansi"],
+      ["Oktober–Desember 2026", "Pengesahan SOP; pengalihan akun layanan ke akun resmi instansi"],
       ["Januari–Juni 2027", "Pendampingan pengelola kedua dan penyusunan dokumentasi teknis untuk alih pengetahuan; pengetatan kebijakan akses basis data"],
       ["Juli–Desember 2027", "Paket replikasi bagi pemerintah daerah di Kalimantan Utara (Bagian 11)"],
     ],
@@ -826,7 +826,7 @@ function lampiran() {
       ["2", "Surat usulan dari Sekretariat Daerah Kota Tarakan"],
       ["3", "Bukti identitas anggota tim"],
       ["4", "Tangkapan layar aplikasi"],
-      ["5", "Tautan video demonstrasi"],
+      ["5", "Video demonstrasi (disampaikan pada tahap 7 besar)"],
       ["6", `Dokumen keputusan: (a) Keputusan Sekretaris Daerah Nomor ${SK_SEKDA}; (b) Surat Sekretaris Daerah Nomor ${NOMOR_SURAT_SEKDA}`],
       ["7", "Sebelas SOP format PermenPAN-RB 35/2012"],
       ["8", `Keluaran statistik penggunaan per ${PER_TGL}`],
@@ -851,7 +851,7 @@ function lampiran() {
   ]));
   out.push(P("Demikian pakta integritas ini dibuat dengan sebenarnya untuk dipergunakan sebagaimana mestinya.", { before: 120 }));
   out.push(new Paragraph({ spacing: { after: 120 }, children: [] }));
-  out.push(tandaTangan(["Tarakan, 24 September 2026", "Yang membuat pernyataan,"], NAMA_KETUA, [`NIP ${NIP_KETUA}`], { meterai: true }));
+  out.push(tandaTangan(["Tarakan, 24 September 2026", "Yang membuat pernyataan,", "Ketua Tim Inovasi Prokopim Hibot,"], NAMA_KETUA, [`NIP ${NIP_KETUA}`], { meterai: true }));
 
   // ── Lampiran 2: Surat usulan ──
   judulL(2, "Surat Usulan");
@@ -882,7 +882,7 @@ function lampiran() {
   out.push(tandaTangan(["SEKRETARIS DAERAH KOTA TARAKAN,"], "ABD. AZIS HASAN, A.P., M.H., CGCAE.", ["Pembina Utama Muda (IV/c)", "NIP 19750212 199501 1 001"]));
 
   // ── Lampiran 3 ──
-  pembatas(3, "Bukti Identitas Anggota Tim", "Sisipkan pindaian KTP atau kartu pegawai kelima anggota tim pada halaman ini");
+  pembatas(3, "Bukti Identitas Anggota Tim", "Menyusul: pindaian KTP atau kartu pegawai kelima anggota tim");
 
   // ── Lampiran 4: Tangkapan layar ──
   judulL(4, "Tangkapan Layar Aplikasi");
@@ -913,9 +913,8 @@ function lampiran() {
   ] })) })] }));
 
   // ── Lampiran 5 ──
-  judulL(5, "Tautan Video Demonstrasi");
-  out.push(PN("Video demonstrasi paling lama lima menit yang memuat latar belakang inovasi, penjaringan ide, pemilihan ide, manfaat, dan dampak inovasi dapat diakses melalui tautan berikut:"));
-  out.push(PN("[[tautan video]]", { before: 120 }));
+  judulL(5, "Video Demonstrasi");
+  out.push(P("Sesuai jadwal pada Panduan Teknis (Tabel 4.1), video demonstrasi paling lama lima menit yang memuat latar belakang inovasi, penjaringan ide, pemilihan ide, manfaat, dan dampak inovasi diunggah oleh peserta yang ditetapkan sebagai 7 (tujuh) besar pada 15–20 Oktober 2026. Tautan video akan disampaikan pada tahap tersebut."));
 
   // ── Lampiran 6 ──
   judulL(6, "Dokumen Keputusan");
@@ -998,7 +997,7 @@ function lampiran() {
     out.push(new Table({ width: { size: LEBAR, type: WidthType.DXA }, columnWidths: [LEBAR],
       rows: [new TableRow({ height: { value: 4200, rule: "atLeast" }, children: [sel("[[keterangan dua sampai empat kalimat; sebutkan keadaan sebelum dan sesudah]]", LEBAR, { size: UK })] })] }));
     out.push(new Paragraph({ spacing: { after: 200 }, children: [] }));
-    out.push(tandaTangan(["Tarakan, [[tanggal]] September 2026"], nama, i === 0 ? [] : ["NIP [[NIP]]"]));
+    out.push(tandaTangan(["Tarakan, [[tanggal]] September 2026", `${jabatan},`], nama, i === 0 ? [] : ["NIP [[NIP]]"]));
   });
 
   // ── Lampiran 10 ──
@@ -1006,9 +1005,10 @@ function lampiran() {
   out.push(PN("Halaman publik berikut dapat dibuka tanpa akun. Demonstrasi seluruh alur dengan akun pengguna disiapkan pada Tahap II."));
   tambah(tabel({ kolom: [45, 55], baris: [
     ["Layanan", "Alamat"],
-    ["Permohonan audiensi", "[[alamat aplikasi]]/tamu"],
-    ["Peminjaman ruangan", "[[alamat aplikasi]]/pinjamruangan"],
-    ["Daftar hadir digital (contoh acara)", "[[alamat aplikasi]]/daftarhadir"],
+    ["Aplikasi Prokopim Hibot", "https://prokopim.tarakankota.go.id"],
+    ["Permohonan audiensi", "https://prokopim.tarakankota.go.id/tamu"],
+    ["Peminjaman ruangan", "https://prokopim.tarakankota.go.id/pinjamruangan"],
+    ["Daftar hadir digital", "https://prokopim.tarakankota.go.id/daftarhadir"],
   ] }));
   return out;
 }
