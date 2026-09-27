@@ -18,7 +18,7 @@ import SuperadminPage from "./pages/SuperadminPage.jsx";
 import BookingDashboard from "./components/BookingDashboard.jsx";
 import RoomManagement from "./components/RoomManagement.jsx";
 const PlhManagement = React.lazy(() => import("./components/PlhManagement.jsx"));
-import { clearAdminToken } from "./roomAuth";
+import { clearAdminToken, adminFetch } from "./roomAuth";
 import { JADWAL_STATUS } from "./lib/statusColors.js";
 import { peranEfektif, plhAktif, punyaPeran, jejakPlh, bolehMemutus, LABEL_PERAN } from "./lib/plh.js";
 import { umurUsulan, bandingUsulan } from "./lib/usulan.js";
@@ -1300,51 +1300,6 @@ function AuditTimeline({ ev, compact }) {
   );
 }
 
-// Stempel waktu kalender (YYYYMMDDTHHMMSS) dari tanggal + jumlah menit sejak
-// tengah malam. Menit >= 1440 otomatis menggeser tanggalnya, sehingga acara
-// malam (mis. 23:00 + 2 jam) tidak lagi menghasilkan jam "25".
-function capWaktuKalender(tanggal,menit){
-  const[y,mo,d]=tanggal.split("-").map(Number);
-  const dt=new Date(Date.UTC(y,mo-1,d,0,0,0));
-  dt.setUTCMinutes(dt.getUTCMinutes()+menit);
-  const pad=n=>String(n).padStart(2,"0");
-  return dt.getUTCFullYear()+pad(dt.getUTCMonth()+1)+pad(dt.getUTCDate())
-    +"T"+pad(dt.getUTCHours())+pad(dt.getUTCMinutes())+"00";
-}
-
-function makeICS(ev){
-  const dtStart=capWaktuKalender(ev.tanggal,toMin(ev.jam||"08:00"));
-  const dtEnd=capWaktuKalender(ev.tanggal,menitSelesai({...ev,jam:ev.jam||"08:00"}));
-  const desc=[
-    ev.penyelenggara&&"Penyelenggara: "+ev.penyelenggara,
-    ev.kontak&&"Kontak: "+ev.kontak,
-    ev.pakaian&&"Pakaian: "+ev.pakaian,
-    ev.jenisKegiatan&&"Jenis: "+ev.jenisKegiatan,
-    ev.catatan&&"Catatan: "+ev.catatan,
-  ].filter(Boolean).join("\n");
-  const lines=[
-    "BEGIN:VCALENDAR",
-    "VERSION:2.0",
-    "PRODID:-//Protokol Tarakan//ID",
-    "CALSCALE:GREGORIAN",
-    "METHOD:PUBLISH",
-    "BEGIN:VEVENT",
-    "UID:ev"+ev.id+"-"+ev.tanggal+"@protokol.tarakankota.go.id",
-    "DTSTART:"+dtStart,
-    "DTEND:"+dtEnd,
-    "SUMMARY:"+ev.namaAcara,
-    ...(ev.lokasi?["LOCATION:"+ev.lokasi]:[]),
-    ...(desc?["DESCRIPTION:"+desc.split("\n").join("\\n")]:[]),
-    "BEGIN:VALARM",
-    "TRIGGER:-PT30M",
-    "ACTION:DISPLAY",
-    "DESCRIPTION:Pengingat: "+ev.namaAcara,
-    "END:VALARM",
-    "END:VEVENT",
-    "END:VCALENDAR",
-  ];
-  return "data:text/calendar;charset=utf8,"+encodeURIComponent(lines.join("\r\n"));
-}
 function useWindowWidth(){const[w,setW]=useState(typeof window!=="undefined"?window.innerWidth:1280);useEffect(()=>{const h=()=>setW(window.innerWidth);window.addEventListener("resize",h);return()=>window.removeEventListener("resize",h);},[]);return w;}
 
 // ==================== SEED ====================
@@ -5376,7 +5331,7 @@ const AppCtx = React.createContext({});
 
 // ==================== EVENT CARD (mobile) ====================
 function EventCard({ev}){
-  const {expandedId,setExp,role,user,isMobile,getHari,fmt,fmtShort,todayStr,handleUndanganUpload,handleSambutanDocx,handleSambutanUpload,commitSambutan,discardSambutan,updAndSync,storageDelete,showT,upd,setDelegTarget,setTab,setForm,setEditId,setPenugasanEv,setEvaluasiEv,rejectTexts,setRT,askConfirm,deleteAndSync,makeICS,PersonilBanner,cabutPersonilSatu}=React.useContext(AppCtx);
+  const {expandedId,setExp,role,user,isMobile,getHari,fmt,fmtShort,todayStr,handleUndanganUpload,handleSambutanDocx,handleSambutanUpload,commitSambutan,discardSambutan,updAndSync,storageDelete,showT,upd,setDelegTarget,setTab,setForm,setEditId,setPenugasanEv,setEvaluasiEv,rejectTexts,setRT,askConfirm,deleteAndSync,PersonilBanner,cabutPersonilSatu}=React.useContext(AppCtx);
   const exp=expandedId===ev.id;const hariEv=getHari(ev.tanggal);const isToday=ev.tanggal===todayStr();
   const ALUR_STEPS=[
     {key:"draft",           label:"Draft",    color:"#94A3B8"},
@@ -5547,7 +5502,7 @@ function GroupedEventList({ evList, isMobile, viewMode }) {
 
 // ==================== DESKTOP TABLE ROW ====================
 function TableView({evList}){
-  const {expandedId,setExp,role,user,isMobile,getHari,fmt,fmtShort,todayStr,handleUndanganUpload,handleSambutanDocx,handleSambutanUpload,commitSambutan,discardSambutan,updAndSync,storageDelete,showT,upd,setDelegTarget,setTab,setForm,setEditId,setPenugasanEv,setEvaluasiEv,rejectTexts,setRT,askConfirm,deleteAndSync,makeICS,PersonilBanner}=React.useContext(AppCtx);
+  const {expandedId,setExp,role,user,isMobile,getHari,fmt,fmtShort,todayStr,handleUndanganUpload,handleSambutanDocx,handleSambutanUpload,commitSambutan,discardSambutan,updAndSync,storageDelete,showT,upd,setDelegTarget,setTab,setForm,setEditId,setPenugasanEv,setEvaluasiEv,rejectTexts,setRT,askConfirm,deleteAndSync,PersonilBanner}=React.useContext(AppCtx);
   return <div style={{background:"white",borderRadius:12,boxShadow:"0 1px 8px rgba(0,0,0,0.07)",overflow:"hidden"}}>
   <table className="ev-table">
     <thead><tr>
@@ -6520,7 +6475,7 @@ function KeputusanBatal({ev,tahap,upd,showT,askConfirm,deleteAndSync,rejectTexts
 function ExpandedDetail({ev,hariEv}){
   const [periksa,setPeriksa]=React.useState({siap:false,ringkasan:""});
   const simpanPeriksa=(v)=>setPeriksa(p=>(p.siap===v.siap&&p.ringkasan===v.ringkasan)?p:v);
-  const {role,user,isMobile,events,handleUndanganUpload,handleSambutanDocx,handleSambutanUpload,commitSambutan,discardSambutan,updAndSync,storageDelete,showT,upd,setDelegTarget,setTab,setForm,setEditId,setUsulanMode,setPenugasanEv,setEvaluasiEv,rejectTexts,setRT,askConfirm,deleteAndSync,makeICS,getNamaByUsername,setExp}=React.useContext(AppCtx);
+  const {role,user,isMobile,events,handleUndanganUpload,handleSambutanDocx,handleSambutanUpload,commitSambutan,discardSambutan,updAndSync,storageDelete,showT,upd,setDelegTarget,setTab,setForm,setEditId,setUsulanMode,setPenugasanEv,setEvaluasiEv,rejectTexts,setRT,askConfirm,deleteAndSync,getNamaByUsername,setExp}=React.useContext(AppCtx);
   // Membuka form dalam mode usulan, terisi nilai jadwal yang sedang tayang.
   const bukaUsulanEdit=()=>{
     setForm({tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai||"",namaAcara:ev.namaAcara,
@@ -6552,12 +6507,6 @@ function ExpandedDetail({ev,hariEv}){
           </div>
         </div>
         <div style={{display:"flex",gap:7,marginTop:8,flexWrap:"wrap"}}>
-          <a href={makeICS(ev)} download={(ev.namaAcara||"jadwal")+".ics"} style={{flex:1,minWidth:120,display:"flex",alignItems:"center",justifyContent:"center",gap:6,padding:"9px",borderRadius:9,border:"1.5px solid #e2e8f0",background:"white",color:"#334155",textDecoration:"none",fontSize:12,fontWeight:700}}>
-            <span style={{fontSize:14}}>📅</span>Tambah ke Kalender
-          </a>
-          <a href={"https://calendar.google.com/calendar/render?action=TEMPLATE&text="+encodeURIComponent(ev.namaAcara||"")+"&dates="+capWaktuKalender(ev.tanggal||"",toMin(ev.jam||"08:00"))+"/"+capWaktuKalender(ev.tanggal||"",menitSelesai({...ev,jam:ev.jam||"08:00"}))+"&location="+encodeURIComponent(ev.lokasi||"")+"&details="+encodeURIComponent("Penyelenggara: "+(ev.penyelenggara||"")+"%0APakaian: "+(ev.pakaian||""))} target="_blank" rel="noopener noreferrer" style={{flex:1,minWidth:100,display:"flex",alignItems:"center",justifyContent:"center",gap:6,padding:"9px",borderRadius:9,border:"none",background:"#1a73e8",color:"white",textDecoration:"none",fontSize:12,fontWeight:700}}>
-            <span style={{fontSize:14}}>&#x1F4C6;</span>Google Cal
-          </a>
           {/* Tombol Undangan — muncul jika file tersedia */}
           {ev.undanganFile&&<a href={ev.undanganFile} target="_blank" rel="noopener noreferrer"
             style={{display:"flex",alignItems:"center",justifyContent:"center",gap:5,padding:"9px 13px",borderRadius:9,
@@ -7954,6 +7903,16 @@ export default function App(){
 
   const showT=useCallback((msg,type="ok")=>{if(type==="ok")haptic(40);else if(type==="warn")haptic(80);else if(type==="error")haptic([50,30,50]);setToast({msg,type});setTimeout(()=>setToast(null),type==="error"?5000:type==="warn"?4000:3000);},[]);
   _toast.fn=showT; // bridge for components without showT prop
+  // Google Calendar bersama: sesudah jadwal tersimpan, peladen diminta
+  // menyamakan kalender dengan keadaan tersimpan jadwal itu. Hanya dipicu bila
+  // yang berubah memang tampil di kalender. Kegagalan ditelan: pencocokan
+  // terjadwal lima kali sehari akan menambalnya.
+  const KOLOM_KALENDER=["alur","tersembunyi","tanggal","jam","jamSelesai","namaAcara","lokasi","untukPimpinan","delegasiKeWWK","penyelenggara","pakaian","jenisKegiatan"];
+  const sinkronKalender=useCallback((id)=>{
+    if(!user||!SUPA_OK)return;
+    adminFetch(user,"/api/room-booking?op=kalender",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id})})
+      .catch(e=>console.warn("Kalender:",e?.message||e));
+  },[user]);
   const updAndSync=useCallback((id,patch)=>{
     setEvents(p=>{
       const prev=p.find(e=>e.id===id);
@@ -7972,15 +7931,16 @@ export default function App(){
       }
       const next=p.map(e=>e.id===id?{...e,...finalPatch}:e);
       const ev=next.find(e=>e.id===id);
-      if(ev)dbUpsert(ev).catch(e=>{console.error(e);if(_toast.fn)_toast.fn("⚠ Gagal menyimpan ke server — perubahan mungkin belum tersimpan. Periksa koneksi.","error");});
+      const keKalender=KOLOM_KALENDER.some(k=>k in finalPatch);
+      if(ev)dbUpsert(ev).then(()=>{if(keKalender)sinkronKalender(id);}).catch(e=>{console.error(e);if(_toast.fn)_toast.fn("⚠ Gagal menyimpan ke server — perubahan mungkin belum tersimpan. Periksa koneksi.","error");});
       return next;
     });
-  },[user]);
+  },[user,sinkronKalender]);
   const askConfirm=(title,body,onConfirm,confirmLabel="Ya, Lanjutkan",confirmColor="#DC2626")=>{
     setConfirmDlg({title,body,onConfirm,confirmLabel,confirmColor});
   };
 
-  const deleteAndSync=useCallback((id)=>{setEvents(p=>{const ev=p.find(e=>e.id===id);if(ev?.sambutanFile&&!ev.sambutanFile.startsWith("data:"))storageDelete("sambutan",ev.sambutanFile).catch(e=>console.warn("Sync:",e?.message||e));if(ev?.undanganFile&&!ev.undanganFile.startsWith("data:"))storageDelete("undangan",ev.undanganFile).catch(e=>console.warn("Sync:",e?.message||e));dbDelete(id).catch(e=>{console.error(e);if(_toast.fn)_toast.fn("⚠ Gagal menghapus di server — coba lagi.","error");});return p.filter(e=>e.id!==id);});},[]);
+  const deleteAndSync=useCallback((id)=>{setEvents(p=>{const ev=p.find(e=>e.id===id);if(ev?.sambutanFile&&!ev.sambutanFile.startsWith("data:"))storageDelete("sambutan",ev.sambutanFile).catch(e=>console.warn("Sync:",e?.message||e));if(ev?.undanganFile&&!ev.undanganFile.startsWith("data:"))storageDelete("undangan",ev.undanganFile).catch(e=>console.warn("Sync:",e?.message||e));dbDelete(id).then(()=>sinkronKalender(id)).catch(e=>{console.error(e);if(_toast.fn)_toast.fn("⚠ Gagal menghapus di server — coba lagi.","error");});return p.filter(e=>e.id!==id);});},[sinkronKalender]);
   const upd=(id,patch)=>updAndSync(id,patch);
   const getNamaByUsername=un=>loadUsers().find(u=>u.username===un)?.nama||un;
 
@@ -12161,7 +12121,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
     getHari,fmt,fmtShort,todayStr,
     handleUndanganUpload,handleSambutanDocx,handleSambutanUpload,commitSambutan,discardSambutan,updAndSync,storageDelete,
     showT,upd,setDelegTarget,setTab,setForm,setEditId,setUsulanMode,setPenugasanEv,setEvaluasiEv,
-    rejectTexts,setRT,askConfirm,deleteAndSync,makeICS,PersonilBanner,cabutPersonilSatu,
+    rejectTexts,setRT,askConfirm,deleteAndSync,PersonilBanner,cabutPersonilSatu,
     getNamaByUsername,
   };
 
