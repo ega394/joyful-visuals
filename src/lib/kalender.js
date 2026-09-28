@@ -13,6 +13,9 @@
  *     acara yang sudah lewat tidak disentuh lagi (tidak dihapus, tidak diubah).
  *   - Judul acara hanya nama acaranya, tanpa awalan [WK]/[WWK]; pimpinan yang
  *     hadir dicantumkan pada rincian acara.
+ *   - Tidak ada acara ganda: jadwal kembar di aplikasi (tanggal, jam mulai,
+ *     dan nama acara sama) hanya dikirim satu, dan salinan manual lama di
+ *     kalender yang kembar dengan kiriman aplikasi dihapus. Lihat normJudul.
  *   - Yang ikut: nama acara, waktu, lokasi, pimpinan yang hadir, jenis
  *     kegiatan, penyelenggara, pakaian. Nomor narahubung, catatan internal,
  *     dan nomor surat TIDAK ikut — pelanggan kalender bukan pengguna aplikasi.
@@ -54,6 +57,54 @@ export function pimpinanHadir(ev) {
 export function perluAda(ev, hariIni) {
   return !!ev && ev.alur === "disetujui" && !ev.sembunyiKalender
     && typeof ev.tanggal === "string" && ev.tanggal >= hariIni;
+}
+
+// ── Acara ganda ───────────────────────────────────────────────────
+// Dua acara dianggap sama bila tanggal, jam mulai (WITA), dan nama acaranya
+// sama — tanpa membedakan huruf besar-kecil, tanda baca, spasi, dan awalan
+// [WK]/[WWK] yang dulu dipakai. Sengaja ketat: acara yang hanya mirip tidak
+// pernah dianggap ganda.
+
+/** Nama acara yang dinormalkan untuk pembandingan. */
+export function normJudul(s) {
+  return String(s || "").toLowerCase()
+    .replace(/^\s*(\[\s*w?wk\s*\]\s*)+/, "")
+    .replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+/** Kunci pembanding satu jadwal: "YYYY-MM-DDTHH:MM|nama acara". */
+export function kunciAgenda(ev) {
+  const a = isiAcara(ev);
+  return a.start.dateTime.slice(0, 16) + "|" + normJudul(a.summary);
+}
+
+/**
+ * Kunci pembanding satu acara Google Calendar, atau null bila tidak dapat
+ * dibandingkan (acara sehari penuh, waktu tanpa zona). null berarti acara itu
+ * tidak pernah dianggap ganda.
+ */
+export function kunciAcaraGoogle(a) {
+  const dt = a?.start?.dateTime;
+  if (typeof dt !== "string" || !/(Z|[+-]\d{2}:\d{2})$/.test(dt)) return null;
+  const t = Date.parse(dt);
+  if (Number.isNaN(t)) return null;
+  return new Date(t + 8 * 3600e3).toISOString().slice(0, 16) + "|" + normJudul(a.summary);
+}
+
+const urutId = (a, b) => String(a.id).localeCompare(String(b.id), undefined, { numeric: true });
+
+/**
+ * Dari jadwal yang semestinya tampil, satu saja untuk setiap kunci — yang
+ * paling awal diinput. Jadwal kembar tetap utuh di aplikasi; hanya kalender
+ * yang menerima satu.
+ */
+export function pilihUnik(daftar) {
+  const per = new Map();
+  for (const ev of [...daftar].sort(urutId)) {
+    const k = kunciAgenda(ev);
+    if (!per.has(k)) per.set(k, ev);
+  }
+  return [...per.values()];
 }
 
 /** Tanggal + menit sejak tengah malam → "YYYY-MM-DDTHH:MM:00", menggeser hari bila lewat 24.00. */
