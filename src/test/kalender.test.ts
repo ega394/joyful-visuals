@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, beforeEach, vi } from "vitest";
 // @ts-expect-error — modul JS tanpa berkas tipe
-import { idAcara, isiAcara, perluAda, pimpinanHadir } from "../lib/kalender.js";
+import { idAcara, isiAcara, perluAda, pimpinanHadir, normJudul, kunciAgenda, kunciAcaraGoogle, pilihUnik } from "../lib/kalender.js";
 
 const HARI = "2026-09-27";
 const jadwal = (x: any = {}) => ({
@@ -62,6 +62,23 @@ describe("aturan isi kalender", () => {
     expect(s({})).toBe(s({ kontak: "lain" }));
     expect(s({})).not.toBe(s({ lokasi: "Aula" }));
   });
+
+  it("kunci ganda: tanggal, jam mulai WITA, dan nama acara yang dinormalkan", () => {
+    expect(normJudul("[WK] Rapat  Koordinasi!")).toBe("rapat koordinasi");
+    expect(normJudul("[WWK][WK] rapat koordinasi")).toBe("rapat koordinasi");
+    const k = kunciAgenda(jadwal());
+    expect(k).toBe("2026-09-28T09:00|rapat koordinasi");
+    expect(kunciAcaraGoogle({ summary: "[WK] RAPAT KOORDINASI", start: { dateTime: "2026-09-28T09:00:00+08:00" } })).toBe(k);
+    expect(kunciAcaraGoogle({ summary: "Rapat Koordinasi", start: { dateTime: "2026-09-28T01:00:00Z" } })).toBe(k);
+    // Tidak dapat dibandingkan → tidak pernah dianggap ganda.
+    expect(kunciAcaraGoogle({ summary: "Rapat Koordinasi", start: { date: "2026-09-28" } })).toBeNull();
+    expect(kunciAcaraGoogle({ summary: "Rapat Koordinasi", start: { dateTime: "2026-09-28T09:00:00" } })).toBeNull();
+  });
+
+  it("jadwal kembar: hanya yang paling awal diinput yang dikirim", () => {
+    const hasil = pilihUnik([jadwal({ id: 30 }), jadwal({ id: 4, namaAcara: "rapat koordinasi" }), jadwal({ id: 5, jam: "10:00" })]);
+    expect(hasil.map((e: any) => e.id).sort()).toEqual([4, 5]);
+  });
 });
 
 // ── Modul peladen terhadap Google Calendar tiruan ─────────────────
@@ -94,6 +111,8 @@ describe("api/_kalender.mjs", () => {
       if (url.startsWith("https://db.contoh")) {
         const id = /id=eq\.([^&]+)/.exec(url)?.[1];
         if (id) return jawab(200, db.filter((d) => String(d.id) === decodeURIComponent(id)).map((data) => ({ data })));
+        const tgl = /tanggal=eq\.([^&]+)/.exec(url)?.[1];
+        if (tgl) return jawab(200, db.filter((d) => d.tanggal === decodeURIComponent(tgl)).map((data) => ({ data })));
         const dari = +(/offset=(\d+)/.exec(url)?.[1] || 0);
         return jawab(200, dari ? [] : db.filter((d) => d.tanggal >= HARI).map((data) => ({ data })));
       }
@@ -172,12 +191,59 @@ describe("api/_kalender.mjs", () => {
   });
 
   it("pencocokan: buat yang kurang, perbarui yang berubah, cabut yang tak semestinya, lewati yang sama", async () => {
-    db.push(jadwal({ id: 1 }), jadwal({ id: 2 }), jadwal({ id: 3, alur: "menunggu_kabag" }), jadwal({ id: 4, tanggal: "2026-09-01" }));
+    db.push(jadwal({ id: 1 }), jadwal({ id: 2, jam: "13:00" }), jadwal({ id: 3, alur: "menunggu_kabag" }), jadwal({ id: 4, tanggal: "2026-09-01" }));
     expect(await K.rekonsiliasi()).toMatchObject({ dibuat: 2, dicabut: 0, gagal: 0 });
     expect(await K.rekonsiliasi()).toMatchObject({ dibuat: 0, diperbarui: 0, tetap: 2 });
     db[0] = jadwal({ id: 1, lokasi: "Aula Utama" });
-    db[1] = jadwal({ id: 2, alur: "draft" });
+    db[1] = jadwal({ id: 2, jam: "13:00", alur: "draft" });
     expect(await K.rekonsiliasi()).toMatchObject({ diperbarui: 1, dicabut: 1, tetap: 0 });
     expect([...kalender.keys()]).toEqual([idAcara(1)]);
+  });
+
+  const manual = (id: string, x: any = {}) => kalender.set(id, {
+    id, summary: "[WK] Rapat Koordinasi", start: { dateTime: "2026-09-28T09:00:00+08:00" }, ...x });
+
+  it("salinan manual lama yang kembar dihapus; acara manual lain dibiarkan", async () => {
+    db.push(jadwal());
+    manual("manual1");
+    manual("manual2", { summary: "Rapat Koordinasi", start: { dateTime: "2026-09-28T10:00:00+08:00" } });   // jam lain
+    manual("manual3", { summary: "Catatan pribadi" });
+    manual("manual4", { start: { date: "2026-09-28" } });                                                 // sehari penuh
+    manual("manual5", { recurringEventId: "ulang" });                                                     // berulang
+    expect(await K.rekonsiliasi()).toMatchObject({ dibuat: 1, gandaDihapus: 1, gagal: 0 });
+    expect([...kalender.keys()].sort()).toEqual([idAcara(jadwal().id), "manual2", "manual3", "manual4", "manual5"].sort());
+  });
+
+  it("salinan manual TIDAK dihapus bila salinan otomatis gagal dibuat", async () => {
+    db.push(jadwal());
+    manual("manual1");
+    const asli = globalThis.fetch;
+    vi.stubGlobal("fetch", async (url: string, o: any = {}) =>
+      /events\/prokopim|\/events$/.test(url) && o.method !== "DELETE" && o.method
+        ? { ok: false, status: 500, json: async () => ({}), text: async () => "galat" } : asli(url, o));
+    expect(await K.rekonsiliasi()).toMatchObject({ gagal: 1, gandaDihapus: 0 });
+    expect(kalender.has("manual1")).toBe(true);
+  });
+
+  it("jadwal kembar di aplikasi: kalender hanya menerima satu, kembarannya mengambil alih bila yang utama disembunyikan", async () => {
+    db.push(jadwal({ id: 10 }), jadwal({ id: 11, namaAcara: "RAPAT KOORDINASI" }));
+    expect(await K.rekonsiliasi()).toMatchObject({ dibuat: 1 });
+    expect([...kalender.keys()]).toEqual([idAcara(10)]);
+
+    expect((await K.sinkronSatu("11")).hasil).toBe("kembar, diwakili 10");
+    expect([...kalender.keys()]).toEqual([idAcara(10)]);
+
+    db[0] = jadwal({ id: 10, sembunyiKalender: true });
+    await K.sinkronSatu("10");
+    expect([...kalender.keys()]).toEqual([idAcara(11)]);
+  });
+
+  it("jadwal yang disunting menjadi kembar dengan jadwal lebih awal dicabut", async () => {
+    db.push(jadwal({ id: 20, jam: "08:00" }), jadwal({ id: 21 }));
+    await K.rekonsiliasi();
+    expect(kalender.size).toBe(2);
+    db[0] = jadwal({ id: 20 });                 // kini sama persis dengan 21
+    await K.sinkronSatu("20");
+    expect([...kalender.keys()]).toEqual([idAcara(20)]);
   });
 });

@@ -25,12 +25,15 @@
  * ada galat dan tidak ada panggilan ke Google.
  *
  * Aman diulang: ID acara diturunkan dari nomor jadwal, dan hanya acara yang
- * bertanda milik aplikasi ini yang pernah diubah atau dihapus. Acara lain di
- * kalender yang sama tidak disentuh.
+ * bertanda milik aplikasi ini yang pernah diubah. Acara lain di kalender yang
+ * sama hanya disentuh dalam SATU keadaan: salinan manual lama (dari tombol
+ * "Google Cal" dulu) yang tanggal, jam mulai, dan nama acaranya persis sama
+ * dengan acara kiriman aplikasi — salinan itu dihapus agar tidak tampil dua
+ * kali. Acara manual lain, dan semua acara lampau, dibiarkan.
  */
 
 import { hariIniWita } from "../src/lib/plh.js";
-import { idAcara, isiAcara, perluAda, PENANDA } from "../src/lib/kalender.js";
+import { idAcara, isiAcara, perluAda, PENANDA, kunciAgenda, kunciAcaraGoogle, pilihUnik } from "../src/lib/kalender.js";
 
 const CAL_ID   = () => process.env.GOOGLE_CALENDAR_ID;
 // Akun khusus kalender diutamakan bila keduanya diisi; bila tidak, akun
@@ -100,12 +103,13 @@ export async function simpanAcara(ev) {
   return "disimpan";
 }
 
-export async function hapusAcara(idJadwal) {
-  const id = idAcara(idJadwal);
-  const r = await gcal("DELETE", `events/${id}`);
+async function hapusIdGoogle(id) {
+  const r = await gcal("DELETE", `events/${encodeURIComponent(id)}`);
   if (r.ok || r.status === 404 || r.status === 410) return r.ok ? "dihapus" : "tidak ada";
   throw await galat(r, `hapus ${id}`);
 }
+
+export const hapusAcara = (idJadwal) => hapusIdGoogle(idAcara(idJadwal));
 
 // ── Supabase ──────────────────────────────────────────────────────
 async function sb(jalur) {
@@ -119,24 +123,43 @@ async function sb(jalur) {
  * Menyamakan kalender dengan KEADAAN TERSIMPAN satu jadwal. Data diambil dari
  * basis data, bukan dari kiriman peramban, sehingga permintaan ini tidak
  * dapat dipakai menyisipkan isi apa pun ke kalender.
+ *
+ * Jadwal lain pada tanggal yang sama ikut dibaca: bila ada kembarannya,
+ * hanya satu yang dikirim (yang paling awal diinput).
  */
 export async function sinkronSatu(idJadwal) {
   if (!kalenderAktif()) return { nonaktif: true };
   const hariIni = hariIniWita();
   const ev = (await sb(`jadwal?id=eq.${encodeURIComponent(idJadwal)}&select=data`))?.[0]?.data;
-  if (ev && perluAda(ev, hariIni)) return { hasil: await simpanAcara(ev) };
-  // Acara yang sudah lewat dibiarkan sebagai catatan; yang lain dicabut.
+  // Acara yang sudah lewat dibiarkan sebagai catatan.
   if (ev && typeof ev.tanggal === "string" && ev.tanggal < hariIni) return { hasil: "lampau, dibiarkan" };
-  return { hasil: await hapusAcara(idJadwal) };
+  if (!ev) return { hasil: await hapusAcara(idJadwal) };
+
+  const sehari = (await sb(`jadwal?select=data&data->>tanggal=eq.${encodeURIComponent(ev.tanggal)}`))
+    .map((x) => x.data).filter((x) => x && String(x.id) !== String(ev.id));
+  const kunci = kunciAgenda(ev);
+  const [utama] = pilihUnik([...sehari, ev].filter((x) => perluAda(x, hariIni) && kunciAgenda(x) === kunci));
+
+  if (!utama) return { hasil: await hapusAcara(ev.id) };
+  if (String(utama.id) === String(ev.id)) {
+    const hasil = await simpanAcara(ev);
+    // Kembaran yang sempat terkirim (mis. sebelum jadwal ini disunting) dicabut.
+    for (const x of sehari) if (kunciAgenda(x) === kunci) await hapusAcara(x.id);
+    return { hasil };
+  }
+  // Jadwal ini kembaran: cukup kembarannya yang tampil.
+  await hapusAcara(ev.id);
+  await simpanAcara(utama);
+  return { hasil: "kembar, diwakili " + utama.id };
 }
 
 // ── Pencocokan menyeluruh (dipanggil cron) ────────────────────────
 /**
  * Menambal setiap selisih antara basis data dan kalender untuk hari ini ke
  * depan: yang belum ada dibuat, yang berubah diperbarui, yang tidak lagi
- * semestinya ada dicabut. Pengiriman seketika yang sempat gagal tertutup di
- * sini, begitu pula agenda yang dibuat peladen lain (mis. dari permohonan
- * tamu).
+ * semestinya ada dicabut, dan salinan manual yang kembar dengan kiriman
+ * aplikasi dihapus. Pengiriman seketika yang sempat gagal tertutup di sini,
+ * begitu pula agenda yang dibuat peladen lain (mis. dari permohonan tamu).
  */
 export async function rekonsiliasi() {
   if (!kalenderAktif()) return { nonaktif: true };
@@ -149,32 +172,46 @@ export async function rekonsiliasi() {
     if (!hal.length) break;
     dari += hal.length;
   }
-  const semestinya = new Map(jadwal.filter((ev) => perluAda(ev, hariIni)).map((ev) => [idAcara(ev.id), ev]));
+  const semestinya = new Map(pilihUnik(jadwal.filter((ev) => perluAda(ev, hariIni))).map((ev) => [idAcara(ev.id), ev]));
+  const idPerKunci = new Map([...semestinya].map(([id, ev]) => [kunciAgenda(ev), id]));
 
-  const ada = new Map();
+  // Seluruh acara kalender hari ini ke depan: milik aplikasi dan salinan manual.
+  const ada = new Map(), manual = [];
   for (let halaman = null; ; ) {
     const q = new URLSearchParams({
-      privateExtendedProperty: `${PENANDA}=1`, timeMin: `${hariIni}T00:00:00+08:00`,
-      singleEvents: "true", showDeleted: "false", maxResults: "2500",
+      timeMin: `${hariIni}T00:00:00+08:00`, singleEvents: "true", showDeleted: "false", maxResults: "2500",
     });
     if (halaman) q.set("pageToken", halaman);
     const r = await gcal("GET", `events?${q}`);
     if (!r.ok) throw await galat(r, "daftar acara");
     const d = await r.json();
-    for (const a of d.items || []) ada.set(a.id, a.extendedProperties?.private?.sidik);
+    for (const a of d.items || []) {
+      const milik = a.extendedProperties?.private;
+      if (milik?.[PENANDA] === "1") ada.set(a.id, milik.sidik);
+      else manual.push(a);
+    }
     if (!(halaman = d.nextPageToken)) break;
   }
 
-  const hasil = { dibuat: 0, diperbarui: 0, tetap: 0, dicabut: 0, gagal: 0 };
+  const hasil = { dibuat: 0, diperbarui: 0, tetap: 0, dicabut: 0, gandaDihapus: 0, gagal: 0 };
+  const gagalSimpan = new Set();
   for (const [id, ev] of semestinya) {
     const sidikBaru = isiAcara(ev).extendedProperties.private.sidik;
     if (ada.get(id) === sidikBaru) { hasil.tetap++; continue; }
     try { await simpanAcara(ev); ada.has(id) ? hasil.diperbarui++ : hasil.dibuat++; }
-    catch (e) { hasil.gagal++; console.error("[kalender]", e.message); }
+    catch (e) { hasil.gagal++; gagalSimpan.add(id); console.error("[kalender]", e.message); }
   }
   for (const id of ada.keys()) {
     if (semestinya.has(id)) continue;
-    try { await gcal("DELETE", `events/${id}`); hasil.dicabut++; }
+    try { await hapusIdGoogle(id); hasil.dicabut++; }
+    catch (e) { hasil.gagal++; console.error("[kalender]", e.message); }
+  }
+  // Salinan manual dihapus hanya bila salinan otomatisnya pasti ada.
+  for (const a of manual) {
+    if (a.recurringEventId || a.status === "cancelled") continue;
+    const idOtomatis = idPerKunci.get(kunciAcaraGoogle(a));
+    if (!idOtomatis || gagalSimpan.has(idOtomatis)) continue;
+    try { await hapusIdGoogle(a.id); hasil.gandaDihapus++; }
     catch (e) { hasil.gagal++; console.error("[kalender]", e.message); }
   }
   return hasil;
