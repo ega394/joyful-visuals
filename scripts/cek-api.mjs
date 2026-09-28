@@ -45,11 +45,19 @@ const salah = [];
 
 // ── 1. Pemeriksaan statis ────────────────────────────────────────
 const IMPOR_SRC = /(?:from\s*|import\s*\(\s*|require\s*\(\s*)["']\.\.\/src\//;
+// Modul bersama berawalan garis bawah (mis. _kalender.mjs) adalah ESM; berkas
+// .js yang mengimpornya mati dengan cara yang sama.
+const IMPOR_MJS = /(?:from\s*|import\s*\(\s*|require\s*\(\s*)["']\.\/[^"']+\.mjs["']/;
 for (const n of berkas) {
   if (!n.endsWith(".js")) continue;
   const isi = readFileSync(resolve(API, n), "utf8");
   if (IMPOR_SRC.test(isi)) {
     salah.push(`${n} mengimpor dari src/ padahal berekstensi .js — ` +
+               `ubah menjadi ${n.replace(/\.js$/, ".mjs")}, jika tidak ` +
+               `fungsinya mati dengan ERR_REQUIRE_ESM di produksi.`);
+  }
+  if (IMPOR_MJS.test(isi)) {
+    salah.push(`${n} mengimpor modul .mjs padahal berekstensi .js — ` +
                `ubah menjadi ${n.replace(/\.js$/, ".mjs")}, jika tidak ` +
                `fungsinya mati dengan ERR_REQUIRE_ESM di produksi.`);
   }
@@ -60,6 +68,9 @@ let dimuat = 0;
 for (const n of berkas.filter((x) => x.endsWith(".mjs"))) {
   try {
     const m = await import(resolve(API, n));
+    // Berawalan garis bawah = modul bersama, bukan fungsi Vercel: cukup
+    // terbukti dapat dimuat, tidak dituntut punya handler.
+    if (n.startsWith("_")) { dimuat++; continue; }
     if (typeof m.default !== "function") {
       salah.push(`${n} tidak mengekspor default berupa fungsi handler.`);
     } else dimuat++;

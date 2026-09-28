@@ -28,6 +28,7 @@
 import webpush from "web-push";
 // Satu sumber aturan PLH untuk peramban maupun peladen.
 import { plhAktif, hariIniWita } from "../src/lib/plh.js";
+import { kalenderAktif, rekonsiliasi } from "./_kalender.mjs";
 
 const SUPA_URL  = process.env.SUPABASE_URL  || process.env.VITE_SUPABASE_URL;
 const SUPA_KEY  = process.env.SUPABASE_KEY  || process.env.VITE_SUPABASE_ANON_KEY;
@@ -648,6 +649,15 @@ export default async function handler(req, res) {
   const force = req.query.force === "1" || req.query.force === "true";
 
   console.log(`[CRON] Mulai: type=${type}, force=${force}, time=${new Date().toISOString()}`);
+
+  // Pencocokan Google Calendar bersama — lima kali sehari mengikuti jadwal
+  // cron ini. Sengaja SEBELUM pemeriksaan duplikat notifikasi (kalender tetap
+  // perlu dicocokkan meski notifikasinya sudah terkirim) dan terbungkus
+  // sendiri, supaya kegagalannya tidak pernah menggagalkan notifikasi.
+  if (kalenderAktif()) {
+    try { console.log("[CRON] Kalender:", JSON.stringify(await rekonsiliasi())); }
+    catch (e) { console.error("[CRON] Kalender gagal:", e?.message || e); }
+  }
 
   // ── DEDUPLICATION CHECK ──────────────────────────────────────
   if (!force) {

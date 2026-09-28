@@ -45,6 +45,7 @@
 // memakai pemeriksaan yang sama persis, kalau tidak keduanya bisa berbeda
 // pendapat tentang penetapan yang sah.
 import { periksaPenetapan } from "../src/lib/plh.js";
+import { sinkronSatu } from "./_kalender.mjs";
 
 const SUPA_URL = process.env.SUPABASE_URL  || process.env.VITE_SUPABASE_URL;
 // Utamakan service key: dengan itu endpoint ini tetap berjalan meski kebijakan
@@ -303,6 +304,25 @@ export default async function handler(req, res) {
   const { method, query, body } = req;
 
   try {
+    // ?op=kalender → samakan Google Calendar bersama dengan satu jadwal.
+    // Dipanggil aplikasi sesudah jadwal disimpan. Isinya dibaca peladen dari
+    // basis data, jadi yang dikirim peramban hanya nomor jadwalnya. Selama
+    // GOOGLE_CALENDAR_ID belum diisi, jawabannya {nonaktif:true}.
+    if (query.op === "kalender" && method === "POST") {
+      const pemohon = await verifySession(req);
+      if (!pemohon) return res.status(403).json({ error: "Sesi tidak valid — silakan login ulang." });
+      const id = body?.id;
+      if (id === undefined || id === null || !/^[\w-]{1,40}$/.test(String(id)))
+        return res.status(400).json({ error: "Nomor jadwal tidak sah" });
+      try {
+        return res.status(200).json({ ok: true, ...(await sinkronSatu(String(id))) });
+      } catch (e) {
+        // Gagal di sini bukan bencana: pencocokan terjadwal akan menambalnya.
+        console.error("[kalender] sinkron satu:", e.message);
+        return res.status(502).json({ error: "Sinkron kalender gagal", detail: e.message.slice(0, 200) });
+      }
+    }
+
     // ── GET ────────────────────────────────────────────────────
     if (method === "GET") {
 
