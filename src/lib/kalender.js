@@ -8,6 +8,8 @@
  *     "Sembunyikan" tidak pernah dikirim, dan dicabut bila sudah terlanjur.
  *   - Hanya jadwal mulai HARI INI ke depan. Riwayat lama tidak diisikan, dan
  *     acara yang sudah lewat tidak disentuh lagi (tidak dihapus, tidak diubah).
+ *   - Judul acara hanya nama acaranya, tanpa awalan [WK]/[WWK]; pimpinan yang
+ *     hadir dicantumkan pada rincian acara.
  *   - Yang ikut: nama acara, waktu, lokasi, pimpinan yang hadir, jenis
  *     kegiatan, penyelenggara, pakaian. Nomor narahubung, catatan internal,
  *     dan nomor surat TIDAK ikut — pelanggan kalender bukan pengguna aplikasi.
@@ -44,13 +46,6 @@ export function pimpinanHadir(ev) {
   return ["walikota", "wakilwalikota"].filter((p) => s.has(p));
 }
 
-export function awalanJudul(ev) {
-  const h = pimpinanHadir(ev);
-  if (h.length === 2) return "[WK & WWK] ";
-  if (h[0] === "walikota") return "[WK] ";
-  if (h[0] === "wakilwalikota") return "[WWK] ";
-  return "";
-}
 
 /** Apakah jadwal ini semestinya ada di kalender pada `hariIni` (YYYY-MM-DD WITA). */
 export function perluAda(ev, hariIni) {
@@ -93,7 +88,7 @@ export function isiAcara(ev) {
   ].filter((x) => x !== false && x !== null && x !== undefined && x !== 0).join("\n");
 
   const inti = {
-    summary: awalanJudul(ev) + (ev.namaAcara || "Kegiatan Pimpinan"),
+    summary: ev.namaAcara || "Kegiatan Pimpinan",
     location: ev.lokasi || "",
     description: keterangan,
     start: { dateTime: waktu(ev.tanggal, mulai), timeZone: ZONA },

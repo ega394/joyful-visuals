@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, beforeEach, vi } from "vitest";
 // @ts-expect-error — modul JS tanpa berkas tipe
-import { idAcara, isiAcara, perluAda, pimpinanHadir, awalanJudul } from "../lib/kalender.js";
+import { idAcara, isiAcara, perluAda, pimpinanHadir } from "../lib/kalender.js";
 
 const HARI = "2026-09-27";
 const jadwal = (x: any = {}) => ({
@@ -29,9 +29,9 @@ describe("aturan isi kalender", () => {
 
   it("disposisi ke Wakil memindahkan pimpinan yang hadir", () => {
     expect(pimpinanHadir(jadwal({ delegasiKeWWK: true }))).toEqual(["wakilwalikota"]);
-    expect(awalanJudul(jadwal())).toBe("[WK] ");
-    expect(awalanJudul(jadwal({ untukPimpinan: ["walikota", "wakilwalikota"] }))).toBe("[WK & WWK] ");
-    expect(awalanJudul(jadwal({ untukPimpinan: [] }))).toBe("");
+    const a = isiAcara(jadwal({ untukPimpinan: ["walikota", "wakilwalikota"] }));
+    expect(a.summary).toBe("Rapat Koordinasi");          // judul tanpa awalan [WK]/[WWK]
+    expect(a.description).toContain("Pimpinan: Wali Kota dan Wakil Wali Kota");
   });
 
   it("narahubung, catatan internal, dan nomor surat TIDAK ikut", () => {
@@ -135,7 +135,7 @@ describe("api/_kalender.mjs", () => {
     await K.sinkronSatu(String(jadwal().id));
     await K.sinkronSatu(String(jadwal().id));
     expect(kalender.size).toBe(1);
-    expect([...kalender.values()][0].summary).toBe("[WK] Rapat Koordinasi");
+    expect([...kalender.values()][0].summary).toBe("Rapat Koordinasi");
   });
 
   it("ditarik atau disembunyikan → dicabut; disetujui lagi → pulih walau ID pernah dihapus", async () => {
@@ -153,7 +153,7 @@ describe("api/_kalender.mjs", () => {
     db.push(jadwal());
     balapan = true;
     expect((await K.sinkronSatu(String(jadwal().id))).hasil).toBe("disimpan");
-    expect([...kalender.values()][0].summary).toBe("[WK] Rapat Koordinasi");
+    expect([...kalender.values()][0].summary).toBe("Rapat Koordinasi");
   });
 
   it("jadwal dihapus dari aplikasi → dicabut; acara lampau dibiarkan", async () => {
