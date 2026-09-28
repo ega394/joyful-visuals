@@ -5,7 +5,10 @@
  * BOLEH TERLIHAT, bukan sekadar menyalin jadwal:
  *
  *   - Hanya jadwal berstatus "disetujui" yang dikirim; jadwal yang ditandai
- *     "Sembunyikan" tidak pernah dikirim, dan dicabut bila sudah terlanjur.
+ *     "Tidak ditampilkan" (`sembunyiKalender`) oleh Kabag atau Kasubbag
+ *     Komdokpim tidak pernah dikirim, dan dicabut bila sudah terlanjur.
+ *     Penanda `tersembunyi` milik Rekap WA sengaja TIDAK berpengaruh di sini:
+ *     Rekap WA dapat dibuka hampir semua peran.
  *   - Hanya jadwal mulai HARI INI ke depan. Riwayat lama tidak diisikan, dan
  *     acara yang sudah lewat tidak disentuh lagi (tidak dihapus, tidak diubah).
  *   - Judul acara hanya nama acaranya, tanpa awalan [WK]/[WWK]; pimpinan yang
@@ -49,7 +52,7 @@ export function pimpinanHadir(ev) {
 
 /** Apakah jadwal ini semestinya ada di kalender pada `hariIni` (YYYY-MM-DD WITA). */
 export function perluAda(ev, hariIni) {
-  return !!ev && ev.alur === "disetujui" && !ev.tersembunyi
+  return !!ev && ev.alur === "disetujui" && !ev.sembunyiKalender
     && typeof ev.tanggal === "string" && ev.tanggal >= hariIni;
 }
 

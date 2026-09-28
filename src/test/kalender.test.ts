@@ -23,7 +23,9 @@ describe("aturan isi kalender", () => {
     expect(perluAda(jadwal({ tanggal: HARI }), HARI)).toBe(true);
     expect(perluAda(jadwal({ tanggal: "2026-09-26" }), HARI)).toBe(false);
     expect(perluAda(jadwal({ alur: "menunggu_kabag" }), HARI)).toBe(false);
-    expect(perluAda(jadwal({ tersembunyi: true }), HARI)).toBe(false);
+    expect(perluAda(jadwal({ sembunyiKalender: true }), HARI)).toBe(false);
+    // Penanda Rekap WA tidak menentukan kalender.
+    expect(perluAda(jadwal({ tersembunyi: true }), HARI)).toBe(true);
     expect(perluAda(null, HARI)).toBe(false);
   });
 
@@ -48,6 +50,10 @@ describe("aturan isi kalender", () => {
     expect(a.start).toEqual({ dateTime: "2026-09-28T09:00:00", timeZone: "Asia/Makassar" });
     expect(a.end.dateTime).toBe("2026-09-28T11:00:00");
     expect(isiAcara(jadwal({ jamSelesai: "10:30" })).end.dateTime).toBe("2026-09-28T10:30:00");
+    expect(isiAcara(jadwal({ jamSelesai: "15:45" })).end.dateTime).toBe("2026-09-28T15:45:00");
+    expect(isiAcara(jadwal({ jamSelesai: "" })).end.dateTime).toBe("2026-09-28T11:00:00");
+    // Jam selesai keliru (sebelum jam mulai) diperlakukan seperti kosong.
+    expect(isiAcara(jadwal({ jamSelesai: "08:00" })).end.dateTime).toBe("2026-09-28T11:00:00");
     expect(isiAcara(jadwal({ jam: "23:00" })).end.dateTime).toBe("2026-09-29T01:00:00");
   });
 
@@ -141,7 +147,7 @@ describe("api/_kalender.mjs", () => {
   it("ditarik atau disembunyikan → dicabut; disetujui lagi → pulih walau ID pernah dihapus", async () => {
     db.push(jadwal());
     await K.sinkronSatu(String(jadwal().id));
-    db[0] = jadwal({ tersembunyi: true });
+    db[0] = jadwal({ sembunyiKalender: true });
     await K.sinkronSatu(String(jadwal().id));
     expect(kalender.size).toBe(0);
     db[0] = jadwal();
