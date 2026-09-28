@@ -11,14 +11,18 @@
  * (ERR_REQUIRE_ESM). Lihat scripts/cek-api.mjs.
  *
  * Pemasangan (Vercel → Settings → Environment Variables):
- *   GOOGLE_CALENDAR_ID      ID kalender tujuan
- *   GOOGLE_SA_EMAIL         sudah ada — akun layanan yang juga dipakai Drive
- *   GOOGLE_SA_PRIVATE_KEY   sudah ada
- * Kalender dibagikan kepada GOOGLE_SA_EMAIL dengan izin "Buat perubahan pada
- * acara", dan Google Calendar API diaktifkan pada proyeknya.
+ *   GOOGLE_CALENDAR_ID               ID kalender tujuan
+ *   GOOGLE_CALENDAR_SA_EMAIL         client_email akun layanan KHUSUS kalender
+ *   GOOGLE_CALENDAR_SA_PRIVATE_KEY   private_key akun layanan tersebut
+ * Kalender dibagikan kepada GOOGLE_CALENDAR_SA_EMAIL dengan izin "Buat
+ * perubahan pada acara", dan Google Calendar API diaktifkan pada proyeknya.
  *
- * Selama GOOGLE_CALENDAR_ID belum diisi, seluruh fungsi di sini diam — tidak
- * ada galat dan tidak ada panggilan ke Google.
+ * Sengaja TIDAK memakai GOOGLE_SA_EMAIL / GOOGLE_SA_PRIVATE_KEY: akun itu
+ * milik layanan lain (Drive). Tidak ada jatuh-balik ke sana, supaya kalender
+ * tidak pernah diam-diam berjalan dengan akun yang salah.
+ *
+ * Selama ketiga pengaturan di atas belum lengkap, seluruh fungsi di sini diam
+ * — tidak ada galat dan tidak ada panggilan ke Google.
  *
  * Aman diulang: ID acara diturunkan dari nomor jadwal, dan hanya acara yang
  * bertanda milik aplikasi ini yang pernah diubah atau dihapus. Acara lain di
@@ -29,14 +33,14 @@ import { hariIniWita } from "../src/lib/plh.js";
 import { idAcara, isiAcara, perluAda, PENANDA } from "../src/lib/kalender.js";
 
 const CAL_ID   = () => process.env.GOOGLE_CALENDAR_ID;
-const SA_EMAIL = () => process.env.GOOGLE_SA_EMAIL;
-const SA_KEY   = () => process.env.GOOGLE_SA_PRIVATE_KEY;
+const SA_EMAIL = () => process.env.GOOGLE_CALENDAR_SA_EMAIL;
+const SA_KEY   = () => process.env.GOOGLE_CALENDAR_SA_PRIVATE_KEY;
 const SUPA_URL = () => process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const SUPA_KEY = () => process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 
 export const kalenderAktif = () => !!(CAL_ID() && SA_EMAIL() && SA_KEY());
 
-// ── Token Google (sama dengan api/drive.js, cakupan kalender saja) ────
+// ── Token Google (cara yang sama dengan api/drive.js, cakupan kalender saja) ────
 const b64u = (x) => Buffer.from(typeof x === "string" ? Buffer.from(x, "utf8") : x)
   .toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
 let _tok = null, _tokExp = 0;

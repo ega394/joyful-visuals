@@ -71,8 +71,8 @@ describe("api/_kalender.mjs", () => {
       { name: "RSASSA-PKCS1-v1_5", modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: "SHA-256" },
       true, ["sign", "verify"]);
     const pkcs8 = Buffer.from(await crypto.subtle.exportKey("pkcs8", (pasangan as CryptoKeyPair).privateKey)).toString("base64");
-    process.env.GOOGLE_SA_EMAIL = "uji@proyek.iam.gserviceaccount.com";
-    process.env.GOOGLE_SA_PRIVATE_KEY = `-----BEGIN PRIVATE KEY-----\\n${pkcs8}\\n-----END PRIVATE KEY-----`;
+    process.env.GOOGLE_CALENDAR_SA_EMAIL = "kalender@proyek.iam.gserviceaccount.com";
+    process.env.GOOGLE_CALENDAR_SA_PRIVATE_KEY = `-----BEGIN PRIVATE KEY-----\\n${pkcs8}\\n-----END PRIVATE KEY-----`;
     process.env.SUPABASE_URL = "https://db.contoh";
     process.env.SUPABASE_KEY = "k";
     // @ts-expect-error — modul JS tanpa berkas tipe
@@ -115,6 +115,17 @@ describe("api/_kalender.mjs", () => {
     });
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-09-27T02:00:00Z"));   // 10.00 WITA
+  });
+
+  it("tidak memakai akun layanan Drive walau tersedia", async () => {
+    const e = process.env.GOOGLE_CALENDAR_SA_EMAIL;
+    delete process.env.GOOGLE_CALENDAR_SA_EMAIL;
+    process.env.GOOGLE_SA_EMAIL = "drive@lain.iam.gserviceaccount.com";
+    process.env.GOOGLE_SA_PRIVATE_KEY = "kunci-drive";
+    expect(K.kalenderAktif()).toBe(false);
+    expect(await K.sinkronSatu("1")).toEqual({ nonaktif: true });
+    process.env.GOOGLE_CALENDAR_SA_EMAIL = e;
+    delete process.env.GOOGLE_SA_EMAIL; delete process.env.GOOGLE_SA_PRIVATE_KEY;
   });
 
   it("diam sepenuhnya selama GOOGLE_CALENDAR_ID belum diisi", async () => {
