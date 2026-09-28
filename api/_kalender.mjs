@@ -11,18 +11,18 @@
  * (ERR_REQUIRE_ESM). Lihat scripts/cek-api.mjs.
  *
  * Pemasangan (Vercel → Settings → Environment Variables):
- *   GOOGLE_CALENDAR_ID               ID kalender tujuan
- *   GOOGLE_CALENDAR_SA_EMAIL         client_email akun layanan KHUSUS kalender
- *   GOOGLE_CALENDAR_SA_PRIVATE_KEY   private_key akun layanan tersebut
- * Kalender dibagikan kepada GOOGLE_CALENDAR_SA_EMAIL dengan izin "Buat
- * perubahan pada acara", dan Google Calendar API diaktifkan pada proyeknya.
+ *   GOOGLE_CALENDAR_ID      ID kalender tujuan — satu-satunya yang perlu ditambah
+ *   GOOGLE_SA_EMAIL         sudah ada — akun layanan yang juga dipakai Drive
+ *   GOOGLE_SA_PRIVATE_KEY   sudah ada
+ * Kalender dibagikan kepada GOOGLE_SA_EMAIL dengan izin "Buat perubahan pada
+ * acara", dan Google Calendar API diaktifkan pada proyek akun layanan itu.
  *
- * Sengaja TIDAK memakai GOOGLE_SA_EMAIL / GOOGLE_SA_PRIVATE_KEY: akun itu
- * milik layanan lain (Drive). Tidak ada jatuh-balik ke sana, supaya kalender
- * tidak pernah diam-diam berjalan dengan akun yang salah.
+ * Pilihan: bila kelak ingin akun layanan tersendiri untuk kalender, isi
+ * GOOGLE_CALENDAR_SA_EMAIL dan GOOGLE_CALENDAR_SA_PRIVATE_KEY — keduanya
+ * diutamakan bila ada, tanpa perlu mengubah kode.
  *
- * Selama ketiga pengaturan di atas belum lengkap, seluruh fungsi di sini diam
- * — tidak ada galat dan tidak ada panggilan ke Google.
+ * Selama GOOGLE_CALENDAR_ID belum diisi, seluruh fungsi di sini diam — tidak
+ * ada galat dan tidak ada panggilan ke Google.
  *
  * Aman diulang: ID acara diturunkan dari nomor jadwal, dan hanya acara yang
  * bertanda milik aplikasi ini yang pernah diubah atau dihapus. Acara lain di
@@ -33,8 +33,12 @@ import { hariIniWita } from "../src/lib/plh.js";
 import { idAcara, isiAcara, perluAda, PENANDA } from "../src/lib/kalender.js";
 
 const CAL_ID   = () => process.env.GOOGLE_CALENDAR_ID;
-const SA_EMAIL = () => process.env.GOOGLE_CALENDAR_SA_EMAIL;
-const SA_KEY   = () => process.env.GOOGLE_CALENDAR_SA_PRIVATE_KEY;
+// Akun khusus kalender diutamakan bila keduanya diisi; bila tidak, akun
+// layanan yang sudah ada. Pasangan tidak dicampur: surel dari satu akun dan
+// kunci dari akun lain pasti ditolak Google.
+const khusus   = () => !!(process.env.GOOGLE_CALENDAR_SA_EMAIL && process.env.GOOGLE_CALENDAR_SA_PRIVATE_KEY);
+const SA_EMAIL = () => khusus() ? process.env.GOOGLE_CALENDAR_SA_EMAIL : process.env.GOOGLE_SA_EMAIL;
+const SA_KEY   = () => khusus() ? process.env.GOOGLE_CALENDAR_SA_PRIVATE_KEY : process.env.GOOGLE_SA_PRIVATE_KEY;
 const SUPA_URL = () => process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const SUPA_KEY = () => process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 
