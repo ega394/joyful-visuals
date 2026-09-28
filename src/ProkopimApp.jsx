@@ -1779,6 +1779,71 @@ function AIModal({onFill,onClose}){
 }
 
 // ==================== SUMMARY MODAL ====================
+// ==================== KALENDER BERSAMA — pengaturan tampil ====================
+// Kabag dan Kasubbag Komdokpim memutuskan agenda mana yang TIDAK ditampilkan
+// pada Google Calendar bersama (mis. kegiatan tertutup). Penandanya
+// `sembunyiKalender`, sengaja terpisah dari `tersembunyi` milik Rekap WA:
+// Rekap WA dapat dibuka hampir semua peran, sedangkan keputusan tampil di
+// kalender yang dilanggani publik dibatasi pada dua jabatan ini.
+// Perubahan disimpan lewat upd(), yang memicu sinkron kalender seketika.
+function KalenderBersamaView({events,upd,showT,isMobile}){
+  const NAVY="#0A1628";
+  const [q,setQ]=React.useState("");
+  const [saring,setSaring]=React.useState("semua");
+  const hariIni=todayStr();
+  const daftar=events
+    .filter(e=>e.alur==="disetujui"&&e.tanggal>=hariIni)
+    .filter(e=>saring==="semua"||(saring==="sembunyi"?e.sembunyiKalender:!e.sembunyiKalender))
+    .filter(e=>!q.trim()||((e.namaAcara||"")+" "+(e.lokasi||"")+" "+(e.penyelenggara||"")).toLowerCase().includes(q.trim().toLowerCase()))
+    .sort((a,b)=>(a.tanggal+(a.jam||"")).localeCompare(b.tanggal+(b.jam||"")));
+  const jumlahSembunyi=events.filter(e=>e.alur==="disetujui"&&e.tanggal>=hariIni&&e.sembunyiKalender).length;
+  const alih=(ev)=>{
+    const jadi=!ev.sembunyiKalender;
+    upd(ev.id,{sembunyiKalender:jadi});
+    showT(jadi?"Tidak ditampilkan di kalender bersama":"Ditampilkan kembali di kalender bersama",jadi?"warn":"ok");
+  };
+  const fmtTgl=t=>new Date(t+"T00:00:00").toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+  let tglSebelum=null;
+  return <div style={{padding:isMobile?"12px 14px":"20px 24px",maxWidth:880,margin:"0 auto"}}>
+    <div style={{fontSize:18,fontWeight:800,color:NAVY,marginBottom:4}}>📆 Tampilan Kalender Bersama</div>
+    <div style={{fontSize:13,color:"#64748B",lineHeight:1.6,marginBottom:14}}>
+      Agenda yang disetujui otomatis tampil di Google Calendar bersama. Tandai agenda yang <b>tidak</b> perlu
+      terlihat oleh pelanggan kalender, misalnya kegiatan tertutup. Perubahan berlaku dalam beberapa detik;
+      agenda tetap ada di aplikasi seperti biasa.
+    </div>
+    <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:12}}>
+      <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Cari nama acara, lokasi, penyelenggara…"
+        style={{flex:"2 1 220px",padding:"9px 12px",borderRadius:9,border:"1.5px solid #E2E8F0",fontSize:13}}/>
+      <select value={saring} onChange={e=>setSaring(e.target.value)}
+        style={{flex:"1 1 160px",padding:"9px 12px",borderRadius:9,border:"1.5px solid #E2E8F0",fontSize:13,background:"white"}}>
+        <option value="semua">Semua agenda</option>
+        <option value="tampil">Tampil di kalender</option>
+        <option value="sembunyi">Tidak ditampilkan ({jumlahSembunyi})</option>
+      </select>
+    </div>
+    {daftar.length===0&&<div style={{background:"#F8FAFC",borderRadius:12,padding:32,textAlign:"center",color:"#94A3B8",fontSize:13}}>Tidak ada agenda yang cocok.</div>}
+    {daftar.map(ev=>{
+      const judulTgl=ev.tanggal!==tglSebelum?fmtTgl(ev.tanggal):null; tglSebelum=ev.tanggal;
+      const sembunyi=!!ev.sembunyiKalender;
+      return <React.Fragment key={ev.id}>
+        {judulTgl&&<div style={{fontSize:12,fontWeight:800,color:"#64748B",textTransform:"uppercase",letterSpacing:.6,margin:"14px 2px 6px"}}>{judulTgl}</div>}
+        <div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:11,marginBottom:7,
+          background:sembunyi?"#F8FAFC":"white",border:"1.5px solid "+(sembunyi?"#CBD5E1":"#E2E8F0"),opacity:sembunyi?.8:1}}>
+          <div style={{minWidth:46,fontSize:13,fontWeight:800,color:NAVY}}>{ev.jam||"—"}</div>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontSize:13,fontWeight:700,color:"#0F172A",textDecoration:sembunyi?"line-through":"none"}}>{ev.namaAcara}</div>
+            <div style={{fontSize:12,color:"#64748B",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ev.lokasi||ev.penyelenggara||""}</div>
+          </div>
+          <button onClick={()=>alih(ev)} style={{flexShrink:0,padding:"7px 12px",borderRadius:9,cursor:"pointer",fontSize:12,fontWeight:700,
+            border:"1.5px solid "+(sembunyi?"#94A3B8":"#0D6B4F"),background:sembunyi?"white":"#ECFDF5",color:sembunyi?"#475569":"#065F46"}}>
+            {sembunyi?"🚫 Tidak ditampilkan":"✅ Tampil di kalender"}
+          </button>
+        </div>
+      </React.Fragment>;
+    })}
+  </div>;
+}
+
 function SummaryModal({events,onToggleHide,onClose}){
   const NAVY="#0A1628";
   const[mode,setMode]=React.useState("today");
@@ -7620,6 +7685,9 @@ export default function App(){
   // Kewenangan bersifat gabungan: menu milik peran asli tidak boleh hilang
   // hanya karena yang bersangkutan sedang mengampu jabatan lain.
   const bolehKalenderRuangan=KALENDER_RUANGAN_ROLES.some(r=>punyaPeran(user,r));
+  // Pengaturan tampil di Google Calendar bersama: Kabag dan Kasubbag Komdokpim
+  // (termasuk PLH-nya).
+  const bolehAturKalender=punyaPeran(user,"kabag")||punyaPeran(user,"kasubbag_komdokpim");
 
   // Eskalasi ke atas: Kabag berwenang atas kewenangan bawahannya, jadi boleh
   // memutus di tahap Kasubbag. Dimatikan secara bawaan supaya antrian harian
@@ -7907,7 +7975,7 @@ export default function App(){
   // menyamakan kalender dengan keadaan tersimpan jadwal itu. Hanya dipicu bila
   // yang berubah memang tampil di kalender. Kegagalan ditelan: pencocokan
   // terjadwal lima kali sehari akan menambalnya.
-  const KOLOM_KALENDER=["alur","tersembunyi","tanggal","jam","jamSelesai","namaAcara","lokasi","untukPimpinan","delegasiKeWWK","penyelenggara","pakaian","jenisKegiatan"];
+  const KOLOM_KALENDER=["alur","sembunyiKalender","tanggal","jam","jamSelesai","namaAcara","lokasi","untukPimpinan","delegasiKeWWK","penyelenggara","pakaian","jenisKegiatan"];
   const sinkronKalender=useCallback((id)=>{
     if(!user||!SUPA_OK)return;
     adminFetch(user,"/api/room-booking?op=kalender",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id})})
@@ -8899,6 +8967,7 @@ const TH={
     ...(["kabag","kasubbag_protokol",...PERAN_PETUGAS,"admin_rk"].includes(role)?[{key:"action:undangan",icon:"📋",label:"Generator Undangan"}]:[]),
     ...(bolehKalenderRuangan?[{key:"kalender_ruangan",icon:"🏛️",label:"Kalender Ruangan"}]:[]),
     ...(DAFTAR_HADIR_ROLES.includes(role)?[{key:"daftar_hadir",icon:"✍️",label:"Daftar Hadir Digital"}]:[]),
+    ...(bolehAturKalender?[{key:"kalender_bersama",icon:"📆",label:"Tampilan Kalender Bersama"}]:[]),
     ...(role==="kabag"?[{key:"plh",icon:"🛡️",label:"Pelaksana Harian"}]:[]),
   ]},
   {label:"AKUN",items:[
@@ -9089,6 +9158,7 @@ const TH={
               ...(REKAP_SAYA_ROLES.includes(role)?[{icon:"🏅",label:"Rekap Kinerja Saya",action:()=>{setTab("rekap_saya");setMobMenu(false);}}]:[]),
               ...(bolehKalenderRuangan?[{icon:"🏛️",label:"Kalender Ruangan",action:()=>{setTab("kalender_ruangan");setMobMenu(false);}}]:[]),
               ...(DAFTAR_HADIR_ROLES.includes(role)?[{icon:"✍️",label:"Daftar Hadir",action:()=>{setTab("daftar_hadir");setMobMenu(false);}}]:[]),
+              ...(bolehAturKalender?[{icon:"📆",label:"Kalender Bersama",action:()=>{setTab("kalender_bersama");setMobMenu(false);}}]:[]),
               ...(role==="kabag"?[{icon:"🛡️",label:"Pelaksana Harian",action:()=>{setTab("plh");setMobMenu(false);}}]:[]),
               {icon:"👤",label:"Profil",action:()=>{setShowProfile(true);setMobMenu(false);}},
               ...(role==="kabag"?[{icon:"⚙️",label:"Kelola User"+(loadPendingRegs().length>0?" ("+loadPendingRegs().length+")":""),action:()=>{setShowAdmin(true);setMobMenu(false);}}]:[]),
@@ -11994,7 +12064,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
 
 
   // ==================== MAIN CONTENT ====================
-  const pageTitle=tab==="ekinerja"?"Generator E-Kinerja":tab==="tayang"?"Agenda Kegiatan Pimpinan":tab==="pantau"?"Input & Pantau Jadwal":tab==="undangan"?"Generator Undangan Resmi":tab==="form"?"Input Jadwal Baru":tab==="semua"?"Semua Jadwal":tab==="penugasan"?"Penugasan Saya":tab==="audit"?"Riwayat Alur Jadwal":tab==="jadwal"?KASUBBAG_ROLES.includes(role)||role==="kabag"?"Antrian Approval":"Jadwal":"Jadwal";
+  const pageTitle=tab==="kalender_bersama"?"Kalender Bersama":tab==="ekinerja"?"Generator E-Kinerja":tab==="tayang"?"Agenda Kegiatan Pimpinan":tab==="pantau"?"Input & Pantau Jadwal":tab==="undangan"?"Generator Undangan Resmi":tab==="form"?"Input Jadwal Baru":tab==="semua"?"Semua Jadwal":tab==="penugasan"?"Penugasan Saya":tab==="audit"?"Riwayat Alur Jadwal":tab==="jadwal"?KASUBBAG_ROLES.includes(role)||role==="kabag"?"Antrian Approval":"Jadwal":"Jadwal";
 
   // ═══════════════════════════════════════════════════════════════
   // FITUR 1: SAPAAN CERDAS + RINGKASAN PAGI
@@ -12454,6 +12524,8 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
         ?<ApprovalQueueView events={events} role={role} user={user} upd={upd} showT={showT} askConfirm={askConfirm} deleteAndSync={deleteAndSync} isMobile={isMobile}/>
 
       /* 8b. Peminjaman Ruangan — dashboard admin */
+      :tab==="kalender_bersama"&&bolehAturKalender
+        ?<KalenderBersamaView events={events} upd={upd} showT={showT} isMobile={isMobile}/>
       :tab==="plh"&&(role==="kabag"||role==="superadmin")
         ?<React.Suspense fallback={<_LazyFallback />}><PlhManagement user={user} isMobile={isMobile}/></React.Suspense>
       :tab==="ruangan"&&(role==="kabag"||user?.can_manage_rooms)
