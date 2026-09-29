@@ -1,6 +1,6 @@
 # Daftar Centang Lampiran Lomba — Kaltara Innovation Awards 2026
 
-**Tenggat pendaftaran: 30 September 2026** · Diperbarui 24 September 2026 — **sisa 6 hari**
+**Tenggat pendaftaran: 30 September 2026** · Diperbarui 29 September 2026 — **sisa 1 hari**
 
 Naskah proposal kini: `Proposal-Prokopim-Hibot.docx` (dapat disunting) dan
 `.pdf` (untuk diunggah), dibuat oleh `build/buat-proposal.mjs`. Naskah lama
@@ -30,6 +30,11 @@ Penomoran lampiran di bawah mengikuti **Daftar Lampiran pada proposal baru**
 | ✅ | **Lampiran 10 — Alamat aplikasi** | https://prokopim.tarakankota.go.id |
 | ✅ | **Lampiran 7 — Sebelas SOP** | `docs/sop/SOP-Prokopim.pdf` |
 | ✅ | **Lampiran 8 — Keluaran statistik** | Sudah tercetak di dalam PDF proposal |
+| ✅ | **Lampiran 4 — Tangkapan layar** | 5 tangkapan (data contoh) sudah tersisip |
+| ✅ | **Kalender bersama masuk naskah** | Unsur kebaruan (6.4 f), Tabel 8, tahapan September, Tabel sumber daya |
+| ✅ | **Tidak membebani APBD** | Bagian 8.1 dan tabel sumber daya |
+| ✅ | **Akun layanan atas nama instansi** | Rencana "pengalihan akun" dihapus dari Tabel 19; dicatat pada mitigasi risiko |
+| ✅ | **Diseminasi tambahan** | 11.4: pengenalan langsung kepada Wali Kota, Wakil Wali Kota, ajudan, mitra kerja, dan pengguna internal |
 
 ---
 
@@ -49,7 +54,6 @@ Penomoran lampiran di bawah mengikuti **Daftar Lampiran pada proposal baru**
 | ⬜ | **1 — Pakta integritas** | Ditandatangani ketua tim |
 | ⬜ | **2 — Surat usulan perangkat daerah** | Bagian Prokopim Setda Kota Tarakan |
 | ⬜ | **3 — Bukti identitas anggota tim** | 5 orang — menyusul |
-| ⬜ | **4 — Tangkapan layar setiap alur** | Tutupi nomor telepon; jangan tangkap daftar pengguna |
 | ⬜ | **9 — Testimoni bertanda tangan** | Tidak wajib, tetapi disarankan (bukti kepuasan pengguna). Bila tidak terkumpul sampai 30 September, Bagian 9.8 dan formulirnya dihapus |
 
 ---
@@ -59,9 +63,8 @@ Penomoran lampiran di bawah mengikuti **Daftar Lampiran pada proposal baru**
 | | Hal | Kenapa |
 |---|---|---|
 | ❓ | **Pernyataan bantuan kecerdasan buatan** | Bagian 8.1 menyebut pengembangan swakelola dengan asisten pemrograman berbasis kecerdasan buatan. Ditulis terbuka karena riwayat kode mencatatnya dan Tahap II mencakup pemeriksaan sistem |
-| ❓ | **Rencana pengembangan dan diseminasi** | Tabel 19 dan 22 memuat komitmen berjadwal (subdomain resmi, pengalihan akun layanan ke akun instansi, alih pengetahuan, paparan ke daerah lain). Pastikan sanggup dijalankan |
+| ❓ | **Rencana pengembangan dan diseminasi** | Tabel 19 dan 22 memuat komitmen berjadwal (pengesahan SOP, alih pengetahuan, paparan ke daerah lain). Pastikan sanggup dijalankan |
 | ❓ | **Kata-kata misi Kota Tarakan** | Diambil dari portal resmi Pemkot lewat mesin pencari; halamannya tidak dapat dibuka langsung dari sesi ini. Cocokkan dengan dokumen RPJMD |
-| ❓ | **Diseminasi tambahan** | Bila pernah ada paparan, sosialisasi, atau kunjungan studi tentang aplikasi ini, tambahkan ke Bagian 11.4 — kriteria ini berbobot 10% |
 | ❓ | **Status pendaftaran** | Sudah membuat akun di sirindaku.kaltaraprov.go.id? |
 
 ---
