@@ -34,7 +34,12 @@ const AUTO = LineRuleType.AUTO;
 const DIR = path.dirname(fileURLToPath(import.meta.url));
 const LOMBA = path.resolve(DIR, "..");
 const REPO = path.resolve(LOMBA, "../..");
-const KELUAR = path.join(LOMBA, "Proposal-Prokopim-Hibot");
+// TANPA_SOP=1 menghasilkan versi tanpa sisipan sebelas SOP (Lampiran 7 hanya
+// berisi keterangan bahwa SOP sedang dalam proses pengesahan). Penomoran
+// lampiran tetap sama pada kedua versi.
+const TANPA_SOP = process.env.TANPA_SOP === "1";
+const AKHIRAN = TANPA_SOP ? "-tanpa-SOP" : "";
+const KELUAR = path.join(LOMBA, "Proposal-Prokopim-Hibot" + AKHIRAN);
 
 // ═══════════════════════════════════════════════════════════════════
 //  ANGKA
@@ -927,7 +932,9 @@ function lampiran() {
 
   // ── Lampiran 7 (isi disisipkan dari SOP-Prokopim.pdf) ──
   judulL(7, "Sebelas Standar Operasional Prosedur");
-  out.push(PN("Halaman-halaman berikut memuat sebelas SOP format PermenPAN-RB 35/2012 yang menjadi dasar alur kerja Prokopim Hibot."));
+  out.push(PN(TANPA_SOP
+    ? "Sebelas SOP sebagaimana tercantum pada Bagian 7.4 telah selesai disusun mengikuti format PermenPAN-RB 35/2012 dan kini dalam proses pengesahan oleh Sekretaris Daerah Kota Tarakan. Dokumen lengkapnya tidak disertakan pada berkas ini dan dapat diserahkan apabila diminta oleh Tim Penilai."
+    : "Halaman-halaman berikut memuat sebelas SOP format PermenPAN-RB 35/2012 yang menjadi dasar alur kerja Prokopim Hibot."));
 
   // ── Lampiran 8 ──
   judulL(8, `Keluaran Statistik Penggunaan per ${PER_LENGKAP}`);
@@ -1142,7 +1149,7 @@ const hasil = JSON.parse(execFileSync("python3", [path.join(DIR, "halaman.py"), 
 await tulisDanRender(hasil.halaman);
 const akhir = JSON.parse(execFileSync("python3", [path.join(DIR, "halaman.py"), KELUAR + ".pdf", BAB.b2, ...judulSemua], { encoding: "utf8" }));
 execFileSync("python3", [path.join(DIR, "gabung.py"), KELUAR + ".pdf",
-  "7=" + path.join(REPO, "docs/sop/SOP-Prokopim.pdf"),
+  ...(TANPA_SOP ? [] : ["7=" + path.join(REPO, "docs/sop/SOP-Prokopim.pdf")]),
   "6=" + path.join(LOMBA, "lampiran/SK-Tim-Koordinasi-2026.pdf") + "," + path.join(LOMBA, "lampiran/Surat-Sekda-300.2.10-265-2026.pdf"),
 ], { stdio: "inherit" });
 // Berkas final untuk diunggah: sama dengan PDF di atas ditambah pindaian KTP
@@ -1155,7 +1162,7 @@ let identitas = null;
 if (fs.existsSync(path.join(RAHASIA, "identitas"))) {
   const lamp3 = path.join(RAHASIA, "Lampiran-3-Identitas.pdf");
   identitas = JSON.parse(execFileSync("python3", [path.join(DIR, "identitas.py"), path.join(RAHASIA, "identitas"), lamp3], { encoding: "utf8" }));
-  const FINAL = path.join(RAHASIA, "Proposal-Prokopim-Hibot-FINAL.pdf");
+  const FINAL = path.join(RAHASIA, `Proposal-Prokopim-Hibot${AKHIRAN}-FINAL.pdf`);
   fs.copyFileSync(KELUAR + ".pdf", FINAL);
   execFileSync("python3", [path.join(DIR, "gabung.py"), FINAL, "3=" + lamp3], { stdio: "inherit" });
   keluaran.push(FINAL);
