@@ -997,8 +997,8 @@ function lampiran() {
   // ── Lampiran 9: Testimoni ──
   const narasumber = [
     ["dr. H. Khairul, M.Kes.", "Wali Kota Tarakan", "Bagaimana kepastian agenda dirasakan sebelum dan sesudah aplikasi ini dipakai?"],
-    ["[[nama]]", "Ajudan Wakil Wali Kota Tarakan", "Bagaimana Bapak/Ibu mengetahui agenda dan menyiapkan bahannya dahulu, dan apa yang berubah sekarang?"],
-    ["[[nama]]", "Staf Protokol, Bagian Protokol dan Komunikasi Pimpinan", "Dahulu bagaimana mengetahui diri sedang ditugaskan, dan apakah pernah terjadi pemberitahuan yang terlambat atau tidak sampai?"],
+    ["Muhammad Rizky Dinata Putra, S.Tr.IP.", "Ajudan Wakil Wali Kota Tarakan", "Bagaimana Bapak/Ibu mengetahui agenda dan menyiapkan bahannya dahulu, dan apa yang berubah sekarang?"],
+    ["Risca Saputri Samtika, S.Pd.", "Staf Protokol, Bagian Protokol dan Komunikasi Pimpinan", "Dahulu bagaimana mengetahui diri sedang ditugaskan, dan apakah pernah terjadi pemberitahuan yang terlambat atau tidak sampai?"],
   ];
   // Konsep keterangan — wajib dibaca, disesuaikan, dan ditandatangani sendiri
   // oleh narasumber sebelum diunggah.
@@ -1007,6 +1007,7 @@ function lampiran() {
     "Dahulu saya mengetahui agenda Bapak Wakil Wali Kota dari foto disposisi dan pesan di grup percakapan yang sering datang terlambat atau tidak lengkap, sehingga bahan dan pakaian kerap disiapkan terburu-buru. Sekarang setiap agenda yang ditetapkan untuk Wakil Wali Kota langsung sampai sebagai pemberitahuan, lengkap dengan lokasi, pakaian, dan narahubung penyelenggara. Pengingat sehari sebelumnya membantu saya menyiapkan keperluan lebih awal, dan kesediaan hadir Pimpinan cukup saya konfirmasikan melalui aplikasi. Perubahan jadwal yang mendadak pun tidak lagi terlewat.",
     "Dahulu penugasan disampaikan secara lisan atau melalui pesan pribadi, dan pernah terjadi saya baru mengetahui ditugaskan menjelang acara dimulai. Sekarang penugasan langsung masuk ke aplikasi dan WhatsApp saya, dan pemberitahuan hanya dikirim apabila penugasan saya berubah, sehingga tidak ada pesan penting yang tenggelam. Rekap agenda setiap pagi membuat saya dapat menyiapkan diri sejak awal hari, dan catatan kinerja saya tersedia tanpa perlu menyusunnya sendiri.",
   ];
+  const nipNarasumber = [null, "199803252022081001", "199506062025212058"];
   narasumber.forEach(([nama, jabatan, tanya], i) => {
     judulL(9, `Testimoni Pengguna (${i + 1} dari ${narasumber.length})`);
     out.push(tengahTebal("KETERANGAN PENGGUNA APLIKASI PROKOPIM HIBOT", { after: 240 }));
@@ -1016,7 +1017,7 @@ function lampiran() {
     out.push(new Table({ width: { size: LEBAR, type: WidthType.DXA }, columnWidths: [LEBAR],
       rows: [new TableRow({ height: { value: 2800, rule: "atLeast" }, children: [sel(isiTestimoni[i], LEBAR, { size: UK, align: AlignmentType.JUSTIFIED })] })] }));
     out.push(new Paragraph({ spacing: { after: 200 }, children: [] }));
-    out.push(tandaTangan(["Tarakan, [[tanggal]] September 2026", `${jabatan},`], nama, i === 0 ? [] : ["NIP [[NIP]]"]));
+    out.push(tandaTangan(["Tarakan, [[tanggal]] September 2026", `${jabatan},`], nama, nipNarasumber[i] ? [`NIP ${nipNarasumber[i]}`] : []));
   });
 
   // ── Lampiran 10 ──

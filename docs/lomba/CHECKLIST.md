@@ -44,7 +44,7 @@ Penomoran lampiran di bawah mengikuti **Daftar Lampiran pada proposal baru**
 
 | | Isian | Letak |
 |---|---|---|
-| ◐ | Tiga testimoni | **Konsep sudah terisi** (Tabel 17 dan Lampiran 9). Setiap narasumber wajib membaca, menyesuaikan, lalu menandatangani; nama dan NIP ajudan serta staf protokol, dan tanggal, masih kosong |
+| ◐ | Tiga testimoni | **Konsep sudah terisi** (Tabel 17 dan Lampiran 9). Setiap narasumber wajib membaca, menyesuaikan, lalu menandatangani; narasumber: dr. H. Khairul (Wali Kota), Muhammad Rizky Dinata Putra (ajudan Wawali), Risca Saputri Samtika (staf protokol); tanggal masih kosong |
 | ⬜ | Nomor dan tanggal surat usulan | Diisi saat naskah difinalkan |
 
 ---
