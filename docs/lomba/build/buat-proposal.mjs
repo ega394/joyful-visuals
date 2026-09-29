@@ -297,7 +297,7 @@ function isi() {
   tambah(P(`**Masalah.** Sampai awal tahun 2026 seluruh proses tersebut berjalan secara manual. Rencana kegiatan disusun pada lembar sebar lalu dicetak, penelaahan hanya dapat dilakukan dalam satu jendela waktu sekitar 30 menit menjelang jam pulang kantor, dokumen disposisi diteruskan dalam bentuk foto melalui grup percakapan, dan penugasan petugas bergantung pada ingatan perorangan. Pada Januari 2026 satu lembar disposisi agenda tidak ikut terkirim tanpa ada pihak yang dapat mengetahuinya. Peristiwa itu memperlihatkan akar masalahnya, yaitu tidak tersedianya satu sumber data yang sahih dan dapat diperiksa oleh semua pihak.`));
   tambah(P(`**Solusi.** Prokopim Hibot adalah aplikasi web progresif yang menyatukan sebelas alur kerja keprotokolan dan komunikasi pimpinan dalam satu sistem, mulai dari penetapan jadwal berjenjang, penugasan petugas, pelayanan audiensi dan peminjaman ruangan, sampai daftar hadir digital dan evaluasi kinerja petugas. Setiap perpindahan status terekam dalam jejak audit beserta nama pelaku dan waktunya, sehingga setiap keputusan atas agenda Pimpinan dapat ditelusuri kembali.`));
   tambah(P(`**Pelaksanaan.** Aplikasi mulai digunakan pada Maret 2026. Kegiatan pertama tercatat pada ${tglPanjang(D.tanggal_kegiatan.awal)}, dan penggunaannya dikuatkan Surat Sekretaris Daerah Kota Tarakan Nomor ${NOMOR_SURAT_SEKDA} tanggal 12 Maret 2026. Pada saat pendaftaran ditutup, inovasi ini telah berjalan ${MASA}. Pelaksanaannya didukung Keputusan Sekretaris Daerah Kota Tarakan Nomor ${SK_SEKDA} dan sebelas standar operasional prosedur (SOP).`));
-  tambah(P(`**Penerima manfaat.** Sebanyak ${D.pengguna.aktif} pemegang akun aktif pada ${jumlahPeran} jenis peran, meliputi Pimpinan Daerah, ajudan, pengawal pribadi, pejabat struktural, petugas protokol dan dokumentasi, serta mitra kerja Pemerintah Kota. Masyarakat dan instansi memanfaatkan kanal publiknya: permohonan audiensi datang dari ${D.tamu.instansi_berbeda} instansi dan layanan peminjaman ruangan telah dipakai oleh ${D.ruang.instansi_berbeda} instansi.`));
+  tambah(P(`**Penerima manfaat.** Sebanyak ${D.pengguna.aktif} pemegang akun aktif pada ${jumlahPeran} jenis peran, meliputi Pimpinan Daerah, ajudan, pengawal pribadi, pejabat struktural, petugas protokol dan dokumentasi, serta mitra kerja lintas unit, termasuk Dinas Komunikasi, Informatika, Statistik dan Persandian. Masyarakat dan instansi memanfaatkan kanal publiknya: permohonan audiensi datang dari ${D.tamu.instansi_berbeda} instansi dan layanan peminjaman ruangan telah dipakai oleh ${D.ruang.instansi_berbeda} instansi.`));
   tambah(P(`**Bukti dampak.** Capaian utama ditunjukkan pada Tabel 1.`, { keepNext: true }));
   tambah(tabel({
     judul: `Capaian utama per ${PER_TGL}`,
@@ -481,7 +481,7 @@ function isi() {
   tambah(huruf([
     `**Jejak audit yang melekat pada setiap kegiatan.** Riwayat setiap kegiatan mencatat siapa yang mengajukan, menelaah, dan memutus, kapan, serta dengan catatan apa. Sampai ${PER_TGL} tercatat ${n(D.jejak.peristiwa_total)} peristiwa pada ${n(D.jejak.kegiatan_berjejak)} kegiatan.`,
     `**Daftar periksa wajib sebelum persetujuan.** Tombol persetujuan baru aktif setelah pejabat mengonfirmasi butir pemeriksaan, dan butir yang dikonfirmasi ikut tercatat pada jejak audit. Butir "undangan sudah dibuka" hanya tercentang apabila berkas undangan benar-benar dibuka.`,
-    `**Kewenangan melekat pada jabatan, dengan Pelaksana Harian bermasa berlaku.** Kewenangan pejabat yang berhalangan dapat dilimpahkan sementara dan padam sendiri pada tanggal berakhirnya; jejak audit tetap mencatat pelaku sebenarnya.`,
+    `**Kewenangan melekat pada jabatan, dengan Pelaksana Harian bermasa berlaku.** Kewenangan pejabat yang berhalangan dapat dilimpahkan sementara dan padam sendiri pada tanggal berakhirnya; jejak audit tetap mencatat pelaku sebenarnya, dan Pelaksana Harian tidak dapat memutus jadwal yang diajukannya sendiri.`,
     `**Pengawasan berdasarkan kegentingan.** Usulan perubahan yang tertahan ditandai menurut umurnya dan kedekatan hari pelaksanaan, dan Kepala Bagian dapat memantau usulan yang masih di tingkat Kepala Sub Bagian tanpa melangkahi jenjang.`,
     `**Kanal publik yang dapat ditelusuri sendiri.** Pemohon audiensi dan peminjam ruangan memantau permohonannya dengan kode penelusuran. Kalender ketersediaan ruangan untuk umum hanya menampilkan keterpakaian slot, tanpa identitas maupun kontak pemohon.`,
     `**Tersambung ke kalender bersama.** Kegiatan yang telah disetujui tampil sendiri, termasuk perubahan dan pembatalannya, di Google Calendar bersama yang dapat dilanggani pihak terkait tanpa akun aplikasi. Nomor narahubung dan catatan internal tidak ikut dikirim, dan kegiatan tertentu dapat ditahan agar tidak ditampilkan.`,
@@ -587,7 +587,7 @@ function isi() {
     `**Ajudan dan pengawal pribadi Pimpinan:** mengonfirmasi kehadiran Pimpinan melalui aplikasi sebanyak ${n(konfirmasiHadir)} kali.`,
     `**Dinas Komunikasi, Informatika, Statistik dan Persandian:** memfasilitasi subdomain prokopim.tarakankota.go.id yang kini menjadi alamat resmi aplikasi.`,
     `**Bappeda Litbang:** pengampu kebijakan inovasi daerah dan penerima tembusan surat penguatan.`,
-    `**Mitra kerja Pemerintah Kota:** ${peran.mitra_kerja || 0} akun mitra kerja memantau agenda yang telah tayang.`,
+    `**Mitra kerja lintas unit:** ${peran.mitra_kerja || 0} akun mitra kerja dipakai Dinas Komunikasi, Informatika, Statistik dan Persandian (DKISP), pengawal pribadi, ajudan pejabat pimpinan tinggi di Sekretariat Daerah, pengemudi Pimpinan, dan tenaga ahli media untuk memantau agenda yang telah tayang.`,
   ]));
   tambah(h2("8.3 Sumber Daya Lainnya dan Efisiensi"));
   tambah(tabel({
@@ -670,7 +670,7 @@ function isi() {
   tambah(butir([
     `**Peminjaman ruangan:** ${D.ruang.pengajuan} pengajuan dari ${D.ruang.instansi_berbeda} instansi; ${D.ruang.per_status.Approved || 0} disetujui dengan total ${n(D.ruang.peserta_disetujui)} peserta kegiatan.`,
     `**Permohonan audiensi:** ${D.tamu.total} permohonan dari ${D.tamu.instansi_berbeda} instansi; ${D.tamu.per_status.selesai || 0} telah selesai diproses dan ${D.agenda_dari_permohonan_tamu} di antaranya menjadi agenda Pimpinan.`,
-    `**Pengguna di luar Bagian Prokopim:** ${akunLuar} akun, terdiri atas Pimpinan Daerah, ajudan, pengawal pribadi, dan mitra kerja Pemerintah Kota. Notifikasi aplikasi telah aktif pada ${D.perangkat_notifikasi.perangkat} perangkat milik ${D.perangkat_notifikasi.pengguna} pengguna.`,
+    `**Pengguna di luar Bagian Prokopim:** ${akunLuar} akun, terdiri atas Pimpinan Daerah, ajudan, pengawal pribadi, dan mitra kerja dari DKISP serta unit lain di lingkungan Pemerintah Kota. Notifikasi aplikasi telah aktif pada ${D.perangkat_notifikasi.perangkat} perangkat milik ${D.perangkat_notifikasi.pengguna} pengguna.`,
   ]));
 
   tambah(h2("9.6 Manfaat Sosial dan Ekonomi"));
@@ -725,6 +725,7 @@ function isi() {
     baris: [
       ["Risiko", "Mitigasi"],
       ["Ketergantungan pada satu pengembang", "Prosedur telah terdokumentasi dalam sebelas SOP; kode tersimpan dalam repositori dengan riwayat perubahan lengkap; akun layanan terdaftar atas nama instansi; alih pengetahuan kepada pengelola kedua dijadwalkan pada 2027"],
+      ["Batas kuota layanan tanpa biaya", "Pemakaian dipantau; fungsi baru digabungkan ke fungsi yang ada; pengambilan data hanya untuk data yang berubah"],
       ["Kehilangan data", "Pencadangan berkala; peringatan pencadangan pada setiap jalur penghapusan"],
       ["Perlindungan data pribadi", "Kanal publik tidak menampilkan identitas maupun kontak pemohon; penelusuran menuntut kode lengkap; pengetatan kebijakan akses basis data berjalan bertahap"],
       ["Pejabat berhalangan", "Pelaksana Harian bermasa berlaku yang padam dengan sendirinya"],
@@ -734,17 +735,35 @@ function isi() {
   // ── 11. REPLIKASI ───────────────────────────────────────────────
   tambah(h1("b11"));
   tambah(h2("11.1 Potensi Adopsi"));
-  tambah(P(`Tugas keprotokolan dan komunikasi pimpinan dijalankan oleh setiap pemerintah daerah. Di Kalimantan Utara, sasaran replikasi langsung meliputi Pemerintah Provinsi Kalimantan Utara, Pemerintah Kabupaten Bulungan, Malinau, Nunukan, dan Tana Tidung, serta sekretariat DPRD yang mengelola agenda pimpinan dewan. Yang perlu disesuaikan hanya nama jabatan, daftar pengguna, dan tata naskah dinas setempat.`));
+  tambah(P(`Tugas keprotokolan dan komunikasi pimpinan dijalankan oleh setiap pemerintah daerah. Di Kalimantan Utara, sasaran replikasi langsung meliputi Pemerintah Provinsi Kalimantan Utara, Pemerintah Kabupaten Bulungan, Malinau, Nunukan, dan Tana Tidung, serta sekretariat DPRD yang mengelola agenda pimpinan dewan. Yang perlu disesuaikan hanya nama jabatan, daftar pengguna, dan tata naskah dinas setempat. Potensi ini mulai terlihat: pemerintah daerah lain telah menanyakan aplikasi ini secara informal (Bagian 11.5).`));
   tambah(h2("11.2 Syarat Replikasi"));
   tambah(P(`Replikasi hanya memerlukan peramban dan sambungan internet tanpa perangkat keras khusus, layanan komputasi awan pada kuota tanpa biaya, sebelas SOP yang siap diadaptasi, serta satu pengelola dengan pendampingan. Pengguna cukup dibekali pengenalan singkat.`));
   tambah(h2("11.3 Dokumentasi Pengetahuan"));
   tambah(P(`Pengetahuan kerja telah didokumentasikan dalam sebelas SOP, panduan pemasangan layanan daftar hadir, dan catatan teknis pada kode aplikasi, sehingga perangkat daerah lain dapat mengadopsi prosedurnya lebih dahulu, bahkan sebelum menerapkan aplikasinya.`));
-  tambah(h2("11.4 Diseminasi yang Telah Dilakukan"));
+  tambah(h2("11.4 Diseminasi dan Publikasi"));
   tambah(butir([
     `**Lintas perangkat daerah melalui Tim Koordinasi.** Keputusan Sekretaris Daerah melibatkan para Sekretaris Dinas di lingkungan Pemerintah Kota Tarakan dalam Tim Koordinasi, sehingga pelaksanaan inovasi ini diketahui dan melibatkan perangkat daerah lain.`,
+    `**Pengenalan langsung kepada pengguna.** Aplikasi diperkenalkan langsung kepada Wali Kota dan Wakil Wali Kota, para ajudan, mitra kerja, dan seluruh pengguna internal Bagian Prokopim.`,
     `**Melalui layanan publik.** Sebanyak ${D.ruang.instansi_berbeda} instansi telah menggunakan layanan peminjaman ruangan dan ${D.tamu.instansi_berbeda} instansi mengajukan audiensi melalui kanal daring, sehingga mengenal langsung cara kerja baru ini.`,
-    `**Pengenalan langsung kepada pengguna.** Aplikasi diperkenalkan langsung kepada Wali Kota dan Wakil Wali Kota, para ajudan, mitra kerja, dan seluruh pengguna internal Bagian Prokopim. Kini Pimpinan Daerah, ajudan, pengawal pribadi, dan ${peran.mitra_kerja || 0} akun mitra kerja Pemerintah Kota menggunakannya secara rutin.`,
+    `**Pemberitahuan resmi.** Surat Sekretaris Daerah Nomor ${NOMOR_SURAT_SEKDA} tanggal 12 Maret 2026 kepada DKISP, yang menyatakan sistem telah dikembangkan dan memohon subdomain resmi, ditembuskan kepada Wali Kota Tarakan dan Kepala Bappeda Litbang.`,
+    `**Kanal resmi yang terbuka untuk umum.** Aplikasi berjalan pada alamat resmi pemerintah, prokopim.tarakankota.go.id, dengan halaman permohonan audiensi, peminjaman ruangan, dan daftar hadir yang dapat diakses siapa saja. Agenda yang telah ditetapkan juga tersebar melalui Google Calendar bersama yang dapat dilanggani pihak terkait.`,
   ]));
+
+  tambah(h2("11.5 Pihak yang Telah Memanfaatkan dan Berminat Mengadopsi"));
+  tambah(tabel({
+    judul: "Pihak di luar Bagian Prokopim yang memanfaatkan atau berminat",
+    kolom: [32, 48, 20],
+    baris: [
+      ["Pihak", "Bentuk pemanfaatan", "Status"],
+      ["Wali Kota, Wakil Wali Kota, ajudan, dan pengawal pribadi", `Menerima agenda; ${n(konfirmasiHadir)} konfirmasi kehadiran; ${aksi.delegasi_to_wwk || 0} disposisi kepada Wakil Wali Kota`, "Telah memakai"],
+      ["Dinas Komunikasi, Informatika, Statistik dan Persandian (DKISP)", "Memantau agenda Pimpinan melalui akun mitra kerja; memfasilitasi subdomain resmi aplikasi", "Telah memakai"],
+      ["Ajudan pejabat pimpinan tinggi di Sekretariat Daerah", "Memantau agenda Pimpinan melalui akun mitra kerja", "Telah memakai"],
+      ["Pengemudi Pimpinan dan tenaga ahli media", "Memantau agenda Pimpinan melalui akun mitra kerja", "Telah memakai"],
+      ["Instansi pemohon layanan publik", `${D.ruang.instansi_berbeda} instansi meminjam ruangan; ${D.tamu.instansi_berbeda} instansi mengajukan audiensi`, "Telah memakai"],
+      ["Pemerintah daerah lain", "Menanyakan aplikasi secara informal", "Berminat"],
+    ],
+  }));
+  tambah(P(`Minat pemerintah daerah lain akan ditindaklanjuti melalui paket replikasi sebagaimana rencana pengembangan pada Bagian 10.1.`));
   return out;
 }
 

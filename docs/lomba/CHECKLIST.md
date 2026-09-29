@@ -15,7 +15,7 @@ Penomoran lampiran di bawah mengikuti **Daftar Lampiran pada proposal baru**
 
 | | Butir | Keterangan |
 |---|---|---|
-| ✅ | **Naskah proposal 12 bagian** | **15 halaman isi** (batas Inovasi Terapan 20; batas 15 hanya untuk kategori Gagasan); penomoran mengikuti Panduan Bab 4.2 (Sampul = Bagian 1); A4, Arial 11 asli, spasi 1,15 |
+| ✅ | **Naskah proposal 12 bagian** | **16 halaman isi** (batas Inovasi Terapan 20; batas 15 hanya untuk kategori Gagasan); penomoran mengikuti Panduan Bab 4.2 (Sampul = Bagian 1); A4, Arial 11 asli, spasi 1,15 |
 | ✅ | **Pakta integritas sesuai format Panduan Lampiran 3** | Isian TTL, NIK, alamat hanya di berkas FINAL (rahasia/); tinggal meterai dan tanda tangan |
 | ✅ | **SOP tidak wajib** | Panduan 2.4.B.3 menyebut SOP sebagai salah satu bukti ("antara lain"); tersedia versi dengan dan tanpa SOP |
 | ✅ | **Angka statistik diperbarui** | Per 24 September 2026 pukul 15.25 WITA, dari `STATISTIK-proposal.sql` |
@@ -66,7 +66,7 @@ Penomoran lampiran di bawah mengikuti **Daftar Lampiran pada proposal baru**
 
 | | Celah | Dasar di Panduan | Yang dibutuhkan |
 |---|---|---|---|
-| ❗ | Belum ada **pihak yang telah/akan mengadopsi** dan **publikasi** | Bab 4.2 Bagian 11 (isi minimal); kriteria Diseminasi 10%: "semakin banyak pihak yang mengadopsi, nilainya semakin tinggi" | Nama OPD/instansi yang memakai atau meminta aplikasi; tautan berita/unggahan resmi |
+| ◐ | **Pihak yang memanfaatkan/berminat** dan **publikasi** | Bab 4.2 Bagian 11; kriteria Diseminasi 10% | Sudah diisi: 11.4 Diseminasi dan Publikasi, 11.5 tabel pihak (DKISP, ajudan JPT Setda, pengemudi, tenaga ahli media, instansi pemohon, daerah lain yang bertanya informal). **Masih menguatkan:** nama daerah yang bertanya; tautan unggahan resmi bila dibuat |
 | ❗ | **Kepuasan pengguna** hanya dari testimoni | Bab 4.2 Bagian 9 (isi minimal) | Opsional: survei singkat (Google Form) ke pengguna |
 | ⚠️ | **Foto** penggunaan nyata belum ada; tangkapan layar memakai data contoh | Bab 4.2 Bagian 12; Bab 4.6 verifikasi kesesuaian dengan kondisi nyata | 2–3 foto pemakaian; bila sempat, tangkapan layar data nyata (nomor telepon ditutup) |
 | ⚠️ | **Tautan video** belum ada | Ketentuan teknis Bab 4.2 menyebut video; daftar Lampiran 2 Panduan: "jika lolos Top 7" | Aman ditunda; lebih kuat bila tautan video singkat disertakan sekarang |
