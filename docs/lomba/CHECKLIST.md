@@ -15,7 +15,9 @@ Penomoran lampiran di bawah mengikuti **Daftar Lampiran pada proposal baru**
 
 | | Butir | Keterangan |
 |---|---|---|
-| ✅ | **Naskah proposal 12 bagian** | 16 halaman isi (batas 20); A4, Arial 11, spasi 1,15 — Arial asli tertanam di PDF, termasuk lampiran SOP |
+| ✅ | **Naskah proposal 12 bagian** | **15 halaman isi** (batas Inovasi Terapan 20; batas 15 hanya untuk kategori Gagasan); penomoran mengikuti Panduan Bab 4.2 (Sampul = Bagian 1); A4, Arial 11 asli, spasi 1,15 |
+| ✅ | **Pakta integritas sesuai format Panduan Lampiran 3** | Isian TTL, NIK, alamat hanya di berkas FINAL (rahasia/); tinggal meterai dan tanda tangan |
+| ✅ | **SOP tidak wajib** | Panduan 2.4.B.3 menyebut SOP sebagai salah satu bukti ("antara lain"); tersedia versi dengan dan tanpa SOP |
 | ✅ | **Angka statistik diperbarui** | Per 24 September 2026 pukul 15.25 WITA, dari `STATISTIK-proposal.sql` |
 | ✅ | **Judul inovasi** | "Prokopim Hibot: Satu Alur Digital Terverifikasi untuk Tata Kelola Agenda dan Keprotokolan Pimpinan Daerah" |
 | ✅ | **Nama inovator/tim pada sampul** | Tim Inovasi Prokopim Hibot, Ketua Anugrah Yega Pranatha, M.Si. |
@@ -57,6 +59,17 @@ Penomoran lampiran di bawah mengikuti **Daftar Lampiran pada proposal baru**
 | ⬜ | **2 — Surat usulan perangkat daerah** | Bagian Prokopim Setda Kota Tarakan |
 | ✅ | **3 — Bukti identitas anggota tim** | Kelima KTP lengkap. Hanya ada di `rahasia/…-FINAL.pdf` (tidak masuk git) — berkas FINAL inilah yang diunggah |
 | ⬜ | **9 — Testimoni bertanda tangan** | Tidak wajib, tetapi disarankan (bukti kepuasan pengguna). Bila tidak terkumpul sampai 30 September, Bagian 9.8 dan formulirnya dihapus |
+
+---
+
+## C2. CELAH TERHADAP PANDUAN (hasil telaah 29 September)
+
+| | Celah | Dasar di Panduan | Yang dibutuhkan |
+|---|---|---|---|
+| ❗ | Belum ada **pihak yang telah/akan mengadopsi** dan **publikasi** | Bab 4.2 Bagian 11 (isi minimal); kriteria Diseminasi 10%: "semakin banyak pihak yang mengadopsi, nilainya semakin tinggi" | Nama OPD/instansi yang memakai atau meminta aplikasi; tautan berita/unggahan resmi |
+| ❗ | **Kepuasan pengguna** hanya dari testimoni | Bab 4.2 Bagian 9 (isi minimal) | Opsional: survei singkat (Google Form) ke pengguna |
+| ⚠️ | **Foto** penggunaan nyata belum ada; tangkapan layar memakai data contoh | Bab 4.2 Bagian 12; Bab 4.6 verifikasi kesesuaian dengan kondisi nyata | 2–3 foto pemakaian; bila sempat, tangkapan layar data nyata (nomor telepon ditutup) |
+| ⚠️ | **Tautan video** belum ada | Ketentuan teknis Bab 4.2 menyebut video; daftar Lampiran 2 Panduan: "jika lolos Top 7" | Aman ditunda; lebih kuat bila tautan video singkat disertakan sekarang |
 
 ---
 
