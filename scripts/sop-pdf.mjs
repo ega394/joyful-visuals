@@ -241,8 +241,8 @@ function tabelIdentitas(isi) {
     baris("Nama SOP", `<b>${sebaris(ambil("Nama SOP"))}</b>`),
   ].join("");
   const pasang = (a, b) =>
-    `<tr><th>${a}:</th><th>${b}:</th></tr>` +
-    `<tr><td>${sebaris(ambil(a))}</td><td>${sebaris(ambil(b))}</td></tr>`;
+    `<tbody><tr><th>${a}:</th><th>${b}:</th></tr>` +
+    `<tr><td>${sebaris(ambil(a))}</td><td>${sebaris(ambil(b))}</td></tr></tbody>`;
   return `<table class="idt-atas"><tr>` +
       `<td class="kop"><img src="${LOGO}" alt="">` +
       `<div class="kop-teks"><b>PEMERINTAH KOTA TARAKAN</b><br><b>SEKRETARIAT DAERAH</b><br>` +
@@ -357,19 +357,20 @@ pre.blok { font-family: "DejaVu Sans Mono", "Liberation Mono", monospace;
 /* ── Bagian Identitas (Gambar 3) ─────────────────────────────── */
 table.idt-atas { margin: 4pt 0 0; }
 table.idt-atas > tbody > tr > td { padding: 0; vertical-align: middle; }
-table.idt-atas td.kop { width: 50%; text-align: center; padding: 8pt 10pt; }
-table.idt-atas td.kop img { width: 22mm; display: block; margin: 0 auto 5pt; }
+table.idt-atas td.kop { width: 50%; text-align: center; padding: 4pt 8pt; }
+table.idt-atas td.kop img { width: 16mm; display: block; margin: 0 auto 3pt; }
 .kop-teks { font-size: 9pt; line-height: 1.5; }
 .kop-teks .unit { font-weight: 700; }
 table.idt-atas td.kanan { width: 50%; }
 table.idt-kanan { margin: 0; border-style: hidden; }
-table.idt-kanan td { font-size: 8pt; }
+table.idt-kanan td { font-size: 7.6pt; padding: 2pt 4pt; line-height: 1.3; }
 table.idt-kanan td.lbl { width: 30%; font-weight: 700; background: #F1F5F9; }
 .sah { line-height: 1.35; }
-.sah .ttd { height: 30pt; }
+.sah .ttd { height: 24pt; }
 table.idt-bawah { margin-top: -1px; }
-table.idt-bawah th { background: #E2E8F0; color: #0A1628; font-size: 8pt; }
-table.idt-bawah td { font-size: 8pt; }
+table.idt-bawah th { background: #E2E8F0; color: #0A1628; font-size: 7.6pt; padding: 2pt 4pt; }
+table.idt-bawah tbody { break-inside: avoid; page-break-inside: avoid; }
+table.idt-bawah td { font-size: 7.4pt; line-height: 1.3; padding: 2.4pt 4pt; }
 table.idt-bawah tbody tr:nth-child(even) { background: none; }
 
 /* ── Pemenggalan diagram alir ───────────────────────────────── */
@@ -558,7 +559,8 @@ d = pymupdf.open(sys.argv[1])
 teks = [" ".join(p.get_text().split()) for p in d]
 out = []
 for j in json.loads(sys.argv[2]):
-    k = next((i + 1 for i, t in enumerate(teks) if t.startswith(j) or (" " + j) in t[:400]), None)
+    k = next((i + 1 for i, t in enumerate(teks)
+              if not t.startswith("DAFTAR ISI") and (t.startswith(j) or (" " + j) in t[:400])), None)
     out.append(k)
 print(json.dumps(out))
 `, TUJUAN, JSON.stringify(DAFTAR.map(d => d[1].replace(/\*\*/g, "")))], { encoding: "utf8" });

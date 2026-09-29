@@ -10,11 +10,12 @@
 | **Tanggal Efektif** | ......................................... |
 | **Disahkan oleh** | Sekretaris Daerah Kota Tarakan |
 | **Nama SOP** | Perubahan Jadwal Kegiatan yang Telah Ditetapkan |
-| **Dasar Hukum** | 1. .........................................<br>2. .........................................<br>3. .........................................<br>4. ......................................... |
+| **Unit Kerja** | Sub Bagian Protokol |
+| **Dasar Hukum** | 1. Undang-Undang Nomor 9 Tahun 2010 tentang Keprotokolan<br>2. Peraturan Pemerintah Nomor 39 Tahun 2018 tentang Pelaksanaan Undang-Undang Nomor 9 Tahun 2010 tentang Keprotokolan sebagaimana telah diubah dengan Peraturan Pemerintah Nomor 56 Tahun 2019<br>3. Peraturan Menteri Pendayagunaan Aparatur Negara dan Reformasi Birokrasi Nomor 35 Tahun 2012 tentang Pedoman Penyusunan Standar Operasional Prosedur Administrasi Pemerintahan<br>4. Peraturan Wali Kota Tarakan Nomor 50 Tahun 2021 tentang Kedudukan, Susunan Organisasi, Tugas dan Fungsi serta Tata Kerja Sekretariat Daerah, Pasal 52 huruf c dan huruf d |
 | **Kualifikasi Pelaksana** | 1. Memahami tugas dan fungsi keprotokolan<br>2. Mampu mengoperasikan Aplikasi Prokopim Hibot<br>3. Memiliki akun aplikasi yang aktif sesuai peran |
 | **Keterkaitan** | 1. SOP 1 — Penyusunan dan Penetapan Jadwal Kegiatan Pimpinan<br>2. SOP 3 — Penarikan dan Pembatalan Jadwal Kegiatan<br>3. SOP 4 — Penugasan Petugas Protokol dan Dokumentasi |
 | **Peralatan/Perlengkapan** | 1. Aplikasi Prokopim Hibot<br>2. Perangkat komputer atau telepon pintar dengan sambungan internet<br>3. Surat pemberitahuan perubahan dari penyelenggara<br>4. Berkas undangan pengganti, bila ada |
-| **Peringatan** | 1. Jadwal **tetap tayang** kepada publik selama usulan perubahan diproses — kegiatan tidak boleh hilang dari agenda hanya karena sedang diusulkan berubah<br>2. Usulan perubahan **tidak dapat diajukan** untuk kegiatan yang sudah berlalu<br>3. Bila perubahan menyangkut **tanggal atau jam**, status kesediaan hadir Pimpinan **direset** dan harus dikonfirmasi ulang<br>4. Perubahan hanya berlaku setelah **diterapkan oleh Kepala Bagian**; persetujuan Kasubbag saja belum mengubah jadwal yang tayang<br>5. Berkas undangan yang digantikan akan dihapus dari penyimpanan bila tidak lagi dipakai |
+| **Peringatan** | 1. Jadwal **tetap tayang** selama usulan perubahan diproses; kegiatan tidak boleh hilang dari agenda hanya karena sedang diusulkan berubah<br>2. Usulan perubahan **tidak dapat diajukan** untuk kegiatan yang sudah berlalu<br>3. Apabila kegiatan dibatalkan atau jadwal perlu ditarik dari publikasi, maka yang digunakan adalah SOP 3, bukan prosedur ini<br>4. Apabila perubahan menyangkut **tanggal atau jam**, maka status kesediaan hadir Pimpinan direset dan wajib dikonfirmasi ulang oleh Ajudan<br>5. Perubahan baru berlaku setelah **diterapkan oleh Kepala Bagian**; persetujuan Kasubbag Protokol belum mengubah jadwal yang tayang<br>6. Apabila usulan belum diputuskan, maka aplikasi mengirim pengingat harian kepada penelaah; apabila kegiatan berlangsung sebelum batas waktu keputusan, maka usulan diputuskan sebelum kegiatan dimulai<br>7. Berkas undangan yang digantikan dihapus dari penyimpanan apabila tidak lagi dipakai<br>8. Apabila pejabat yang berwenang berhalangan, maka kewenangannya dilaksanakan oleh Pelaksana Harian (PLH) sesuai Ketentuan Umum Pejabat Berhalangan pada Bagian Pengantar |
 | **Pencatatan dan Pendataan** | 1. Basis data jadwal pada Aplikasi Prokopim Hibot<br>2. Rekaman usulan perubahan beserta perbandingan data lama dan data baru<br>3. Riwayat alur jadwal (jejak audit) |
 
 ---
@@ -23,51 +24,16 @@
 
 | No | Uraian Kegiatan | Pelaksana | Kelengkapan | Waktu | Output | Keterangan |
 |---|---|---|---|---|---|---|
-| 1 | Menerima pemberitahuan perubahan kegiatan dari penyelenggara | Admin Rencana Kegiatan | Surat/pemberitahuan perubahan |  | Pemberitahuan teragenda | Mulai |
-| 2 | Memeriksa apakah kegiatan sudah berlalu | Admin Rencana Kegiatan | Jadwal tayang |  | Hasil pemeriksaan | **Keputusan:** sudah berlalu → usulan tidak dapat diajukan, prosedur berhenti; belum → langkah 3 |
-| 3 | Menyusun usulan perubahan pada seluruh isian yang perlu diubah, termasuk penggantian berkas undangan bila ada | Admin Rencana Kegiatan | Data perubahan, berkas undangan pengganti |  | Rancangan usulan | Seluruh isian formulir dapat diusulkan berubah |
-| 4 | Mencantumkan alasan perubahan | Admin Rencana Kegiatan | Rancangan usulan |  | Usulan lengkap | Alasan wajib diisi |
-| 5 | Mengajukan usulan perubahan | Admin Rencana Kegiatan | Usulan lengkap |  | Usulan berstatus **Menunggu Kasubbag** | Jadwal tetap tayang. Sistem memberitahu Kasubbag Protokol |
-| 6 | Menelaah usulan dengan membandingkan data lama dan data baru yang ditampilkan sistem | Kasubbag Protokol | Usulan perubahan, perbandingan data |  | Hasil telaah | **Keputusan:** setuju → langkah 8; tidak setuju → langkah 7 |
-| 7 | Menolak usulan disertai catatan | Kasubbag Protokol | Catatan penolakan |  | Usulan ditolak, jadwal tetap seperti semula | Pengusul dapat memperbaiki dan mengajukan kembali melalui langkah 3 |
-| 8 | Meneruskan usulan kepada Kepala Bagian | Kasubbag Protokol | Usulan hasil telaah |  | Usulan berstatus **Menunggu Kabag** | Sistem memberitahu Kepala Bagian |
-| 9 | Menelaah dan memutuskan usulan perubahan | Kepala Bagian | Usulan, perbandingan data |  | Keputusan | **Keputusan:** diterapkan → langkah 11; ditolak → langkah 10 |
-| 10 | Menolak usulan disertai catatan | Kepala Bagian | Catatan penolakan |  | Usulan ditolak, jadwal tetap seperti semula | Pengusul dapat mengajukan kembali melalui langkah 3 |
-| 11 | Menerapkan perubahan pada jadwal yang tayang | Kepala Bagian | Usulan disetujui |  | Jadwal diperbarui dan tetap tayang |  |
-| 12 | Mereset dan mengonfirmasi ulang kesediaan hadir Pimpinan | Sistem, Ajudan | Jadwal yang telah diubah |  | Status kehadiran diperbarui | Hanya dilakukan bila **tanggal atau jam** berubah. Otomatis oleh sistem, seketika. |
-| 13 | Memberitahukan perubahan kepada petugas yang telah ditugaskan | Sistem | Jadwal yang telah diubah |  | Notifikasi diterima | Selesai. Otomatis oleh sistem, seketika. |
-
----
-
-## Catatan Pelaksanaan
-
-1. **Perbedaan dengan penarikan.** Prosedur ini dipakai bila kegiatan **tetap
-   berlangsung** dengan data yang berubah. Bila kegiatan dibatalkan atau
-   jadwalnya perlu ditarik dari publikasi, gunakan SOP 3.
-2. **Pengingat usulan tertunggak.** Sistem mengirimkan pengingat harian kepada
-   penelaah atas usulan perubahan yang belum diputuskan.
-3. **Kewenangan pengusul.** Usulan perubahan atas jadwal yang telah terbit
-   diajukan oleh Admin Rencana Kegiatan dan ditelaah oleh Kasubbag Protokol.
-
----
-
-## Pejabat Berhalangan
-
-Apabila pejabat yang berwenang pada prosedur ini berhalangan (cuti, tugas luar,
-atau sakit), kewenangannya dilaksanakan oleh **Pelaksana Harian (PLH)** yang
-ditunjuk dengan Surat Perintah dan didaftarkan pada aplikasi oleh Kepala Bagian
-atau Superadmin.
-
-1. Kepala Bagian hanya dapat diampu oleh Kasubbag. Kasubbag dapat diampu
-   Kasubbag lain maupun pelaksana pada sub bagian yang bersangkutan.
-2. Masa berlaku PLH **wajib dicantumkan** dan kewenangannya **padam sendiri**
-   pada tanggal terakhir, tanpa perlu dicabut.
-3. Selama masa PLH, yang bersangkutan memegang kewenangan jabatan yang diampu
-   **sekaligus** kewenangan jabatannya sendiri.
-4. Jejak audit mencatat **peran asli** pelaksana beserta keterangan jabatan yang
-   diampu dan nomor Surat Perintahnya, sehingga tetap terbaca siapa yang
-   sesungguhnya memutus.
-5. Apabila penerus dan pemutus adalah orang yang sama, keputusan itu ditandai
-   secara khusus pada jejak audit.
-6. Bila Kasubbag berhalangan dan belum ditunjuk PLH, Kepala Bagian dapat
-   mengambil alih tahap Kasubbag sebagai jaring pengaman.
+| 1 | Menerima pemberitahuan perubahan kegiatan dari penyelenggara | Admin Rencana Kegiatan | Surat/pemberitahuan perubahan | 10 menit | Pemberitahuan teragenda | Mulai |
+| 2 | Memeriksa apakah kegiatan sudah berlalu | Admin Rencana Kegiatan | Jadwal tayang | 5 menit | Hasil pemeriksaan | **Keputusan:** sudah berlalu → usulan tidak dapat diajukan, prosedur berhenti; belum berlalu → langkah 3 |
+| 3 | Menyusun usulan perubahan pada seluruh isian yang perlu diubah, termasuk penggantian berkas undangan bila ada | Admin Rencana Kegiatan | Data perubahan, berkas undangan pengganti | 15 menit | Rancangan usulan | Seluruh isian formulir dapat diusulkan berubah |
+| 4 | Mencantumkan alasan perubahan | Admin Rencana Kegiatan | Rancangan usulan | 5 menit | Usulan lengkap | Alasan wajib diisi |
+| 5 | Mengajukan usulan perubahan | Admin Rencana Kegiatan | Usulan lengkap | 5 menit | Usulan berstatus **Menunggu Kasubbag** | Jadwal tetap tayang. Aplikasi memberitahu Kasubbag Protokol |
+| 6 | Menelaah usulan dengan membandingkan data lama dan data baru yang ditampilkan aplikasi | Kepala Sub Bagian Protokol | Usulan perubahan, perbandingan data | 1 jam | Hasil telaah | **Keputusan:** setuju → langkah 8; tidak setuju → langkah 7 |
+| 7 | Menolak usulan disertai catatan | Kepala Sub Bagian Protokol | Catatan penolakan | 10 menit | Usulan ditolak, jadwal tetap seperti semula | Pengusul dapat memperbaiki dan mengajukan kembali melalui langkah 3 |
+| 8 | Meneruskan usulan kepada Kepala Bagian | Kepala Sub Bagian Protokol | Usulan hasil telaah | 5 menit | Usulan berstatus **Menunggu Kabag** | Aplikasi memberitahu Kepala Bagian |
+| 9 | Menelaah dan memutuskan usulan perubahan | Kepala Bagian | Usulan, perbandingan data | 1 hari kerja | Keputusan | **Keputusan:** diterapkan → langkah 11; ditolak → langkah 10 |
+| 10 | Menolak usulan disertai catatan | Kepala Bagian | Catatan penolakan | 10 menit | Usulan ditolak, jadwal tetap seperti semula | Pengusul dapat mengajukan kembali melalui langkah 3 |
+| 11 | Menerapkan perubahan pada jadwal yang tayang | Kepala Bagian | Usulan disetujui | 5 menit | Jadwal diperbarui dan tetap tayang; pemberitahuan perubahan terkirim kepada Ajudan dan petugas yang telah ditugaskan | Aplikasi otomatis mengirim pemberitahuan perubahan dan, apabila tanggal atau jam berubah, mereset status kesediaan hadir Pimpinan |
+| 12 | Mengonfirmasi ulang kesediaan hadir Pimpinan | Ajudan | Jadwal yang telah diubah | 1 jam | Status kesediaan hadir diperbarui | Dilakukan apabila tanggal atau jam berubah; apabila tidak, langsung ke langkah 13 |
+| 13 | Menerima pemberitahuan perubahan dan menyesuaikan persiapan tugas | Staf Protokol, Staf Komunikasi dan Dokumentasi | Pemberitahuan perubahan | 30 menit | Persiapan tugas disesuaikan | Selesai |
