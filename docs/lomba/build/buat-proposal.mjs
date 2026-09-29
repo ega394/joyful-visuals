@@ -268,6 +268,14 @@ const SE_WALIKOTA = "000.7.2.4/70/Bappeda Litbang/2026";
 const JUDUL = "PROKOPIM HIBOT";
 const SUBJUDUL = "Satu Alur Digital Terverifikasi untuk Tata Kelola Agenda dan Keprotokolan Pimpinan Daerah";
 
+// Konsep keterangan — wajib dibaca, disesuaikan, dan ditandatangani sendiri
+// oleh narasumber sebelum diunggah.
+const isiTestimoni = [
+    "Sebelumnya saya menerima rencana kegiatan dalam bentuk cetakan yang kerap berubah, sehingga kepastian sebuah acara sering harus saya tanyakan kembali kepada ajudan. Sejak Prokopim Hibot digunakan, agenda yang telah disetujui dapat saya lihat langsung di telepon genggam dan selalu dalam keadaan terbaru. Kegiatan yang perlu diwakilkan dapat saya disposisikan kepada Wakil Wali Kota langsung dari aplikasi, tanpa menunggu surat atau pesan berantai. Yang terpenting bagi saya adalah kepastian: ke mana saya harus hadir, kapan, dan siapa yang menyiapkannya.",
+    "Dahulu saya mengetahui agenda Bapak Wakil Wali Kota dari foto disposisi dan pesan di grup percakapan yang sering datang terlambat atau tidak lengkap, sehingga bahan dan pakaian kerap disiapkan terburu-buru. Sekarang setiap agenda yang ditetapkan untuk Wakil Wali Kota langsung sampai sebagai pemberitahuan, lengkap dengan lokasi, pakaian, dan narahubung penyelenggara. Pengingat sehari sebelumnya membantu saya menyiapkan keperluan lebih awal, dan kesediaan hadir Pimpinan cukup saya konfirmasikan melalui aplikasi. Perubahan jadwal yang mendadak pun tidak lagi terlewat.",
+    "Dahulu penugasan disampaikan secara lisan atau melalui pesan pribadi, dan pernah terjadi saya baru mengetahui ditugaskan menjelang acara dimulai. Sekarang penugasan langsung masuk ke aplikasi dan WhatsApp saya, dan pemberitahuan hanya dikirim apabila penugasan saya berubah, sehingga tidak ada pesan penting yang tenggelam. Rekap agenda setiap pagi membuat saya dapat menyiapkan diri sejak awal hari, dan catatan kinerja saya tersedia tanpa perlu menyusunnya sendiri.",
+];
+
 // Judul bab — dipakai juga oleh daftar isi dan pencarian nomor halaman.
 const BAB = {
   b2:  "2. RINGKASAN EKSEKUTIF",
@@ -680,17 +688,18 @@ function isi() {
   tambah(P(`Dari ${n(sambutanKeg)} kegiatan sambutan, baru ${D.sambutan_disahkan} naskah yang disahkan melalui aplikasi, karena Wali Kota dan Wakil Wali Kota lebih nyaman membaca naskah tercetak yang memberi keleluasaan berimprovisasi. Modul ini tetap tersedia lengkap; aplikasi menyesuaikan diri dengan cara kerja Pimpinan, bukan sebaliknya.`));
 
   tambah(h2("9.8 Testimoni Pengguna"));
-  tambah(P(`Testimoni tertulis dari tiga jenjang pengguna dilampirkan pada Lampiran 9. Ringkasannya sebagai berikut.`, { keepNext: true }));
+  tambah(P(`Berikut testimoni tertulis dari tiga jenjang pengguna. Lembar keterangan yang ditandatangani masing-masing narasumber dilampirkan pada Lampiran 9.`, { keepNext: true }));
   tambah(tabel({
-    judul: "Ringkasan testimoni pengguna",
-    kolom: [28, 72],
+    judul: "Testimoni tertulis pengguna",
+    kolom: [26, 74],
     baris: [
-      ["Narasumber", "Keterangan"],
-      ["Wali Kota Tarakan", "\u201CAgenda yang sudah pasti dapat saya lihat langsung di telepon genggam, dan kegiatan yang perlu diwakilkan dapat saya disposisikan kepada Wakil Wali Kota dari aplikasi yang sama.\u201D"],
-      ["Ajudan Wakil Wali Kota", "\u201CSetiap agenda Wakil Wali Kota kini sampai sebagai pemberitahuan lengkap dengan lokasi, pakaian, dan narahubung, sehingga persiapan tidak lagi terburu-buru.\u201D"],
-      ["Staf Protokol", "\u201CPenugasan langsung masuk ke aplikasi dan WhatsApp saya, sehingga saya tidak lagi baru mengetahui ditugaskan menjelang acara dimulai.\u201D"],
+      ["Narasumber", "Testimoni"],
+      [["**dr. H. Khairul, M.Kes.**", "Wali Kota Tarakan"], `\u201C${isiTestimoni[0]}\u201D`],
+      [["**Muhammad Rizky Dinata Putra, S.Tr.IP.**", "Ajudan Wakil Wali Kota Tarakan"], `\u201C${isiTestimoni[1]}\u201D`],
+      [["**Risca Saputri Samtika, S.Pd.**", "Staf Protokol"], `\u201C${isiTestimoni[2]}\u201D`],
     ],
   }));
+
 
   // ── 10. KEBERLANJUTAN ───────────────────────────────────────────
   tambah(h1("b10"));
@@ -986,13 +995,6 @@ function lampiran() {
     ["dr. H. Khairul, M.Kes.", "Wali Kota Tarakan", "Bagaimana kepastian agenda dirasakan sebelum dan sesudah aplikasi ini dipakai?"],
     ["Muhammad Rizky Dinata Putra, S.Tr.IP.", "Ajudan Wakil Wali Kota Tarakan", "Bagaimana Bapak/Ibu mengetahui agenda dan menyiapkan bahannya dahulu, dan apa yang berubah sekarang?"],
     ["Risca Saputri Samtika, S.Pd.", "Staf Protokol, Bagian Protokol dan Komunikasi Pimpinan", "Dahulu bagaimana mengetahui diri sedang ditugaskan, dan apakah pernah terjadi pemberitahuan yang terlambat atau tidak sampai?"],
-  ];
-  // Konsep keterangan — wajib dibaca, disesuaikan, dan ditandatangani sendiri
-  // oleh narasumber sebelum diunggah.
-  const isiTestimoni = [
-    "Sebelumnya saya menerima rencana kegiatan dalam bentuk cetakan yang kerap berubah, sehingga kepastian sebuah acara sering harus saya tanyakan kembali kepada ajudan. Sejak Prokopim Hibot digunakan, agenda yang telah disetujui dapat saya lihat langsung di telepon genggam dan selalu dalam keadaan terbaru. Kegiatan yang perlu diwakilkan dapat saya disposisikan kepada Wakil Wali Kota langsung dari aplikasi, tanpa menunggu surat atau pesan berantai. Yang terpenting bagi saya adalah kepastian: ke mana saya harus hadir, kapan, dan siapa yang menyiapkannya.",
-    "Dahulu saya mengetahui agenda Bapak Wakil Wali Kota dari foto disposisi dan pesan di grup percakapan yang sering datang terlambat atau tidak lengkap, sehingga bahan dan pakaian kerap disiapkan terburu-buru. Sekarang setiap agenda yang ditetapkan untuk Wakil Wali Kota langsung sampai sebagai pemberitahuan, lengkap dengan lokasi, pakaian, dan narahubung penyelenggara. Pengingat sehari sebelumnya membantu saya menyiapkan keperluan lebih awal, dan kesediaan hadir Pimpinan cukup saya konfirmasikan melalui aplikasi. Perubahan jadwal yang mendadak pun tidak lagi terlewat.",
-    "Dahulu penugasan disampaikan secara lisan atau melalui pesan pribadi, dan pernah terjadi saya baru mengetahui ditugaskan menjelang acara dimulai. Sekarang penugasan langsung masuk ke aplikasi dan WhatsApp saya, dan pemberitahuan hanya dikirim apabila penugasan saya berubah, sehingga tidak ada pesan penting yang tenggelam. Rekap agenda setiap pagi membuat saya dapat menyiapkan diri sejak awal hari, dan catatan kinerja saya tersedia tanpa perlu menyusunnya sendiri.",
   ];
   const nipNarasumber = [null, "199803252022081001", "199506062025212058"];
   narasumber.forEach(([nama, jabatan, tanya], i) => {
