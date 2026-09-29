@@ -15,7 +15,7 @@ Penomoran lampiran di bawah mengikuti **Daftar Lampiran pada proposal baru**
 
 | | Butir | Keterangan |
 |---|---|---|
-| ✅ | **Naskah proposal 12 bagian** | 16 halaman isi (batas 20); A4, Arial 11, spasi 1,15 |
+| ✅ | **Naskah proposal 12 bagian** | 16 halaman isi (batas 20); A4, Arial 11, spasi 1,15 — Arial asli tertanam di PDF, termasuk lampiran SOP |
 | ✅ | **Angka statistik diperbarui** | Per 24 September 2026 pukul 15.25 WITA, dari `STATISTIK-proposal.sql` |
 | ✅ | **Judul inovasi** | "Prokopim Hibot: Satu Alur Digital Terverifikasi untuk Tata Kelola Agenda dan Keprotokolan Pimpinan Daerah" |
 | ✅ | **Nama inovator/tim pada sampul** | Tim Inovasi Prokopim Hibot, Ketua Anugrah Yega Pranatha, M.Si. |
@@ -82,5 +82,8 @@ Penomoran lampiran di bawah mengikuti **Daftar Lampiran pada proposal baru**
 
 1. Jalankan `STATISTIK-proposal.sql` di Supabase → SQL Editor (hanya membaca).
 2. Ganti isi `data-statistik.json` dengan hasilnya.
-3. `cd docs/lomba/build && npm install && npm run buat` — seluruh angka,
+3. Pastikan font Arial terpasang (`fc-match Arial` menjawab Arial); bila belum, salin
+   ARIAL.TTF, ARIALBD.TTF, ARIALI.TTF, ARIALBI.TTF ke `~/.fonts` lalu `fc-cache -f`,
+   dan buat ulang SOP: `node scripts/sop-pdf.mjs docs/sop/SOP-Prokopim.pdf`.
+4. `cd docs/lomba/build && npm install && npm run buat` — seluruh angka,
    persentase, dan daftar isi dihitung ulang.

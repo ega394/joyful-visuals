@@ -1115,6 +1115,18 @@ function buatDokumen(halaman) {
   });
 }
 
+// Pedoman mensyaratkan Arial. Tanpa berkas Arial terpasang, LibreOffice diam-diam
+// memakai pengganti (Liberation Sans) — hentikan saja agar tidak lolos.
+// Pasang ARIAL.TTF, ARIALBD.TTF, ARIALI.TTF, ARIALBI.TTF ke ~/.fonts lalu fc-cache -f.
+{
+  let cocok = "";
+  try { cocok = execFileSync("fc-match", ["-f", "%{family}", "Arial"], { encoding: "utf8" }); } catch {}
+  if (!/^Arial\b/.test(cocok)) {
+    console.error(`Font Arial belum terpasang (fc-match Arial → "${cocok || "?"}"). Lihat catatan di atas.`);
+    process.exit(1);
+  }
+}
+
 async function tulisDanRender(halaman) {
   const buf = await Packer.toBuffer(buatDokumen(halaman));
   fs.writeFileSync(KELUAR + ".docx", buf);
