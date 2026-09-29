@@ -28,7 +28,9 @@ Penomoran lampiran di bawah mengikuti **Daftar Lampiran pada proposal baru**
 | ✅ | **Lampiran 6 — SK dan Surat Sekda** | Pindaian tersisip di PDF |
 | ✅ | **Lampiran 5 — Video** | Menurut jadwal pedoman diunggah pada tahap 7 besar (15–20 Oktober) |
 | ✅ | **Lampiran 10 — Alamat aplikasi** | https://prokopim.tarakankota.go.id |
-| ✅ | **Lampiran 7 — Sebelas SOP** | `docs/sop/SOP-Prokopim.pdf` |
+| ✅ | **Lampiran 7 — Sebelas SOP** | `docs/sop/SOP-Prokopim.pdf`; format PermenPAN-RB 35/2012 (halaman judul, rancangan keputusan penetapan, daftar isi, identitas bergaya Gambar 3, penghubung segilima), dasar tugas Perwali 50/2021 |
+| ✅ | **Anggota tim** | Mastura, S.Sos. menggantikan Nuraini Wiliadewi, S.IP. (SK nomor urut 34) |
+| ✅ | **Perwali 50/2021** | Dasar tugas Bagian di 4.1 dan kolom dasar tugas pada Tabel 7; sebutan "Kepala Sub Bagian" |
 | ✅ | **Lampiran 8 — Keluaran statistik** | Sudah tercetak di dalam PDF proposal |
 | ✅ | **Lampiran 4 — Tangkapan layar** | 5 tangkapan (data contoh) sudah tersisip |
 | ✅ | **Kalender bersama masuk naskah** | Unsur kebaruan (6.4 f), Tabel 8, tahapan September, Tabel sumber daya |
@@ -53,7 +55,7 @@ Penomoran lampiran di bawah mengikuti **Daftar Lampiran pada proposal baru**
 |---|---|---|
 | ⬜ | **1 — Pakta integritas** | Ditandatangani ketua tim |
 | ⬜ | **2 — Surat usulan perangkat daerah** | Bagian Prokopim Setda Kota Tarakan |
-| ⬜ | **3 — Bukti identitas anggota tim** | 5 orang — menyusul |
+| ◐ | **3 — Bukti identitas anggota tim** | 3 dari 5 KTP masuk (Anugrah, Mastura, Ni Kade). **Kurang: Saifullah, Juliyanti.** Letakkan sebagai `rahasia/identitas/2.jpg` dan `3.jpg`. KTP hanya masuk ke `rahasia/Proposal-Prokopim-Hibot-FINAL.pdf` (tidak masuk git) — berkas inilah yang diunggah |
 | ⬜ | **9 — Testimoni bertanda tangan** | Tidak wajib, tetapi disarankan (bukti kepuasan pengguna). Bila tidak terkumpul sampai 30 September, Bagian 9.8 dan formulirnya dihapus |
 
 ---
