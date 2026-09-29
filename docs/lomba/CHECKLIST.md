@@ -21,7 +21,7 @@ Penomoran lampiran di bawah mengikuti **Daftar Lampiran pada proposal baru**
 | ✅ | **Nama inovator/tim pada sampul** | Tim Inovasi Prokopim Hibot, Ketua Anugrah Yega Pranatha, M.Si. |
 | ✅ | **Visi-misi Kaltara & Tarakan** | Misi 3 & 8 RPJMD Kaltara; visi Kota Cerdas, Misi 4, dan semboyan HIBOT Kota Tarakan |
 | ✅ | **Fitur terbaru masuk naskah** | Daftar periksa wajib, Pelaksana Harian, penanda kegentingan usulan |
-| ✅ | **Isian diseminasi** | Bagian 11.4 (yang telah dilakukan, berbasis data) dan 11.5 (rencana) |
+| ✅ | **Isian diseminasi** | Bagian 11.4 (yang telah dilakukan, berbasis data); rencana diseminasi (11.5) dihapus atas keputusan Kepala Bagian |
 | ✅ | **Nomor & tanggal Surat Sekda** | 300.2.10/265/SETDA/2026 tanggal **12 Maret 2026** (sebelumnya tertulis 11 Maret) |
 | ✅ | **Lampiran 1 — Pakta integritas** | NIP dan tanggal terisi; tinggal meterai dan tanda tangan |
 | ✅ | **Lampiran 2 — Surat usulan** | Kop resmi; ditandatangani Sekda Abd. Azis Hasan; tinggal nomor dan tanggal surat |
@@ -65,7 +65,7 @@ Penomoran lampiran di bawah mengikuti **Daftar Lampiran pada proposal baru**
 | | Hal | Kenapa |
 |---|---|---|
 | ❓ | **Pernyataan bantuan kecerdasan buatan** | Bagian 8.1 menyebut pengembangan swakelola dengan asisten pemrograman berbasis kecerdasan buatan. Ditulis terbuka karena riwayat kode mencatatnya dan Tahap II mencakup pemeriksaan sistem |
-| ❓ | **Rencana pengembangan dan diseminasi** | Tabel 19 dan 22 memuat komitmen berjadwal (pengesahan SOP, alih pengetahuan, paparan ke daerah lain). Pastikan sanggup dijalankan |
+| ❓ | **Rencana pengembangan dan diseminasi** | Tabel 19 memuat komitmen berjadwal (pengesahan SOP, alih pengetahuan, paket replikasi). Pastikan sanggup dijalankan |
 | ❓ | **Kata-kata misi Kota Tarakan** | Diambil dari portal resmi Pemkot lewat mesin pencari; halamannya tidak dapat dibuka langsung dari sesi ini. Cocokkan dengan dokumen RPJMD |
 | ❓ | **Status pendaftaran** | Sudah membuat akun di sirindaku.kaltaraprov.go.id? |
 

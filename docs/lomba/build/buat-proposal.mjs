@@ -775,18 +775,6 @@ function isi() {
     `**Pengenalan langsung kepada pengguna.** Aplikasi diperkenalkan langsung kepada Wali Kota dan Wakil Wali Kota, para ajudan, mitra kerja, dan seluruh pengguna internal Bagian Prokopim. Kini Pimpinan Daerah, ajudan, pengawal pribadi, dan ${peran.mitra_kerja || 0} akun mitra kerja Pemerintah Kota menggunakannya secara rutin.`,
     `**Pemberitahuan resmi.** Melalui Surat Sekretaris Daerah Nomor ${NOMOR_SURAT_SEKDA} tanggal 12 Maret 2026, Dinas Komunikasi, Informatika, Statistik dan Persandian dimohonkan memfasilitasi subdomain, dengan tembusan kepada Wali Kota Tarakan dan Kepala Bappeda Litbang.`,
   ]));
-  tambah(h2("11.5 Rencana Diseminasi"));
-  tambah(tabel({
-    judul: "Rencana diseminasi",
-    kolom: [24, 76],
-    baris: [
-      ["Waktu", "Kegiatan"],
-      ["Oktober 2026", "Publikasi praktik baik melalui kanal resmi Pemerintah Kota Tarakan"],
-      ["November 2026", "Penyusunan paket replikasi: SOP, panduan konfigurasi, dan templat data awal"],
-      ["Desember 2026", "Paparan kepada unit keprotokolan pemerintah provinsi dan kabupaten di Kalimantan Utara"],
-      ["Semester I 2027", "Pendampingan uji coba pada pemerintah daerah yang berminat"],
-    ],
-  }));
   return out;
 }
 
