@@ -44,6 +44,8 @@ const RINGKAS = {
   "Kepala Bagian": "Kabag",
   "Kasubbag Protokol": "Kasubbag Protokol",
   "Kasubbag Komdokpim": "Kasubbag Komdok",
+  "Kepala Sub Bagian Protokol": "Kasubbag Protokol",
+  "Kepala Sub Bagian Komunikasi dan Dokumentasi Pimpinan": "Kasubbag Komdok",
   "Pejabat penanda tangan": "Pejabat TTD",
   "Admin Undangan": "Admin Undangan",
   "Staf Komunikasi dan Dokumentasi": "Staf Komdok",

@@ -74,7 +74,7 @@ bahan publikasinya, dan dirilis setelah disetujui Kasubbag Komdokpim (SOP 9).
 
 **Administrasi dan evaluasi (SOP 10–11).** Undangan kedinasan disusun pada
 Generator Undangan, ditelaah Kasubbag Protokol, lalu dinomori dan ditandatangani
-melalui aplikasi persuratan elektronik (SOP 10). Pelaksanaan tugas setiap petugas
+melalui aplikasi persuratan elektronik Srikandi (SOP 10). Pelaksanaan tugas setiap petugas
 dievaluasi sesudah kegiatan dan direkapitulasi setiap bulan sebagai bahan pembinaan
 dan bukti dukung kinerja (SOP 11).
 
@@ -121,7 +121,7 @@ dan bukti dukung kinerja (SOP 11).
 |---|---|---|
 | Kepala Bagian | Kepala Bagian Protokol dan Komunikasi Pimpinan | Memutuskan penetapan, perubahan, penarikan, dan pembatalan jadwal; menyusun telaah permohonan audiensi; mengesahkan naskah sambutan; menghapus acara daftar hadir; menugaskan seluruh peran |
 | Kepala Sub Bagian Protokol | Kepala Sub Bagian Protokol | Menelaah jadwal, usulan perubahan, permohonan tamu, dan naskah undangan; menugaskan petugas protokol |
-| Kepala Sub Bagian Komunikasi dan Dokumentasi Pimpinan | Kepala Sub Bagian Komunikasi dan Dokumentasi Pimpinan | Menunjuk penyusun naskah sambutan dan menyelianya; menyetujui bahan publikasi; menugaskan petugas dokumentasi |
+| Kepala Sub Bagian Komunikasi dan Dokumentasi Pimpinan | Kepala Sub Bagian Komunikasi dan Dokumentasi Pimpinan | Menunjuk penyusun naskah sambutan dan menyelianya; menyetujui bahan publikasi; menugaskan petugas dokumentasi; membuat acara daftar hadir |
 | Admin Rencana Kegiatan | Pelaksana pada Sub Bagian Protokol | Menginput dan memantau jadwal; memverifikasi permohonan tamu |
 | Staf Protokol | Pelaksana pada Sub Bagian Protokol | Melaksanakan tugas keprotokolan di lapangan; menyiapkan daftar hadir |
 | Admin Undangan | Pelaksana pada Sub Bagian Protokol | Menyusun, mendistribusikan, dan mengarsipkan undangan kedinasan |

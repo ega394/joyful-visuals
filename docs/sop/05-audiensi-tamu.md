@@ -33,7 +33,7 @@
 | 7 | Meneruskan permohonan kepada Kepala Bagian | Kepala Sub Bagian Protokol | Permohonan hasil telaah | 5 menit | Permohonan berstatus **Di Kabag** |  |
 | 8 | Menyusun telaah staf berisi pertimbangan dan saran kepada Pimpinan | Kepala Bagian | Permohonan, hasil telaah Kasubbag | 1 jam | Telaah Kepala Bagian | Telaah wajib diisi sebelum diteruskan |
 | 9 | Meneruskan permohonan beserta telaah kepada Pimpinan | Kepala Bagian | Telaah Kepala Bagian | 5 menit | Permohonan berstatus **Di Pimpinan** |  |
-| 10 | Menelaah dan memutuskan permohonan | Pimpinan | Permohonan, telaah Kepala Bagian | 2 hari kerja | Keputusan | **Keputusan:** disetujui → langkah 11; ditolak → langkah 12; didisposisikan → langkah 13 |
+| 10 | Menelaah dan memutuskan permohonan | Pimpinan | Permohonan, telaah Kepala Bagian | Sesuai waktu Wali Kota | Keputusan | **Keputusan:** disetujui → langkah 11; ditolak → langkah 12; didisposisikan → langkah 13 |
 | 11 | Menyetujui permohonan serta menetapkan tanggal, waktu, dan tempat audiensi | Pimpinan | Permohonan, ketersediaan agenda | 15 menit | Permohonan berstatus **Disetujui** dan masuk Agenda | Lanjut ke langkah 14 |
 | 12 | Menolak permohonan disertai alasan | Pimpinan | Alasan penolakan | 15 menit | Permohonan berstatus **Ditolak** | Alasan wajib diisi. Lanjut ke langkah 15 |
 | 13 | Mendisposisikan permohonan kepada Perangkat Daerah yang berwenang | Pimpinan | Tujuan disposisi | 15 menit | Permohonan berstatus **Didisposisi** | Tujuan disposisi wajib diisi. Lanjut ke langkah 15 |
