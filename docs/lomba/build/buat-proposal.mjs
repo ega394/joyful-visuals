@@ -735,7 +735,7 @@ function isi() {
   // ── 11. REPLIKASI ───────────────────────────────────────────────
   tambah(h1("b11"));
   tambah(h2("11.1 Potensi Adopsi"));
-  tambah(P(`Tugas keprotokolan dan komunikasi pimpinan dijalankan oleh setiap pemerintah daerah. Di Kalimantan Utara, sasaran replikasi langsung meliputi Pemerintah Provinsi Kalimantan Utara, Pemerintah Kabupaten Bulungan, Malinau, Nunukan, dan Tana Tidung, serta sekretariat DPRD yang mengelola agenda pimpinan dewan. Yang perlu disesuaikan hanya nama jabatan, daftar pengguna, dan tata naskah dinas setempat. Potensi ini mulai terlihat: pemerintah daerah lain telah menanyakan aplikasi ini secara informal (Bagian 11.5).`));
+  tambah(P(`Tugas keprotokolan dan komunikasi pimpinan dijalankan oleh setiap pemerintah daerah. Di Kalimantan Utara, sasaran replikasi langsung meliputi Pemerintah Provinsi Kalimantan Utara, Pemerintah Kabupaten Bulungan, Malinau, Nunukan, dan Tana Tidung, serta sekretariat DPRD yang mengelola agenda pimpinan dewan. Yang perlu disesuaikan hanya nama jabatan, daftar pengguna, dan tata naskah dinas setempat.`));
   tambah(h2("11.2 Syarat Replikasi"));
   tambah(P(`Replikasi hanya memerlukan peramban dan sambungan internet tanpa perangkat keras khusus, layanan komputasi awan pada kuota tanpa biaya, sebelas SOP yang siap diadaptasi, serta satu pengelola dengan pendampingan. Pengguna cukup dibekali pengenalan singkat.`));
   tambah(h2("11.3 Dokumentasi Pengetahuan"));
@@ -749,21 +749,19 @@ function isi() {
     `**Kanal resmi yang terbuka untuk umum.** Aplikasi berjalan pada alamat resmi pemerintah, prokopim.tarakankota.go.id, dengan halaman permohonan audiensi, peminjaman ruangan, dan daftar hadir yang dapat diakses siapa saja. Agenda yang telah ditetapkan juga tersebar melalui Google Calendar bersama yang dapat dilanggani pihak terkait.`,
   ]));
 
-  tambah(h2("11.5 Pihak yang Telah Memanfaatkan dan Berminat Mengadopsi"));
+  tambah(h2("11.5 Pihak yang Telah Memanfaatkan"));
   tambah(tabel({
-    judul: "Pihak di luar Bagian Prokopim yang memanfaatkan atau berminat",
-    kolom: [32, 48, 20],
+    judul: "Pihak di luar Bagian Prokopim yang telah memanfaatkan Prokopim Hibot",
+    kolom: [38, 62],
     baris: [
-      ["Pihak", "Bentuk pemanfaatan", "Status"],
-      ["Wali Kota, Wakil Wali Kota, ajudan, dan pengawal pribadi", `Menerima agenda; ${n(konfirmasiHadir)} konfirmasi kehadiran; ${aksi.delegasi_to_wwk || 0} disposisi kepada Wakil Wali Kota`, "Telah memakai"],
-      ["Dinas Komunikasi, Informatika, Statistik dan Persandian (DKISP)", "Memantau agenda Pimpinan melalui akun mitra kerja; memfasilitasi subdomain resmi aplikasi", "Telah memakai"],
-      ["Ajudan pejabat pimpinan tinggi di Sekretariat Daerah", "Memantau agenda Pimpinan melalui akun mitra kerja", "Telah memakai"],
-      ["Pengemudi Pimpinan dan tenaga ahli media", "Memantau agenda Pimpinan melalui akun mitra kerja", "Telah memakai"],
-      ["Instansi pemohon layanan publik", `${D.ruang.instansi_berbeda} instansi meminjam ruangan; ${D.tamu.instansi_berbeda} instansi mengajukan audiensi`, "Telah memakai"],
-      ["Pemerintah daerah lain", "Menanyakan aplikasi secara informal", "Berminat"],
+      ["Pihak", "Bentuk pemanfaatan"],
+      ["Wali Kota, Wakil Wali Kota, ajudan, dan pengawal pribadi", `Menerima agenda; ${n(konfirmasiHadir)} konfirmasi kehadiran; ${aksi.delegasi_to_wwk || 0} disposisi kepada Wakil Wali Kota`],
+      ["Dinas Komunikasi, Informatika, Statistik dan Persandian (DKISP)", "Memantau agenda Pimpinan melalui akun mitra kerja; memfasilitasi subdomain resmi aplikasi"],
+      ["Ajudan pejabat pimpinan tinggi di Sekretariat Daerah", "Memantau agenda Pimpinan melalui akun mitra kerja"],
+      ["Pengemudi Pimpinan dan tenaga ahli media", "Memantau agenda Pimpinan melalui akun mitra kerja"],
+      ["Instansi pemohon layanan publik", `${D.ruang.instansi_berbeda} instansi meminjam ruangan; ${D.tamu.instansi_berbeda} instansi mengajukan audiensi`],
     ],
   }));
-  tambah(P(`Minat pemerintah daerah lain akan ditindaklanjuti melalui paket replikasi sebagaimana rencana pengembangan pada Bagian 10.1.`));
   return out;
 }
 

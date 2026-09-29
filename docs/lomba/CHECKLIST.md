@@ -66,7 +66,7 @@ Penomoran lampiran di bawah mengikuti **Daftar Lampiran pada proposal baru**
 
 | | Celah | Dasar di Panduan | Yang dibutuhkan |
 |---|---|---|---|
-| ◐ | **Pihak yang memanfaatkan/berminat** dan **publikasi** | Bab 4.2 Bagian 11; kriteria Diseminasi 10% | Sudah diisi: 11.4 Diseminasi dan Publikasi, 11.5 tabel pihak (DKISP, ajudan JPT Setda, pengemudi, tenaga ahli media, instansi pemohon, daerah lain yang bertanya informal). **Masih menguatkan:** nama daerah yang bertanya; tautan unggahan resmi bila dibuat |
+| ✅ | **Pihak yang telah memanfaatkan** dan **publikasi** | Bab 4.2 Bagian 11; kriteria Diseminasi 10% | 11.4 Diseminasi dan Publikasi (pemberitahuan resmi, kanal resmi terbuka untuk umum) dan 11.5 tabel pihak yang telah memanfaatkan. Daerah lain yang bertanya secara informal **sengaja tidak dicantumkan** (keputusan Kepala Bagian); publikasi media belum ada, sehingga tidak diklaim |
 | ❗ | **Kepuasan pengguna** hanya dari testimoni | Bab 4.2 Bagian 9 (isi minimal) | Opsional: survei singkat (Google Form) ke pengguna |
 | ⚠️ | **Foto** penggunaan nyata belum ada; tangkapan layar memakai data contoh | Bab 4.2 Bagian 12; Bab 4.6 verifikasi kesesuaian dengan kondisi nyata | 2–3 foto pemakaian; bila sempat, tangkapan layar data nyata (nomor telepon ditutup) |
 | ⚠️ | **Tautan video** belum ada | Ketentuan teknis Bab 4.2 menyebut video; daftar Lampiran 2 Panduan: "jika lolos Top 7" | Aman ditunda; lebih kuat bila tautan video singkat disertakan sekarang |
