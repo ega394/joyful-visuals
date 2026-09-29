@@ -55,7 +55,7 @@ Penomoran lampiran di bawah mengikuti **Daftar Lampiran pada proposal baru**
 |---|---|---|
 | ⬜ | **1 — Pakta integritas** | Ditandatangani ketua tim |
 | ⬜ | **2 — Surat usulan perangkat daerah** | Bagian Prokopim Setda Kota Tarakan |
-| ◐ | **3 — Bukti identitas anggota tim** | 3 dari 5 KTP masuk (Anugrah, Mastura, Ni Kade). **Kurang: Saifullah, Juliyanti.** Letakkan sebagai `rahasia/identitas/2.jpg` dan `3.jpg`. KTP hanya masuk ke `rahasia/Proposal-Prokopim-Hibot-FINAL.pdf` (tidak masuk git) — berkas inilah yang diunggah |
+| ✅ | **3 — Bukti identitas anggota tim** | Kelima KTP lengkap. Hanya ada di `rahasia/…-FINAL.pdf` (tidak masuk git) — berkas FINAL inilah yang diunggah |
 | ⬜ | **9 — Testimoni bertanda tangan** | Tidak wajib, tetapi disarankan (bukti kepuasan pengguna). Bila tidak terkumpul sampai 30 September, Bagian 9.8 dan formulirnya dihapus |
 
 ---
