@@ -44,14 +44,14 @@ el[7]  = isi(el[7],  ["  Perihal", ": ", "Usulan Peserta Lomba Inovasi Daerah Ta
 el[10] = isi(el[10], ["Kepala Badan Perencanaan Pembangunan, Riset dan Inovasi Daerah", "Provinsi Kalimantan Utara"])
 el[12] = isi(el[12], ["TANJUNG SELOR"])
 el[13] = isi(el[13], [
-  "Menindaklanjuti Panduan Teknis Lomba Inovasi Daerah Provinsi Kalimantan Utara Tahun 2026 (Kaltara Innovation Awards), "
-  "bersama ini kami mengusulkan inovasi " + JUDUL + " dari Bagian Protokol dan Komunikasi Pimpinan Sekretariat Daerah Kota Tarakan "
-  "sebagai peserta kategori Inovasi Terapan – ASN Pemerintah Kabupaten/Kota dengan Bidang Fokus Tata Kelola Kolaboratif dan Pelayanan Publik."])
+  "Sehubungan dengan dilaksanakannya Lomba Inovasi Daerah Tingkat Provinsi Kalimantan Utara Tahun 2026 dan dengan memperhatikan "
+  "Panduan Teknis lomba dimaksud, maka dengan ini disampaikan bahwa Sekretariat Daerah Kota Tarakan berpartisipasi pada lomba tersebut."])
 el[14] = isi(el[14], [
-  "Inovasi tersebut telah diterapkan sejak Maret 2026 dalam pelayanan keprotokolan dan komunikasi pimpinan kepada Wali Kota dan Wakil Wali Kota Tarakan, "
-  "dan pelaksanaannya dikuatkan dengan Keputusan Sekretaris Daerah Kota Tarakan Nomor 100.3.3.6/98/HK/VIII/2026 tentang Tim Koordinasi Peningkatan "
-  "Pelayanan Keprotokolan dan Komunikasi Pimpinan Pemerintah Kota Tarakan. Susunan tim inovator dan identitas usulan disertakan pada lampiran surat ini, "
-  "sedangkan proposal beserta dokumen pendukungnya diunggah melalui laman sirindaku.kaltaraprov.go.id."])
+  "Adapun inovasi yang diusulkan yaitu " + JUDUL + " dari Bagian Protokol dan Komunikasi Pimpinan Sekretariat Daerah Kota Tarakan, "
+  "pada kategori Inovasi Terapan – ASN Pemerintah Kabupaten/Kota dengan Bidang Fokus Tata Kelola Kolaboratif dan Pelayanan Publik. "
+  "Inovasi tersebut telah diterapkan sejak Maret 2026 dan pelaksanaannya dikuatkan dengan Keputusan Sekretaris Daerah Kota Tarakan "
+  "Nomor 100.3.3.6/98/HK/VIII/2026. Susunan tim inovator dan identitas usulan disertakan pada lampiran surat ini, sedangkan proposal "
+  "beserta dokumen pendukungnya diunggah melalui laman sirindaku.kaltaraprov.go.id."])
 el[15] = isi(el[15], ["Demikian usulan ini disampaikan. Atas perhatian dan kerja samanya diucapkan terima kasih."])
 
 # ── Lampiran surat ──

@@ -424,7 +424,7 @@ function isi() {
     `**Adaptif:** penggunaan aplikasi menyesuaikan dengan kebutuhan digitalisasi pemerintahan, *paperless*, dan dapat diakses menggunakan perangkat yang sehari-hari hampir semua orang pegang (telepon genggam pintar).`,
     `**Responsif:** penggunaan aplikasi merupakan tanggapan cepat atas kebutuhan pimpinan terhadap layanan keprotokolan dan komunikasi pimpinan yang dapat diandalkan dan tersistem dengan baik.`,
   ]));
-  tambah(P(`Nama inovasi ini mengusung semboyan pembangunan Kota Tarakan periode 2025–2030, **"Tarakan HIBOT"**. *Hibot* dalam bahasa Tidung berarti hebat, dan sekaligus merupakan akronim dari Handal, Inovatif, Berbudaya, Unggul (Oenggoel), dan Tangguh. Kelima nilai itu diterjemahkan ke dalam rancangan aplikasi sebagaimana Tabel 6.`, { keepNext: true }));
+  tambah(P(`Nama inovasi ini mengusung semboyan pembangunan Kota Tarakan periode 2025–2030, **"Tarakan HIBOT"**. *Hibot* dalam bahasa Tidung berarti hebat, dan sekaligus merupakan akronim dari Handal, Inovatif, Berbudaya, Unggul/Oenggoel, dan Tangguh. Kelima nilai itu diterjemahkan ke dalam rancangan aplikasi sebagaimana Tabel 6.`, { keepNext: true }));
   tambah(tabel({
     judul: "Nilai HIBOT dalam rancangan Prokopim Hibot",
     kolom: [18, 82],
@@ -433,7 +433,7 @@ function isi() {
       ["Handal", "Satu sumber data kegiatan; agenda tidak lagi bergantung pada ingatan dan ketelitian perorangan"],
       ["Inovatif", "Jejak audit dan daftar periksa wajib menggantikan pemeriksaan melalui kertas dan grup percakapan"],
       ["Berbudaya", "Mengikuti tata naskah dinas dan menghormati kebiasaan Pimpinan, misalnya membaca naskah sambutan tercetak"],
-      ["Unggul/Oenggel", `Jadwal ditetapkan dalam hitungan jam; ${pct(K.tayang_dalam_24_jam, K.kegiatan_jejak_lengkap)} tayang kurang dari 24 jam`],
+      ["Unggul/Oenggoel", `Jadwal ditetapkan dalam hitungan jam; ${pct(K.tayang_dalam_24_jam, K.kegiatan_jejak_lengkap)} tayang kurang dari 24 jam`],
       ["Tangguh", "Alur tetap berjalan ketika pejabat berhalangan melalui Pelaksana Harian, dan tetap beroperasi tanpa anggaran pengadaan"],
     ],
   }));
