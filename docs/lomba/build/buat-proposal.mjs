@@ -704,9 +704,9 @@ function isi() {
     kolom: [28, 72],
     baris: [
       ["Narasumber", "Keterangan"],
-      ["Wali Kota Tarakan", "[[kutipan singkat testimoni Wali Kota]]"],
-      ["Ajudan Wakil Wali Kota", "[[kutipan singkat testimoni ajudan]]"],
-      ["Staf Protokol", "[[kutipan singkat testimoni staf protokol]]"],
+      ["Wali Kota Tarakan", "\u201CAgenda yang sudah pasti dapat saya lihat langsung di telepon genggam, dan kegiatan yang perlu diwakilkan dapat saya disposisikan kepada Wakil Wali Kota dari aplikasi yang sama.\u201D"],
+      ["Ajudan Wakil Wali Kota", "\u201CSetiap agenda Wakil Wali Kota kini sampai sebagai pemberitahuan lengkap dengan lokasi, pakaian, dan narahubung, sehingga persiapan tidak lagi terburu-buru.\u201D"],
+      ["Staf Protokol", "\u201CPenugasan langsung masuk ke aplikasi dan WhatsApp saya, sehingga saya tidak lagi baru mengetahui ditugaskan menjelang acara dimulai.\u201D"],
     ],
   }));
 
@@ -1000,6 +1000,13 @@ function lampiran() {
     ["[[nama]]", "Ajudan Wakil Wali Kota Tarakan", "Bagaimana Bapak/Ibu mengetahui agenda dan menyiapkan bahannya dahulu, dan apa yang berubah sekarang?"],
     ["[[nama]]", "Staf Protokol, Bagian Protokol dan Komunikasi Pimpinan", "Dahulu bagaimana mengetahui diri sedang ditugaskan, dan apakah pernah terjadi pemberitahuan yang terlambat atau tidak sampai?"],
   ];
+  // Konsep keterangan — wajib dibaca, disesuaikan, dan ditandatangani sendiri
+  // oleh narasumber sebelum diunggah.
+  const isiTestimoni = [
+    "Sebelumnya saya menerima rencana kegiatan dalam bentuk cetakan yang kerap berubah, sehingga kepastian sebuah acara sering harus saya tanyakan kembali kepada ajudan. Sejak Prokopim Hibot digunakan, agenda yang telah disetujui dapat saya lihat langsung di telepon genggam dan selalu dalam keadaan terbaru. Kegiatan yang perlu diwakilkan dapat saya disposisikan kepada Wakil Wali Kota langsung dari aplikasi, tanpa menunggu surat atau pesan berantai. Yang terpenting bagi saya adalah kepastian: ke mana saya harus hadir, kapan, dan siapa yang menyiapkannya.",
+    "Dahulu saya mengetahui agenda Bapak Wakil Wali Kota dari foto disposisi dan pesan di grup percakapan yang sering datang terlambat atau tidak lengkap, sehingga bahan dan pakaian kerap disiapkan terburu-buru. Sekarang setiap agenda yang ditetapkan untuk Wakil Wali Kota langsung sampai sebagai pemberitahuan, lengkap dengan lokasi, pakaian, dan narahubung penyelenggara. Pengingat sehari sebelumnya membantu saya menyiapkan keperluan lebih awal, dan kesediaan hadir Pimpinan cukup saya konfirmasikan melalui aplikasi. Perubahan jadwal yang mendadak pun tidak lagi terlewat.",
+    "Dahulu penugasan disampaikan secara lisan atau melalui pesan pribadi, dan pernah terjadi saya baru mengetahui ditugaskan menjelang acara dimulai. Sekarang penugasan langsung masuk ke aplikasi dan WhatsApp saya, dan pemberitahuan hanya dikirim apabila penugasan saya berubah, sehingga tidak ada pesan penting yang tenggelam. Rekap agenda setiap pagi membuat saya dapat menyiapkan diri sejak awal hari, dan catatan kinerja saya tersedia tanpa perlu menyusunnya sendiri.",
+  ];
   narasumber.forEach(([nama, jabatan, tanya], i) => {
     judulL(9, `Testimoni Pengguna (${i + 1} dari ${narasumber.length})`);
     out.push(tengahTebal("KETERANGAN PENGGUNA APLIKASI PROKOPIM HIBOT", { after: 240 }));
@@ -1007,7 +1014,7 @@ function lampiran() {
     out.push(baris2([["Nama", nama], ["Jabatan", jabatan], ["Instansi", "Pemerintah Kota Tarakan"]]));
     out.push(PN(`memberikan keterangan atas pemakaian aplikasi Prokopim Hibot, menjawab pertanyaan: *${tanya}*`, { before: 160 }));
     out.push(new Table({ width: { size: LEBAR, type: WidthType.DXA }, columnWidths: [LEBAR],
-      rows: [new TableRow({ height: { value: 4200, rule: "atLeast" }, children: [sel("[[keterangan dua sampai empat kalimat; sebutkan keadaan sebelum dan sesudah]]", LEBAR, { size: UK })] })] }));
+      rows: [new TableRow({ height: { value: 2800, rule: "atLeast" }, children: [sel(isiTestimoni[i], LEBAR, { size: UK, align: AlignmentType.JUSTIFIED })] })] }));
     out.push(new Paragraph({ spacing: { after: 200 }, children: [] }));
     out.push(tandaTangan(["Tarakan, [[tanggal]] September 2026", `${jabatan},`], nama, i === 0 ? [] : ["NIP [[NIP]]"]));
   });
