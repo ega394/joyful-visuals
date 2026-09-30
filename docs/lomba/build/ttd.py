@@ -4,7 +4,7 @@ sudah ditandatangani.
 
     python3 ttd.py final.pdf rahasia/ttd.json
 
-ttd.json: {"berkas": "<pindaian>.pdf", "ganti": [["<awal teks halaman>", <nomor halaman pindaian>], ...]}
+ttd.json: {"berkas": "<pindaian>.pdf", "ganti": [["<awal teks halaman>", <nomor halaman pindaian>, [[x0, y0, x1, y1, "teks"], ...]?], ...]}
 Halaman sasaran dikenali dari awal teksnya (mis. "Lampiran 1. Pakta Integritas").
 Pindaian dipadatkan menjadi JPEG 150 dpi agar berkas tetap jauh di bawah 15 MB.
 Pindaian memuat data pribadi, jadi hanya dipakai untuk berkas di rahasia/.
@@ -17,7 +17,7 @@ k = json.load(open(konf))
 pindai = pymupdf.open(os.path.join(os.path.dirname(konf), k["berkas"]))
 doc = pymupdf.open(sasaran)
 hasil = []
-for awal, nomor in k["ganti"]:
+for awal, nomor, *tulis in k["ganti"]:
     teks = [re.sub(r"\s+", " ", p.get_text()).strip() for p in doc]
     i = next((j for j, t in enumerate(teks) if t.startswith(awal)), None)
     if i is None:
@@ -27,6 +27,12 @@ for awal, nomor in k["ganti"]:
     doc.delete_page(i)
     hal = doc.new_page(pno=i, width=sp.rect.width, height=sp.rect.height)
     hal.insert_image(hal.rect, stream=jpg)
+    # Isian yang tertinggal kosong pada pindaian (mis. tanggal): titik-titiknya
+    # ditutup lalu ditulis ulang. Koordinat dalam poin halaman pindaian.
+    for x0, y0, x1, y1, teks in (tulis[0] if tulis else []):
+        hal.draw_rect(pymupdf.Rect(x0, y0, x1, y1), color=None, fill=(1, 1, 1))
+        lebar = pymupdf.get_text_length(teks, fontname="helv", fontsize=10.5)
+        hal.insert_text(((x0 + x1 - lebar) / 2, y1 - 1.5), teks, fontname="helv", fontsize=10.5, color=(0.1, 0.1, 0.1))
     hasil.append(f"hal {i + 1} ← pindaian {nomor}: {awal}")
 doc.save(sasaran + ".tmp", garbage=3, deflate=True); doc.close()
 os.replace(sasaran + ".tmp", sasaran)

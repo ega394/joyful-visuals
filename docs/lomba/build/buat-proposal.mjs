@@ -988,7 +988,7 @@ function lampiran() {
     out.push(new Table({ width: { size: LEBAR, type: WidthType.DXA }, columnWidths: [LEBAR],
       rows: [new TableRow({ height: { value: 2800, rule: "atLeast" }, children: [sel(isiTestimoni[i], LEBAR, { size: UK, align: AlignmentType.JUSTIFIED })] })] }));
     out.push(new Paragraph({ spacing: { after: 200 }, children: [] }));
-    out.push(tandaTangan(["Tarakan, ............ September 2026", `${jabatan},`], nama, nipNarasumber[i] ? [`NIP ${nipNarasumber[i]}`] : []));
+    out.push(tandaTangan(["Tarakan, 30 September 2026", `${jabatan},`], nama, nipNarasumber[i] ? [`NIP ${nipNarasumber[i]}`] : []));
   });
 
   // ── Lampiran 10 ──
