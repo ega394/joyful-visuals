@@ -264,6 +264,8 @@ function bagan(kotak, keterangan, judul) {
 // ═══════════════════════════════════════════════════════════════════
 const NOMOR_SURAT_SEKDA = "300.2.10/265/SETDA/2026";
 const SK_SEKDA = "100.3.3.6/98/HK/VIII/2026";
+const NOMOR_SURAT_USULAN = "500.10.30.2/1122/SETDA/2026";
+const TANGGAL_SURAT_USULAN = "30 September 2026";
 const SE_WALIKOTA = "000.7.2.4/70/Bappeda Litbang/2026";
 const JUDUL = "PROKOPIM HIBOT";
 const SUBJUDUL = "Satu Alur Digital Terverifikasi untuk Tata Kelola Agenda dan Keprotokolan Pimpinan Daerah";
@@ -864,31 +866,7 @@ function lampiran() {
 
   // ── Lampiran 2: Surat usulan ──
   judulL(2, "Surat Usulan");
-  const lLogo = 1300, lKop = LEBAR - lLogo;
-  out.push(new Table({ width: { size: LEBAR, type: WidthType.DXA }, columnWidths: [lLogo, lKop],
-    rows: [new TableRow({ children: [
-      new TableCell({ width: { size: lLogo, type: WidthType.DXA }, borders: tanpaGaris, verticalAlign: VerticalAlign.CENTER,
-        children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [gambar("logo_tarakan.png", 70)] })] }),
-      sel(["**PEMERINTAH KOTA TARAKAN**", "**SEKRETARIAT DAERAH**", "Jalan Pulau Kalimantan No. 1 Kota Tarakan 77113", "Telp (0551) 21620, 21623 Fax (0551) 33846", "Laman: www.tarakankota.go.id Pos-el: setda@tarakankota.go.id"], lKop, { borders: tanpaGaris, align: AlignmentType.CENTER, size: 22, vAlign: VerticalAlign.CENTER }),
-    ] })] }));
-  out.push(new Paragraph({ border: { bottom: { style: BorderStyle.THICK_THIN_SMALL_GAP, size: 18, color: HITAM, space: 1 } }, spacing: { after: 200 }, children: [] }));
-  out.push(new Paragraph({ alignment: AlignmentType.RIGHT, spacing: { after: 120 }, children: runs("Tarakan, [[tanggal]] September 2026", { size: UK, font: FONT }) }));
-  out.push(baris2([["Nomor", "[[nomor surat]]"], ["Sifat", "Biasa"], ["Lampiran", "1 (satu) berkas"], ["Hal", "Usulan Peserta Kaltara Innovation Awards Tahun 2026"]], 0.16));
-  out.push(PN("Yth. Kepala Badan Perencanaan Pembangunan, Riset dan Inovasi Daerah Provinsi Kalimantan Utara", { before: 200, after: 0 }));
-  out.push(PN("di", { after: 0 }));
-  out.push(PN("Tanjung Selor", { after: 200 }));
-  out.push(P(`Menindaklanjuti Panduan Teknis Lomba Inovasi Daerah Provinsi Kalimantan Utara Tahun 2026 (Kaltara Innovation Awards), dengan ini kami mengusulkan inovasi dari lingkungan Sekretariat Daerah Kota Tarakan sebagai peserta dengan keterangan sebagai berikut:`));
-  out.push(baris2([
-    ["Judul inovasi", JUDUL_LENGKAP],
-    ["Kategori", "Inovasi Terapan – ASN Pemerintah Kabupaten/Kota"],
-    ["Bidang fokus", "3. Tata Kelola Kolaboratif dan Pelayanan Publik"],
-    ["Ketua tim", `${NAMA_KETUA} (Kepala Bagian Protokol dan Komunikasi Pimpinan)`],
-    ["Anggota tim", "Saifullah, S.H.; Juliyanti, S.AP.; Mastura, S.Sos.; Ni Kade Sari Handayani, S.AP."],
-    ["Unit pelaksana", "Bagian Protokol dan Komunikasi Pimpinan"],
-  ]));
-  out.push(P(`Inovasi tersebut telah diterapkan sejak Maret 2026 dan didukung Keputusan Sekretaris Daerah Kota Tarakan Nomor ${SK_SEKDA}. Bersama ini kami sampaikan proposal beserta kelengkapannya. Demikian disampaikan, atas perhatian Bapak/Ibu kami ucapkan terima kasih.`, { before: 160 }));
-  out.push(new Paragraph({ spacing: { after: 120 }, children: [] }));
-  out.push(tandaTangan(["SEKRETARIS DAERAH KOTA TARAKAN,"], "ABD. AZIS HASAN, A.P., M.H., CGCAE.", ["Pembina Utama Muda (IV/c)", "NIP 19750212 199501 1 001"]));
+  out.push(PN(`Halaman berikut memuat Surat Sekretaris Daerah Kota Tarakan Nomor ${NOMOR_SURAT_USULAN} tanggal ${TANGGAL_SURAT_USULAN} perihal Usulan Peserta Lomba Inovasi Daerah Tahun 2026, yang ditandatangani secara elektronik.`));
 
   // ── Lampiran 3 ──
   pembatas(3, "Bukti Identitas Anggota Tim", "Pindaian Kartu Tanda Penduduk kelima anggota tim. BERSIFAT RAHASIA: memuat data pribadi, hanya untuk keperluan penilaian.");
@@ -1150,6 +1128,7 @@ await tulisDanRender(hasil.halaman);
 const akhir = JSON.parse(execFileSync("python3", [path.join(DIR, "halaman.py"), KELUAR + ".pdf", BAB.b2, ...judulSemua], { encoding: "utf8" }));
 execFileSync("python3", [path.join(DIR, "gabung.py"), KELUAR + ".pdf",
   ...(TANPA_SOP ? [] : ["7=" + path.join(REPO, "docs/sop/SOP-Prokopim.pdf")]),
+  "2=" + path.join(LOMBA, "lampiran/Surat-Usulan-Sekda-TTE.pdf"),
   "6=" + path.join(LOMBA, "lampiran/SK-Tim-Koordinasi-2026.pdf") + "," + path.join(LOMBA, "lampiran/Surat-Sekda-300.2.10-265-2026.pdf"),
 ], { stdio: "inherit" });
 const keluaran = [KELUAR + ".docx", KELUAR + ".pdf"];

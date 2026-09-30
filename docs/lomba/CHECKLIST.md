@@ -47,7 +47,6 @@ Penomoran lampiran di bawah mengikuti **Daftar Lampiran pada proposal baru**
 | | Isian | Letak |
 |---|---|---|
 | ◐ | Tiga testimoni | **Konsep sudah terisi** (Tabel 17 dan Lampiran 9). Setiap narasumber wajib membaca, menyesuaikan, lalu menandatangani; narasumber: dr. H. Khairul (Wali Kota), Muhammad Rizky Dinata Putra (ajudan Wawali), Risca Saputri Samtika (staf protokol); tanggal masih kosong |
-| ⬜ | Nomor dan tanggal surat usulan | Diisi saat naskah difinalkan |
 
 ---
 
@@ -56,7 +55,7 @@ Penomoran lampiran di bawah mengikuti **Daftar Lampiran pada proposal baru**
 | | Lampiran | Catatan |
 |---|---|---|
 | ⬜ | **1 — Pakta integritas** | Ditandatangani ketua tim |
-| ⬜ | **2 — Surat usulan perangkat daerah** | Bagian Prokopim Setda Kota Tarakan |
+| ✅ | **2 — Surat usulan perangkat daerah** | Surat Sekda Nomor 500.10.30.2/1122/SETDA/2026 tanggal 30 September 2026, TTE; tersisip di kedua versi |
 | ✅ | **3 — Bukti identitas anggota tim** | Kelima KTP lengkap. Hanya ada di `rahasia/…-FINAL.pdf` (tidak masuk git) — berkas FINAL inilah yang diunggah |
 | ⬜ | **9 — Testimoni bertanda tangan** | Tidak wajib, tetapi disarankan (bukti kepuasan pengguna). Bila tidak terkumpul sampai 30 September, Bagian 9.8 dan formulirnya dihapus |
 
