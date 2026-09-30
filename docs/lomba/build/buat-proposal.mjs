@@ -1000,7 +1000,7 @@ function lampiran() {
     ["Risca Saputri Samtika, S.Pd.", "Staf Protokol, Bagian Protokol dan Komunikasi Pimpinan", "Dahulu bagaimana mengetahui diri sedang ditugaskan, dan apakah pernah terjadi pemberitahuan yang terlambat atau tidak sampai?"],
     ["Putri Yunis Mudhaika", "Pengadministrasi Perkantoran, Bagian Protokol dan Komunikasi Pimpinan", "Bagaimana pengalaman Bapak/Ibu menjalankan kewenangan sebagai Pelaksana Harian melalui aplikasi ini?"],
   ];
-  const nipNarasumber = [null, "199803252022081001", "199506062025212058", "...................................."];
+  const nipNarasumber = [null, "199803252022081001", "199506062025212058", "198206102008012030"];
   narasumber.forEach(([nama, jabatan, tanya], i) => {
     judulL(9, `Testimoni Pengguna (${i + 1} dari ${narasumber.length})`);
     out.push(tengahTebal("KETERANGAN PENGGUNA APLIKASI PROKOPIM HIBOT", { after: 240 }));
