@@ -54,7 +54,7 @@ Penomoran lampiran di bawah mengikuti **Daftar Lampiran pada proposal baru**
 
 | | Lampiran | Catatan |
 |---|---|---|
-| ⬜ | **1 — Pakta integritas** | Ditandatangani ketua tim |
+| ✅ | **1 — Pakta integritas** | Pindaian bermeterai dan bertanda tangan tersisip di berkas FINAL |
 | ✅ | **2 — Surat usulan perangkat daerah** | Surat Sekda Nomor 500.10.30.2/1122/SETDA/2026 tanggal 30 September 2026, TTE; tersisip di kedua versi |
 | ✅ | **3 — Bukti identitas anggota tim** | Kelima KTP lengkap. Hanya ada di `rahasia/…-FINAL.pdf` (tidak masuk git) — berkas FINAL inilah yang diunggah |
 | ⬜ | **9 — Testimoni bertanda tangan** | Tidak wajib, tetapi disarankan (bukti kepuasan pengguna). Bila tidak terkumpul sampai 30 September, Bagian 9.8 dan formulirnya dihapus |

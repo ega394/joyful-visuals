@@ -1137,5 +1137,8 @@ if (PRIBADI) {
   const lamp3 = path.join(RAHASIA, "Lampiran-3-Identitas.pdf");
   identitas = JSON.parse(execFileSync("python3", [path.join(DIR, "identitas.py"), path.join(RAHASIA, "identitas"), lamp3], { encoding: "utf8" }));
   execFileSync("python3", [path.join(DIR, "gabung.py"), KELUAR + ".pdf", "3=" + lamp3], { stdio: "inherit" });
+  // Halaman bertanda tangan (pakta, testimoni) menggantikan halaman kosongnya.
+  if (fs.existsSync(path.join(RAHASIA, "ttd.json")))
+    execFileSync("python3", [path.join(DIR, "ttd.py"), KELUAR + ".pdf", path.join(RAHASIA, "ttd.json")], { stdio: "inherit" });
 }
 console.log(JSON.stringify({ ...akhir, identitas, keluaran }, null, 2));

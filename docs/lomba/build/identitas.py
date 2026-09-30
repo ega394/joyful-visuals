@@ -18,8 +18,8 @@ import pymupdf
 
 TIM = [
     ("1", "Anugrah Yega Pranatha, M.Si.", "Ketua"),
-    ("2", "Saifullah, S.H.", "Sekretaris I"),
-    ("3", "Juliyanti, S.AP.", "Sekretaris II"),
+    ("2", "Saifullah, S.H.", "Anggota"),
+    ("3", "Juliyanti, S.AP.", "Anggota"),
     ("4", "Mastura, S.Sos.", "Anggota"),
     ("5", "Ni Kade Sari Handayani, S.AP.", "Anggota"),
 ]
@@ -36,21 +36,22 @@ def cari(no):
     return None
 
 mm = 72 / 25.4
+# Satu halaman A4: dua kolom x tiga baris, kartu selebar ±85 mm (ukuran KTP asli).
 doc = pymupdf.open()
-LEBAR = 120 * mm            # lebar gambar kartu di halaman
-KIRI = (210 * mm - LEBAR) / 2
+hal = doc.new_page(width=210 * mm, height=297 * mm)
+KOL, TEPI, SELA = 85 * mm, 15 * mm, 10 * mm
+TINGGI_BARIS = 80 * mm
 kurang = []
 for k, (no, nama, peran) in enumerate(TIM):
-    if k % 2 == 0:
-        hal = doc.new_page(width=210 * mm, height=297 * mm)
-        y = 25 * mm
-    hal.insert_text((KIRI, y), f"{no}. {nama} ({peran})", fontname="helv", fontsize=11)
-    y += 4 * mm
+    x = TEPI + (k % 2) * (KOL + SELA)
+    y = 20 * mm + (k // 2) * TINGGI_BARIS
+    hal.insert_text((x, y), f"{no}. {nama}", fontname="helv", fontsize=9)
+    hal.insert_text((x, y + 4.2 * mm), peran, fontname="helv", fontsize=8, color=(0.3, 0.3, 0.3))
+    y += 7 * mm
     f = cari(no)
+    maks = pymupdf.Rect(x, y, x + KOL, y + 62 * mm)
     if f:
-        src = pymupdf.open(f)
-        pdfbytes = src.convert_to_pdf()
-        sp = pymupdf.open("pdf", pdfbytes)
+        sp = pymupdf.open("pdf", pymupdf.open(f).convert_to_pdf())
         r = sp[0].rect
         klip = None
         if no in potong:
@@ -59,15 +60,14 @@ for k, (no, nama, peran) in enumerate(TIM):
             sx, sy = r.width / px.width, r.height / px.height
             klip = pymupdf.Rect(x0 * sx, y0 * sy, x1 * sx, y1 * sy)
         w, h = (klip or r).width, (klip or r).height
-        tinggi = LEBAR * h / w
-        hal.show_pdf_page(pymupdf.Rect(KIRI, y, KIRI + LEBAR, y + tinggi), sp, 0, clip=klip)
+        tinggi = min(KOL * h / w, maks.height)
+        lebar = tinggi * w / h
+        hal.show_pdf_page(pymupdf.Rect(x, y, x + lebar, y + tinggi), sp, 0, clip=klip)
     else:
-        tinggi = LEBAR * 54 / 85.6
-        kotak = pymupdf.Rect(KIRI, y, KIRI + LEBAR, y + tinggi)
+        kotak = pymupdf.Rect(x, y, x + KOL, y + KOL * 54 / 85.6)
         hal.draw_rect(kotak, color=(0.8, 0.5, 0), fill=(1, 0.97, 0.85), dashes="[4] 0", width=1)
-        hal.insert_textbox(kotak + (0, tinggi / 2 - 8, 0, 0), "Pindaian KTP menyusul", fontname="helv",
-                           fontsize=11, align=1, color=(0.6, 0.3, 0))
+        hal.insert_textbox(kotak + (0, kotak.height / 2 - 8, 0, 0), "Pindaian KTP menyusul", fontname="helv",
+                           fontsize=10, align=1, color=(0.6, 0.3, 0))
         kurang.append(nama)
-    y += tinggi + 14 * mm
 doc.save(keluar, garbage=3, deflate=True)
 print(json.dumps({"halaman": doc.page_count, "menyusul": kurang}))
