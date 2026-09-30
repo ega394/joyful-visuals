@@ -22,17 +22,22 @@ for awal, nomor, *tulis in k["ganti"]:
     i = next((j for j, t in enumerate(teks) if t.startswith(awal)), None)
     if i is None:
         hasil.append(f"TIDAK DITEMUKAN: {awal}"); continue
-    sp = pindai[nomor - 1]
+    # nomor: halaman pada berkas utama, atau ["berkas-lain.pdf", halaman]
+    if isinstance(nomor, list):
+        sp = pymupdf.open(os.path.join(os.path.dirname(konf), nomor[0]))[nomor[1] - 1]
+    else:
+        sp = pindai[nomor - 1]
     jpg = sp.get_pixmap(dpi=150).tobytes("jpeg", jpg_quality=80)
     doc.delete_page(i)
     hal = doc.new_page(pno=i, width=sp.rect.width, height=sp.rect.height)
     hal.insert_image(hal.rect, stream=jpg)
     # Isian yang tertinggal kosong pada pindaian (mis. tanggal): titik-titiknya
     # ditutup lalu ditulis ulang. Koordinat dalam poin halaman pindaian.
-    for x0, y0, x1, y1, teks in (tulis[0] if tulis else []):
+    for x0, y0, x1, y1, teks, *gaya in (tulis[0] if tulis else []):
+        huruf, ukuran = (gaya + ["helv", 10.5])[:2] if gaya else ("helv", 10.5)
         hal.draw_rect(pymupdf.Rect(x0, y0, x1, y1), color=None, fill=(1, 1, 1))
-        lebar = pymupdf.get_text_length(teks, fontname="helv", fontsize=10.5)
-        hal.insert_text(((x0 + x1 - lebar) / 2, y1 - 1.5), teks, fontname="helv", fontsize=10.5, color=(0.1, 0.1, 0.1))
+        lebar = pymupdf.get_text_length(teks, fontname=huruf, fontsize=ukuran)
+        hal.insert_text(((x0 + x1 - lebar) / 2, y1 - 1.5), teks, fontname=huruf, fontsize=ukuran, color=(0.22, 0.22, 0.22))
     hasil.append(f"hal {i + 1} ← pindaian {nomor}: {awal}")
 doc.save(sasaran + ".tmp", garbage=3, deflate=True); doc.close()
 os.replace(sasaran + ".tmp", sasaran)

@@ -20,10 +20,15 @@ awal = next(i for i, t in enumerate(teks) if "12. LAMPIRAN" in t and "DAFTAR ISI
 rencana = []
 for s in sisipan:
     nomor, daftar = s.split("=", 1)
+    ganti = nomor.endswith("!")          # "3!=berkas.pdf": halaman judul diganti, bukan disusul
+    nomor = nomor.rstrip("!")
     hal = next(i for i, t in enumerate(teks) if i > awal and f"Lampiran {nomor}." in t)
-    rencana.append((hal, daftar.split(",")))
-for hal, daftar in sorted(rencana, reverse=True):
+    rencana.append((hal, daftar.split(","), ganti))
+for hal, daftar, ganti in sorted(rencana, reverse=True):
     posisi = hal + 1
+    if ganti:
+        doc.delete_page(hal)
+        posisi = hal
     for f in daftar:
         src = pymupdf.open(f)
         doc.insert_pdf(src, start_at=posisi)

@@ -36,20 +36,26 @@ def cari(no):
     return None
 
 mm = 72 / 25.4
-# Satu halaman A4: dua kolom x tiga baris, kartu selebar ±85 mm (ukuran KTP asli).
+# Satu halaman A4 dengan margin naskah (kiri 3 cm, kanan 2,5 cm, atas 2,5 cm):
+# judul lampiran, lalu dua kolom x tiga baris kartu.
 doc = pymupdf.open()
 hal = doc.new_page(width=210 * mm, height=297 * mm)
-KOL, TEPI, SELA = 85 * mm, 15 * mm, 10 * mm
-TINGGI_BARIS = 80 * mm
+KIRI, KANAN, ATAS = 30 * mm, 25 * mm, 25 * mm
+SELA = 10 * mm
+KOL = (210 * mm - KIRI - KANAN - SELA) / 2
+TINGGI_BARIS = 60 * mm
+hal.insert_text((KIRI, ATAS + 4 * mm), "Lampiran 3. Bukti Identitas Anggota Tim", fontname="hebo", fontsize=11)
+kaki = "Lampiran"
+hal.insert_text(((210 * mm - pymupdf.get_text_length(kaki, fontname="heit", fontsize=9)) / 2, 297 * mm - 12 * mm), kaki, fontname="heit", fontsize=9)
 kurang = []
 for k, (no, nama, peran) in enumerate(TIM):
-    x = TEPI + (k % 2) * (KOL + SELA)
-    y = 20 * mm + (k // 2) * TINGGI_BARIS
+    x = KIRI + (k % 2) * (KOL + SELA)
+    y = ATAS + 14 * mm + (k // 2) * TINGGI_BARIS
     hal.insert_text((x, y), f"{no}. {nama}", fontname="helv", fontsize=9)
     hal.insert_text((x, y + 4.2 * mm), peran, fontname="helv", fontsize=8, color=(0.3, 0.3, 0.3))
     y += 7 * mm
     f = cari(no)
-    maks = pymupdf.Rect(x, y, x + KOL, y + 62 * mm)
+    maks = pymupdf.Rect(x, y, x + KOL, y + 48 * mm)
     if f:
         sp = pymupdf.open("pdf", pymupdf.open(f).convert_to_pdf())
         r = sp[0].rect

@@ -869,7 +869,7 @@ function lampiran() {
   out.push(PN(`Halaman berikut memuat Surat Sekretaris Daerah Kota Tarakan Nomor ${NOMOR_SURAT_USULAN} tanggal ${TANGGAL_SURAT_USULAN} perihal Usulan Peserta Lomba Inovasi Daerah Tahun 2026, yang ditandatangani secara elektronik.`));
 
   // ── Lampiran 3 ──
-  pembatas(3, "Bukti Identitas Anggota Tim", "Pindaian Kartu Tanda Penduduk kelima anggota tim. BERSIFAT RAHASIA: memuat data pribadi, hanya untuk keperluan penilaian.");
+  judulL(3, "Bukti Identitas Anggota Tim");
 
   // ── Lampiran 4: Tangkapan layar ──
   judulL(4, "Tangkapan Layar Aplikasi");
@@ -1136,7 +1136,8 @@ let identitas = null;
 if (PRIBADI) {
   const lamp3 = path.join(RAHASIA, "Lampiran-3-Identitas.pdf");
   identitas = JSON.parse(execFileSync("python3", [path.join(DIR, "identitas.py"), path.join(RAHASIA, "identitas"), lamp3], { encoding: "utf8" }));
-  execFileSync("python3", [path.join(DIR, "gabung.py"), KELUAR + ".pdf", "3=" + lamp3], { stdio: "inherit" });
+  // Halaman judul Lampiran 3 diganti halaman KTP yang sudah memuat judulnya.
+  execFileSync("python3", [path.join(DIR, "gabung.py"), KELUAR + ".pdf", "3!=" + lamp3], { stdio: "inherit" });
   // Halaman bertanda tangan (pakta, testimoni) menggantikan halaman kosongnya.
   if (fs.existsSync(path.join(RAHASIA, "ttd.json")))
     execFileSync("python3", [path.join(DIR, "ttd.py"), KELUAR + ".pdf", path.join(RAHASIA, "ttd.json")], { stdio: "inherit" });
