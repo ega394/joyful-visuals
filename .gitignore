@@ -26,3 +26,8 @@ dist-ssr
 # PDF SOP dibangkitkan dari docs/sop/*.md — jalankan: node scripts/sop-pdf.mjs
 docs/sop/SOP-Prokopim.pdf
 docs/lomba/Proposal-Inovasi.pdf
+
+# Pindaian identitas (KTP berisi NIK) dan PDF final untuk diunggah — JANGAN masuk git
+docs/lomba/rahasia/
+*-FINAL.pdf
+*-FINAL.docx

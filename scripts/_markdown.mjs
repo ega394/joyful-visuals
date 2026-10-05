@@ -52,6 +52,10 @@ export function keHTML(md, opsi = {}) {
       // Tabel 7 kolom boleh dirender khusus oleh pemanggil — SOP memakainya
       // untuk diagram alir bercabang, dokumen lain membiarkannya tabel biasa.
       if (lebar === 7 && opsi.tabel7) { out.push(opsi.tabel7(isi)); continue; }
+      // Tabel identitas SOP (kepala "Unsur | Isi") juga boleh dirender khusus.
+      if (lebar === 2 && opsi.identitas && /^unsur$/i.test(kepala[0].trim())) {
+        out.push(opsi.identitas(isi)); continue;
+      }
 
       const kelas = lebar === 2 ? "identitas" : "ringkas";
       out.push(`<table class="${kelas}"><thead><tr>` +

@@ -12499,9 +12499,9 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
       :tab==="ekinerja"
       ?<EKinerjaGenerator events={events} role={role} user={user} isMobile={isMobile}/>
       :role==="admin_undangan"&&tab==="undangan"
-      ?<UndanganGenerator isMobile={isMobile} showT={showT}/>
+      ?<UndanganGenerator isMobile={isMobile} showT={showT} user={user}/>
       :["admin_rk"].includes(role)&&tab==="undangan"
-        ?<UndanganGenerator isMobile={isMobile} showT={showT}/>
+        ?<UndanganGenerator isMobile={isMobile} showT={showT} user={user}/>
 
       :role==="kasubbag_protokol"&&tab==="dashboard"
         ?<KasubbagDashboard events={events} user={user} upd={upd} showT={showT} askConfirm={askConfirm} isMobile={isMobile} onPenugasan={ev=>setPenugasanEv(ev)}/>
@@ -12752,7 +12752,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
           <button onClick={()=>setShowUndanganTool(false)} style={{width:36,height:36,borderRadius:10,border:"1.5px solid rgba(255,255,255,0.2)",background:"rgba(255,255,255,0.08)",color:"white",cursor:"pointer",fontSize:18,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
         </div>
         <div style={{flex:1,overflowY:"auto"}}>
-          <UndanganGenerator isMobile={isMobile} showT={showT}/>
+          <UndanganGenerator isMobile={isMobile} showT={showT} user={user}/>
         </div>
       </div>
     )}

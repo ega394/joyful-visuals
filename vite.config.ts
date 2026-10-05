@@ -81,7 +81,11 @@ export default defineConfig(({ mode }) => ({
         ],
       },
       workbox: {
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+        // ttf: font Arial generator undangan (±290 KB, sudah dipangkas) ikut
+        // tersimpan supaya PDF tetap bisa dibuat saat sinyal lemah.
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2,ttf}"],
+        // Pustaka PDF (pdfmake, pdf.js) melebihi batas bawaan 2 MiB per berkas.
+        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
 
         // ✅ Hindari bundle basi: bersihkan precache lama & ambil alih segera
         // Mencegah index.html lama memuat chunk JS yang sudah terhapus

@@ -1,78 +1,24 @@
 /**
- * UndanganGenerator.jsx — Prokopim Hibot v2.0
- * FIXED: Forced Box-Shadow Removal using !important
+ * UndanganGenerator.jsx — Prokopim Hibot
+ *
+ * Keluaran berupa PDF berteks asli dengan Arial tertanam (src/lib/undanganPdf.js),
+ * sehingga variabel Srikandi (${nomor_naskah} dan seterusnya) tetap bisa diisi.
+ * Pratinjau menampilkan PDF yang sama persis dengan yang diunduh atau dicetak.
  */
 
-import React, { useState, useRef } from "react";
+import React, { useState, useEffect } from "react";
+import { buatPdfUndangan, namaBerkasUndangan, sesiDariJam } from "./lib/undanganPdf";
+import { PratinjauPdf, JendelaPdf, unduhPdf, cetakPdf } from "./components/PratinjauPdf";
+import { userFetch, adminFetch } from "./roomAuth";
 
-// ── CSS Kertas & Dokumen ──
-const CSS_ASLI = `
-  /* Arial adalah font baku tata naskah dinas. Bila mesin tidak memilikinya,
-     rantai berikut jatuh ke font yang metriknya PERSIS sama dengan Arial —
-     Liberation Sans (umum di Linux) dan Arimo — sehingga lebar huruf,
-     pemenggalan baris, dan jumlah halaman tetap sama di komputer mana pun.
-     Tanpa ini, fallback bisa mendarat di DejaVu Sans yang 12,8% lebih lebar
-     dan menggeser tata letak surat. */
-  #dokumen-cetak, #dokumen-cetak * {
-    font-family: Arial, "Liberation Sans", Arimo, "Helvetica Neue", Helvetica, sans-serif !important;
-  }
-  #dokumen-cetak { background: white !important; width: 210mm !important; margin: 0 !important; padding: 0 !important; box-shadow: none !important; border: none !important; }
-  
-  /* FIX UTAMA: Paksa hilangkan bayangan dan margin dengan !important agar kebal dari CSS Global */
-  .halaman-a4 { 
-    width: 210mm !important; 
-    min-height: 297mm !important; 
-    background: white !important; 
-    padding: 20mm 20mm 20mm 25mm !important; 
-    box-sizing: border-box !important; 
-    font-size: 11pt !important; 
-    color: black !important; 
-    line-height: 1.5 !important; 
-    position: relative !important; 
-    box-shadow: none !important; /* ⬅️ BUNUH BAYANGAN */
-    border: none !important; 
-    margin: 0 !important;        /* ⬅️ BUNUH JARAK ANTAR HALAMAN */
-    outline: none !important;
-  }
-  
-  .kop { text-align: center; margin-bottom: 25px; }
-  .kop img { width: 88px; margin-bottom: 5px; }
-  .kop-teks { font-size: 20pt; font-weight: bold; margin-top: 5px; letter-spacing: 0.5px; }
-  .tanggal-kanan { text-align: right; margin-bottom: 15px; font-style: normal; }
-  .tabel-info { border-collapse: collapse; width: 100%; margin-bottom: 15px; }
-  .tabel-info td { vertical-align: top; padding: 2px 0; }
-  .col-label { width: 70pt; }
-  .col-titikdua { width: 15pt; text-align: center; }
-  .tujuan-surat { margin-bottom: 15px; line-height: 1.5; }
-  .paragraf-indent { text-align: justify; text-indent: 36.75pt; margin-bottom: 5px; margin-top: 10px; }
-  .tabel-acara { border-collapse: collapse; width: 100%; margin-bottom: 10px; }
-  .tabel-acara td { vertical-align: top; padding: 2px 0; }
-  .col-label-acara { width: 113pt; }
-  .area-ttd { float: right; width: 250px; text-align: center; margin-top: 15px; position: relative; }
-  
-  .area-keterangan { clear: both; margin-top: 25px; line-height: 1.5; font-size: 10pt !important; }
-  .area-keterangan * { font-size: 10pt !important; }
-  .ket-item { margin-bottom: 6px; }
-  
-  .footer-alamat { position: absolute; bottom: 20mm; left: 0; right: 0; text-align: center; font-size: 10pt; line-height: 1.3; }
-  .teks-multibaris { white-space: pre-wrap; }
-  .page-break { page-break-before: always; }
-  /* Setiap lembar A4 memulai halaman cetak baru. */
-  .pecah-halaman { page-break-before: always; break-before: page; }
-  /* Penanda TTE ikut Arial seperti seluruh isi surat. Aturan monospace yang
-     dulu ada di sini tidak pernah berlaku — kalah spesifisitas dari selektor
-     #dokumen-cetak *, jadi dihapus agar tidak menyesatkan. */
-  .tte-marker { color: #0056b3; background: #e9ecef; padding: 2px 5px; border-radius: 3px; font-weight: bold; }
-`;
+// ── Tempat acara ──────────────────────────────────────────────
+// Dua ruangan terakhir dikelola layanan Peminjaman Ruangan, jadi ketersediaannya
+// diperiksa dan pemesanannya dicatat langsung dari generator ini.
+const TEMPAT = ["Ruang Rapat Wali Kota", "Rumah Jabatan Wali Kota", "Ruang Imbaya", "Ruang Kenawai"];
+const RUANG_TERKELOLA = { "Ruang Imbaya": "imbaya", "Ruang Kenawai": "kenawai" };
+const LABEL_SESI = { Pagi: "Pagi (07.30–12.00)", Siang: "Siang (12.30–16.30)", Full_Day: "Seharian (07.30–16.30)" };
+const SESI_BENTROK = { Pagi: ["Pagi", "Full_Day"], Siang: ["Siang", "Full_Day"], Full_Day: ["Pagi", "Siang", "Full_Day"] };
 
-const formatTanggalIndo = (dateStr) => {
-  if (!dateStr) return "";
-  const days = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
-  const months = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return dateStr;
-  return `${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
-};
 
 const NAVY = "#0A1628";
 const GOLD = "#C9A84C";
@@ -139,7 +85,7 @@ const CheckboxToggle = ({ checked, onChange, label }) => (
   </label>
 );
 
-export default function UndanganGenerator({ isMobile, showT }) {
+export default function UndanganGenerator({ isMobile, showT, user }) {
   const EMPTY = {
     pilihanCetak:  "semua",
     tanggalSurat:  "Tarakan, ${tanggal_naskah}",
@@ -152,6 +98,11 @@ export default function UndanganGenerator({ isMobile, showT }) {
     waktuSelesai:  "",
     zonaWaktu:     "Wita", // default Wita, opsional WIB / WIT
     tempat:        "",
+    // Pemesanan ruangan terkelola (Imbaya/Kenawai) — tidak tercetak di surat.
+    sesiRuang:     "",      // kosong = mengikuti jam acara
+    pesertaRuang:  "",
+    namaKegiatanRuang: "",
+    pesanRuang:    null,    // { kode, ruang, tanggal, sesi } setelah dipesan
     acara:         "1. ...;\n2. ...; dan\n3. Hal-hal lain yang dianggap perlu.",
     
     showTembusan:  false,
@@ -246,205 +197,108 @@ export default function UndanganGenerator({ isMobile, showT }) {
     if (showT) showT("Konsep dihapus", "warn");
   };
 
-  let tglText = formatTanggalIndo(form.tanggalAcaraInput);
-  let pklText = "";
-  if (form.waktuMulai) {
-    let jamMulai = form.waktuMulai.replace(/:/g, ".");
-    let tz = form.zonaWaktu || "Wita";
-    if (form.waktuSelesai) {
-      let jamSelesai = form.waktuSelesai.replace(/:/g, ".");
-      pklText = `${jamMulai} - ${jamSelesai} ${tz}`;
-    } else {
-      pklText = `${jamMulai} ${tz} s.d. selesai`;
-    }
-  }
-
-  const buildHTMLString = () => {
-    let ttdPdf = "<br><br><br>";
-    if (form.jenisTtd === "scan") {
-      ttdPdf =
-        `<img src="${window.location.origin}/stempel.png" style="position:absolute;left:0;top:-30px;width:145px;z-index:1;mix-blend-mode:multiply" onerror="this.style.display='none'">` +
-        `<img src="${window.location.origin}/image.jpeg" style="position:absolute;right:0;top:-30px;height:140px;z-index:2;mix-blend-mode:multiply" alt="TTD">`;
-    } else if (form.jenisTtd === "tte") {
-      ttdPdf = `<br><br><span class="tte-marker">\${ttd_pengirim}</span><br><br>`;
-    }
-
-    let halamanLampiran = "";
-    if (form.pilihanCetak !== "utama") {
-      halamanLampiran = `
-        <div class="halaman-a4 pecah-halaman">
-          <div style="margin-bottom:15px;">LAMPIRAN SURAT</div>
-          <table style="border-collapse:collapse;margin-bottom:25px;">
-            <tr><td style="width:70pt;">Nomor</td><td style="width:15pt;">:</td><td>${form.nomor}</td></tr>
-          </table>
-          <div style="text-align:center;margin-bottom:20px;"><b><u>${form.judulLampiran}</u></b></div>
-          <div class="teks-multibaris" style="line-height:${form.spasiLampiran};margin-bottom:20px;">${form.lampiran}</div>
-          <div class="area-ttd" style="margin-top:30px;">
-            WALI KOTA TARAKAN<br>
-            <div style="min-height:80px;position:relative;display:flex;flex-direction:column;justify-content:center;align-items:center;">${ttdPdf}</div>
-            <b>dr. H. KHAIRUL, M.Kes.</b>
-          </div>
-        </div>
-      `;
-    }
-
-    let areaKeterangan = `
-      <div class="area-keterangan">
-        ${form.showTembusan ? `<div class="ket-item"><b><u>Tembusan:</u></b><br><span class="teks-multibaris">${form.tembusan}</span></div>` : ""}
-        ${form.showNarahubung ? `<div class="ket-item"><b><u>Narahubung:</u></b><br><span class="teks-multibaris">${form.narahubung}</span></div>` : ""}
-        ${form.showPakaian ? `<div class="ket-item"><b><u>Pakaian:</u></b><br><span class="teks-multibaris">${form.pakaian}</span></div>` : ""}
-        ${form.catatan.trim() ? `<div class="ket-item"><b><u>catatan:</u></b><br><span class="teks-multibaris">${form.catatan}</span></div>` : ""}
-      </div>
-    `;
-
-    return `
-      <div id="dokumen-cetak">
-        <div class="halaman-a4">
-          <div class="kop">
-            <img src="${window.location.origin}/image001.jpg" alt="Garuda" onerror="this.style.display='none'">
-            <div class="kop-teks">WALI KOTA TARAKAN</div>
-          </div>
-          <div class="tanggal-kanan">${form.tanggalSurat}</div>
-          <table class="tabel-info">
-            <tr><td class="col-label">Nomor</td><td class="col-titikdua">:</td><td>${form.nomor}</td></tr>
-            <tr><td class="col-label">Sifat</td><td class="col-titikdua">:</td><td>${form.sifat}</td></tr>
-            <tr><td class="col-label">Lampiran</td><td class="col-titikdua">:</td><td>${form.lampiranCount}</td></tr>
-            <tr><td class="col-label">Hal</td><td class="col-titikdua">:</td><td><b><u>Undangan</u></b></td></tr>
-          </table>
-          <div class="tujuan-surat">Yth:<br><b><span class="teks-multibaris">${form.yth}</span></b><br>di-<br><b>TARAKAN</b></div>
-          <div class="paragraf-indent">Mengharapkan dengan hormat kehadiran Bapak/Ibu/Saudara (i) pada:</div>
-          <table class="tabel-acara">
-            <tr><td class="col-label-acara">hari/tanggal</td><td class="col-titikdua">:</td><td>${tglText}</td></tr>
-            <tr><td class="col-label-acara">pukul</td><td class="col-titikdua">:</td><td>${pklText}</td></tr>
-            <tr><td class="col-label-acara">tempat</td><td class="col-titikdua">:</td><td>${form.tempat}</td></tr>
-            <tr><td class="col-label-acara">acara</td><td class="col-titikdua">:</td><td><b><div class="teks-multibaris">${form.acara}</div></b></td></tr>
-          </table>
-          <div class="paragraf-indent">Demikian, atas perhatian serta kehadirannya diucapkan terima kasih.</div>
-          <div class="area-ttd">
-            WALI KOTA TARAKAN<br>
-            <div style="min-height:80px;position:relative;display:flex;flex-direction:column;justify-content:center;align-items:center;">${ttdPdf}</div>
-            <b>dr. H. KHAIRUL, M.Kes.</b>
-          </div>
-          ${areaKeterangan}
-          <div class="footer-alamat">Jalan Kalimantan No. 1, Kota Tarakan<br>Telp. (0551) 21620, 34320 Fax. (0551) 23782</div>
-        </div>
-        ${halamanLampiran}
-      </div>
-    `;
-  };
-
-  // ── Satu sumber dokumen untuk pratinjau, cetak, dan PDF ──
-  // Sebelumnya ketiganya memakai jalur render yang berbeda: pratinjau di
-  // dalam iframe bersih, PDF di dalam dokumen aplikasi, cetak di iframe
-  // berukuran 0×0. Wajar hasilnya tidak pernah sama. Sekarang ketiganya
-  // membaca dokumen yang sama persis.
-  const buildDocHTML = (extraCSS = "") => `<!DOCTYPE html>
-<html lang="id">
-  <head>
-    <meta charset="utf-8">
-    <title>Undangan Prokopim</title>
-    <style>
-      html, body { margin:0; padding:0; background:white; }
-      @page { size: A4 portrait; margin: 0; }
-      ${CSS_ASLI}
-      ${extraCSS}
-    </style>
-  </head>
-  <body>${buildHTMLString()}</body>
-</html>`;
-
-  // Iframe A4 di luar layar. WAJIB berukuran nyata — iframe 0×0 membuat
-  // browser menghitung tata letak cetak pada viewport nol, dan marginnya
-  // meleset dari template. Juga tidak boleh display:none atau opacity:0,
-  // karena html2canvas hanya bisa memotret elemen yang benar-benar dirender.
-  const siapkanFrameA4 = () => new Promise((resolve, reject) => {
-    const frame = document.createElement("iframe");
-    frame.setAttribute("aria-hidden", "true");
-    frame.style.cssText =
-      "position:fixed; left:-20000px; top:0; width:210mm; height:297mm; border:0; background:white;";
-
-    let beres = false;
-    const selesai = (fn, arg) => { if (!beres) { beres = true; clearTimeout(pengaman); fn(arg); } };
-    const pengaman = setTimeout(
-      () => selesai(reject, new Error("Dokumen cetak terlalu lama disiapkan.")), 15000);
-
-    // Menempelkan iframe ke DOM memicu SATU event load untuk dokumen kosong
-    // bawaan (about:blank) sebelum srcdoc termuat. Tanpa penjagaan ini,
-    // prosesnya lanjut memakai dokumen kosong itu: teks sempat terparse tetapi
-    // gambar kop Garuda belum termuat, sehingga hilang dari hasil cetak.
-    frame.addEventListener("load", async () => {
-      if (beres) return;
-      const doc = frame.contentDocument;
-      if (!doc || !doc.getElementById("dokumen-cetak")) return;   // masih about:blank
-      try {
-        // Tunggu seluruh gambar (kop Garuda, stempel, tanda tangan) benar-benar
-        // termuat — kalau tidak, hasilnya tercetak tanpa gambar.
-        await Promise.all(Array.from(doc.images).map(img =>
-          img.complete ? Promise.resolve() : new Promise(r => {
-            // Memakai addEventListener, bukan img.onload/onerror, supaya
-            // penangan pada atribut onerror bawaan dokumen — yang
-            // menyembunyikan gambar gagal muat — tidak ikut tertimpa.
-            img.addEventListener("load",  r, { once: true });
-            img.addEventListener("error", r, { once: true });
-          })
-        ));
-        if (doc.fonts && doc.fonts.ready) { try { await doc.fonts.ready; } catch { /* abaikan */ } }
-        await new Promise(r => setTimeout(r, 120));
-        selesai(resolve, frame);
-      } catch (e) { selesai(reject, e); }
-    });
-
-    document.body.appendChild(frame);
-    frame.srcdoc = buildDocHTML();
-  });
-
-  const buangFrame = (frame) => {
-    if (frame && document.body.contains(frame)) document.body.removeChild(frame);
-  };
-
-  // Nama dokumen dipakai sebagai judul halaman, karena browser memakai judul
-  // itu sebagai nama berkas bawaan saat pengguna memilih "Simpan sebagai PDF".
-  const namaDokumen = () => {
-    const nomorSurat = form.nomor.replace(/[\/\\]/g, "-").replace(/[^a-zA-Z0-9-]/g, "");
-    const suffixTtd  = form.jenisTtd === "tte" ? "_TTE" : (form.jenisTtd === "scan" ? "_Scan" : "");
-    const prefix     = form.pilihanCetak === "utama" ? "Undangan_Utama" : "Undangan";
-    return `${prefix}${suffixTtd}_${nomorSurat || "Draft"}`;
-  };
-
-  // Satu jalur keluaran untuk cetak maupun simpan PDF: dialog cetak bawaan
-  // browser. Inilah yang membuat hasilnya benar-benar WYSIWYG — mesin
-  // paginasi yang menghitung halamannya sama persis dengan yang dipakai
-  // printer, dan `@page { margin: 0 }` dihormati apa adanya.
-  const bukaDialogCetak = async () => {
+  // ── PDF ───────────────────────────────────────────────────────
+  const lengkap = () => {
     if (!form.nomor.trim() || !form.tanggalAcaraInput || !form.tempat.trim()) {
       if (showT) showT("Isi minimal: Nomor Surat, Hari/Tanggal Acara, dan Tempat", "warn");
       return false;
     }
+    return true;
+  };
+
+  const buatPdf = async () => {
     setLoading(true);
-    let frame = null;
+    try { return await buatPdfUndangan(form); }
+    catch (err) { if (showT) showT("Gagal menyusun PDF: " + err.message, "error"); return null; }
+    finally { setLoading(false); }
+  };
+
+  const [jendela, setJendela] = useState(null);   // Blob PDF yang sedang dibuka di jendela
+  const bukaPratinjau = async () => { if (!lengkap()) return; const b = await buatPdf(); if (b) setJendela(b); };
+  const unduhLangsung = async () => {
+    if (!lengkap()) return;
+    const b = await buatPdf();
+    if (b) { unduhPdf(b, namaBerkasUndangan(form)); if (showT) showT("PDF diunduh", "ok"); }
+  };
+  const cetakLangsung = async () => { if (!lengkap()) return; const b = await buatPdf(); if (b) cetakPdf(b, isMobile); };
+
+  // Pratinjau langsung di desktop: PDF disusun ulang sejenak setelah berhenti mengetik.
+  const [pratinjau, setPratinjau] = useState(null);
+  useEffect(() => {
+    if (isMobile) return;
+    let batal = false;
+    const t = setTimeout(async () => {
+      try { const b = await buatPdfUndangan(form); if (!batal) setPratinjau(b); } catch { /* biarkan pratinjau lama */ }
+    }, 700);
+    return () => { batal = true; clearTimeout(t); };
+  }, [form, isMobile]);
+
+  // ── Ruangan terkelola (Imbaya, Kenawai) ──────────────────────
+  const kunciRuang = RUANG_TERKELOLA[form.tempat] || "";
+  const sesiOtomatis = sesiDariJam(form.waktuMulai, form.waktuSelesai);
+  const sesi = form.sesiRuang || sesiOtomatis;
+  const [ruang, setRuang] = useState(null);          // baris tabel rooms
+  const [cek, setCek] = useState({ status: "idle" }); // idle | memuat | tersedia | bentrok | galat
+  const [memesan, setMemesan] = useState(false);
+
+  useEffect(() => {
+    if (!kunciRuang) { setRuang(null); return; }
+    let batal = false;
+    fetch("/api/room-booking?op=rooms").then(r => r.json()).then(list => {
+      if (batal) return;
+      setRuang((Array.isArray(list) ? list : []).find(r => String(r.name || "").toLowerCase().includes(kunciRuang)) || false);
+    }).catch(() => { if (!batal) setRuang(false); });
+    return () => { batal = true; };
+  }, [kunciRuang]);
+
+  const muatKetersediaan = async () => {
+    if (!ruang || !form.tanggalAcaraInput || !sesi) return;
+    setCek({ status: "memuat" });
     try {
-      frame = await siapkanFrameA4();
-      frame.contentDocument.title = namaDokumen();
-      frame.contentWindow.focus();
-      frame.contentWindow.print();
-      // Dialog cetak menahan proses; frame dibuang setelah dialog ditutup.
-      setTimeout(() => buangFrame(frame), 60000);
-      return true;
-    } catch (err) {
-      if (showT) showT("Gagal menyiapkan dokumen: " + err.message, "error");
-      buangFrame(frame);
-      return false;
+      const r = await userFetch(user, `/api/room-booking?month=${form.tanggalAcaraInput.slice(0, 7)}`);
+      const rows = r.ok ? await r.json() : [];
+      const tgl = form.tanggalAcaraInput;
+      const bentrok = (Array.isArray(rows) ? rows : []).filter(b =>
+        Number(b.room_id) === Number(ruang.id) && b.start_date <= tgl && b.end_date >= tgl &&
+        SESI_BENTROK[sesi].includes(b.session));
+      setCek(bentrok.length ? { status: "bentrok", bentrok } : { status: "tersedia" });
+    } catch (e) {
+      setCek({ status: "galat", pesan: e.message });
+    }
+  };
+  useEffect(() => { setCek({ status: "idle" }); if (ruang && form.tanggalAcaraInput && sesi) muatKetersediaan(); }, [ruang, form.tanggalAcaraInput, sesi]);
+
+  const namaKegiatanBawaan = () => {
+    const baris = (form.acara || "").split("\n").map(x => x.replace(/^\d+\.\s*/, "").replace(/[;.]\s*(dan|atau)?\s*$/i, "").trim())
+      .find(x => x && !/^\.+$/.test(x) && !/^hal-hal lain/i.test(x));
+    return baris || "Kegiatan Wali Kota Tarakan";
+  };
+
+  const pesanRuang = async () => {
+    const nama = (form.namaKegiatanRuang || namaKegiatanBawaan()).trim();
+    const peserta = parseInt(form.pesertaRuang, 10);
+    if (!peserta || peserta < 1) { if (showT) showT("Isi perkiraan jumlah peserta untuk pemesanan ruangan", "warn"); return; }
+    if (!window.confirm(`Pesan ${ruang.name} pada ${form.tanggalAcaraInput}, sesi ${LABEL_SESI[sesi]}, untuk "${nama}"?\n\nPemesanan internal langsung disetujui dan slot tertutup bagi pemohon lain.`)) return;
+    setMemesan(true);
+    try {
+      const r = await adminFetch(user, "/api/room-booking?op=internal", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ room_id: ruang.id, date: form.tanggalAcaraInput, session: sesi, event_name: nama, participant_count: peserta }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error || `HTTP ${r.status}`);
+      setForm(p => ({ ...p, pesanRuang: { kode: j.booking_code, ruang: ruang.name, tempat: form.tempat, tanggal: form.tanggalAcaraInput, sesi } }));
+      if (showT) showT(`${ruang.name} dipesan — kode ${j.booking_code}`, "ok");
+      muatKetersediaan();
+    } catch (e) {
+      if (showT) showT("Pemesanan gagal: " + e.message, "error");
     } finally {
-      setLoading(false);
+      setMemesan(false);
     }
   };
 
-  const generatePDF = async () => {
-    const ok = await bukaDialogCetak();
-    if (ok && showT) showT('Pada dialog cetak, pilih tujuan "Simpan sebagai PDF"', "warn");
-  };
-
-  const cetakLangsung = () => bukaDialogCetak();
+  const [tempatLain, setTempatLain] = useState(() => !!form.tempat && !TEMPAT.includes(form.tempat));
+  useEffect(() => { if (form.tempat && !TEMPAT.includes(form.tempat)) setTempatLain(true); }, [form.tempat]);
 
   return (
     <>
@@ -537,7 +391,73 @@ export default function UndanganGenerator({ isMobile, showT }) {
                   </select>
                 </div>
               </div>
-              <div style={{ marginBottom: 12 }}><Label text="Tempat Acara" required/><input className="ug-input" style={inputSt} value={form.tempat} onChange={set("tempat")}/></div>
+              <div style={{ marginBottom: 12 }}>
+                <Label text="Tempat Acara" required/>
+                <select className="ug-input" style={inputSt}
+                  value={tempatLain ? "__lain" : (TEMPAT.includes(form.tempat) ? form.tempat : "")}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === "__lain") { setTempatLain(true); setForm(p => ({ ...p, tempat: TEMPAT.includes(p.tempat) ? "" : p.tempat })); }
+                    else { setTempatLain(false); setForm(p => ({ ...p, tempat: v })); }
+                  }}>
+                  <option value="">— Pilih tempat —</option>
+                  {TEMPAT.map(t => <option key={t} value={t}>{t}</option>)}
+                  <option value="__lain">Lainnya (ketik sendiri)</option>
+                </select>
+                {tempatLain && <input className="ug-input" style={{ ...inputSt, marginTop: 6 }} placeholder="Ketik tempat acara" value={form.tempat} onChange={set("tempat")}/>}
+              </div>
+              {kunciRuang && (
+                <div style={{ marginBottom: 12, padding: 12, borderRadius: 10, border: "1.5px solid #CBD5E1", background: "white" }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: NAVY, marginBottom: 8 }}>🏛️ Kalender Peminjaman Ruangan</div>
+                  {ruang === null && <div style={{ fontSize: 12, color: "#64748B" }}>Memuat data ruangan…</div>}
+                  {ruang === false && <div style={{ fontSize: 12, color: "#B91C1C" }}>{form.tempat} tidak ditemukan pada layanan Peminjaman Ruangan.</div>}
+                  {ruang && (!form.tanggalAcaraInput || !sesiOtomatis) && <div style={{ fontSize: 12, color: "#64748B" }}>Isi tanggal dan pukul acara untuk melihat ketersediaan.</div>}
+                  {ruang && form.tanggalAcaraInput && sesiOtomatis && (<>
+                    <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8, flexWrap: "wrap" }}>
+                      <span style={{ fontSize: 11.5, color: "#475569", fontWeight: 700 }}>Sesi</span>
+                      <select className="ug-input" style={{ ...inputSt, width: "auto", flex: 1, padding: "6px 8px", fontSize: 12 }}
+                        value={sesi} onChange={(e) => setForm(p => ({ ...p, sesiRuang: e.target.value === sesiOtomatis ? "" : e.target.value }))}>
+                        {Object.entries(LABEL_SESI).map(([k, v]) => <option key={k} value={k}>{v}{k === sesiOtomatis ? " — sesuai jam acara" : ""}</option>)}
+                      </select>
+                    </div>
+                    {cek.status === "memuat" && <div style={{ fontSize: 12, color: "#64748B" }}>Memeriksa ketersediaan…</div>}
+                    {cek.status === "galat" && <div style={{ fontSize: 12, color: "#B91C1C" }}>Gagal memeriksa: {cek.pesan} <button onClick={muatKetersediaan} style={{ border: "none", background: "none", color: NAVY, fontWeight: 700, cursor: "pointer", textDecoration: "underline" }}>Coba lagi</button></div>}
+                    {cek.status === "bentrok" && (
+                      <div style={{ fontSize: 12, color: "#92400E", background: "#FFFBEB", border: "1px solid #FCD34D", borderRadius: 8, padding: "8px 10px" }}>
+                        ⚠️ Sudah terpakai pada sesi ini:
+                        {cek.bentrok.map(b => (
+                          <div key={b.id} style={{ marginTop: 4, color: "#78350F" }}>
+                            • <b>{b.event_name || "Peminjaman"}</b>{b.instansi ? ` — ${b.instansi}` : ""} · {LABEL_SESI[b.session] || b.session} · {b.status === "Approved" ? "disetujui" : "menunggu persetujuan"}
+                          </div>
+                        ))}
+                        <div style={{ marginTop: 6, color: "#78350F" }}>Pilih sesi atau tanggal lain, atau hubungi Pengelola Ruangan.</div>
+                      </div>
+                    )}
+                    {cek.status === "tersedia" && (form.pesanRuang && form.pesanRuang.tanggal === form.tanggalAcaraInput && form.pesanRuang.tempat === form.tempat ? null : (
+                      <div>
+                        <div style={{ fontSize: 12, color: "#166534", background: "#F0FDF4", border: "1px solid #86EFAC", borderRadius: 8, padding: "8px 10px", marginBottom: 8 }}>
+                          ✅ {ruang.name} tersedia pada {LABEL_SESI[sesi]}.
+                        </div>
+                        <Label text="Nama kegiatan di kalender ruangan"/>
+                        <input className="ug-input" style={{ ...inputSt, marginBottom: 6 }} placeholder={namaKegiatanBawaan()} value={form.namaKegiatanRuang} onChange={set("namaKegiatanRuang")}/>
+                        <Label text="Perkiraan jumlah peserta" required/>
+                        <input type="number" min="1" inputMode="numeric" className="ug-input" style={{ ...inputSt, marginBottom: 8 }} value={form.pesertaRuang} onChange={set("pesertaRuang")}/>
+                        <button onClick={pesanRuang} disabled={memesan}
+                          style={{ width: "100%", padding: "10px 0", borderRadius: 9, border: "none", background: memesan ? "#94A3B8" : "#166534", color: "white", fontWeight: 800, fontSize: 12.5, cursor: memesan ? "not-allowed" : "pointer" }}>
+                          {memesan ? "Memesan…" : `📌 Pesan ${ruang.name} (langsung disetujui)`}
+                        </button>
+                      </div>
+                    ))}
+                    {form.pesanRuang && (
+                      <div style={{ marginTop: 8, fontSize: 12, color: "#1E3A8A", background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 8, padding: "8px 10px" }}>
+                        📌 Dipesan: <b>{form.pesanRuang.ruang}</b>, {form.pesanRuang.tanggal}, {LABEL_SESI[form.pesanRuang.sesi] || form.pesanRuang.sesi} — kode <b>{form.pesanRuang.kode}</b>.
+                        {(form.pesanRuang.tanggal !== form.tanggalAcaraInput || form.pesanRuang.tempat !== form.tempat) &&
+                          <div style={{ marginTop: 4, color: "#B45309" }}>Tanggal atau tempat undangan sudah berubah dari pemesanan ini. Pemesanan lama tidak ikut pindah — batalkan melalui Pengelola Ruangan bila tidak dipakai.</div>}
+                      </div>
+                    )}
+                  </>)}
+                </div>
+              )}
               <div style={{ marginBottom: 4 }}><Label text="Nama / Susunan Acara"/><textarea className="ug-input" style={{...textareaSt, minHeight:90}} value={form.acara} onChange={set("acara")}/></div>
             </SectionBody>
 
@@ -588,15 +508,21 @@ export default function UndanganGenerator({ isMobile, showT }) {
           </div>
 
           <div style={{ padding: "12px 14px 16px", borderTop: "1px solid #E2E8F0", background: "#F8FAFC", flexShrink: 0 }}>
-            <button onClick={generatePDF} disabled={loading}
+            <button onClick={bukaPratinjau} disabled={loading}
               style={{ width: "100%", padding: "13px 0", borderRadius: 10, border: "none", background: loading ? "#94A3B8" : "linear-gradient(135deg," + NAVY + ",#1A2F50)", color: "white", fontWeight: 800, fontSize: 14, cursor: loading ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, boxShadow: loading ? "none" : "0 4px 14px rgba(10,22,40,0.25)", marginBottom: 8 }}>
-              {loading ? <><span style={{ width:16,height:16,borderRadius:"50%",border:"2.5px solid rgba(255,255,255,0.3)",borderTopColor:"white",display:"inline-block",animation:"spin 0.7s linear infinite" }}/>&nbsp;Menyiapkan...</> : <><span style={{ fontSize:18 }}>⬇</span>&nbsp;Simpan sebagai PDF</>}
+              {loading ? <><span style={{ width:16,height:16,borderRadius:"50%",border:"2.5px solid rgba(255,255,255,0.3)",borderTopColor:"white",display:"inline-block",animation:"spin 0.7s linear infinite" }}/>&nbsp;Menyusun PDF...</> : <><span style={{ fontSize:18 }}>👁</span>&nbsp;Pratinjau, Unduh &amp; Bagikan</>}
             </button>
-            
-            <button onClick={cetakLangsung} disabled={loading}
-              style={{ width: "100%", padding: "11px 0", borderRadius: 10, border: "2px solid " + NAVY, background: "white", color: NAVY, fontWeight: 800, fontSize: 13, cursor: loading ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 8 }}>
-              <span style={{ fontSize:18 }}>🖨️</span> Cetak Langsung ke Printer
-            </button>
+
+            <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+              <button onClick={unduhLangsung} disabled={loading}
+                style={{ flex: 1, padding: "11px 0", borderRadius: 10, border: "2px solid " + NAVY, background: "white", color: NAVY, fontWeight: 800, fontSize: 13, cursor: loading ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                <span style={{ fontSize:16 }}>⬇</span> Unduh PDF
+              </button>
+              <button onClick={cetakLangsung} disabled={loading}
+                style={{ flex: 1, padding: "11px 0", borderRadius: 10, border: "2px solid " + NAVY, background: "white", color: NAVY, fontWeight: 800, fontSize: 13, cursor: loading ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                <span style={{ fontSize:16 }}>🖨️</span> Cetak
+              </button>
+            </div>
 
             <button onClick={simpanKonsep}
               style={{ width:"100%",padding:"10px 0",borderRadius:10,border:"1.5px solid "+NAVY,background:"white",color:NAVY,fontWeight:700,fontSize:12.5,cursor:"pointer",marginBottom:8,display:"flex",alignItems:"center",justifyContent:"center",gap:7 }}>
@@ -610,25 +536,18 @@ export default function UndanganGenerator({ isMobile, showT }) {
         {!isMobile && (
           <div style={{ flex: 1, background: "#525659", display: "flex", flexDirection: "column", overflow: "hidden" }}>
             <div style={{ background: "rgba(0,0,0,0.35)", padding: "9px 16px", display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
-              <span style={{ fontSize: 13, color: "rgba(255,255,255,0.7)" }}>👁 Pratinjau Dokumen</span>
-              <span style={{ marginLeft: "auto", fontSize: 11, color: "rgba(255,255,255,0.4)" }}>Live Render Engine</span>
+              <span style={{ fontSize: 13, color: "rgba(255,255,255,0.7)" }}>👁 Pratinjau PDF</span>
+              <span style={{ marginLeft: "auto", fontSize: 11, color: "rgba(255,255,255,0.4)" }}>Sama persis dengan berkas yang diunduh · Arial tertanam</span>
             </div>
-            {/* Supaya layarnya tetap estetik, bayangannya kita kembalikan HANYA untuk iframe ini saja */}
-            <iframe 
-              id="preview-iframe" 
-              title="Preview Undangan" 
-              srcDoc={buildDocHTML(`
-                /* Hanya untuk layar: latar gelap dan bayangan kertas supaya
-                   halamannya terbaca sebagai lembaran. Ukuran dan margin isinya
-                   tetap sama persis dengan yang dicetak dan diunduh. */
-                body { padding:20px; background:#525659; display:flex; flex-direction:column; align-items:center; gap:20px; }
-                .halaman-a4 { box-shadow: 0 4px 15px rgba(0,0,0,0.4) !important; margin-bottom: 20px !important; }
-              `)}
-              style={{ flex: 1, border: "none", width: "100%", background: "#525659" }}
-            />
+            <div style={{ flex: 1, overflow: "auto" }}>
+              {pratinjau
+                ? <PratinjauPdf blob={pratinjau} />
+                : <div style={{ color: "rgba(255,255,255,.6)", fontSize: 13, textAlign: "center", padding: 40 }}>Menyusun pratinjau…</div>}
+            </div>
           </div>
         )}
       </div>
+      {jendela && <JendelaPdf blob={jendela} nama={namaBerkasUndangan(form)} diHp={isMobile} showT={showT} onTutup={() => setJendela(null)} />}
     </>
   );
 }

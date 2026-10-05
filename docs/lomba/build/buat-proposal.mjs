@@ -34,7 +34,20 @@ const AUTO = LineRuleType.AUTO;
 const DIR = path.dirname(fileURLToPath(import.meta.url));
 const LOMBA = path.resolve(DIR, "..");
 const REPO = path.resolve(LOMBA, "../..");
-const KELUAR = path.join(LOMBA, "Proposal-Prokopim-Hibot");
+// TANPA_SOP=1 menghasilkan versi tanpa sisipan sebelas SOP (Lampiran 7 hanya
+// berisi keterangan bahwa SOP sedang dalam proses pengesahan). Penomoran
+// lampiran tetap sama pada kedua versi.
+const TANPA_SOP = process.env.TANPA_SOP === "1";
+const AKHIRAN = TANPA_SOP ? "-tanpa-SOP" : "";
+// PRIBADI=1 menghasilkan berkas final untuk diunggah: data pribadi ketua tim
+// (NIK, tempat/tanggal lahir, alamat) untuk pakta integritas dan pindaian KTP
+// (Lampiran 3). Masukan dan keluarannya hanya di docs/lomba/rahasia/ yang
+// dikecualikan dari git; salinan repositori memuat isian kosong.
+const RAHASIA = path.join(LOMBA, "rahasia");
+const PRIBADI = process.env.PRIBADI === "1" ? JSON.parse(fs.readFileSync(path.join(RAHASIA, "pribadi.json"), "utf8")) : null;
+const KELUAR = PRIBADI
+  ? path.join(RAHASIA, "Proposal-Prokopim-Hibot" + AKHIRAN + "-FINAL")
+  : path.join(LOMBA, "Proposal-Prokopim-Hibot" + AKHIRAN);
 
 // ═══════════════════════════════════════════════════════════════════
 //  ANGKA
@@ -251,9 +264,20 @@ function bagan(kotak, keterangan, judul) {
 // ═══════════════════════════════════════════════════════════════════
 const NOMOR_SURAT_SEKDA = "300.2.10/265/SETDA/2026";
 const SK_SEKDA = "100.3.3.6/98/HK/VIII/2026";
+const NOMOR_SURAT_USULAN = "500.10.30.2/1122/SETDA/2026";
+const TANGGAL_SURAT_USULAN = "30 September 2026";
 const SE_WALIKOTA = "000.7.2.4/70/Bappeda Litbang/2026";
 const JUDUL = "PROKOPIM HIBOT";
 const SUBJUDUL = "Satu Alur Digital Terverifikasi untuk Tata Kelola Agenda dan Keprotokolan Pimpinan Daerah";
+
+// Konsep keterangan — wajib dibaca, disesuaikan, dan ditandatangani sendiri
+// oleh narasumber sebelum diunggah.
+const isiTestimoni = [
+    "Sebelumnya saya menerima rencana kegiatan dalam bentuk cetakan yang kerap berubah, sehingga kepastian sebuah acara sering harus saya tanyakan kembali kepada ajudan. Sejak Prokopim Hibot digunakan, agenda yang telah disetujui dapat saya lihat langsung di telepon genggam dan selalu dalam keadaan terbaru. Kegiatan yang perlu diwakilkan dapat saya disposisikan kepada Wakil Wali Kota langsung dari aplikasi, tanpa menunggu surat atau pesan berantai. Yang terpenting bagi saya adalah kepastian: ke mana saya harus hadir, kapan, dan siapa yang menyiapkannya.",
+    "Dahulu saya mengetahui agenda Bapak Wakil Wali Kota dari foto disposisi dan pesan di grup percakapan yang sering datang terlambat atau tidak lengkap, sehingga bahan dan pakaian kerap disiapkan terburu-buru. Sekarang setiap agenda yang ditetapkan untuk Wakil Wali Kota langsung sampai sebagai pemberitahuan, lengkap dengan lokasi, pakaian, dan narahubung penyelenggara. Pengingat sehari sebelumnya membantu saya menyiapkan keperluan lebih awal, dan kesediaan hadir Pimpinan cukup saya konfirmasikan melalui aplikasi. Perubahan jadwal yang mendadak pun tidak lagi terlewat.",
+    "Dahulu penugasan disampaikan secara lisan atau melalui pesan pribadi, dan pernah terjadi saya baru mengetahui ditugaskan menjelang acara dimulai. Sekarang penugasan langsung masuk ke aplikasi dan WhatsApp saya, dan pemberitahuan hanya dikirim apabila penugasan saya berubah, sehingga tidak ada pesan penting yang tenggelam. Rekap agenda setiap pagi membuat saya dapat menyiapkan diri sejak awal hari, dan catatan kinerja saya tersedia tanpa perlu menyusunnya sendiri.",
+  "Ketika ditunjuk sebagai Pelaksana Harian, saya dapat langsung menjalankan kewenangan jabatan yang saya ampu melalui aplikasi tanpa menunggu pejabat definitif kembali, sehingga jadwal Pimpinan tetap diproses tepat waktu. Kewenangan itu hanya berlaku selama masa yang tercantum pada Surat Perintah dan berakhir dengan sendirinya, sehingga saya tidak khawatir melampaui batas tugas. Setiap keputusan yang saya ambil tercatat atas nama saya beserta keterangan jabatan yang diampu, sehingga pertanggungjawabannya jelas.",
+];
 
 // Judul bab — dipakai juga oleh daftar isi dan pencarian nomor halaman.
 const BAB = {
@@ -280,11 +304,11 @@ function isi() {
 
   // ── 2. RINGKASAN EKSEKUTIF ──────────────────────────────────────
   tambah(h1("b2"));
-  tambah(P(`Bagian Protokol dan Komunikasi Pimpinan (Bagian Prokopim) Sekretariat Daerah Kota Tarakan bertugas menyusun, memeriksa, dan mengawal agenda Wali Kota dan Wakil Wali Kota. Volume yang ditangani rata-rata mencapai ${rataBulan} kegiatan setiap bulan, dan setiap kegiatan melewati paling sedikit tiga jenjang pemeriksaan sebelum ditetapkan.`));
-  tambah(P(`**Masalah.** Sampai awal tahun 2026 seluruh proses tersebut berjalan secara manual. Rencana kegiatan disusun pada lembar sebar lalu dicetak, penelaahan hanya dapat dilakukan dalam satu jendela waktu sekitar 30 menit menjelang jam pulang kantor, dokumen disposisi diteruskan dalam bentuk foto melalui grup percakapan, dan penugasan petugas bergantung pada ingatan perorangan. Pada Januari 2026 satu lembar disposisi agenda tidak ikut terkirim tanpa ada pihak yang dapat mengetahuinya. Peristiwa itu memperlihatkan akar masalahnya, yaitu tidak tersedianya satu sumber data yang sahih dan dapat diperiksa oleh semua pihak.`));
+  tambah(P(`Bagian Protokol dan Komunikasi Pimpinan (Bagian Prokopim) Sekretariat Daerah Kota Tarakan memiliki tugas antara lain menyusun, memeriksa, dan mengawal agenda Wali Kota dan Wakil Wali Kota. Volume yang ditangani rata-rata mencapai 2–3 kegiatan per hari atau dalam rentang 60–100 kegiatan setiap bulan (estimasi sebelum 2026), dan setiap kegiatan melewati paling sedikit tiga jenjang pemeriksaan sebelum ditetapkan.`));
+  tambah(P(`**Masalah.** Sampai awal tahun 2026 seluruh proses tersebut berjalan secara manual. Rencana kegiatan disusun pada *spreadsheet* lalu dicetak, penelaahan hanya dapat dilakukan dalam satu jendela waktu sekitar 30 menit menjelang jam pulang kantor, dokumen disposisi diteruskan dalam bentuk foto melalui grup percakapan, dan penugasan petugas bergantung pada ingatan perorangan. Pada praktiknya, pola demikian ini sangat bergantung pada kecermatan dan kejelian pegawai. Pada Januari 2026, satu lembar disposisi agenda tidak ikut terkirim tanpa ada pihak yang dapat mengetahuinya. Peristiwa itu memperlihatkan akar masalahnya, yaitu tidak tersedianya satu sumber data yang sahih dan dapat diperiksa oleh semua pihak yang memiliki kewenangan.`));
   tambah(P(`**Solusi.** Prokopim Hibot adalah aplikasi web progresif yang menyatukan sebelas alur kerja keprotokolan dan komunikasi pimpinan dalam satu sistem, mulai dari penetapan jadwal berjenjang, penugasan petugas, pelayanan audiensi dan peminjaman ruangan, sampai daftar hadir digital dan evaluasi kinerja petugas. Setiap perpindahan status terekam dalam jejak audit beserta nama pelaku dan waktunya, sehingga setiap keputusan atas agenda Pimpinan dapat ditelusuri kembali.`));
   tambah(P(`**Pelaksanaan.** Aplikasi mulai digunakan pada Maret 2026. Kegiatan pertama tercatat pada ${tglPanjang(D.tanggal_kegiatan.awal)}, dan penggunaannya dikuatkan Surat Sekretaris Daerah Kota Tarakan Nomor ${NOMOR_SURAT_SEKDA} tanggal 12 Maret 2026. Pada saat pendaftaran ditutup, inovasi ini telah berjalan ${MASA}. Pelaksanaannya didukung Keputusan Sekretaris Daerah Kota Tarakan Nomor ${SK_SEKDA} dan sebelas standar operasional prosedur (SOP).`));
-  tambah(P(`**Penerima manfaat.** Sebanyak ${D.pengguna.aktif} pemegang akun aktif pada ${jumlahPeran} jenis peran, meliputi Pimpinan Daerah, ajudan, pengawal pribadi, pejabat struktural, petugas protokol dan dokumentasi, serta mitra kerja Pemerintah Kota. Masyarakat dan instansi memanfaatkan kanal publiknya: permohonan audiensi datang dari ${D.tamu.instansi_berbeda} instansi dan layanan peminjaman ruangan telah dipakai oleh ${D.ruang.instansi_berbeda} instansi.`));
+  tambah(P(`**Penerima manfaat.** Sebanyak ${D.pengguna.aktif} pemegang akun aktif pada ${jumlahPeran} jenis peran, meliputi Pimpinan Daerah, ajudan, pengawal pribadi, pejabat struktural, petugas protokol dan dokumentasi, serta mitra kerja lintas unit, termasuk Dinas Komunikasi, Informatika, Statistik dan Persandian. Masyarakat dan instansi memanfaatkan kanal publiknya: permohonan audiensi datang dari ${D.tamu.instansi_berbeda} instansi dan layanan peminjaman ruangan telah dipakai oleh ${D.ruang.instansi_berbeda} instansi.`));
   tambah(P(`**Bukti dampak.** Capaian utama ditunjukkan pada Tabel 1.`, { keepNext: true }));
   tambah(tabel({
     judul: `Capaian utama per ${PER_TGL}`,
@@ -312,22 +336,23 @@ function isi() {
     kolom: [7, 35, 15, 43],
     rataTengah: [0],
     baris: [
-      ["No", "Nama dan Jabatan", "Kedudukan pada SK", "Peran dalam Inovasi"],
+      ["No", "Nama dan Jabatan", "Kedudukan", "Peran dalam Inovasi"],
       ["1", ["**Anugrah Yega Pranatha, M.Si.**", "Kepala Bagian Protokol dan Komunikasi Pimpinan"], "Ketua", "Ketua tim; penggagas; perancang alur kerja dan aturan kewenangan; pengembang aplikasi secara swakelola; penanggung jawab pendaftaran"],
-      ["2", ["**Saifullah, S.H.**", "Kepala Subbagian Protokol"], "Sekretaris I", "Penyelia penerapan pada alur keprotokolan; penguji; pemberi pertimbangan rancangan"],
-      ["3", ["**Juliyanti, S.AP.**", "Kepala Subbagian Komunikasi dan Dokumentasi Pimpinan"], "Sekretaris II", "Penyelia penerapan pada alur komunikasi dan dokumentasi; penguji; pemberi pertimbangan rancangan"],
-      ["4", ["**Nuraini Wiliadewi, S.IP.**", "Penelaah Teknis Kebijakan"], "Anggota", "Pelaksana dan penguji di lapangan; penghimpun kendala pemakaian sehari-hari"],
+      ["2", ["**Saifullah, S.H.**", "Kepala Sub Bagian Protokol"], "Anggota", "Penyelia penerapan pada alur keprotokolan; penguji; pemberi pertimbangan rancangan"],
+      ["3", ["**Juliyanti, S.AP.**", "Kepala Sub Bagian Komunikasi dan Dokumentasi Pimpinan"], "Anggota", "Penyelia penerapan pada alur komunikasi dan dokumentasi; penguji; pemberi pertimbangan rancangan"],
+      ["4", ["**Mastura, S.Sos.**", "Penelaah Teknis Kebijakan"], "Anggota", "Pelaksana dan penguji di lapangan; penghimpun kendala pemakaian sehari-hari"],
       ["5", ["**Ni Kade Sari Handayani, S.AP.**", "Penata Keprotokolan"], "Anggota", "Pelaksana dan penguji di lapangan; penghimpun kendala pemakaian sehari-hari"],
     ],
     sumber: `Sumber: Keputusan Sekretaris Daerah Kota Tarakan Nomor ${SK_SEKDA} (Lampiran 6).`,
   }));
   tambah(PN(`**Instansi:** Bagian Protokol dan Komunikasi Pimpinan, Sekretariat Daerah Kota Tarakan, Provinsi Kalimantan Utara.`, { after: 40 }));
-  tambah(PN(`**Kontak ketua tim:** ponsel/WhatsApp 0811-5900-394; surel anugrahyegapranatha@gmail.com.`));
+  tambah(PN(`**Kontak ketua tim:** ponsel/WA 0811-5900-394; surel anugrahyegapranatha@gmail.com.`));
   tambah(P(`Ketua tim merancang alur kerja dan mengembangkan aplikasi secara swakelola. Keempat anggota lainnya menguji setiap perubahan, menerapkannya dalam pekerjaan sehari-hari, dan menghimpun kendala dari pengguna, sehingga setiap penyempurnaan berangkat dari hambatan yang benar-benar dialami di lapangan.`));
 
   // ── 4. LATAR BELAKANG ───────────────────────────────────────────
   tambah(h1("b4"));
   tambah(h2("4.1 Data Dasar"));
+  tambah(P(`Berdasarkan Peraturan Wali Kota Tarakan Nomor 50 Tahun 2021 tentang Kedudukan, Susunan Organisasi, Tugas dan Fungsi serta Tata Kerja Sekretariat Daerah, Bagian Prokopim membantu Asisten Administrasi Umum di bidang protokol, komunikasi pimpinan, dan dokumentasi (Pasal 49). Tugas itu dijalankan oleh dua unit: Sub Bagian Protokol, antara lain menyiapkan bahan informasi acara dan jadwal kegiatan Kepala Daerah dan Wakil Kepala Daerah serta mengoordinasikan dan memfasilitasi kegiatannya (Pasal 52); dan Sub Bagian Komunikasi dan Dokumentasi Pimpinan, antara lain menyusun naskah sambutan, mendokumentasikan kegiatan, dan memfasilitasi peliputan media (Pasal 54).`));
   tambah(P(`Bagian Prokopim mengelola agenda dua Pimpinan Daerah dengan volume yang tinggi. Data yang kini terekam memperlihatkan besarnya beban tersebut: sejak Maret sampai ${PER_TGL} tercatat ${n(T)} kegiatan, dengan rata-rata ${rataBulan} kegiatan per bulan dan puncak ${D.kegiatan_per_bulan[puncakBulan]} kegiatan pada ${namaBulan(puncakBulan)}. Sebanyak ${n(D.kegiatan_per_pimpinan.walikota)} kegiatan ditujukan kepada Wali Kota dan ${n(D.kegiatan_per_pimpinan.wakilwalikota)} kepada Wakil Wali Kota.`));
   tambah(P(`Setiap kegiatan memerlukan pemeriksaan undangan, penelaahan kelayakan kehadiran, penugasan petugas protokol dan dokumentasi, serta penyiapan bahan. Hampir separuhnya (${n(sambutanKeg)} kegiatan) merupakan kegiatan sambutan yang memerlukan naskah. Beban sebesar ini sebelumnya ditangani secara manual dan tidak pernah tercatat dalam satu sistem.`));
 
@@ -338,8 +363,8 @@ function isi() {
     kolom: [26, 74],
     baris: [
       ["Aspek", "Keadaan sebelum Maret 2026"],
-      ["Penyusunan agenda", "Rencana kegiatan (RK) disusun pada lembar sebar, dicetak, lalu diperiksa berjenjang"],
-      ["Penelaahan", "Kepala Subbagian dan Kepala Bagian memeriksa dalam satu jendela waktu sekitar 30 menit menjelang jam pulang kantor, hanya pada hari kerja; disposisi Pimpinan diterima malam atau pagi harinya"],
+      ["Penyusunan agenda", "Rencana kegiatan (RK) disusun pada *spreadsheet*, dicetak, lalu diperiksa berjenjang"],
+      ["Penelaahan", "Kepala Sub Bagian dan Kepala Bagian memeriksa dalam satu jendela waktu sekitar 30 menit menjelang jam pulang kantor, hanya pada hari kerja; disposisi Pimpinan diterima malam atau pagi harinya"],
       ["Kegiatan mendesak", "RK dicetak ulang untuk menyisipkannya; bila tidak sempat, Pimpinan hadir tanpa RK"],
       ["Dokumen disposisi", "Diteruskan dalam bentuk foto melalui grup percakapan"],
       ["Naskah sambutan", "Disusun, dicetak, diperiksa berjenjang, dan dikembalikan secara fisik"],
@@ -350,7 +375,7 @@ function isi() {
   }));
 
   tambah(h2("4.3 Peristiwa Pemicu"));
-  tambah(P(`Informasi agenda Pimpinan datang dari banyak arah: surat yang diantar ke rumah jabatan, berkas yang ditinggalkan di meja, dan pesan yang dikirim langsung kepada Wali Kota. Karena tidak ada satu pintu masuk, beberapa rencana kegiatan pernah tidak terinput sama sekali.`));
+  tambah(P(`Informasi agenda Pimpinan datang dari banyak arah, dapat bersumber dari surat yang diantar ke rumah jabatan, surat masuk resmi melalui tata usaha, dan pesan yang dikirim langsung kepada Wali Kota. Karena tidak ada satu pintu masuk, beberapa rencana kegiatan pernah tidak terinput sama sekali.`));
   tambah(P(`Pada awal Januari 2026 satu berkas disposisi agenda dan tamu diturunkan sebanyak tiga lembar, tetapi yang diterima Bagian Prokopim hanya dua. Kedua lembar itu ditindaklanjuti dengan keyakinan bahwa hanya itulah yang diturunkan. Belakangan diketahui ketiga lembar telah didisposisi; satu lembar tidak ikut terfoto ketika berkas diteruskan melalui grup percakapan.`));
   tambah(P(`Tidak ada pihak yang lalai dalam peristiwa tersebut. Kegagalan terletak pada rantai penyampaiannya. Ketika dokumen berpindah dalam bentuk foto, penerima tidak dapat mengetahui ada lembar yang kurang dan pengirim tidak dapat memastikan seluruhnya telah terkirim. Peristiwa ini menjadi perhatian Pimpinan dan menjadi titik tolak penyusunan inovasi.`));
 
@@ -365,23 +390,13 @@ function isi() {
   ]));
 
   tambah(h2("4.5 Urgensi"));
-  tambah(P(`Agenda Pimpinan menentukan kehadiran pemerintah daerah di tengah masyarakat. Kegiatan yang tidak tercatat berarti tidak ada pendampingan protokol, tidak ada peliputan dan dokumentasi, tidak ada naskah sambutan, dan ajudan tidak siap. Kegiatan itu juga hilang dari rekam jejak kinerja pemerintah daerah. Dengan volume yang terus meningkat, dari ${vAwal} kegiatan pada ${BULAN[+bPenuhAwal.slice(5) - 1]} menjadi ${vAkhir} kegiatan pada ${namaBulan(bPenuhAkhir)}, ketergantungan pada ketelitian perorangan tidak dapat dipertahankan.`));
+  tambah(P(`Agenda Pimpinan menentukan kehadiran pemerintah daerah di tengah masyarakat. Kegiatan yang tidak tercatat berarti tidak ada pendampingan protokol/pendampingan yang tergesa-gesa dan tidak matang, termasuk dalam hal peliputan dan dokumentasi, tidak ada naskah sambutan, dan ajudan tidak siap. Kegiatan itu juga hilang dari rekam jejak kinerja pemerintah daerah. Dengan volume kegiatan yang bervariasi (contoh: ${vAwal} kegiatan pada ${BULAN[+bPenuhAwal.slice(5) - 1]} menjadi ${vAkhir} kegiatan pada ${namaBulan(bPenuhAkhir)}), ketergantungan pada ketelitian perorangan tidak dapat dipertahankan.`));
   tambah(P(`Kebutuhan perubahan juga ditegaskan kebijakan daerah. Surat Edaran Wali Kota Tarakan Nomor ${SE_WALIKOTA} tanggal 11 Februari 2026 tentang Inovasi Daerah mendorong setiap perangkat daerah melahirkan inovasi, sejalan dengan arahan Wali Kota untuk meningkatkan Indeks Inovasi Daerah dengan prioritas inovasi berbasis digital.`));
 
-  tambah(h2("4.6 Kelompok Sasaran"));
-  tambah(tabel({
-    judul: "Kelompok sasaran dan kebutuhannya",
-    kolom: [40, 60],
-    baris: [
-      ["Kelompok sasaran", "Kebutuhan utama"],
-      ["Wali Kota dan Wakil Wali Kota", "Agenda yang pasti, terkini, dan dapat dibuka dari mana saja"],
-      ["Ajudan dan pengawal pribadi Pimpinan", "Pemberitahuan dini dan kesiapan bahan kegiatan"],
-      ["Kepala Bagian dan Kepala Subbagian", "Kendali atas mutu jadwal dan sebaran beban petugas"],
-      ["Petugas protokol, pramu tamu, dan tim dokumentasi", "Kejelasan penugasan dan bahan kerja"],
-      ["Masyarakat, instansi, dan mitra kerja", "Kanal permohonan audiensi dan peminjaman ruangan yang dapat ditelusuri"],
-    ],
-    sumber: `Sumber data: keadaan sebelum inovasi bersumber dari telaah alur kerja dan keterangan pelaksana karena memang tidak pernah tercatat; data sesudah inovasi ditarik dari basis data aplikasi ${PER_LENGKAP}.`,
-  }));
+
+  tambah(h2("4.6 Kelompok Sasaran dan Sumber Data"));
+  tambah(P(`Kelompok sasaran inovasi ini adalah (a) Wali Kota dan Wakil Wali Kota, yang membutuhkan agenda pasti dan terkini; (b) ajudan dan pengawal pribadi, yang membutuhkan pemberitahuan dini; (c) Kepala Bagian dan Kepala Sub Bagian, yang membutuhkan kendali mutu jadwal dan sebaran beban petugas; (d) petugas protokol, pramu tamu, dan tim dokumentasi, yang membutuhkan kejelasan penugasan; serta (e) masyarakat, instansi, dan mitra kerja, yang membutuhkan kanal permohonan yang dapat ditelusuri.`));
+  tambah(P(`Data keadaan sebelum inovasi bersumber dari telaah alur kerja dan keterangan pelaksana, karena keadaan itu memang tidak pernah dicatat. Data sesudah inovasi ditarik langsung dari basis data aplikasi ${PER_LENGKAP} menggunakan kueri baca-saja (Lampiran 8).`));
 
   // ── 5. KESELARASAN ──────────────────────────────────────────────
   tambah(h1("b5"));
@@ -409,10 +424,10 @@ function isi() {
   tambah(h2("5.3 Keselarasan dengan RPJMD Kota Tarakan 2025–2029"));
   tambah(P(`Visi Wali Kota dan Wakil Wali Kota Tarakan periode 2025–2030 adalah *"Terwujudnya Tarakan sebagai Kota Cerdas yang bertumpu pada Sektor Jasa, Perdagangan, Perikanan Kelautan dan Ekonomi Kreatif yang Berdaya Saing dan Maju menuju Masyarakat Sejahtera"*. Prokopim Hibot merupakan wujud Kota Cerdas pada sisi tata kelola pemerintahan dan menjawab langsung **Misi 4: Mewujudkan tata kelola pemerintahan yang adaptif, responsif dan menjaga stabilitas ketertiban dan ketentraman kota**:`, { keepNext: true }));
   tambah(butir([
-    `**Adaptif:** kewenangan dapat dilimpahkan kepada Pelaksana Harian ketika pejabat berhalangan, dan jadwal yang telah terbit dapat diubah melalui usulan berjenjang tanpa menurunkannya dari publikasi.`,
-    `**Responsif:** median waktu dari pengajuan sampai jadwal tayang ${dk(K.median_ajukan_tayang_jam, 2)} jam, dan ${pct(luarJam, putusanTotal)} penelaahan dilakukan di luar jam kerja.`,
+    `**Adaptif:** penggunaan aplikasi menyesuaikan dengan kebutuhan digitalisasi pemerintahan, *paperless*, dan dapat diakses menggunakan perangkat yang sehari-hari hampir semua orang pegang (telepon genggam pintar).`,
+    `**Responsif:** penggunaan aplikasi merupakan tanggapan cepat atas kebutuhan pimpinan terhadap layanan keprotokolan dan komunikasi pimpinan yang dapat diandalkan dan tersistem dengan baik.`,
   ]));
-  tambah(P(`Nama inovasi ini mengusung semboyan pembangunan Kota Tarakan periode 2025–2030, **"Tarakan HIBOT"**. *Hibot* dalam bahasa Tidung berarti hebat, dan sekaligus merupakan akronim dari Handal, Inovatif, Berbudaya, Unggul, dan Tangguh. Kelima nilai itu diterjemahkan ke dalam rancangan aplikasi sebagaimana Tabel 6.`, { keepNext: true }));
+  tambah(P(`Nama inovasi ini mengusung semboyan pembangunan Kota Tarakan periode 2025–2030, **"Tarakan HIBOT"**. *Hibot* dalam bahasa Tidung berarti hebat, dan sekaligus merupakan akronim dari Handal, Inovatif, Berbudaya, Unggul/Oenggoel, dan Tangguh. Kelima nilai itu diterjemahkan ke dalam rancangan aplikasi sebagaimana Tabel 6.`, { keepNext: true }));
   tambah(tabel({
     judul: "Nilai HIBOT dalam rancangan Prokopim Hibot",
     kolom: [18, 82],
@@ -421,7 +436,7 @@ function isi() {
       ["Handal", "Satu sumber data kegiatan; agenda tidak lagi bergantung pada ingatan dan ketelitian perorangan"],
       ["Inovatif", "Jejak audit dan daftar periksa wajib menggantikan pemeriksaan melalui kertas dan grup percakapan"],
       ["Berbudaya", "Mengikuti tata naskah dinas dan menghormati kebiasaan Pimpinan, misalnya membaca naskah sambutan tercetak"],
-      ["Unggul", `Jadwal ditetapkan dalam hitungan jam; ${pct(K.tayang_dalam_24_jam, K.kegiatan_jejak_lengkap)} tayang kurang dari 24 jam`],
+      ["Unggul/Oenggoel", `Jadwal ditetapkan dalam hitungan jam; ${pct(K.tayang_dalam_24_jam, K.kegiatan_jejak_lengkap)} tayang kurang dari 24 jam`],
       ["Tangguh", "Alur tetap berjalan ketika pejabat berhalangan melalui Pelaksana Harian, dan tetap beroperasi tanpa anggaran pengadaan"],
     ],
   }));
@@ -432,12 +447,10 @@ function isi() {
     `Undang-Undang Nomor 9 Tahun 2010 tentang Keprotokolan, dalam tata kelola acara dan pendampingan Pimpinan Daerah;`,
     `Peraturan Pemerintah Nomor 38 Tahun 2017 tentang Inovasi Daerah, sebagai inovasi tata kelola pemerintahan daerah;`,
     `Peraturan Presiden Nomor 95 Tahun 2018 tentang Sistem Pemerintahan Berbasis Elektronik dan Peraturan Presiden Nomor 82 Tahun 2023 tentang Percepatan Transformasi Digital dan Keterpaduan Layanan Digital Nasional;`,
-    `Peraturan Menteri PANRB Nomor 35 Tahun 2012 tentang Pedoman Penyusunan Standar Operasional Prosedur Administrasi Pemerintahan, sebagai dasar penyusunan sebelas SOP;`,
-    `Surat Edaran Wali Kota Tarakan Nomor ${SE_WALIKOTA} tentang Inovasi Daerah;`,
-    `Keputusan Sekretaris Daerah Kota Tarakan Nomor ${SK_SEKDA} tentang Tim Koordinasi Peningkatan Pelayanan Keprotokolan dan Komunikasi Pimpinan; dan`,
-    `Surat Sekretaris Daerah Kota Tarakan Nomor ${NOMOR_SURAT_SEKDA} tanggal 12 Maret 2026 perihal Permohonan Subdomain.`,
+    `Peraturan Menteri PANRB Nomor 35 Tahun 2012 tentang Pedoman Penyusunan Standar Operasional Prosedur Administrasi Pemerintahan, sebagai dasar penyusunan sebelas SOP; dan`,
+    `Keputusan Sekretaris Daerah Kota Tarakan Nomor ${SK_SEKDA} tentang Tim Koordinasi Peningkatan Pelayanan Keprotokolan dan Komunikasi Pimpinan.`,
   ]));
-  tambah(P(`Tema kompetisi tahun 2026 berfokus pada kedaulatan pangan dan energi. Panduan menegaskan bahwa tema tersebut merupakan arah prioritas dan bukan pembatasan tunggal, sehingga inovasi pada bidang lain tetap dapat diikutsertakan sepanjang selaras dengan salah satu bidang fokus dan misi RPJMD.`, { before: 60 }));
+  tambah(P(`Tema kompetisi 2026, kedaulatan pangan dan energi, merupakan arah prioritas dan bukan pembatasan tunggal (Panduan Bab 2.1). Inovasi ini diikutsertakan melalui Bidang Fokus 3 yang selaras dengan Misi 3 RPJMD Provinsi Kalimantan Utara.`, { before: 60 }));
 
   // ── 6. DESKRIPSI DAN KEBARUAN ───────────────────────────────────
   tambah(h1("b6"));
@@ -446,7 +459,7 @@ function isi() {
   tambah(h2("6.2 Cara Kerja"));
   tambah(P(`Prokopim Hibot berbentuk aplikasi web progresif yang dapat dibuka melalui peramban atau dipasang pada telepon pintar tanpa melalui toko aplikasi. Pengguna masuk sesuai peran masing-masing, dan setiap peran hanya melihat serta mengerjakan yang menjadi kewenangannya. Alur inti penetapan jadwal ditunjukkan Gambar 1.`, { keepNext: true }));
   tambah(bagan(
-    [["Admin Rencana Kegiatan", "input jadwal dan undangan"], ["Kepala Subbagian Protokol", "telaah dan verifikasi"], ["Kepala Bagian", "persetujuan"], ["Tayang", "Pimpinan, ajudan, petugas"]],
+    [["Admin Rencana Kegiatan", "input jadwal dan undangan"], ["Kepala Sub Bagian Protokol", "telaah dan verifikasi"], ["Kepala Bagian", "persetujuan"], ["Tayang", "Pimpinan, ajudan, petugas"]],
     "Setiap tahap tercatat pada jejak audit: pelaku, waktu, dan catatan keputusan.",
     "Alur penetapan jadwal kegiatan Pimpinan",
   ));
@@ -455,33 +468,34 @@ function isi() {
   tambah(h2("6.3 Cakupan Alur Kerja"));
   tambah(tabel({
     judul: "Sebelas alur kerja dalam Prokopim Hibot",
-    kolom: [7, 28, 65],
+    kolom: [6, 22, 46, 26],
     rataTengah: [0],
     baris: [
-      ["No", "Alur kerja", "Cara kerja pokok"],
-      ["1", "Penetapan jadwal", "Tiga jenjang; pemeriksaan benturan jadwal Pimpinan secara otomatis"],
-      ["2", "Perubahan jadwal terbit", "Diajukan berjenjang; jadwal tetap tayang dengan data lama selama usulan diproses"],
-      ["3", "Penarikan dan pembatalan", "Wajib disertai alasan; data tidak dihapus"],
-      ["4", "Penugasan petugas", "Pemberitahuan hanya kepada petugas yang penugasannya berubah"],
-      ["5", "Audiensi dan tamu", "Permohonan daring berjenjang; otomatis menjadi agenda bila disetujui"],
-      ["6", "Peminjaman ruangan", "Kanal publik dengan kalender ketersediaan dan kode penelusuran"],
-      ["7", "Daftar hadir digital", "Pindai kode QR; tanda tangan layar sentuh; buka-tutup mengikuti jam acara"],
-      ["8", "Naskah sambutan", "Penyusun, penyelia, dan pengesah dalam satu alur"],
-      ["9", "Peliputan dan publikasi", "Rancangan naskah berita berbantuan kecerdasan buatan, wajib disunting petugas"],
-      ["10", "Penerbitan undangan", "Tata letak baku; penomoran tetap melalui aplikasi persuratan"],
-      ["11", "Evaluasi kinerja", "Butir penilaian berbeda untuk petugas protokol dan dokumentasi"],
+      ["No", "Alur kerja", "Cara kerja pokok", "Dasar tugas"],
+      ["1", "Penetapan jadwal", "Tiga jenjang; pemeriksaan benturan jadwal Pimpinan secara otomatis", "Pasal 52 huruf c, d"],
+      ["2", "Perubahan jadwal terbit", "Diajukan berjenjang; jadwal tetap tayang dengan data lama selama usulan diproses", "Pasal 52 huruf c, d"],
+      ["3", "Penarikan dan pembatalan", "Wajib disertai alasan; data tidak dihapus", "Pasal 52 huruf c, d"],
+      ["4", "Penugasan petugas", "Pemberitahuan hanya kepada petugas yang penugasannya berubah", "Pasal 52 huruf e; Pasal 54 huruf h"],
+      ["5", "Audiensi dan tamu", "Permohonan daring berjenjang; otomatis menjadi agenda bila disetujui", "Pasal 52 huruf a, e"],
+      ["6", "Peminjaman ruangan", "Kanal publik dengan kalender ketersediaan dan kode penelusuran", "Pasal 52 huruf b"],
+      ["7", "Daftar hadir digital", "Pindai kode QR; tanda tangan layar sentuh; buka-tutup mengikuti jam acara", "Pasal 52 huruf e"],
+      ["8", "Naskah sambutan", "Penyusun, penyelia, dan pengesah dalam satu alur", "Pasal 54 huruf g"],
+      ["9", "Peliputan dan publikasi", "Rancangan naskah berita berbantuan kecerdasan buatan, wajib disunting petugas", "Pasal 54 huruf h, j"],
+      ["10", "Penerbitan undangan", "Tata letak baku; penomoran tetap melalui aplikasi persuratan", "Pasal 52 huruf f"],
+      ["11", "Evaluasi kinerja", "Butir penilaian berbeda untuk petugas protokol dan dokumentasi", "Pasal 50 huruf c"],
     ],
+    sumber: "Dasar tugas: Peraturan Wali Kota Tarakan Nomor 50 Tahun 2021.",
   }));
 
   tambah(h2("6.4 Unsur Kebaruan"));
   tambah(P(`Unsur kebaruan Prokopim Hibot berkaitan dengan cara aplikasi menjaga mutu keputusan dan kesinambungan alur kerja, yaitu:`, { keepNext: true }));
   tambah(huruf([
-    `**Jejak audit yang melekat pada setiap kegiatan.** Riwayat setiap kegiatan dapat dibuka pengguna: siapa yang mengajukan, menelaah, dan memutus, kapan, serta dengan catatan apa. Sampai ${PER_TGL} tercatat ${n(D.jejak.peristiwa_total)} peristiwa pada ${n(D.jejak.kegiatan_berjejak)} kegiatan.`,
+    `**Jejak audit yang melekat pada setiap kegiatan.** Riwayat setiap kegiatan mencatat siapa yang mengajukan, menelaah, dan memutus, kapan, serta dengan catatan apa. Sampai ${PER_TGL} tercatat ${n(D.jejak.peristiwa_total)} peristiwa pada ${n(D.jejak.kegiatan_berjejak)} kegiatan.`,
     `**Daftar periksa wajib sebelum persetujuan.** Tombol persetujuan baru aktif setelah pejabat mengonfirmasi butir pemeriksaan, dan butir yang dikonfirmasi ikut tercatat pada jejak audit. Butir "undangan sudah dibuka" hanya tercentang apabila berkas undangan benar-benar dibuka.`,
-    `**Kewenangan melekat pada jabatan, dengan Pelaksana Harian bermasa berlaku.** Ketika pejabat berhalangan, kewenangannya dapat dilimpahkan sementara dengan tanggal berakhir yang tegas dan padam dengan sendirinya. Jejak audit tetap mencatat pelaku sebenarnya beserta jabatan yang diampu, dan Pelaksana Harian tidak dapat memutus jadwal yang diajukannya sendiri.`,
-    `**Pengawasan berdasarkan kegentingan.** Usulan perubahan jadwal yang tertahan ditandai menurut umur usulan dan kedekatan hari pelaksanaan, sehingga usulan untuk acara esok hari langsung menonjol. Kepala Bagian dapat memantau usulan yang masih di tingkat Kepala Subbagian tanpa melangkahi jenjang.`,
+    `**Kewenangan melekat pada jabatan, dengan Pelaksana Harian bermasa berlaku.** Kewenangan pejabat yang berhalangan dapat dilimpahkan sementara dan padam sendiri pada tanggal berakhirnya; jejak audit tetap mencatat pelaku sebenarnya, dan Pelaksana Harian tidak dapat memutus jadwal yang diajukannya sendiri.`,
+    `**Pengawasan berdasarkan kegentingan.** Usulan perubahan yang tertahan ditandai menurut umurnya dan kedekatan hari pelaksanaan, dan Kepala Bagian dapat memantau usulan tanpa melangkahi jenjang di bawahnya.`,
     `**Kanal publik yang dapat ditelusuri sendiri.** Pemohon audiensi dan peminjam ruangan memantau permohonannya dengan kode penelusuran. Kalender ketersediaan ruangan untuk umum hanya menampilkan keterpakaian slot, tanpa identitas maupun kontak pemohon.`,
-    `**Prosedur yang terlembaga.** Seluruh alur dituangkan dalam sebelas SOP format PermenPAN-RB 35/2012 yang sesuai dengan alur di aplikasi.`,
+    `**Tersambung ke kalender bersama.** Kegiatan yang telah disetujui tampil sendiri, termasuk perubahan dan pembatalannya, di Google Calendar bersama yang dapat dilanggani pihak terkait tanpa akun aplikasi. Nomor narahubung dan catatan internal tidak ikut dikirim, dan kegiatan tertentu dapat ditahan agar tidak ditampilkan.`,
   ]));
 
   tambah(h2("6.5 Perbedaan dari Cara Lama dan Solusi Sejenis"));
@@ -490,17 +504,16 @@ function isi() {
     kolom: [26, 34, 40],
     baris: [
       ["Aspek", "Cara lama", "Prokopim Hibot"],
-      ["Kesempatan penelaahan", "Sekali sehari, ±30 menit, hari kerja", `Setiap saat; ${pct(luarJam, putusanTotal)} di luar jam kerja`],
       ["Kegiatan mendesak", "Cetak ulang seluruh RK", "Masuk antrean tersendiri"],
       ["Rujukan jadwal", "Beberapa versi cetakan", "Satu data, terkini bagi semua peran"],
-      ["Penelusuran keputusan", "Tidak ada", "Jejak audit setiap kegiatan"],
       ["Pemberitahuan petugas", "Manual, mudah terlewat", "Otomatis, hanya kepada yang berubah"],
       ["Pejabat berhalangan", "Alur berhenti", "Pelaksana Harian bermasa berlaku"],
+      ["Kalender bersama", "Diisi admin satu per satu secara manual", "Terisi otomatis sesudah persetujuan"],
       ["Layanan publik", "Datang atau menelepon", "Kanal daring dengan kode penelusuran"],
       ["Prosedur", "Melekat pada orang", "Sebelas SOP baku"],
     ],
   }));
-  tambah(P(`Dibandingkan kalender bersama atau grup percakapan yang lazim dipakai, Prokopim Hibot memiliki jenjang persetujuan, pembagian kewenangan menurut jabatan, dan jejak keputusan yang tidak dimiliki keduanya. Aplikasi ini juga tidak menggantikan aplikasi persuratan: nomor surat tetap diterbitkan melalui aplikasi persuratan resmi, sedangkan Prokopim Hibot mengelola tindak lanjut kegiatannya.`));
+  tambah(P(`Kalender bersama dan grup percakapan yang lazim dipakai tidak memiliki jenjang persetujuan, pembagian kewenangan menurut jabatan, dan jejak keputusan. Prokopim Hibot tidak menggantikan kalender bersama, tetapi mengisinya secara otomatis, sehingga kalender hanya memuat kegiatan yang telah disetujui. Aplikasi ini juga tidak menggantikan aplikasi persuratan: nomor surat tetap diterbitkan melalui aplikasi persuratan resmi, sedangkan Prokopim Hibot mengelola tindak lanjut kegiatannya.`));
 
   tambah(h2("6.6 Nilai Tambah bagi Pemangku Kepentingan"));
   tambah(tabel({
@@ -548,7 +561,7 @@ function isi() {
     baris: [
       ["Pilihan", "Pertimbangan"],
       ["Menambah pengawasan dan pengingat manual", "Tidak menyentuh akar masalah; peristiwa Januari terjadi ketika semua pihak sudah bekerja dengan benar"],
-      ["Memperbaiki tata kelola lembar sebar bersama", "Tetap menyisakan banyak versi dan tidak mencatat jejak keputusan"],
+      ["Memperbaiki tata kelola *spreadsheet* bersama", "Tetap menyisakan banyak versi dan tidak mencatat jejak keputusan"],
       ["Mengadakan aplikasi jadi dari pihak ketiga", "Memerlukan anggaran dan proses pengadaan, sementara alur keprotokolan pimpinan sangat khas"],
       [{ t: "Membangun sistem sendiri dengan satu sumber data dan jejak audit", bold: true, shade: "E2EFDA" }, { t: "**Dipilih.** Menyelesaikan akar masalah, dapat disesuaikan dengan alur yang sesungguhnya, dan tanpa anggaran pengadaan", shade: "E2EFDA" }],
     ],
@@ -564,31 +577,20 @@ function isi() {
       ["Februari–Maret 2026", `Pembangunan dan uji coba; mulai digunakan (kegiatan pertama ${tglPanjang(D.tanggal_kegiatan.awal)})`],
       ["Mei 2026", `Jejak audit mulai merekam (${tglPanjang(D.jejak.pertama)}); kanal peminjaman ruangan dibuka`],
       ["Juli–Agustus 2026", "Permohonan audiensi terhubung ke agenda; notifikasi aplikasi; kalender ketersediaan ruangan; daftar hadir digital"],
-      ["September 2026", "Pelaksana Harian; daftar periksa wajib sebelum persetujuan; penanda kegentingan dan pemantauan usulan perubahan"],
+      ["September 2026", "Pelaksana Harian; daftar periksa wajib sebelum persetujuan; penanda kegentingan dan pemantauan usulan perubahan; sinkron otomatis ke kalender bersama"],
     ],
   }));
   if (pembaruan) tambah(P(`Sepanjang Maret sampai September 2026 tercatat lebih dari ${bulatBawah(pembaruan, 10)} pembaruan aplikasi dalam lebih dari ${bulatBawah(hariKembang, 10)} hari pengembangan. Sebagian besar pembaruan berangkat dari kendala yang dilaporkan pengguna, sehingga aplikasi berkembang mengikuti kebutuhan nyata.`));
 
   tambah(h2("7.4 SOP, Keputusan Pendukung, dan Dokumentasi"));
-  tambah(P(`Seluruh alur dituangkan dalam sebelas SOP format PermenPAN-RB 35/2012, masing-masing dilengkapi bagian identitas dan diagram alir, yang disusun untuk disahkan Sekretaris Daerah Kota Tarakan (Lampiran 7):`, { keepNext: true }));
-  const SOP = [
-    "Penyusunan dan Penetapan Jadwal Kegiatan Pimpinan", "Perubahan Jadwal Kegiatan yang Telah Ditetapkan",
-    "Penarikan dan Pembatalan Jadwal Kegiatan", "Penugasan Petugas Protokol dan Dokumentasi",
-    "Pelayanan Permohonan Audiensi dan Kunjungan Tamu Pimpinan", "Pelayanan Peminjaman Ruangan",
-    "Penyelenggaraan Daftar Hadir Digital", "Penyusunan dan Pengesahan Naskah Sambutan Pimpinan",
-    "Peliputan dan Publikasi Kegiatan Pimpinan", "Penerbitan Undangan Kedinasan",
-    "Evaluasi Kinerja Petugas Protokol dan Dokumentasi",
-  ];
-  const sopBaris = [];
-  for (let i = 0; i < 6; i++) sopBaris.push([`SOP ${i + 1}. ${SOP[i]}`, SOP[i + 6] ? `SOP ${i + 7}. ${SOP[i + 6]}` : ""]);
-  tambah(tabel({ kolom: [50, 50], kepala: false, baris: sopBaris }));
+  tambah(P(`Seluruh alur pada Tabel 7 dituangkan dalam sebelas SOP format PermenPAN-RB 35/2012, satu SOP untuk setiap alur, masing-masing dilengkapi bagian identitas, dasar hukum, dan diagram alir. SOP disusun untuk disahkan Sekretaris Daerah Kota Tarakan (Lampiran 7).`));
   tambah(P(`Keputusan pendukung berupa Keputusan Sekretaris Daerah Nomor ${SK_SEKDA} dan Surat Sekretaris Daerah tanggal 12 Maret 2026 (Lampiran 6). Dokumentasi berupa tangkapan layar setiap alur dan video demonstrasi disertakan pada Lampiran 4 dan Lampiran 5.`));
 
   // ── 8. SUMBER DAYA ──────────────────────────────────────────────
   tambah(h1("b8"));
   tambah(P(`Prokopim Hibot dijalankan tanpa belanja pengadaan. Keterbatasan anggaran diatasi dengan memanfaatkan secara optimal sumber daya yang sudah tersedia.`));
   tambah(h2("8.1 Personil dan Tim"));
-  tambah(P(`Pengembangan dilakukan secara swakelola oleh Ketua Tim selaku Kepala Bagian, dengan memanfaatkan asisten pemrograman berbasis kecerdasan buatan, sehingga tidak memerlukan jasa pengembang dari pihak ketiga. Anggota tim dan sebelas pelaksana Bagian Prokopim berperan sebagai pengguna harian sekaligus penguji, serta menjadi sumber kebutuhan setiap penyempurnaan. Pelaksanaannya diperkuat Tim Koordinasi beranggotakan 42 orang berdasarkan Keputusan Sekretaris Daerah, yang juga melibatkan para Sekretaris Dinas di lingkungan Pemerintah Kota Tarakan.`));
+  tambah(P(`Pengembangan dilakukan secara swakelola oleh Ketua Tim selaku Kepala Bagian, dengan memanfaatkan asisten pemrograman berbasis kecerdasan buatan, sehingga tidak memerlukan jasa pengembang dari pihak ketiga dan tidak membebani APBD. Anggota tim dan sebelas pelaksana Bagian Prokopim berperan sebagai pengguna harian sekaligus penguji, serta menjadi sumber kebutuhan setiap penyempurnaan. Pelaksanaannya diperkuat Tim Koordinasi beranggotakan 42 orang berdasarkan Keputusan Sekretaris Daerah, yang juga melibatkan para Sekretaris Dinas di lingkungan Pemerintah Kota Tarakan.`));
   tambah(h2("8.2 Dukungan Pemangku Kepentingan"));
   tambah(butir([
     `**Sekretaris Daerah Kota Tarakan:** menetapkan Tim Koordinasi dan menguatkan penggunaan sistem melalui surat resmi.`,
@@ -596,7 +598,7 @@ function isi() {
     `**Ajudan dan pengawal pribadi Pimpinan:** mengonfirmasi kehadiran Pimpinan melalui aplikasi sebanyak ${n(konfirmasiHadir)} kali.`,
     `**Dinas Komunikasi, Informatika, Statistik dan Persandian:** memfasilitasi subdomain prokopim.tarakankota.go.id yang kini menjadi alamat resmi aplikasi.`,
     `**Bappeda Litbang:** pengampu kebijakan inovasi daerah dan penerima tembusan surat penguatan.`,
-    `**Mitra kerja Pemerintah Kota:** ${peran.mitra_kerja || 0} akun mitra kerja memantau agenda yang telah tayang.`,
+    `**Mitra kerja lintas unit:** ${peran.mitra_kerja || 0} akun mitra kerja dipakai Dinas Komunikasi, Informatika, Statistik dan Persandian (DKISP), pengawal pribadi, ajudan pejabat pimpinan tinggi di Sekretariat Daerah, pengemudi Pimpinan, dan tenaga ahli media untuk memantau agenda yang telah tayang.`,
   ]));
   tambah(h2("8.3 Sumber Daya Lainnya dan Efisiensi"));
   tambah(tabel({
@@ -606,10 +608,11 @@ function isi() {
       ["Komponen", "Pemanfaatan", "Biaya"],
       ["Peladen", "12 fungsi peladen tanpa server pada kuota tanpa biaya (12 dari 12 terpakai)", "Rp0"],
       ["Basis data", "Layanan basis data terkelola, paket tanpa biaya", "Rp0"],
-      ["Daftar hadir", "Menumpang lembar sebar dan penyimpanan berkas milik instansi", "Rp0"],
+      ["Daftar hadir", "Menumpang *spreadsheet* dan penyimpanan berkas milik instansi", "Rp0"],
       ["Notifikasi", "Notifikasi aplikasi tanpa biaya; pesan WhatsApp melalui layanan gerbang pesan", "Langganan gerbang pesan"],
+      ["Kalender bersama", "Layanan kalender pada kuota tanpa biaya, memakai akun layanan atas nama instansi", "Rp0"],
       ["Perangkat", "Telepon pintar milik pengguna; tanpa toko aplikasi", "Rp0"],
-      ["Pengembangan", "Swakelola oleh Ketua Tim", "Rp0"],
+      ["Pengembangan", "Swakelola oleh Ketua Tim; tidak membebani APBD", "Rp0"],
     ],
   }));
   tambah(P(`Keterbatasan kuota diatasi melalui penyesuaian teknis tanpa menambah biaya. Ketika lalu lintas data basis data sempat mencapai 6,4 GB per bulan dan melampaui kuota tanpa biaya sebesar 5 GB, pengambilan data diubah agar hanya menarik data yang berubah, sehingga pemakaian turun menjadi sekitar 1 GB. Ketika jumlah fungsi peladen mencapai batas 12, fungsi baru digabungkan ke fungsi yang sudah ada.`));
@@ -625,7 +628,7 @@ function isi() {
       ["Indikator", "Capaian"],
       ["Kegiatan terkelola", n(T)],
       ["Median waktu pengajuan sampai jadwal tayang", `${dk(K.median_ajukan_tayang_jam, 2)} jam (rata-rata ${dk(K.rata_ajukan_tayang_jam, 2)} jam)`],
-      ["    menunggu penelaahan Kepala Subbagian", jamMenit(K.median_ajukan_teruskan_jam)],
+      ["    menunggu penelaahan Kepala Sub Bagian", jamMenit(K.median_ajukan_teruskan_jam)],
       ["    menunggu keputusan Kepala Bagian", jamMenit(K.median_teruskan_tayang_jam)],
       ["Jadwal tayang kurang dari 4 jam / 24 jam", `${pct(K.tayang_dalam_4_jam, K.kegiatan_jejak_lengkap)} / ${pct(K.tayang_dalam_24_jam, K.kegiatan_jejak_lengkap)}`],
       ["Penelaahan dan persetujuan di luar jam kerja", `${n(luarJam)} dari ${n(putusanTotal)} (${pct(luarJam, putusanTotal)})`],
@@ -668,37 +671,39 @@ function isi() {
       ["Ketersediaan ruangan", "Papan tulis dan grup percakapan", `Kalender daring; ${D.ruang.pengajuan} pengajuan dari ${D.ruang.instansi_berbeda} instansi`],
     ],
   }));
-  tambah(P(`**Dasar estimasi.** Kolom "sebelum" tidak berasal dari pencatatan karena keadaan tersebut memang tidak pernah dicatat. Angka 18–24 jam diturunkan dari alur pada Tabel 3: undangan yang masuk pagi hari menunggu jendela periksa menjelang jam pulang kantor (±8 jam), kemudian menunggu disposisi yang diterima malam atau pagi harinya (±12–15 jam).`));
-  tambah(P(`Dengan median ${dk(K.median_ajukan_tayang_jam, 2)} jam, penetapan jadwal menjadi sekitar ${cepatLo} sampai ${cepatHi} kali lebih cepat pada jalur tercepat, dan jauh lebih cepat bagi undangan yang sebelumnya terlewat jendela periksa atau melintasi akhir pekan. Rincian waktunya juga menunjukkan bahwa setelah sampai kepada Kepala Bagian, keputusan hanya memerlukan ${jamMenit(K.median_teruskan_tayang_jam)}. Dengan demikian, hambatan pada cara lama bersumber dari jendela waktu penelaahan, sedangkan pengambilan keputusannya sendiri berlangsung cepat.`));
+  tambah(P(`**Dasar estimasi.** Kolom "sebelum" tidak pernah dicatat; angka 18–24 jam diturunkan dari alur pada Tabel 3, yaitu menunggu jendela periksa (±8 jam) lalu disposisi malam atau pagi harinya (±12–15 jam).`));
+  tambah(P(`Dengan median ${dk(K.median_ajukan_tayang_jam, 2)} jam, penetapan jadwal menjadi sekitar ${cepatLo} sampai ${cepatHi} kali lebih cepat pada jalur tercepat, dan jauh lebih cepat bagi undangan yang sebelumnya terlewat jendela periksa atau melintasi akhir pekan. Setelah sampai kepada Kepala Bagian, keputusan hanya memerlukan ${jamMenit(K.median_teruskan_tayang_jam)}; hambatan cara lama terletak pada jendela waktu penelaahan, bukan pada pengambilan keputusannya.`));
 
   tambah(h2("9.4 Mutu Layanan dan Akuntabilitas"));
-  tambah(P(`Sebanyak ${D.dikembalikan_untuk_diperbaiki} kegiatan (${pct(D.dikembalikan_untuk_diperbaiki, T)}) dikembalikan untuk diperbaiki sebelum ditetapkan. Hal ini menunjukkan bahwa penelaahan dilakukan secara cermat. Sebanyak ${aksi.recall_published || 0} jadwal yang telah tayang ditarik kembali untuk dikoreksi, dan ${aksi.usulan_edit_diajukan || 0} usulan perubahan jadwal diproses berjenjang tanpa menurunkan jadwal dari publikasi. Sejak daftar periksa wajib diberlakukan pada 22 September 2026, ${D.jejak.dengan_daftar_periksa} keputusan telah melewati pemeriksaan butir yang tercatat pada jejak audit. Fitur Pelaksana Harian telah dipakai dalam ${D.jejak.oleh_plh} tindakan, sehingga alur tidak terhenti ketika pejabat berhalangan.`));
+  tambah(P(`Sebanyak ${D.dikembalikan_untuk_diperbaiki} kegiatan (${pct(D.dikembalikan_untuk_diperbaiki, T)}) dikembalikan untuk diperbaiki sebelum ditetapkan. Sebanyak ${aksi.recall_published || 0} jadwal yang telah tayang ditarik kembali untuk dikoreksi, dan ${aksi.usulan_edit_diajukan || 0} usulan perubahan jadwal diproses berjenjang tanpa menurunkan jadwal dari publikasi. Sejak daftar periksa wajib diberlakukan pada 22 September 2026, ${D.jejak.dengan_daftar_periksa} keputusan telah melewati pemeriksaan butir yang tercatat pada jejak audit. Fitur Pelaksana Harian telah dipakai dalam ${D.jejak.oleh_plh} tindakan, sehingga alur tidak terhenti ketika pejabat berhalangan.`));
 
   tambah(h2("9.5 Jangkauan Layanan Publik"));
   tambah(butir([
     `**Peminjaman ruangan:** ${D.ruang.pengajuan} pengajuan dari ${D.ruang.instansi_berbeda} instansi; ${D.ruang.per_status.Approved || 0} disetujui dengan total ${n(D.ruang.peserta_disetujui)} peserta kegiatan.`,
     `**Permohonan audiensi:** ${D.tamu.total} permohonan dari ${D.tamu.instansi_berbeda} instansi; ${D.tamu.per_status.selesai || 0} telah selesai diproses dan ${D.agenda_dari_permohonan_tamu} di antaranya menjadi agenda Pimpinan.`,
-    `**Pengguna di luar Bagian Prokopim:** ${akunLuar} akun, terdiri atas Pimpinan Daerah, ajudan, pengawal pribadi, dan mitra kerja Pemerintah Kota. Notifikasi aplikasi telah aktif pada ${D.perangkat_notifikasi.perangkat} perangkat milik ${D.perangkat_notifikasi.pengguna} pengguna.`,
+    `**Pengguna di luar Bagian Prokopim:** ${akunLuar} akun, terdiri atas Pimpinan Daerah, ajudan, pengawal pribadi, dan mitra kerja dari DKISP serta unit lain di lingkungan Pemerintah Kota. Notifikasi aplikasi telah aktif pada ${D.perangkat_notifikasi.perangkat} perangkat milik ${D.perangkat_notifikasi.pengguna} pengguna.`,
   ]));
 
   tambah(h2("9.6 Manfaat Sosial dan Ekonomi"));
   tambah(P(`Masyarakat dan instansi tidak perlu lagi datang atau menelepon berulang kali untuk menanyakan kepastian permohonan. Bagi pemerintah daerah, hilangnya cetak ulang rencana kegiatan dan pemakaian perangkat milik pengguna menghemat kertas dan waktu kerja, sementara seluruh sistem berjalan tanpa belanja pengadaan. Jadwal yang ditetapkan lebih cepat juga berarti pendampingan protokol, peliputan, dan penyiapan naskah dapat dimulai lebih awal.`));
 
   tambah(h2("9.7 Catatan atas Modul Naskah Sambutan"));
-  tambah(P(`Dari ${n(sambutanKeg)} kegiatan sambutan, baru ${D.sambutan_disahkan} naskah yang disahkan melalui aplikasi. Wali Kota dan Wakil Wali Kota masih lebih nyaman membaca naskah tercetak karena memberi keleluasaan berimprovisasi. Inovasi ini tidak memaksakan perubahan kebiasaan tersebut; modul naskah sambutan tetap tersedia lengkap bila sewaktu-waktu dibutuhkan. Prinsip yang dipegang adalah aplikasi menyesuaikan diri dengan cara kerja Pimpinan.`));
+  tambah(P(`Dari ${n(sambutanKeg)} kegiatan sambutan, baru ${D.sambutan_disahkan} naskah yang disahkan melalui aplikasi, karena Wali Kota dan Wakil Wali Kota lebih nyaman membaca naskah tercetak yang memberi keleluasaan berimprovisasi. Modul ini tetap tersedia lengkap; aplikasi menyesuaikan diri dengan cara kerja Pimpinan, bukan sebaliknya.`));
 
   tambah(h2("9.8 Testimoni Pengguna"));
-  tambah(P(`Testimoni tertulis dari tiga jenjang pengguna dilampirkan pada Lampiran 9. Ringkasannya sebagai berikut.`, { keepNext: true }));
+  tambah(P(`Berikut testimoni tertulis dari empat pengguna pada jenjang yang berbeda. Lembar keterangan yang ditandatangani masing-masing narasumber dilampirkan pada Lampiran 9.`, { keepNext: true }));
   tambah(tabel({
-    judul: "Ringkasan testimoni pengguna",
-    kolom: [28, 72],
+    judul: "Testimoni tertulis pengguna",
+    kolom: [26, 74],
     baris: [
-      ["Narasumber", "Keterangan"],
-      ["Wali Kota Tarakan", "[[kutipan singkat testimoni Wali Kota]]"],
-      ["Ajudan Wakil Wali Kota", "[[kutipan singkat testimoni ajudan]]"],
-      ["Staf Protokol", "[[kutipan singkat testimoni staf protokol]]"],
+      ["Narasumber", "Testimoni"],
+      [["**dr. H. Khairul, M.Kes.**", "Wali Kota Tarakan"], `\u201C${isiTestimoni[0]}\u201D`],
+      [["**Muhammad Rizky Dinata Putra, S.Tr.IP.**", "Ajudan Wakil Wali Kota Tarakan"], `\u201C${isiTestimoni[1]}\u201D`],
+      [["**Risca Saputri Samtika, S.Pd.**", "Staf Protokol"], `\u201C${isiTestimoni[2]}\u201D`],
+      [["**Putri Yunis Mudhaika**", "Pengadministrasi Perkantoran; pernah menjabat Pelaksana Harian"], `\u201C${isiTestimoni[3]}\u201D`],
     ],
   }));
+
 
   // ── 10. KEBERLANJUTAN ───────────────────────────────────────────
   tambah(h1("b10"));
@@ -721,7 +726,7 @@ function isi() {
     kolom: [24, 76],
     baris: [
       ["Waktu", "Rencana"],
-      ["Oktober–Desember 2026", "Pengesahan SOP; pengalihan akun layanan ke akun resmi instansi"],
+      ["Oktober–Desember 2026", "Pengesahan SOP oleh Sekretaris Daerah"],
       ["Januari–Juni 2027", "Pendampingan pengelola kedua dan penyusunan dokumentasi teknis untuk alih pengetahuan; pengetatan kebijakan akses basis data"],
       ["Juli–Desember 2027", "Paket replikasi bagi pemerintah daerah di Kalimantan Utara (Bagian 11)"],
     ],
@@ -732,7 +737,7 @@ function isi() {
     kolom: [28, 72],
     baris: [
       ["Risiko", "Mitigasi"],
-      ["Ketergantungan pada satu pengembang", "Prosedur telah terdokumentasi dalam sebelas SOP; kode tersimpan dalam repositori dengan riwayat perubahan lengkap; alih pengetahuan kepada pengelola kedua dijadwalkan pada 2027"],
+      ["Ketergantungan pada satu pengembang", "Prosedur telah terdokumentasi dalam sebelas SOP; kode tersimpan dalam repositori dengan riwayat perubahan lengkap; akun layanan terdaftar atas nama instansi; alih pengetahuan kepada pengelola kedua dijadwalkan pada 2027"],
       ["Batas kuota layanan tanpa biaya", "Pemakaian dipantau; fungsi baru digabungkan ke fungsi yang ada; pengambilan data hanya untuk data yang berubah"],
       ["Kehilangan data", "Pencadangan berkala; peringatan pencadangan pada setiap jalur penghapusan"],
       ["Perlindungan data pribadi", "Kanal publik tidak menampilkan identitas maupun kontak pemohon; penelusuran menuntut kode lengkap; pengetatan kebijakan akses basis data berjalan bertahap"],
@@ -745,36 +750,29 @@ function isi() {
   tambah(h2("11.1 Potensi Adopsi"));
   tambah(P(`Tugas keprotokolan dan komunikasi pimpinan dijalankan oleh setiap pemerintah daerah. Di Kalimantan Utara, sasaran replikasi langsung meliputi Pemerintah Provinsi Kalimantan Utara, Pemerintah Kabupaten Bulungan, Malinau, Nunukan, dan Tana Tidung, serta sekretariat DPRD yang mengelola agenda pimpinan dewan. Yang perlu disesuaikan hanya nama jabatan, daftar pengguna, dan tata naskah dinas setempat.`));
   tambah(h2("11.2 Syarat Replikasi"));
-  tambah(tabel({
-    judul: "Kebutuhan untuk mereplikasi",
-    kolom: [22, 78],
-    baris: [
-      ["Kebutuhan", "Keterangan"],
-      ["Perangkat", "Peramban dan sambungan internet; tanpa perangkat keras khusus"],
-      ["Biaya", "Layanan komputasi awan pada kuota tanpa biaya"],
-      ["Prosedur", "Sebelas SOP siap diadaptasi"],
-      ["Sumber daya manusia", "Satu pengelola dengan pendampingan; pengguna cukup dengan pengenalan singkat"],
-    ],
-  }));
+  tambah(P(`Replikasi hanya memerlukan peramban dan sambungan internet tanpa perangkat keras khusus, layanan komputasi awan pada kuota tanpa biaya, sebelas SOP yang siap diadaptasi, serta satu pengelola dengan pendampingan. Pengguna cukup dibekali pengenalan singkat.`));
   tambah(h2("11.3 Dokumentasi Pengetahuan"));
-  tambah(P(`Pengetahuan kerja telah didokumentasikan dalam sebelas SOP, panduan pemasangan layanan daftar hadir, dan catatan teknis pada kode aplikasi. Perangkat daerah lain dapat mengadopsi prosedurnya lebih dahulu, bahkan sebelum menerapkan aplikasinya.`));
-  tambah(h2("11.4 Diseminasi yang Telah Dilakukan"));
+  tambah(P(`Pengetahuan kerja telah didokumentasikan dalam sebelas SOP, panduan pemasangan layanan daftar hadir, dan catatan teknis pada kode aplikasi, sehingga perangkat daerah lain dapat mengadopsi prosedurnya lebih dahulu, bahkan sebelum menerapkan aplikasinya.`));
+  tambah(h2("11.4 Diseminasi dan Publikasi"));
   tambah(butir([
     `**Lintas perangkat daerah melalui Tim Koordinasi.** Keputusan Sekretaris Daerah melibatkan para Sekretaris Dinas di lingkungan Pemerintah Kota Tarakan dalam Tim Koordinasi, sehingga pelaksanaan inovasi ini diketahui dan melibatkan perangkat daerah lain.`,
+    `**Pengenalan langsung kepada pengguna.** Aplikasi diperkenalkan langsung kepada Wali Kota dan Wakil Wali Kota, para ajudan, mitra kerja, dan seluruh pengguna internal Bagian Prokopim.`,
     `**Melalui layanan publik.** Sebanyak ${D.ruang.instansi_berbeda} instansi telah menggunakan layanan peminjaman ruangan dan ${D.tamu.instansi_berbeda} instansi mengajukan audiensi melalui kanal daring, sehingga mengenal langsung cara kerja baru ini.`,
-    `**Pengguna di luar Bagian Prokopim.** Pimpinan Daerah, ajudan, pengawal pribadi, dan ${peran.mitra_kerja || 0} akun mitra kerja Pemerintah Kota menggunakan aplikasi secara rutin.`,
-    `**Pemberitahuan resmi.** Melalui Surat Sekretaris Daerah Nomor ${NOMOR_SURAT_SEKDA} tanggal 12 Maret 2026, Dinas Komunikasi, Informatika, Statistik dan Persandian dimohonkan memfasilitasi subdomain, dengan tembusan kepada Wali Kota Tarakan dan Kepala Bappeda Litbang.`,
+    `**Pemberitahuan resmi.** Surat Sekretaris Daerah Nomor ${NOMOR_SURAT_SEKDA} tanggal 12 Maret 2026 kepada DKISP, yang menyatakan sistem telah dikembangkan dan memohon subdomain resmi, ditembuskan kepada Wali Kota Tarakan dan Kepala Bappeda Litbang.`,
+    `**Kanal resmi yang terbuka untuk umum.** Aplikasi berjalan pada alamat resmi pemerintah, prokopim.tarakankota.go.id, dengan halaman permohonan audiensi, peminjaman ruangan, dan daftar hadir yang dapat diakses siapa saja. Agenda yang telah ditetapkan juga tersebar melalui Google Calendar bersama yang dapat dilanggani pihak terkait.`,
   ]));
-  tambah(h2("11.5 Rencana Diseminasi"));
+
+  tambah(h2("11.5 Pihak yang Telah Memanfaatkan"));
   tambah(tabel({
-    judul: "Rencana diseminasi",
-    kolom: [24, 76],
+    judul: "Pihak di luar Bagian Prokopim yang telah memanfaatkan Prokopim Hibot",
+    kolom: [38, 62],
     baris: [
-      ["Waktu", "Kegiatan"],
-      ["Oktober 2026", "Publikasi praktik baik melalui kanal resmi Pemerintah Kota Tarakan"],
-      ["November 2026", "Penyusunan paket replikasi: SOP, panduan konfigurasi, dan templat data awal"],
-      ["Desember 2026", "Paparan kepada unit keprotokolan pemerintah provinsi dan kabupaten di Kalimantan Utara"],
-      ["Semester I 2027", "Pendampingan uji coba pada pemerintah daerah yang berminat"],
+      ["Pihak", "Bentuk pemanfaatan"],
+      ["Wali Kota, Wakil Wali Kota, ajudan, dan pengawal pribadi", `Menerima agenda; ${n(konfirmasiHadir)} konfirmasi kehadiran; ${aksi.delegasi_to_wwk || 0} disposisi kepada Wakil Wali Kota`],
+      ["Dinas Komunikasi, Informatika, Statistik dan Persandian (DKISP)", "Memantau agenda Pimpinan melalui akun mitra kerja; memfasilitasi subdomain resmi aplikasi"],
+      ["Ajudan pejabat pimpinan tinggi di Sekretariat Daerah", "Memantau agenda Pimpinan melalui akun mitra kerja"],
+      ["Pengemudi Pimpinan dan tenaga ahli media", "Memantau agenda Pimpinan melalui akun mitra kerja"],
+      ["Instansi pemohon layanan publik", `${D.ruang.instansi_berbeda} instansi meminjam ruangan; ${D.tamu.instansi_berbeda} instansi mengajukan audiensi`],
     ],
   }));
   return out;
@@ -786,7 +784,7 @@ function isi() {
 // sini; tempatnya ditandai halaman pembatas supaya urutan tetap utuh saat
 // pindaiannya disisipkan. SOP disisipkan dari berkas PDF-nya oleh gabung.py.
 const NAMA_KETUA = "Anugrah Yega Pranatha, M.Si.";
-const NIP_KETUA = "19881103 200701 1 003";
+const NIP_KETUA = "198811032007011003";
 const JUDUL_LENGKAP = `Prokopim Hibot: ${SUBJUDUL}`;
 
 function lampiran() {
@@ -809,7 +807,7 @@ function lampiran() {
   };
   const tandaTangan = (atas, nama, bawah, o = {}) => {
     const kiri = Math.round(LEBAR * 0.5), kanan = LEBAR - kiri;
-    const isi = [...atas, ...(o.meterai ? ["", "[[meterai Rp10.000]]", ""] : ["", "", "", ""]), nama.startsWith("[[") ? nama : `**${nama}**`, ...bawah];
+    const isi = [...atas, ...(o.meterai ? ["", "", "[[meterai Rp10.000]]", "", ""] : ["", "", "", ""]), nama.startsWith("[[") ? nama : `**${nama}**`, ...bawah];
     return new Table({ width: { size: LEBAR, type: WidthType.DXA }, columnWidths: [kiri, kanan],
       rows: [new TableRow({ children: [sel("", kiri, { borders: tanpaGaris }), sel(isi, kanan, { borders: tanpaGaris, size: UK, align: AlignmentType.LEFT })] })] });
   };
@@ -838,51 +836,40 @@ function lampiran() {
   // ── Lampiran 1: Pakta integritas ──
   judulL(1, "Pakta Integritas");
   out.push(tengahTebal("PAKTA INTEGRITAS", { size: 24, after: 280, garis: true }));
-  out.push(PN("Saya yang bertanda tangan di bawah ini:"));
-  out.push(baris2([["Nama", NAMA_KETUA], ["NIP", NIP_KETUA], ["Jabatan", "Kepala Bagian Protokol dan Komunikasi Pimpinan"], ["Instansi", "Sekretariat Daerah Kota Tarakan"], ["Kedudukan", "Ketua Tim Inovasi Prokopim Hibot"]]));
-  out.push(P(`selaku ketua tim peserta Lomba Inovasi Daerah Provinsi Kalimantan Utara Tahun 2026 (Kaltara Innovation Awards) kategori Inovasi Terapan – ASN Pemerintah Kabupaten/Kota dengan judul *${JUDUL_LENGKAP}*, dengan ini menyatakan bahwa:`, { before: 120, indent: false }));
-  tambah(angka([
-    "usulan inovasi merupakan karya asli tim, tidak mengandung plagiarisme, tidak melanggar hak kekayaan intelektual pihak lain, dan tidak sedang dalam sengketa;",
-    "usulan yang sama belum pernah menjadi Juara I, II, atau III pada Kaltara Innovation Awards maupun memperoleh penghargaan tingkat nasional;",
-    "seluruh data, informasi, dan dokumen yang disampaikan adalah benar dan dapat dipertanggungjawabkan;",
-    "perangkat lunak, data, dan materi pihak lain yang digunakan telah memenuhi ketentuan lisensi dan ketentuan penggunaannya;",
-    "bersedia mengikuti seluruh tahapan penilaian, termasuk klarifikasi, presentasi, demonstrasi, dan verifikasi; dan",
-    "bersedia didiskualifikasi atau dicabut penghargaannya apabila di kemudian hari terbukti melanggar pernyataan ini.",
+  // Mengikuti format Lampiran 3 Panduan Teknis.
+  const pribadi = (k) => PRIBADI ? PRIBADI[k] : "[[diisi pada berkas final]]";
+  out.push(PN("Yang bertanda tangan di bawah ini:"));
+  out.push(baris2([
+    ["Nama lengkap", NAMA_KETUA],
+    ["Tempat/tanggal lahir", pribadi("ttl")],
+    ["Nomor identitas", pribadi("nik")],
+    ["Instansi", "Bagian Protokol dan Komunikasi Pimpinan, Sekretariat Daerah Kota Tarakan"],
+    ["Nomor telepon", "0811-5900-394"],
+    ["Email", "anugrahyegapranatha@gmail.com"],
+    ["Alamat", pribadi("alamat")],
+    ["Judul inovasi", JUDUL_LENGKAP],
+    ["Kategori", "Inovasi Terapan – ASN Pemerintah Kabupaten/Kota"],
   ]));
-  out.push(P("Demikian pakta integritas ini dibuat dengan sebenarnya untuk dipergunakan sebagaimana mestinya.", { before: 120 }));
-  out.push(new Paragraph({ spacing: { after: 120 }, children: [] }));
-  out.push(tandaTangan(["Tarakan, 24 September 2026", "Yang membuat pernyataan,", "Ketua Tim Inovasi Prokopim Hibot,"], NAMA_KETUA, [`NIP ${NIP_KETUA}`], { meterai: true }));
+  out.push(PN("Dengan ini menyatakan bahwa:", { before: 120 }));
+  tambah(angka([
+    "Seluruh data dan informasi yang disampaikan adalah benar, valid, dan dapat dipertanggungjawabkan;",
+    "Inovasi merupakan karya asli dan tidak melanggar hak kekayaan intelektual pihak lain;",
+    "Usulan tidak sedang dalam sengketa dan tidak diajukan pada lebih dari satu kategori;",
+    "Usulan yang sama belum pernah menjadi Juara I, II, atau III pada Kaltara Innovation Awards dan belum memperoleh penghargaan tingkat nasional;",
+    "Kami bersedia mengikuti seluruh tahapan penilaian, memberikan klarifikasi, dan menerima verifikasi;",
+    "Kami memberikan izin non-eksklusif kepada penyelenggara untuk mempublikasikan ringkasan, foto, dan video untuk kepentingan promosi dan pembelajaran inovasi daerah; dan",
+    "Kami bersedia menerima diskualifikasi atau pencabutan penghargaan apabila pernyataan ini terbukti tidak benar.",
+  ]));
+  out.push(baris2([["Dibuat di", "Tarakan"], ["Tanggal", "29 September 2026"]]));
+  out.push(new Paragraph({ spacing: { after: 0 }, children: [] }));
+  out.push(tandaTangan(["Yang membuat pernyataan,", "Ketua Tim Inovasi Prokopim Hibot,"], NAMA_KETUA, [`NIP ${NIP_KETUA}`], { meterai: true }));
 
   // ── Lampiran 2: Surat usulan ──
   judulL(2, "Surat Usulan");
-  const lLogo = 1300, lKop = LEBAR - lLogo;
-  out.push(new Table({ width: { size: LEBAR, type: WidthType.DXA }, columnWidths: [lLogo, lKop],
-    rows: [new TableRow({ children: [
-      new TableCell({ width: { size: lLogo, type: WidthType.DXA }, borders: tanpaGaris, verticalAlign: VerticalAlign.CENTER,
-        children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [gambar("logo_tarakan.png", 70)] })] }),
-      sel(["**PEMERINTAH KOTA TARAKAN**", "**SEKRETARIAT DAERAH**", "Jalan Pulau Kalimantan No. 1 Kota Tarakan 77113", "Telp (0551) 21620, 21623 Fax (0551) 33846", "Laman: www.tarakankota.go.id Pos-el: setda@tarakankota.go.id"], lKop, { borders: tanpaGaris, align: AlignmentType.CENTER, size: 22, vAlign: VerticalAlign.CENTER }),
-    ] })] }));
-  out.push(new Paragraph({ border: { bottom: { style: BorderStyle.THICK_THIN_SMALL_GAP, size: 18, color: HITAM, space: 1 } }, spacing: { after: 200 }, children: [] }));
-  out.push(new Paragraph({ alignment: AlignmentType.RIGHT, spacing: { after: 120 }, children: runs("Tarakan, [[tanggal]] September 2026", { size: UK, font: FONT }) }));
-  out.push(baris2([["Nomor", "[[nomor surat]]"], ["Sifat", "Biasa"], ["Lampiran", "1 (satu) berkas"], ["Hal", "Usulan Peserta Kaltara Innovation Awards Tahun 2026"]], 0.16));
-  out.push(PN("Yth. Kepala Badan Perencanaan Pembangunan, Riset dan Inovasi Daerah Provinsi Kalimantan Utara", { before: 200, after: 0 }));
-  out.push(PN("di", { after: 0 }));
-  out.push(PN("Tanjung Selor", { after: 200 }));
-  out.push(P(`Menindaklanjuti Panduan Teknis Lomba Inovasi Daerah Provinsi Kalimantan Utara Tahun 2026 (Kaltara Innovation Awards), dengan ini kami mengusulkan inovasi dari lingkungan Sekretariat Daerah Kota Tarakan sebagai peserta dengan keterangan sebagai berikut:`));
-  out.push(baris2([
-    ["Judul inovasi", JUDUL_LENGKAP],
-    ["Kategori", "Inovasi Terapan – ASN Pemerintah Kabupaten/Kota"],
-    ["Bidang fokus", "3. Tata Kelola Kolaboratif dan Pelayanan Publik"],
-    ["Ketua tim", `${NAMA_KETUA} (Kepala Bagian Protokol dan Komunikasi Pimpinan)`],
-    ["Anggota tim", "Saifullah, S.H.; Juliyanti, S.AP.; Nuraini Wiliadewi, S.IP.; Ni Kade Sari Handayani, S.AP."],
-    ["Unit pelaksana", "Bagian Protokol dan Komunikasi Pimpinan"],
-  ]));
-  out.push(P(`Inovasi tersebut telah diterapkan sejak Maret 2026 dan didukung Keputusan Sekretaris Daerah Kota Tarakan Nomor ${SK_SEKDA}. Bersama ini kami sampaikan proposal beserta kelengkapannya. Demikian disampaikan, atas perhatian Bapak/Ibu kami ucapkan terima kasih.`, { before: 160 }));
-  out.push(new Paragraph({ spacing: { after: 120 }, children: [] }));
-  out.push(tandaTangan(["SEKRETARIS DAERAH KOTA TARAKAN,"], "ABD. AZIS HASAN, A.P., M.H., CGCAE.", ["Pembina Utama Muda (IV/c)", "NIP 19750212 199501 1 001"]));
+  out.push(PN(`Halaman berikut memuat Surat Sekretaris Daerah Kota Tarakan Nomor ${NOMOR_SURAT_USULAN} tanggal ${TANGGAL_SURAT_USULAN} perihal Usulan Peserta Lomba Inovasi Daerah Tahun 2026, yang ditandatangani secara elektronik.`));
 
   // ── Lampiran 3 ──
-  pembatas(3, "Bukti Identitas Anggota Tim", "Menyusul: pindaian KTP atau kartu pegawai kelima anggota tim");
+  judulL(3, "Bukti Identitas Anggota Tim");
 
   // ── Lampiran 4: Tangkapan layar ──
   judulL(4, "Tangkapan Layar Aplikasi");
@@ -897,7 +884,7 @@ function lampiran() {
   const layarLebar = [
     ["01-antrian-persetujuan.png", "Antrian persetujuan Kepala Bagian dengan daftar periksa wajib"],
     ["02-riwayat-alur.png", "Riwayat alur (jejak audit) mencatat pelaku, waktu, dan butir pemeriksaan"],
-    ["04-kartu-kegiatan.png", "Jadwal tayang pada dasbor Kepala Subbagian, dengan peringatan kegiatan yang belum berpetugas"],
+    ["04-kartu-kegiatan.png", "Jadwal tayang pada dasbor Kepala Sub Bagian, dengan peringatan kegiatan yang belum berpetugas"],
   ];
   for (const [f, t] of layarLebar) {
     out.push(new Paragraph({ alignment: AlignmentType.CENTER, keepNext: true, spacing: { after: 0, line: 240, lineRule: AUTO }, children: [tangkap(f, 540)] }));
@@ -922,14 +909,16 @@ function lampiran() {
 
   // ── Lampiran 7 (isi disisipkan dari SOP-Prokopim.pdf) ──
   judulL(7, "Sebelas Standar Operasional Prosedur");
-  out.push(PN("Halaman-halaman berikut memuat sebelas SOP format PermenPAN-RB 35/2012 yang menjadi dasar alur kerja Prokopim Hibot."));
+  out.push(PN(TANPA_SOP
+    ? "Sebelas SOP sebagaimana tercantum pada Bagian 7.4 telah selesai disusun mengikuti format PermenPAN-RB 35/2012 dan kini dalam proses pengesahan oleh Sekretaris Daerah Kota Tarakan. Dokumen lengkapnya tidak disertakan pada berkas ini dan dapat diserahkan apabila diminta oleh Tim Penilai."
+    : "Halaman-halaman berikut memuat sebelas SOP format PermenPAN-RB 35/2012 yang menjadi dasar alur kerja Prokopim Hibot."));
 
   // ── Lampiran 8 ──
   judulL(8, `Keluaran Statistik Penggunaan per ${PER_LENGKAP}`);
   out.push(PN(`Ditarik langsung dari basis data Prokopim Hibot menggunakan kueri baca-saja. Seluruh angka pada naskah proposal bersumber dari keluaran ini.`, { size: UK_TABEL }));
   const LABEL_AKSI = {
-    create: "Jadwal dibuat", submit: "Diajukan Admin Rencana Kegiatan", forward_to_kabag: "Diteruskan Kepala Subbagian",
-    publish: "Disetujui dan tayang", return_by_kasubbag: "Dikembalikan Kepala Subbagian", reject_by_kabag: "Ditolak Kepala Bagian",
+    create: "Jadwal dibuat", submit: "Diajukan Admin Rencana Kegiatan", forward_to_kabag: "Diteruskan Kepala Sub Bagian",
+    publish: "Disetujui dan tayang", return_by_kasubbag: "Dikembalikan Kepala Sub Bagian", reject_by_kabag: "Ditolak Kepala Bagian",
     resubmit: "Diajukan ulang", recall_published: "Ditarik dari publikasi", penugasan_personil: "Penugasan petugas",
     evaluasi_diisi: "Evaluasi petugas diisi", wk_hadir: "Wali Kota dikonfirmasi hadir", wk_diwakilkan: "Wali Kota diwakilkan",
     wk_tidak_hadir: "Wali Kota tidak hadir", wwk_hadir: "Wakil Wali Kota dikonfirmasi hadir", wwk_diwakilkan: "Wakil Wali Kota diwakilkan",
@@ -952,7 +941,7 @@ function lampiran() {
     staf: "Staf Protokol", kabag: "Kepala Bagian", timkom: "Tim Komunikasi dan Dokumentasi", walpri: "Pengawal pribadi (walpri)",
     admin_rk: "Admin Rencana Kegiatan", walikota: "Wali Kota", superadmin: "Administrator sistem", mitra_kerja: "Mitra Kerja Pemerintah Kota",
     wakilwalikota: "Wakil Wali Kota", admin_undangan: "Admin Undangan", ajudan_walikota: "Ajudan Wali Kota",
-    kasubbag_protokol: "Kepala Subbagian Protokol", kasubbag_komdokpim: "Kepala Subbagian Komunikasi dan Dokumentasi", ajudan_wakilwalikota: "Ajudan Wakil Wali Kota",
+    kasubbag_protokol: "Kepala Sub Bagian Protokol", kasubbag_komdokpim: "Kepala Sub Bagian Komunikasi dan Dokumentasi Pimpinan", ajudan_wakilwalikota: "Ajudan Wakil Wali Kota",
     pramu_tamu: "Pramu Tamu",
   };
   const peranUrut = Object.entries(peran).sort((a, b) => b[1] - a[1]);
@@ -985,9 +974,11 @@ function lampiran() {
   // ── Lampiran 9: Testimoni ──
   const narasumber = [
     ["dr. H. Khairul, M.Kes.", "Wali Kota Tarakan", "Bagaimana kepastian agenda dirasakan sebelum dan sesudah aplikasi ini dipakai?"],
-    ["[[nama]]", "Ajudan Wakil Wali Kota Tarakan", "Bagaimana Bapak/Ibu mengetahui agenda dan menyiapkan bahannya dahulu, dan apa yang berubah sekarang?"],
-    ["[[nama]]", "Staf Protokol, Bagian Protokol dan Komunikasi Pimpinan", "Dahulu bagaimana mengetahui diri sedang ditugaskan, dan apakah pernah terjadi pemberitahuan yang terlambat atau tidak sampai?"],
+    ["Muhammad Rizky Dinata Putra, S.Tr.IP.", "Ajudan Wakil Wali Kota Tarakan", "Bagaimana Bapak/Ibu mengetahui agenda dan menyiapkan bahannya dahulu, dan apa yang berubah sekarang?"],
+    ["Risca Saputri Samtika, S.Pd.", "Staf Protokol, Bagian Protokol dan Komunikasi Pimpinan", "Dahulu bagaimana mengetahui diri sedang ditugaskan, dan apakah pernah terjadi pemberitahuan yang terlambat atau tidak sampai?"],
+    ["Putri Yunis Mudhaika", "Pengadministrasi Perkantoran, Bagian Protokol dan Komunikasi Pimpinan", "Bagaimana pengalaman Bapak/Ibu menjalankan kewenangan sebagai Pelaksana Harian melalui aplikasi ini?"],
   ];
+  const nipNarasumber = [null, "199803252022081001", "199506062025212058", "198206102008012030"];
   narasumber.forEach(([nama, jabatan, tanya], i) => {
     judulL(9, `Testimoni Pengguna (${i + 1} dari ${narasumber.length})`);
     out.push(tengahTebal("KETERANGAN PENGGUNA APLIKASI PROKOPIM HIBOT", { after: 240 }));
@@ -995,9 +986,9 @@ function lampiran() {
     out.push(baris2([["Nama", nama], ["Jabatan", jabatan], ["Instansi", "Pemerintah Kota Tarakan"]]));
     out.push(PN(`memberikan keterangan atas pemakaian aplikasi Prokopim Hibot, menjawab pertanyaan: *${tanya}*`, { before: 160 }));
     out.push(new Table({ width: { size: LEBAR, type: WidthType.DXA }, columnWidths: [LEBAR],
-      rows: [new TableRow({ height: { value: 4200, rule: "atLeast" }, children: [sel("[[keterangan dua sampai empat kalimat; sebutkan keadaan sebelum dan sesudah]]", LEBAR, { size: UK })] })] }));
+      rows: [new TableRow({ height: { value: 2800, rule: "atLeast" }, children: [sel(isiTestimoni[i], LEBAR, { size: UK, align: AlignmentType.JUSTIFIED })] })] }));
     out.push(new Paragraph({ spacing: { after: 200 }, children: [] }));
-    out.push(tandaTangan(["Tarakan, [[tanggal]] September 2026", `${jabatan},`], nama, i === 0 ? [] : ["NIP [[NIP]]"]));
+    out.push(tandaTangan(["Tarakan, 30 September 2026", `${jabatan},`], nama, nipNarasumber[i] ? [`NIP ${nipNarasumber[i]}`] : []));
   });
 
   // ── Lampiran 10 ──
@@ -1008,7 +999,6 @@ function lampiran() {
     ["Aplikasi Prokopim Hibot", "https://prokopim.tarakankota.go.id"],
     ["Permohonan audiensi", "https://prokopim.tarakankota.go.id/tamu"],
     ["Peminjaman ruangan", "https://prokopim.tarakankota.go.id/pinjamruangan"],
-    ["Daftar hadir digital", "https://prokopim.tarakankota.go.id/daftarhadir"],
   ] }));
   return out;
 }
@@ -1062,7 +1052,7 @@ function daftarIsi(halaman) {
     children: [new TextRun({ text: hal === null ? teks : `${teks}\t${hal ?? ""}`, bold: tingkat === 1, size: tingkat === 1 ? UK : UK_TABEL, font: FONT })],
   });
   for (const j of urutanJudul) out.push(entri(j.teks, j.tingkat, j.teks === BAB.b12 ? null : (halaman?.[j.teks] ?? "")));
-  out.push(new Paragraph({ spacing: { before: 200 }, children: runs("*Halaman isi dinomori mulai Bagian 2. Sampul dan lampiran tidak termasuk dalam batas 20 halaman.*", { size: UK_KECIL, font: FONT }) }));
+  out.push(new Paragraph({ spacing: { before: 200 }, children: runs("*Penomoran bagian mengikuti Panduan Teknis Bab 4.2, yang menempatkan Sampul sebagai Bagian 1. Halaman isi dinomori mulai Bagian 2; sampul dan lampiran tidak termasuk dalam batas 20 halaman.*", { size: UK_KECIL, font: FONT }) }));
   return out;
 }
 
@@ -1112,10 +1102,22 @@ function buatDokumen(halaman) {
   });
 }
 
+// Pedoman mensyaratkan Arial. Tanpa berkas Arial terpasang, LibreOffice diam-diam
+// memakai pengganti (Liberation Sans) — hentikan saja agar tidak lolos.
+// Pasang ARIAL.TTF, ARIALBD.TTF, ARIALI.TTF, ARIALBI.TTF ke ~/.fonts lalu fc-cache -f.
+{
+  let cocok = "";
+  try { cocok = execFileSync("fc-match", ["-f", "%{family}", "Arial"], { encoding: "utf8" }); } catch {}
+  if (!/^Arial\b/.test(cocok)) {
+    console.error(`Font Arial belum terpasang (fc-match Arial → "${cocok || "?"}"). Lihat catatan di atas.`);
+    process.exit(1);
+  }
+}
+
 async function tulisDanRender(halaman) {
   const buf = await Packer.toBuffer(buatDokumen(halaman));
   fs.writeFileSync(KELUAR + ".docx", buf);
-  execFileSync("soffice", ["--headless", "--convert-to", "pdf", "--outdir", LOMBA, KELUAR + ".docx"], { stdio: "ignore" });
+  execFileSync("soffice", ["--headless", "--convert-to", "pdf", "--outdir", path.dirname(KELUAR), KELUAR + ".docx"], { stdio: "ignore" });
 }
 
 // Lintasan 1: render untuk mencari letak judul. Lintasan 2: isi nomor halaman.
@@ -1125,7 +1127,19 @@ const hasil = JSON.parse(execFileSync("python3", [path.join(DIR, "halaman.py"), 
 await tulisDanRender(hasil.halaman);
 const akhir = JSON.parse(execFileSync("python3", [path.join(DIR, "halaman.py"), KELUAR + ".pdf", BAB.b2, ...judulSemua], { encoding: "utf8" }));
 execFileSync("python3", [path.join(DIR, "gabung.py"), KELUAR + ".pdf",
-  "7=" + path.join(REPO, "docs/sop/SOP-Prokopim.pdf"),
+  ...(TANPA_SOP ? [] : ["7=" + path.join(REPO, "docs/sop/SOP-Prokopim.pdf")]),
+  "2=" + path.join(LOMBA, "lampiran/Surat-Usulan-Sekda-TTE.pdf"),
   "6=" + path.join(LOMBA, "lampiran/SK-Tim-Koordinasi-2026.pdf") + "," + path.join(LOMBA, "lampiran/Surat-Sekda-300.2.10-265-2026.pdf"),
 ], { stdio: "inherit" });
-console.log(JSON.stringify({ ...akhir, keluaran: [KELUAR + ".docx", KELUAR + ".pdf"] }, null, 2));
+const keluaran = [KELUAR + ".docx", KELUAR + ".pdf"];
+let identitas = null;
+if (PRIBADI) {
+  const lamp3 = path.join(RAHASIA, "Lampiran-3-Identitas.pdf");
+  identitas = JSON.parse(execFileSync("python3", [path.join(DIR, "identitas.py"), path.join(RAHASIA, "identitas"), lamp3], { encoding: "utf8" }));
+  // Halaman judul Lampiran 3 diganti halaman KTP yang sudah memuat judulnya.
+  execFileSync("python3", [path.join(DIR, "gabung.py"), KELUAR + ".pdf", "3!=" + lamp3], { stdio: "inherit" });
+  // Halaman bertanda tangan (pakta, testimoni) menggantikan halaman kosongnya.
+  if (fs.existsSync(path.join(RAHASIA, "ttd.json")))
+    execFileSync("python3", [path.join(DIR, "ttd.py"), KELUAR + ".pdf", path.join(RAHASIA, "ttd.json")], { stdio: "inherit" });
+}
+console.log(JSON.stringify({ ...akhir, identitas, keluaran }, null, 2));
