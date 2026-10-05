@@ -6,9 +6,8 @@
  * berkas yang bisa langsung diunduh atau dibagikan. Sekarang PDF dibangun di
  * peramban dengan pdfmake:
  *
- *   - TEKS ASLI, bukan gambar. Srikandi mengisi variabel ${nomor_naskah},
- *     ${tanggal_naskah}, ${sifat}, dan ${ttd_pengirim} dengan mencari teksnya
- *     di dalam PDF; PDF berupa gambar tidak bisa diisi.
+ *   - TEKS ASLI, bukan gambar. Srikandi mencari teks variabel di dalam PDF —
+ *     QR TTE dipusatkan pada ${ttd_pengirim} — dan PDF berupa gambar tidak bisa diisi.
  *   - ARIAL TERTANAM. Font dibawa aplikasi sendiri (src/assets/fonts, dipangkas
  *     ke huruf Latin), jadi hasilnya sama di Windows, Android, maupun iPhone —
  *     tidak lagi bergantung pada font yang terpasang di perangkat.
@@ -25,8 +24,11 @@ import urlItalic from "../assets/fonts/arial-italic.ttf?url";
 import urlBoldItalic from "../assets/fonts/arial-bolditalic.ttf?url";
 
 const MM = 72 / 25.4;
-// CSS memakai line-height 1.5; tinggi baris bawaan Arial di pdfmake ±1,15 em.
-const SPASI = 1.5 / 1.15;
+// Ukuran-ukuran di berkas ini dikalibrasi terhadap templat HTML lama (commit
+// 6245528) yang dicetak Chromium: posisi setiap baris PDF baru disamakan
+// dengan PDF templat lama, supaya surat tetap muat satu halaman seperti dulu.
+// Jarak antarbaris templat lama 16,5 pt untuk huruf 11 pt (line-height 1.5).
+const SPASI = 1.345;
 
 const BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 const HARI = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
@@ -108,36 +110,35 @@ const barisInfo = (label, isi, lebarLabel) => [
 
 const tabelInfo = (baris, lebarLabel, marginBawah) => ({
   table: { widths: [lebarLabel, 15, "*"], body: baris.map(([l, isi]) => barisInfo(l, isi, lebarLabel)) },
-  layout: { defaultBorder: false, paddingLeft: () => 0, paddingRight: () => 0, paddingTop: () => 1.5, paddingBottom: () => 1.5 },
+  layout: { defaultBorder: false, paddingLeft: () => 0, paddingRight: () => 0, paddingTop: () => 1, paddingBottom: () => 1 },
   margin: [0, 0, 0, marginBawah],
 });
 
-// Ruang tanda tangan disamakan dengan QR TTE pada surat Sekda ber-TTE yang
-// terukur (500.10.30.2/1122/SETDA/2026): QR 2,7 x 2,7 cm, menggantikan
-// variabel ${ttd_pengirim} dan mengalir ke bawah, nama tepat di bawahnya.
-// Variabel ditaruh di sudut kiri atas kotak 2,7 cm di tengah kolom tanda
-// tangan; ruang di bawahnya ±2,8 cm.
-const KOTAK_QR = 27 * MM;
-const RUANG_TTD = 28 * MM;
+// TTE mengikuti undangan ber-TTE Srikandi yang dijadikan patokan (dihasilkan
+// TCPDF, 28 September 2026): Srikandi menaruh QR 2,7 x 2,7 cm BERPUSAT di
+// tengah teks variabel tanda tangan — titik tengah QR (405,8; 587,2) berimpit
+// dengan titik tengah variabel (405,8; 587,0). Patokan memakai ${ttd}; atas
+// keputusan Kepala Bagian generator tetap memakai ${ttd_pengirim}. Pada
+// patokan, pusat QR 34,9 pt di bawah baris jabatan dan nama 96,6 pt di bawah
+// puncak jabatan; ukuran yang sama dipakai di sini.
+const TTE_ATAS = 23.7;    // jarak baris jabatan → baris variabel
+const TTE_BAWAH = 39.9;   // jarak baris variabel → nama
 
 function areaTtd(form, img, marginAtas) {
-  const LEBAR = 187;   // 250 px
+  const LEBAR = 187.5;   // 250 px, kolom tanda tangan templat lama
+  const AREA = 60;       // 80 px: tinggi ruang tanda tangan templat lama
   let tengah;
   if (form.jenisTtd === "tte") {
-    tengah = {
-      columns: [
-        { width: "*", text: "" },
-        { width: KOTAK_QR, text: "${ttd_pengirim}", noWrap: true, fontSize: 9.5, bold: true, color: "#0056b3", background: "#e9ecef" },
-        { width: "*", text: "" },
-      ],
-      margin: [0, 2, 0, RUANG_TTD - 14],
-    };
+    tengah = { text: "${ttd_pengirim}", alignment: "center", margin: [0, TTE_ATAS, 0, TTE_BAWAH] };
   } else if (form.jenisTtd === "scan" && img.gabungan) {
-    // Stempel dan tanda tangan sudah digabung menjadi satu gambar (gabungTtd),
-    // sedikit menimpa baris jabatan seperti cap basah pada umumnya.
-    tengah = { image: img.gabungan, fit: [LEBAR, RUANG_TTD + 18], alignment: "center", margin: [0, -10, 0, 0] };
+    // Gambar gabungan setinggi 144 px (108 pt), mulai 30 px (22,5 pt) di atas
+    // ruang tanda tangan — persis posisi absolut templat lama. Margin negatif
+    // membuat tingginya dalam alur tetap 80 px, sehingga nama dan keterangan
+    // tidak terdorong ke bawah.
+    const TINGGI = 144 * 0.75;
+    tengah = { image: img.gabungan, width: LEBAR, margin: [0, -24.5, 0, AREA - TINGGI + 24.5] };
   } else {
-    tengah = { text: " ", margin: [0, 0, 0, RUANG_TTD - 13] };
+    tengah = { text: " ", margin: [0, 0, 0, AREA - 16.5] };
   }
   return {
     columns: [
@@ -169,15 +170,15 @@ async function gabungTtd(stempel, ttd) {
     const i = new Image(); i.onload = () => ok(i); i.onerror = () => ok(null); i.src = src;
   });
   const [s, t] = await Promise.all([muat(stempel), muat(ttd)]);
-  const SK = 3, W = 250, H = 150;
+  const SK = 3, W = 250, H = 144;
   const c = document.createElement("canvas");
   c.width = W * SK; c.height = H * SK;
   const x = c.getContext("2d");
   x.scale(SK, SK);
   x.fillStyle = "white"; x.fillRect(0, 0, W, H);
   x.globalCompositeOperation = "multiply";
-  if (t) { const h = 140, w = h * t.width / t.height; x.drawImage(t, W - w, 5, w, h); }
-  if (s) { const w = 145, h = w * s.height / s.width; x.drawImage(s, 0, 2, w, h); }
+  if (s) { const w = 145, h = w * s.height / s.width; x.drawImage(s, 0, 0, w, h); }
+  if (t) { const h = 140, w = h * t.width / t.height; x.drawImage(t, W - w, 0, w, h); }
   // Latar putih dijadikan transparan supaya cap boleh menimpa baris jabatan
   // tanpa menutupi tulisannya — seperti stempel basah di atas kertas.
   const data = x.getImageData(0, 0, c.width, c.height);
@@ -231,7 +232,7 @@ function keterangan(form) {
   if (form.showNarahubung) isi.push(item("Narahubung:", form.narahubung));
   if (form.showPakaian) isi.push(item("Pakaian:", form.pakaian));
   if ((form.catatan || "").trim()) isi.push(item("Catatan:", form.catatan));
-  return isi.length ? { stack: isi, fontSize: 10, margin: [0, 19, 0, 0] } : null;
+  return isi.length ? { stack: isi, fontSize: 10, margin: [0, 0, 0, 0] } : null;
 }
 
 export async function buatDokumenUndangan(form) {
@@ -246,10 +247,10 @@ export async function buatDokumenUndangan(form) {
   const utama = [
     {
       stack: [
-        garuda ? { image: garuda, width: 66, alignment: "center", margin: [0, 0, 0, 4] } : { text: "" },
+        garuda ? { image: garuda, width: 66, alignment: "center", margin: [0, 0, 0, 15.6] } : { text: "" },
         { text: "WALI KOTA TARAKAN", fontSize: 20, bold: true, alignment: "center", characterSpacing: 0.4 },
       ],
-      margin: [0, 0, 0, 19],
+      margin: [0, 0, 0, 17.2],
     },
     { text: form.tanggalSurat, alignment: "right", margin: [0, 0, 0, 11] },
     tabelInfo([
@@ -267,14 +268,14 @@ export async function buatDokumenUndangan(form) {
       ],
       margin: [0, 0, 0, 11],
     },
-    { text: "Mengharapkan dengan hormat kehadiran Bapak/Ibu/Saudara (i) pada:", alignment: "justify", leadingIndent: 36.75, margin: [0, 7.5, 0, 4] },
+    { text: "Mengharapkan dengan hormat kehadiran Bapak/Ibu/Saudara (i) pada:", alignment: "justify", leadingIndent: 36.75, margin: [0, 0.5, 0, 3.3] },
     tabelInfo([
       ["hari/tanggal", formatTanggalIndo(form.tanggalAcaraInput)],
       ["pukul", teksPukul(form)],
       ["tempat", form.tempat],
       ["acara", teksDaftar(form.acara, { bold: true })],
-    ], 113, 7.5),
-    { text: "Demikian, atas perhatian serta kehadirannya diucapkan terima kasih.", alignment: "justify", leadingIndent: 36.75, margin: [0, 7.5, 0, 4] },
+    ], 113, 0),
+    { text: "Demikian, atas perhatian serta kehadirannya diucapkan terima kasih.", alignment: "justify", leadingIndent: 36.75, margin: [0, 6.9, 0, 4] },
     areaTtd(form, img, 11),
     keterangan(form),
   ].filter(Boolean);
@@ -291,12 +292,15 @@ export async function buatDokumenUndangan(form) {
     pageSize: "A4",
     // Margin bawah memberi ruang alamat kaki surat, yang dulu berada 20 mm
     // dari tepi bawah halaman pertama.
-    pageMargins: [25 * MM, 20 * MM, 20 * MM, 20 * MM + 30],
+    pageMargins: [25 * MM, 20 * MM, 20 * MM, 20 * MM],
     defaultStyle: { font: "Arial", fontSize: 11, lineHeight: SPASI },
     info: { title: namaBerkasUndangan(form).replace(/\.pdf$/, ""), creator: "Prokopim Hibot" },
-    footer: (hal) => hal !== 1 ? null : {
+    // Alamat kaki surat hanya di halaman pertama, berdiri sendiri 20 mm dari
+    // tepi bawah tanpa memakan ruang isi — sama dengan templat lama.
+    background: (hal, ukuran) => hal !== 1 ? null : {
       text: "Jalan Kalimantan No. 1, Kota Tarakan\nTelp. (0551) 21620, 34320 Fax. (0551) 23782",
-      alignment: "center", fontSize: 10, lineHeight: 1.1, margin: [0, 4, 0, 0],
+      alignment: "center", fontSize: 10, lineHeight: 1.18, font: "Arial",
+      absolutePosition: { x: 0, y: ukuran.height - 20 * MM - 26 },
     },
     content: [...utama, ...lampiran],
   };
