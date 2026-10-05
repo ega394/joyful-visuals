@@ -1142,6 +1142,96 @@ async function tulisDanRender(halaman) {
   execFileSync("soffice", ["--headless", "--convert-to", "pdf", "--outdir", path.dirname(KELUAR), KELUAR + ".docx"], { stdio: "ignore" });
 }
 
+// ═══════════════════════════════════════════════════════════════════
+//  TEKS ISIAN RISDA
+// ═══════════════════════════════════════════════════════════════════
+// Ringkasan per bagian untuk disalin ke kolom isian aplikasi RISDA
+// (tarakankota.risda.online). Teks polos tanpa tabel atau huruf tebal supaya
+// rapi ketika ditempel; angka memakai data yang sama dengan proposal.
+function isianRisda() {
+  const persen = (a, b) => pct(a, b);
+  const bagian = [
+    ["IDENTITAS USULAN", [
+      `Judul inovasi: ${JUDUL_LENGKAP}`,
+      `Kategori: ${KATEGORI.replace(/^Kategori /, "")}`,
+      `Bidang fokus: ${BIDANG_FOKUS}`,
+      `Inovator: Tim Inovasi Prokopim Hibot — ${TIM.map(([nm, , kd]) => `${nm} (${kd})`).join("; ")}`,
+      `Instansi: Bagian Protokol dan Komunikasi Pimpinan, Sekretariat Daerah Kota Tarakan`,
+      `Mulai diterapkan: Maret 2026 (kegiatan pertama ${tglPanjang(D.tanggal_kegiatan.awal)}); lama implementasi per 1 Oktober 2026: ${MASA}`,
+      `Tautan aplikasi: https://prokopim.tarakankota.go.id`,
+      `Kontak ketua tim: 0811-5900-394; anugrahyegapranatha@gmail.com`,
+    ]],
+    ["2. RINGKASAN EKSEKUTIF", [
+      `Masalah. Bagian Protokol dan Komunikasi Pimpinan mengelola agenda Wali Kota dan Wakil Wali Kota dengan volume rata-rata ${rataBulan} kegiatan per bulan. Sampai awal 2026 seluruh prosesnya manual: rencana kegiatan disusun di spreadsheet lalu dicetak, penelaahan hanya dalam satu jendela sekitar 30 menit menjelang jam pulang, disposisi diteruskan sebagai foto di grup percakapan, dan penugasan petugas bergantung pada ingatan. Pada Januari 2026 satu lembar disposisi agenda tidak ikut terkirim tanpa ada yang mengetahuinya. Akar masalahnya: tidak ada satu sumber data yang sahih dan dapat diperiksa semua pihak.`,
+      `Solusi. Prokopim Hibot adalah superapp pelayanan keprotokolan dan komunikasi pimpinan: satu aplikasi web progresif yang menyatukan sebelas alur kerja dalam satu data dan satu pintu, mulai dari penetapan jadwal berjenjang, penugasan petugas, audiensi dan peminjaman ruangan, undangan siap tanda tangan elektronik Srikandi, sampai daftar hadir digital dan evaluasi petugas. Setiap keputusan terekam pada jejak audit.`,
+      `Implementasi. Digunakan sejak Maret 2026, dikuatkan Surat Sekda Nomor ${NOMOR_SURAT_SEKDA} dan Keputusan Sekda Nomor ${SK_SEKDA}, dengan sebelas SOP. Per 1 Oktober 2026 telah berjalan ${MASA}.`,
+      `Penerima manfaat. ${D.pengguna.aktif} akun aktif pada ${jumlahPeran} peran (Pimpinan Daerah, ajudan, pengawal pribadi, pejabat, petugas, mitra kerja lintas unit), serta ${D.ruang.instansi_berbeda} instansi peminjam ruangan dan ${D.tamu.instansi_berbeda} instansi pemohon audiensi.`,
+      `Bukti dampak (data aplikasi per ${PER_LENGKAP}): ${n(T)} kegiatan terkelola; median ${dk(K.median_ajukan_tayang_jam, 2)} jam dari pengajuan sampai jadwal tayang (sebelumnya diperkirakan 18–24 jam); ${persen(K.tayang_dalam_24_jam, K.kegiatan_jejak_lengkap)} tayang kurang dari 24 jam; ${persen(luarJam, putusanTotal)} penelaahan dan persetujuan terjadi di luar jam kerja; ${n(D.jejak.peristiwa_total)} peristiwa terekam pada jejak audit; ${persen(D.dengan_penugasan_petugas, T)} kegiatan berpenugasan petugas tercatat; belanja pengadaan Rp0.`,
+    ]],
+    ["3. PROFIL INOVATOR/TIM", [
+      `Tim Inovasi Prokopim Hibot, Bagian Protokol dan Komunikasi Pimpinan Sekretariat Daerah Kota Tarakan. Susunan tim diambil dari Keputusan Sekda Nomor ${SK_SEKDA} tentang Tim Koordinasi Peningkatan Pelayanan Keprotokolan dan Komunikasi Pimpinan (42 anggota).`,
+      ...TIM.map(([nm, jb, kd, pr], i) => `${i + 1}. ${nm} — ${jb} — ${kd}: ${pr}.`),
+      `Kontak ketua tim: 0811-5900-394; anugrahyegapranatha@gmail.com.`,
+    ]],
+    ["4. LATAR BELAKANG DAN ANALISIS MASALAH", [
+      `Data dasar. Berdasarkan Perwali Tarakan 50/2021, Bagian Prokopim menyiapkan jadwal, mengoordinasikan kegiatan, menyusun naskah sambutan, dan mendokumentasikan kegiatan Kepala Daerah. Sejak Maret sampai ${PER_TGL} tercatat ${n(T)} kegiatan (${n(D.kegiatan_per_pimpinan.walikota)} untuk Wali Kota, ${n(D.kegiatan_per_pimpinan.wakilwalikota)} untuk Wakil Wali Kota), ${n(sambutanKeg)} di antaranya kegiatan sambutan.`,
+      `Kondisi sebelum. Rencana kegiatan disusun di spreadsheet dan dicetak; penelaahan hanya sekali sehari ±30 menit pada hari kerja; kegiatan mendesak memerlukan cetak ulang; disposisi diteruskan sebagai foto; penugasan tidak tercatat; ketersediaan ruangan di papan tulis; pemohon audiensi harus datang atau menelepon.`,
+      `Peristiwa pemicu. Januari 2026, satu berkas disposisi tiga lembar hanya diterima dua lembar karena satu lembar tidak ikut terfoto saat diteruskan di grup percakapan, dan tidak ada pihak yang dapat mengetahuinya.`,
+      `Akar masalah: tidak ada satu sumber data yang sahih. Turunannya: penelaahan terikat jendela waktu; keputusan tidak berjejak; versi dokumen beredar ganda; pengetahuan kerja melekat pada orang; layanan publik tidak dapat ditelusuri. Karena persoalan tersebar di banyak saluran (kertas, spreadsheet, grup percakapan, papan tulis, telepon), jawabannya adalah satu wadah bagi seluruh layanan: superapp.`,
+      `Urgensi. Kegiatan yang tidak tercatat berarti Pimpinan hadir tanpa pendampingan, peliputan, dan naskah yang matang. SE Wali Kota Nomor ${SE_WALIKOTA} mendorong inovasi berbasis digital.`,
+      `Sasaran: Wali Kota dan Wakil Wali Kota; ajudan dan pengawal pribadi; Kepala Bagian dan Kepala Sub Bagian; petugas protokol, pramu tamu, dan dokumentasi; masyarakat, instansi, dan mitra kerja. Sumber data: telaah alur kerja (kondisi sebelum) dan basis data aplikasi melalui kueri baca-saja (kondisi sesudah).`,
+    ]],
+    ["5. KESELARASAN DENGAN RPJMD", [
+      `Mendukung visi RPJMD Kota Tarakan 2025–2029 "Tarakan sebagai Kota Cerdas" pada sisi tata kelola, khususnya Misi 4: tata kelola pemerintahan yang adaptif, responsif, dan menjaga stabilitas ketertiban dan ketenteraman kota. Adaptif: kerja tanpa kertas dari telepon pintar. Responsif: jadwal ditetapkan dalam hitungan jam dan permohonan masyarakat dapat ditelusuri. Stabilitas: kehadiran Pimpinan selalu didampingi petugas yang siap.`,
+      `Kategori A dijawab langsung: tata kelola (kewenangan melekat pada jabatan, Pelaksana Harian bermasa berlaku), proses bisnis (tanpa jendela waktu, sebelas SOP), digitalisasi (sebelas alur dalam satu superapp, undangan siap TTE Srikandi), data (satu data kegiatan), manajemen (sebaran beban dan kinerja petugas), pengawasan (jejak audit dan daftar periksa wajib), efisiensi (median ${dk(K.median_ajukan_tayang_jam, 2)} jam, Rp0 pengadaan).`,
+      `Nama inovasi mengusung semboyan "Tarakan HIBOT" (Handal, Inovatif, Berbudaya, Unggul/Oenggoel, Tangguh) dan sejalan dengan tema "Inovasi Berdampak, Tarakan Maju dan Berdaya Saing".`,
+      `Regulasi terkait: UU 23/2014; UU 25/2009; UU 9/2010 tentang Keprotokolan; PP 38/2017; Permendagri 104/2018; Perpres 95/2018 dan 82/2023; PermenPAN-RB 35/2012; Perda Kota Tarakan 2/2025 (RPJMD); Perwali 20/2025 (RKPD 2026); Perwali 41/2025 (Penyelenggaraan Inovasi Daerah); Perwali 50/2021; SE Wali Kota ${SE_WALIKOTA}; Keputusan Sekda ${SK_SEKDA}.`,
+    ]],
+    ["6. DESKRIPSI DAN KEBARUAN", [
+      `Konsep: setiap kegiatan Pimpinan memiliki satu data yang sama bagi semua pihak, dan setiap keputusan atasnya tercatat. Di atasnya dibangun superapp: satu aplikasi, satu pintu, banyak layanan, dengan tampilan sesuai peran.`,
+      `Lapisan layanan: Pimpinan Daerah (agenda terkini, disposisi kepada Wakil Wali Kota); ajudan dan pengawal pribadi (pemberitahuan dini, konfirmasi kehadiran, pengingat); pejabat struktural (antrean persetujuan dengan daftar periksa, pemantauan usulan perubahan, Pelaksana Harian); petugas (penugasan melalui aplikasi dan WhatsApp, rekap pagi, evaluasi); masyarakat dan instansi (audiensi dan peminjaman ruangan daring dengan kode penelusuran, daftar hadir QR); integrasi (Google Calendar otomatis, notifikasi, undangan siap TTE Srikandi).`,
+      `Cara kerja: Admin Rencana Kegiatan menginput jadwal dan undangan → Kepala Sub Bagian Protokol menelaah → Kepala Bagian menyetujui → jadwal tayang kepada Pimpinan, ajudan, dan petugas, lalu tersalin otomatis ke kalender bersama.`,
+      `Kebaruan: (a) jejak audit melekat pada setiap kegiatan; (b) daftar periksa wajib sebelum persetujuan; (c) kewenangan melekat pada jabatan dengan Pelaksana Harian yang padam sendiri; (d) pengawasan usulan perubahan menurut kegentingan; (e) kanal publik yang dapat ditelusuri tanpa membuka data pribadi; (f) sinkron otomatis ke Google Calendar; (g) undangan PDF siap TTE Srikandi dengan pemesanan ruang rapat Imbaya/Kenawai sekaligus.`,
+      `Perbedaan dengan cara lama: satu data terkini menggantikan beberapa versi cetakan; pemberitahuan otomatis hanya kepada yang berubah; alur tidak berhenti saat pejabat berhalangan; kalender bersama terisi sendiri; satu superapp menggantikan kertas, grup percakapan, papan tulis, dan telepon.`,
+    ]],
+    ["7. PELAKSANAAN INOVASI", [
+      `Waktu mulai: Maret 2026 (kegiatan pertama ${tglPanjang(D.tanggal_kegiatan.awal)}). Lama implementasi per 1 Oktober 2026: ${MASA}. Lokasi: Bagian Prokopim Setda Kota Tarakan, dapat diakses dari mana saja. Pengguna: ${D.pengguna.aktif} akun aktif pada ${jumlahPeran} peran.`,
+      `Tahapan: Januari 2026 peristiwa pemicu dan telaah alur kerja; Februari–Maret pembangunan, uji coba, dan mulai digunakan; Mei jejak audit dan kanal peminjaman ruangan; Juli–Agustus audiensi terhubung ke agenda, notifikasi, kalender ruangan, daftar hadir digital; September Pelaksana Harian, daftar periksa wajib, pemantauan usulan perubahan, sinkron Google Calendar; Oktober generator undangan siap TTE Srikandi dan pemesanan ruang rapat internal.${pembaruan ? ` Tercatat lebih dari ${bulatBawah(pembaruan, 10)} pembaruan aplikasi sejak Maret 2026.` : ""}`,
+      `SOP dan regulasi: sebelas SOP format PermenPAN-RB 35/2012 (satu untuk setiap alur), Keputusan Sekda Nomor ${SK_SEKDA}, dan Surat Sekda Nomor ${NOMOR_SURAT_SEKDA}. Dokumentasi: tangkapan layar (Lampiran 4) dan video bagi finalis.`,
+    ]],
+    ["8. SUMBER DAYA DAN KOLABORASI", [
+      `SDM: dikembangkan swakelola oleh Ketua Tim dengan asisten pemrograman berbasis kecerdasan buatan; anggota tim dan pelaksana Bagian Prokopim menjadi pengguna sekaligus penguji; diperkuat Tim Koordinasi 42 orang termasuk para Sekretaris Dinas.`,
+      `Anggaran: belanja pengadaan Rp0. Teknologi dan sarana: peladen tanpa server dan basis data terkelola pada kuota tanpa biaya, Google Calendar dan spreadsheet milik instansi, telepon pintar milik pengguna; biaya berjalan hanya langganan gerbang pesan WhatsApp. Ketika lalu lintas data sempat 6,4 GB/bulan (kuota 5 GB), pengambilan data diubah sehingga turun menjadi ±1 GB.`,
+      `Mitra dan peran: Sekda (menetapkan Tim Koordinasi dan menguatkan penggunaan); Wali Kota dan Wakil Wali Kota (pengguna langsung, ${aksi.delegasi_to_wwk || 0} disposisi); ajudan dan pengawal pribadi (${n(konfirmasiHadir)} konfirmasi kehadiran); DKISP (subdomain prokopim.tarakankota.go.id); Bappeda Litbang (pengampu inovasi daerah); ${peran.mitra_kerja || 0} akun mitra kerja lintas unit.`,
+    ]],
+    ["9. HASIL, MANFAAT, DAN BUKTI DAMPAK", [
+      `Sebelum–sesudah: waktu dari undangan masuk sampai tercantum di agenda ±18–24 jam (jalur tercepat, estimasi) menjadi median ${dk(K.median_ajukan_tayang_jam, 2)} jam; ${persen(K.tayang_dalam_4_jam, K.kegiatan_jejak_lengkap)} tayang kurang dari 4 jam dan ${persen(K.tayang_dalam_24_jam, K.kegiatan_jejak_lengkap)} kurang dari 24 jam. Penelaahan dari sekali sehari menjadi setiap saat (${persen(luarJam, putusanTotal)} di luar jam kerja). Keputusan Kepala Bagian median ${jamMenit(K.median_teruskan_tayang_jam)}.`,
+      `Mutu dan akuntabilitas: ${n(D.jejak.peristiwa_total)} peristiwa terekam; ${D.dikembalikan_untuk_diperbaiki} kegiatan dikembalikan untuk diperbaiki sebelum ditetapkan; ${D.jejak.dengan_daftar_periksa} keputusan melalui daftar periksa wajib; ${D.jejak.oleh_plh} tindakan oleh Pelaksana Harian; ${n(D.dengan_penugasan_petugas)} kegiatan (${persen(D.dengan_penugasan_petugas, T)}) berpenugasan petugas; ${n(D.undangan_terarsip)} undangan terarsip; ${n(D.sudah_dievaluasi)} kegiatan dievaluasi.`,
+      `Pertumbuhan: ${vAwal} kegiatan pada ${namaBulan(bPenuhAwal)} menjadi ${vAkhir} pada ${namaBulan(bPenuhAkhir)} (naik ${naik}%).`,
+      `Jangkauan: ${D.ruang.pengajuan} pengajuan ruangan dari ${D.ruang.instansi_berbeda} instansi (${n(D.ruang.peserta_disetujui)} peserta); ${D.tamu.total} permohonan audiensi dari ${D.tamu.instansi_berbeda} instansi, ${D.agenda_dari_permohonan_tamu} menjadi agenda Pimpinan; notifikasi aktif pada ${D.perangkat_notifikasi.perangkat} perangkat.`,
+      `Kepuasan: testimoni tertulis bertanda tangan dari Wali Kota Tarakan, Ajudan Wakil Wali Kota, Staf Protokol, dan Pelaksana Harian (Lampiran 9).`,
+      `Sosial-ekonomi: masyarakat tidak perlu datang atau menelepon berulang; hemat kertas dan waktu kerja; tanpa belanja pengadaan.`,
+      `Catatan: pengesahan naskah sambutan melalui aplikasi baru ${D.sambutan_disahkan} naskah karena Pimpinan lebih nyaman dengan naskah tercetak; modul keterangan foto berbantuan AI dan pemesanan ruang internal masih tahap awal.`,
+    ]],
+    ["10. KEBERLANJUTAN DAN PELEMBAGAAN", [
+      `Pembiayaan: biaya berjalan mendekati nol, tidak bergantung anggaran tahunan. Pengelola: Bagian Protokol dan Komunikasi Pimpinan Setda. Pemeliharaan: pembaruan berkelanjutan berdasarkan masukan pengguna. SOP: sebelas SOP untuk disahkan Sekda. Kebijakan: Keputusan Sekda tentang Tim Koordinasi, Surat Sekda 12 Maret 2026, SE Wali Kota tentang Inovasi Daerah. Kelembagaan: kewenangan melekat pada jabatan sehingga mutasi pejabat tidak memutus alur.`,
+      `Rencana: Oktober–Desember 2026 pengesahan SOP; Januari–Juni 2027 pendampingan pengelola kedua dan dokumentasi teknis; Juli–Desember 2027 paket replikasi.`,
+      `Risiko dan mitigasi: ketergantungan pada satu pengembang (SOP, repositori kode, akun atas nama instansi, alih pengetahuan 2027); kuota layanan tanpa biaya (pemantauan, penggabungan fungsi); kehilangan data (pencadangan berkala); data pribadi (kanal publik tanpa identitas pemohon); pejabat berhalangan (Pelaksana Harian bermasa berlaku).`,
+    ]],
+    ["11. REPLIKASI, PERLUASAN, DAN DISEMINASI", [
+      `Potensi adopsi: dapat direplikasi utuh atau per modul. Di lingkungan Pemkot Tarakan: Sekretariat DPRD (agenda pimpinan dewan) serta perangkat daerah yang mengelola ruang pertemuan atau menerima tamu (modul ruangan, audiensi, daftar hadir). Di luar Tarakan: Pemprov Kalimantan Utara dan kabupaten di Kaltara.`,
+      `Syarat replikasi: peramban dan internet, layanan awan kuota tanpa biaya, sebelas SOP siap diadaptasi, satu pengelola dengan pendampingan. Dokumentasi: sebelas SOP, panduan pemasangan daftar hadir, catatan teknis kode.`,
+      `Diseminasi dan publikasi: Tim Koordinasi lintas perangkat daerah; pengenalan langsung kepada Pimpinan, ajudan, dan mitra kerja; ${D.ruang.instansi_berbeda} instansi peminjam ruangan dan ${D.tamu.instansi_berbeda} instansi pemohon audiensi; Surat Sekda kepada DKISP ditembuskan kepada Wali Kota dan Kepala Bappeda Litbang; alamat resmi prokopim.tarakankota.go.id dan Google Calendar bersama yang dapat dilanggani.`,
+    ]],
+  ];
+  let teks = `TEKS ISIAN RISDA — LOMBA INOVASI DAERAH KOTA TARAKAN 2026\n${JUDUL_LENGKAP}\nData per ${PER_LENGKAP}. Dibuat otomatis oleh buat-proposal-tarakan.mjs; angka sama dengan proposal.\n`;
+  for (const [judul, paragraf] of bagian) {
+    const isiBagian = paragraf.join("\n\n");
+    teks += `\n${"=".repeat(70)}\n${judul}   [${n(isiBagian.length)} karakter]\n${"=".repeat(70)}\n\n${isiBagian}\n`;
+  }
+  fs.writeFileSync(path.join(TARAKAN, "Isian-RISDA.txt"), teks);
+}
+
 // Lintasan 1: render untuk mencari letak judul. Lintasan 2: isi nomor halaman.
 await tulisDanRender(null);
 const judulSemua = urutanJudul.map((j) => j.teks);
@@ -1154,6 +1244,7 @@ execFileSync("python3", [path.join(DIR, "gabung.py"), KELUAR + ".pdf",
   "6=" + path.join(LOMBA, "lampiran/SK-Tim-Koordinasi-2026.pdf") + "," + path.join(LOMBA, "lampiran/Surat-Sekda-300.2.10-265-2026.pdf"),
 ], { stdio: "inherit" });
 const keluaran = [KELUAR + ".docx", KELUAR + ".pdf"];
+if (!PRIBADI && !TANPA_SOP) { isianRisda(); keluaran.push(path.join(TARAKAN, "Isian-RISDA.txt")); }
 let identitas = null, ttd = null;
 if (PRIBADI) {
   const lamp3 = path.join(RAHASIA, "Lampiran-3-Identitas.pdf");
