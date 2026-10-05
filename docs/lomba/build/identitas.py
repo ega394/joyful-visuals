@@ -1,11 +1,13 @@
 """
 Lampiran 3 — bukti identitas anggota tim, dari pindaian di docs/lomba/rahasia/identitas/.
 
-    python3 identitas.py <folder-identitas> <keluaran.pdf>
+    python3 identitas.py <folder-identitas> <keluaran.pdf> [tim.json]
 
 Berkas bernama menurut nomor urut tim: 1.jpg ... 5.jpg (jpg/jpeg/png). Pemotongan
 opsional di potong.json: {"5": [x0, y0, x1, y1]} dalam piksel. Anggota yang
 belum ada pindaiannya ditandai kotak "menyusul" agar kekurangannya terlihat.
+Susunan tim bawaan adalah tim Kaltara; tim lain diberikan sebagai tim.json
+berisi [["1", "Nama", "Ketua"], ...].
 
 KTP memuat NIK: folder masukan dan PDF keluaran berada di docs/lomba/rahasia/
 yang dikecualikan dari git.
@@ -24,6 +26,8 @@ TIM = [
     ("5", "Ni Kade Sari Handayani, S.AP.", "Anggota"),
 ]
 folder, keluar = sys.argv[1:3]
+if len(sys.argv) > 3:
+    TIM = [tuple(x) for x in json.load(open(sys.argv[3]))]
 potong = {}
 if os.path.exists(os.path.join(folder, "potong.json")):
     potong = json.load(open(os.path.join(folder, "potong.json")))
