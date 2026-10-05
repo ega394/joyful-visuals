@@ -7,7 +7,7 @@
  * peramban dengan pdfmake:
  *
  *   - TEKS ASLI, bukan gambar. Srikandi mencari teks variabel di dalam PDF —
- *     QR TTE dipusatkan pada ${ttd} — dan PDF berupa gambar tidak bisa diisi.
+ *     QR TTE dipusatkan pada ${ttd_pengirim} — dan PDF berupa gambar tidak bisa diisi.
  *   - ARIAL TERTANAM. Font dibawa aplikasi sendiri (src/assets/fonts, dipangkas
  *     ke huruf Latin), jadi hasilnya sama di Windows, Android, maupun iPhone —
  *     tidak lagi bergantung pada font yang terpasang di perangkat.
@@ -115,9 +115,10 @@ const tabelInfo = (baris, lebarLabel, marginBawah) => ({
 });
 
 // TTE mengikuti undangan ber-TTE Srikandi yang dijadikan patokan (dihasilkan
-// TCPDF, 28 September 2026): variabelnya ${ttd}, dan Srikandi menaruh QR
-// 2,7 x 2,7 cm BERPUSAT di tengah teks variabel itu — titik tengah QR
-// (405,8; 587,2) berimpit dengan titik tengah ${ttd} (405,8; 587,0). Pada
+// TCPDF, 28 September 2026): Srikandi menaruh QR 2,7 x 2,7 cm BERPUSAT di
+// tengah teks variabel tanda tangan — titik tengah QR (405,8; 587,2) berimpit
+// dengan titik tengah variabel (405,8; 587,0). Patokan memakai ${ttd}; atas
+// keputusan Kepala Bagian generator tetap memakai ${ttd_pengirim}. Pada
 // patokan, pusat QR 34,9 pt di bawah baris jabatan dan nama 96,6 pt di bawah
 // puncak jabatan; ukuran yang sama dipakai di sini.
 const TTE_ATAS = 23.7;    // jarak baris jabatan → baris variabel
@@ -128,7 +129,7 @@ function areaTtd(form, img, marginAtas) {
   const AREA = 60;       // 80 px: tinggi ruang tanda tangan templat lama
   let tengah;
   if (form.jenisTtd === "tte") {
-    tengah = { text: "${ttd}", alignment: "center", margin: [0, TTE_ATAS, 0, TTE_BAWAH] };
+    tengah = { text: "${ttd_pengirim}", alignment: "center", margin: [0, TTE_ATAS, 0, TTE_BAWAH] };
   } else if (form.jenisTtd === "scan" && img.gabungan) {
     // Gambar gabungan setinggi 144 px (108 pt), mulai 30 px (22,5 pt) di atas
     // ruang tanda tangan — persis posisi absolut templat lama. Margin negatif
