@@ -112,12 +112,13 @@ const tabelInfo = (baris, lebarLabel, marginBawah) => ({
   margin: [0, 0, 0, marginBawah],
 });
 
-// Ruang tanda tangan: 3,2 cm — muat QR TTE Srikandi 3 x 3 cm. Pada surat Sekda
-// ber-TTE yang terukur, Srikandi meletakkan QR tepat di tempat variabel
-// ${ttd_pengirim}, mengalir ke bawah; jadi variabel ditaruh di sudut kiri atas
-// kotak 3 cm yang berada di tengah kolom tanda tangan.
-const RUANG_TTD = 32 * MM;
-const KOTAK_QR = 30 * MM;
+// Ruang tanda tangan disamakan dengan QR TTE pada surat Sekda ber-TTE yang
+// terukur (500.10.30.2/1122/SETDA/2026): QR 2,7 x 2,7 cm, menggantikan
+// variabel ${ttd_pengirim} dan mengalir ke bawah, nama tepat di bawahnya.
+// Variabel ditaruh di sudut kiri atas kotak 2,7 cm di tengah kolom tanda
+// tangan; ruang di bawahnya ±2,8 cm.
+const KOTAK_QR = 27 * MM;
+const RUANG_TTD = 28 * MM;
 
 function areaTtd(form, img, marginAtas) {
   const LEBAR = 187;   // 250 px
