@@ -112,21 +112,32 @@ const tabelInfo = (baris, lebarLabel, marginBawah) => ({
   margin: [0, 0, 0, marginBawah],
 });
 
+// Ruang tanda tangan disamakan dengan QR TTE pada surat Sekda ber-TTE yang
+// terukur (500.10.30.2/1122/SETDA/2026): QR 2,7 x 2,7 cm, menggantikan
+// variabel ${ttd_pengirim} dan mengalir ke bawah, nama tepat di bawahnya.
+// Variabel ditaruh di sudut kiri atas kotak 2,7 cm di tengah kolom tanda
+// tangan; ruang di bawahnya ±2,8 cm.
+const KOTAK_QR = 27 * MM;
+const RUANG_TTD = 28 * MM;
+
 function areaTtd(form, img, marginAtas) {
   const LEBAR = 187;   // 250 px
   let tengah;
   if (form.jenisTtd === "tte") {
-    tengah = { text: "${ttd_pengirim}", bold: true, color: "#0056b3", background: "#e9ecef", alignment: "center", margin: [0, 20, 0, 20] };
-  } else if (form.jenisTtd === "scan" && (img.stempel || img.ttd)) {
     tengah = {
-      stack: [
-        img.stempel ? { image: img.stempel, width: 109, relativePosition: { x: 0, y: -22 } } : { text: "" },
-        img.ttd ? { image: img.ttd, height: 105, relativePosition: { x: LEBAR - 100, y: -22 } } : { text: "" },
+      columns: [
+        { width: "*", text: "" },
+        { width: KOTAK_QR, text: "${ttd_pengirim}", noWrap: true, fontSize: 9.5, bold: true, color: "#0056b3", background: "#e9ecef" },
+        { width: "*", text: "" },
       ],
-      margin: [0, 0, 0, 60],
+      margin: [0, 2, 0, RUANG_TTD - 14],
     };
+  } else if (form.jenisTtd === "scan" && img.gabungan) {
+    // Stempel dan tanda tangan sudah digabung menjadi satu gambar (gabungTtd),
+    // sedikit menimpa baris jabatan seperti cap basah pada umumnya.
+    tengah = { image: img.gabungan, fit: [LEBAR, RUANG_TTD + 18], alignment: "center", margin: [0, -10, 0, 0] };
   } else {
-    tengah = { text: " ", margin: [0, 0, 0, 52] };
+    tengah = { text: " ", margin: [0, 0, 0, RUANG_TTD - 13] };
   }
   return {
     columns: [
@@ -142,6 +153,42 @@ function areaTtd(form, img, marginAtas) {
     ],
     margin: [0, marginAtas, 0, 0],
   };
+}
+
+/**
+ * Stempel + tanda tangan pindaian disusun menjadi SATU gambar, meniru templat
+ * lama: kolom 250 px, stempel 145 px di kiri, tanda tangan setinggi 140 px di
+ * kanan, keduanya "multiply" sehingga cap menimpa goresan seperti aslinya.
+ * pdfmake menumpuk gambar berurutan ke bawah dan tidak bisa menindih, itu
+ * sebabnya keduanya dulu berhamburan.
+ */
+async function gabungTtd(stempel, ttd) {
+  if (!stempel && !ttd) return null;
+  const muat = (src) => new Promise((ok) => {
+    if (!src) return ok(null);
+    const i = new Image(); i.onload = () => ok(i); i.onerror = () => ok(null); i.src = src;
+  });
+  const [s, t] = await Promise.all([muat(stempel), muat(ttd)]);
+  const SK = 3, W = 250, H = 150;
+  const c = document.createElement("canvas");
+  c.width = W * SK; c.height = H * SK;
+  const x = c.getContext("2d");
+  x.scale(SK, SK);
+  x.fillStyle = "white"; x.fillRect(0, 0, W, H);
+  x.globalCompositeOperation = "multiply";
+  if (t) { const h = 140, w = h * t.width / t.height; x.drawImage(t, W - w, 5, w, h); }
+  if (s) { const w = 145, h = w * s.height / s.width; x.drawImage(s, 0, 2, w, h); }
+  // Latar putih dijadikan transparan supaya cap boleh menimpa baris jabatan
+  // tanpa menutupi tulisannya — seperti stempel basah di atas kertas.
+  const data = x.getImageData(0, 0, c.width, c.height);
+  const px = data.data;
+  for (let i = 0; i < px.length; i += 4) {
+    const terang = Math.min(px[i], px[i + 1], px[i + 2]);
+    if (terang > 235) px[i + 3] = 0;
+    else if (terang > 200) px[i + 3] = Math.round(255 * (235 - terang) / 35);
+  }
+  x.putImageData(data, 0, 0);
+  return c.toDataURL("image/png");
 }
 
 /**
@@ -194,7 +241,7 @@ export async function buatDokumenUndangan(form) {
     form.jenisTtd === "scan" ? gambar(`${asal}/stempel.png`) : null,
     form.jenisTtd === "scan" ? gambar(`${asal}/image.jpeg`) : null,
   ]);
-  const img = { stempel, ttd };
+  const img = { gabungan: form.jenisTtd === "scan" ? await gabungTtd(stempel, ttd) : null };
 
   const utama = [
     {
