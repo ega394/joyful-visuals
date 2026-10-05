@@ -144,9 +144,39 @@ function areaTtd(form, img, marginAtas) {
   };
 }
 
+/**
+ * Teks berbaris yang dapat berupa daftar bernomor ("1. …", "10. …").
+ *
+ * Ditulis apa adanya, "10." lebih lebar daripada "9." sehingga teks setelah
+ * nomor bergeser mulai butir kesepuluh. Karena itu baris bernomor disusun dua
+ * kolom: kolom nomor selebar nomor terpanjang, lalu kolom teks — teks selalu
+ * rata, termasuk baris lanjutan yang terbungkus. Baris tanpa nomor sesudah
+ * sebuah butir dianggap lanjutan butir itu dan ikut menjorok.
+ */
+const POLA_NOMOR = /^\s*(\d{1,3}[.)])\s+(.*)$/;
+function teksDaftar(teks, gaya = {}) {
+  const baris = String(teks ?? "").split("\n");
+  const nomor = baris.map((b) => POLA_NOMOR.exec(b));
+  if (!nomor.some(Boolean)) return { text: teks, preserveLeadingSpaces: true, ...gaya };
+  const uk = gaya.fontSize || 11;
+  const digit = Math.max(...nomor.filter(Boolean).map((m) => m[1].length - 1));
+  // Lebar huruf Arial: angka 0,556 em; titik/kurung ±0,33 em; ditambah jarak.
+  const lebar = (digit * 0.556 + 0.333 + 0.5) * uk;
+  let sudahBernomor = false;
+  const isi = baris.map((b, i) => {
+    const m = nomor[i];
+    if (m) {
+      sudahBernomor = true;
+      return { columns: [{ width: lebar, text: m[1] }, { width: "*", text: m[2] || " " }], columnGap: 0 };
+    }
+    return { text: b.trim() ? b : " ", preserveLeadingSpaces: true, margin: [sudahBernomor ? lebar : 0, 0, 0, 0] };
+  });
+  return { stack: isi, ...gaya };
+}
+
 function keterangan(form) {
   const item = (judul, isi) => ({
-    stack: [{ text: judul, bold: true, decoration: "underline" }, { text: isi, preserveLeadingSpaces: true }],
+    stack: [{ text: judul, bold: true, decoration: "underline" }, teksDaftar(isi, { fontSize: 10 })],
     margin: [0, 0, 0, 4.5],
   });
   const isi = [];
@@ -184,7 +214,7 @@ export async function buatDokumenUndangan(form) {
     {
       stack: [
         "Yth:",
-        { text: form.yth, bold: true, preserveLeadingSpaces: true },
+        teksDaftar(form.yth, { bold: true }),
         "di-",
         { text: "TARAKAN", bold: true },
       ],
@@ -195,7 +225,7 @@ export async function buatDokumenUndangan(form) {
       ["hari/tanggal", formatTanggalIndo(form.tanggalAcaraInput)],
       ["pukul", teksPukul(form)],
       ["tempat", form.tempat],
-      ["acara", { text: form.acara, bold: true, preserveLeadingSpaces: true }],
+      ["acara", teksDaftar(form.acara, { bold: true })],
     ], 113, 7.5),
     { text: "Demikian, atas perhatian serta kehadirannya diucapkan terima kasih.", alignment: "justify", leadingIndent: 36.75, margin: [0, 7.5, 0, 4] },
     areaTtd(form, img, 11),
@@ -206,7 +236,7 @@ export async function buatDokumenUndangan(form) {
     { text: "LAMPIRAN SURAT", pageBreak: "before", margin: [0, 0, 0, 11] },
     tabelInfo([["Nomor", form.nomor]], 70, 19),
     { text: form.judulLampiran, bold: true, decoration: "underline", alignment: "center", margin: [0, 0, 0, 15] },
-    { text: form.lampiran, preserveLeadingSpaces: true, lineHeight: (Number(form.spasiLampiran) || 1.5) / 1.15, margin: [0, 0, 0, 15] },
+    teksDaftar(form.lampiran, { lineHeight: (Number(form.spasiLampiran) || 1.5) / 1.15, margin: [0, 0, 0, 15] }),
     areaTtd(form, img, 22),
   ];
 
