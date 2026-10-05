@@ -202,6 +202,10 @@ function genBookingCode() {
   return s;
 }
 
+// Peran yang boleh memesan ruangan internal dari Generator Undangan — sama
+// dengan peran yang dapat membuka generator itu di aplikasi.
+const PERAN_PESAN_INTERNAL = ["kabag", "kasubbag_protokol", "staf", "pramu_tamu", "admin_rk", "admin_undangan"];
+
 // ── Session conflict logic ────────────────────────────────────
 function conflictSessions(session) {
   if (session === "Pagi")     return ["Pagi", "Full_Day"];
@@ -438,6 +442,75 @@ export default async function handler(req, res) {
         } catch (_) {}
 
         return res.status(200).json({ ok: true, booking_code: code });
+      }
+
+      // ── op=internal → pemakaian ruangan oleh Prokopim sendiri ──
+      // Dipesan dari Generator Undangan ketika undangan Pimpinan memakai Ruang
+      // Imbaya/Kenawai. Atas keputusan Kepala Bagian, pemesanan internal
+      // LANGSUNG DISETUJUI — tidak melewati antrean Pengelola Ruangan — supaya
+      // slotnya seketika tertutup bagi pemohon umum. Bentrokan tetap ditolak:
+      // slot yang sudah diajukan atau disetujui pihak lain tidak boleh direbut
+      // diam-diam; penyelesaiannya lewat Pengelola Ruangan.
+      if (query.op === "internal") {
+        const u = await verifySession(req);
+        if (!u) return res.status(403).json({ error: "Sesi tidak valid — silakan login ulang." });
+        if (!(PERAN_PESAN_INTERNAL.includes(u.role) || u.can_manage_rooms))
+          return res.status(403).json({ error: "Peran Anda tidak berwenang memesan ruangan internal." });
+
+        const { room_id, date, session, event_name, participant_count } = body || {};
+        const nama = String(event_name || "").trim();
+        const peserta = Number(participant_count);
+        if (!room_id || !/^\d{4}-\d{2}-\d{2}$/.test(String(date || "")))
+          return res.status(400).json({ error: "Ruangan dan tanggal wajib diisi." });
+        if (!["Pagi", "Siang", "Full_Day"].includes(String(session)))
+          return res.status(400).json({ error: `Sesi '${session}' tidak valid.` });
+        if (!nama) return res.status(400).json({ error: "Nama acara wajib diisi." });
+        if (!Number.isInteger(peserta) || peserta < 1)
+          return res.status(400).json({ error: "Perkiraan jumlah peserta wajib diisi." });
+        const hariIni = new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 10); // WITA
+        if (date < hariIni) return res.status(400).json({ error: `Tanggal ${date} sudah lewat.` });
+
+        const room = (await sbGet(`rooms?id=eq.${encodeURIComponent(room_id)}&select=*`))?.[0];
+        if (!room) return res.status(400).json({ error: "Ruangan tidak ditemukan." });
+
+        const bentrok = await sbGet(
+          `room_bookings?room_id=eq.${room.id}&status=in.(Pending,Approved)` +
+          `&start_date=lte.${date}&end_date=gte.${date}` +
+          `&session=in.(${conflictSessions(session).join(",")})` +
+          `&select=event_name,instansi,session,status`
+        );
+        if (bentrok?.length) {
+          const c = bentrok[0];
+          return res.status(409).json({
+            error: `${room.name} pada ${date} sesi ${sessionLabel(c.session)} sudah ` +
+              `${c.status === "Approved" ? "disetujui" : "diajukan"} untuk "${c.event_name}" (${c.instansi}). ` +
+              `Hubungi Pengelola Ruangan untuk penyelesaiannya.`,
+          });
+        }
+
+        const kontak = (await sbGet(`users?username=eq.${encodeURIComponent(u.username)}&select=noWA`))?.[0];
+        const booking_code = genBookingCode();
+        await sbPost("room_bookings", [{
+          room_id: room.id, start_date: date, end_date: date, session,
+          instansi: "Bagian Protokol dan Komunikasi Pimpinan Setda Kota Tarakan",
+          pic_name: u.nama || u.username,
+          pic_wa: String(kontak?.noWA || "").replace(/\D/g, "") || "-",
+          event_name: nama, participant_count: peserta,
+          status: "Approved", booking_code,
+          notes: "[INTERNAL] Dipesan melalui Generator Undangan",
+          reviewed_by: u.nama || u.username, reviewed_at: new Date().toISOString(),
+        }]);
+
+        // Sekadar pemberitahuan: tidak ada yang perlu disetujui.
+        try {
+          await sendPushToManagers({
+            title: `🏛️ ${room.name} dipakai internal`,
+            body: `${nama} — ${date}, ${sessionLabel(session)} (oleh ${u.nama || u.username})`,
+            url: "/", tag: `booking-${booking_code}`,
+          });
+        } catch (_) {}
+
+        return res.status(201).json({ ok: true, booking_code, room: room.name, date, session });
       }
 
       // ── op=auth → tukar (username + hash password) dgn token sesi ──
