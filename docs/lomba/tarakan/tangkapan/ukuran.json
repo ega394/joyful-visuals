@@ -1,0 +1,118 @@
+{
+"hp_walikota": [
+780,
+1688
+],
+"hp_ajudan": [
+780,
+1688
+],
+"mitra": [
+1280,
+860
+],
+"kabag_antrian": [
+1280,
+1060
+],
+"kabag_riwayat": [
+1280,
+1060
+],
+"kabag_usulan": [
+1280,
+860
+],
+"kasubbag_jadwal": [
+1280,
+860
+],
+"kasubbag_personil": [
+1280,
+860
+],
+"kabag_plh": [
+1280,
+860
+],
+"dewi_plh": [
+1280,
+860
+],
+"hp_staf": [
+780,
+1688
+],
+"staf_rekap_saya": [
+1280,
+860
+],
+"staf_ekinerja": [
+1280,
+860
+],
+"kabag_rekap_evaluasi": [
+1280,
+860
+],
+"kabag_rekap_penugasan": [
+1280,
+860
+],
+"komdokpim_newsroom": [
+1280,
+860
+],
+"kabag_komdok": [
+1280,
+860
+],
+"hp_tamu": [
+780,
+1688
+],
+"kabag_tamu": [
+1280,
+860
+],
+"hp_ruangan": [
+780,
+1688
+],
+"kabag_ruangan": [
+1280,
+860
+],
+"kabag_ruangan_kalender": [
+1280,
+860
+],
+"hp_hadir": [
+780,
+1688
+],
+"staf_daftar_hadir": [
+1280,
+860
+],
+"undangan_imbaya": [
+1280,
+860
+],
+"kabag_kalender_bersama": [
+1280,
+860
+],
+"kabag_agenda": [
+1280,
+860
+],
+"kabag_rekap_wa": [
+1280,
+860
+],
+"kabag_laporan": [
+1280,
+860
+]
+}

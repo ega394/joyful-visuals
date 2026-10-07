@@ -468,7 +468,7 @@ function isi() {
   tambah(h1("b6"));
   tambah(h2("6.1 Konsep"));
   tambah(P(`Prinsip dasar Prokopim Hibot adalah **setiap kegiatan Pimpinan memiliki satu data yang sama bagi semua pihak, dan setiap keputusan atasnya tercatat.** Seluruh jenjang, dari Admin Rencana Kegiatan sampai Wali Kota, membuka data kegiatan yang sama, sehingga tidak ada lagi versi cetakan yang beredar ganda maupun lembar yang hilang tanpa diketahui.`));
-  tambah(P(`Di atas satu data itu dibangun sebuah *superapp*, yaitu satu aplikasi dengan satu pintu masuk yang memuat banyak layanan. Pengguna tidak perlu berpindah antara kertas, *spreadsheet*, grup percakapan, dan aplikasi lain: setiap peran membuka aplikasi yang sama dan langsung melihat layanan yang menjadi haknya, sebagaimana Tabel 6.`, { keepNext: true }));
+  tambah(P(`Di atas satu data itu dibangun sebuah *superapp*, yaitu satu aplikasi dengan satu pintu masuk yang memuat banyak layanan. Pengguna tidak perlu berpindah antara kertas, *spreadsheet*, grup percakapan, dan aplikasi lain: setiap peran membuka aplikasi yang sama dan langsung melihat layanan yang menjadi haknya, sebagaimana Tabel 6. Tangkapan layar setiap lapisan disertakan pada Lampiran 4.`, { keepNext: true }));
   tambah(tabel({
     judul: "Lapisan layanan superapp Prokopim Hibot",
     kolom: [22, 78],
@@ -905,32 +905,81 @@ function lampiran() {
   judulL(3, "Bukti Identitas Anggota Tim");
 
   // ── Lampiran 4: Tangkapan layar ──
+  // Diambil dari aplikasi versi terbaru yang dijalankan dengan data contoh
+  // (lihat tarakan/tangkapan/). Dikelompokkan menurut lapisan superapp pada
+  // Tabel 6 supaya setiap klaim fitur di naskah terlihat wujudnya.
   judulL(4, "Tangkapan Layar Aplikasi");
-  out.push(PN("Tangkapan layar diambil dari aplikasi Prokopim Hibot yang dijalankan dengan data contoh, untuk menghindari penyebaran nomor telepon narahubung dan agenda Pimpinan yang belum terbuka untuk umum. Seluruh tampilan dan alurnya sama dengan sistem yang berjalan.", { size: UK_TABEL, after: 160 }));
-  const tangkap = (file, lebarPx) => {
-    const data = fs.readFileSync(path.join(LOMBA, "lampiran/tangkapan", file));
-    const w = data.readUInt32BE(16), h = data.readUInt32BE(20);
-    return new ImageRun({ type: "png", data, transformation: { width: lebarPx, height: Math.round(lebarPx * h / w) } });
+  out.push(PN("Tangkapan layar diambil dari aplikasi Prokopim Hibot versi terbaru yang dijalankan dengan data contoh, untuk menghindari penyebaran nomor telepon narahubung, data pemohon, dan agenda Pimpinan yang belum terbuka untuk umum. Seluruh tampilan, menu, dan alurnya sama dengan sistem yang berjalan. Gambar dikelompokkan menurut lapisan layanan superapp pada Tabel 6.", { size: UK_TABEL, after: 160 }));
+  const DIR_TK = path.join(TARAKAN, "tangkapan");
+  const UKURAN_TK = JSON.parse(fs.readFileSync(path.join(DIR_TK, "ukuran.json"), "utf8"));
+  const tangkap = (nama, lebarPx) => {
+    const [w, h] = UKURAN_TK[nama];
+    return new ImageRun({ type: "jpg", data: fs.readFileSync(path.join(DIR_TK, nama + ".jpg")), transformation: { width: lebarPx, height: Math.round(lebarPx * h / w) } });
   };
-  const keterangan = (teks) => new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 60, after: 200 }, children: [new TextRun({ text: teks, bold: true, size: UK_TABEL, font: FONT })] });
+  const keterangan = (teks) => new Paragraph({ alignment: AlignmentType.CENTER, keepLines: true, spacing: { before: 60, after: 220 }, children: runs(teks, { size: UK_KECIL, font: FONT }) });
+  const subjudulL = (teks) => new Paragraph({ keepNext: true, spacing: { before: 120, after: 120 }, children: [new TextRun({ text: teks, bold: true, size: UK, font: FONT })] });
   let g = 0;
-  const layarLebar = [
-    ["01-antrian-persetujuan.png", "Antrian persetujuan Kepala Bagian dengan daftar periksa wajib"],
-    ["02-riwayat-alur.png", "Riwayat alur (jejak audit) mencatat pelaku, waktu, dan butir pemeriksaan"],
-    ["04-kartu-kegiatan.png", "Jadwal tayang pada dasbor Kepala Sub Bagian, dengan peringatan kegiatan yang belum berpetugas"],
+  const lebar = (nama, t) => {
+    // Gambar tinggi (antrean, riwayat) dipersempit supaya dua gambar tetap muat satu halaman.
+    const [w, h] = UKURAN_TK[nama];
+    out.push(new Paragraph({ alignment: AlignmentType.CENTER, keepNext: true, spacing: { after: 0, line: 240, lineRule: AUTO }, children: [tangkap(nama, h / w > 0.75 ? 440 : 530)] }));
+    out.push(keterangan(`**Gambar L.${++g}.** ${t}`));
+  };
+  const ponsel = (daftar) => {
+    const k = Math.floor(LEBAR / 3);
+    out.push(new Table({ width: { size: LEBAR, type: WidthType.DXA }, columnWidths: [k, k, LEBAR - 2 * k], rows: [new TableRow({ cantSplit: true, children:
+      [0, 1, 2].map((i) => new TableCell({ width: { size: i < 2 ? k : LEBAR - 2 * k, type: WidthType.DXA }, borders: tanpaGaris, children: daftar[i] ? [
+        new Paragraph({ alignment: AlignmentType.CENTER, spacing: { line: 240, lineRule: AUTO }, children: [tangkap(daftar[i][0], 180)] }),
+        keterangan(`**Gambar L.${++g}.** ${daftar[i][1]}`),
+      ] : [new Paragraph({ children: [] })] })) })] }));
+  };
+  const GRUP = [
+    ["A. Pimpinan Daerah, Ajudan, dan Mitra Kerja", [
+      ["ponsel", [["hp_walikota", "Agenda Wali Kota di telepon pintar: konfirmasi Hadir, Tidak Hadir, atau disposisi kepada Wakil Wali Kota langsung dari kartu agenda"],
+                  ["hp_ajudan", "Layar ajudan: jadwal hari ini dan besok yang belum dikonfirmasi, dengan pilihan hadir, tidak hadir, delegasi, atau diwakilkan"],
+                  ["hp_staf", "Layar petugas: penugasan mendatang dengan hitung mundur, rekan bertugas, dan pengingat evaluasi"]]],
+      ["lebar", "mitra", "Akun mitra kerja (contoh: DKISP) hanya melihat agenda yang telah ditetapkan, lengkap dengan status kehadiran Pimpinan"],
+    ]],
+    ["B. Pejabat Struktural: Kendali Mutu dan Akuntabilitas", [
+      ["lebar", "kabag_antrian", "Antrean persetujuan Kepala Bagian: rincian kegiatan, riwayat alur, dan daftar periksa wajib. Butir “Undangan sudah dibuka” baru tercentang setelah berkas undangan dibuka"],
+      ["lebar", "kabag_riwayat", "Riwayat alur (jejak audit): setiap tahap tercatat dengan pelaku, waktu, dan catatan, berlanjut ke fase pelaksanaan (penugasan, konfirmasi kehadiran)"],
+      ["lebar", "kabag_usulan", "Usulan perubahan jadwal yang sudah tayang: perbandingan nilai lama dan baru, penanda umur usulan, dan peringatan bahwa konfirmasi kehadiran akan diulang"],
+      ["lebar", "kasubbag_jadwal", "Dasbor Kepala Sub Bagian Protokol: peringatan agenda yang belum berpetugas dan daftar jadwal tayang beserta petugasnya"],
+      ["lebar", "kasubbag_personil", "Sebaran beban penugasan per petugas, sehingga penugasan dapat dibagi merata"],
+      ["lebar", "kabag_plh", "Penetapan Pelaksana Harian berdasarkan Surat Perintah, dengan masa berlaku yang padam dengan sendirinya"],
+      ["lebar", "dewi_plh", "Tampilan Pelaksana Harian: penanda kewenangan yang sedang diampu beserta dasar dan batas waktunya"],
+    ]],
+    ["C. Petugas: Penugasan, Evaluasi, dan Rekap Kinerja", [
+      ["lebar", "staf_rekap_saya", "Rekap Kinerja Saya: jumlah penugasan lapangan dan naskah per bulan, dengan cetak bukti dukung kinerja"],
+      ["lebar", "staf_ekinerja", "Generator laporan E-Kinerja: uraian kegiatan harian disusun otomatis dari penugasan, siap disalin ke aplikasi e-Kinerja"],
+      ["lebar", "kabag_rekap_evaluasi", "Evaluasi kinerja organisasi: skor per tim dan per kriteria dari evaluasi pascakegiatan yang diisi petugas"],
+      ["lebar", "kabag_rekap_penugasan", "Rekap penugasan bulanan per tim dan per petugas"],
+    ]],
+    ["D. Komunikasi dan Dokumentasi Pimpinan", [
+      ["lebar", "komdokpim_newsroom", "Review caption oleh Kepala Sub Bagian Komunikasi dan Dokumentasi Pimpinan, dengan rancangan berbantuan kecerdasan buatan"],
+      ["lebar", "kabag_komdok", "Pemantauan status caption seluruh agenda oleh Kepala Bagian"],
+    ]],
+    ["E. Layanan Publik: Audiensi, Peminjaman Ruangan, dan Daftar Hadir", [
+      ["ponsel", [["hp_tamu", "Formulir permohonan audiensi daring untuk masyarakat dan instansi"],
+                  ["hp_ruangan", "Kalender ketersediaan ruang rapat untuk umum, tanpa menampilkan identitas pemohon"],
+                  ["hp_hadir", "Daftar hadir digital melalui pindai kode QR, dengan tanda tangan di layar"]]],
+      ["lebar", "kabag_tamu", "Manajemen tamu: telaah berjenjang permohonan audiensi sampai menjadi agenda Pimpinan"],
+      ["lebar", "kabag_ruangan", "Dasbor peminjaman ruangan: pengajuan menunggu, permintaan batal, dan penanda pengajuan yang perlu segera diproses"],
+      ["lebar", "kabag_ruangan_kalender", "Kalender peminjaman Ruang Kenawai dan Imbaya untuk pengelola"],
+      ["lebar", "staf_daftar_hadir", "Pengelolaan acara daftar hadir: tautan, kode QR, buka-tutup otomatis, dan rekap di spreadsheet instansi"],
+    ]],
+    ["F. Administrasi dan Integrasi", [
+      ["lebar", "undangan_imbaya", "Generator undangan siap tanda tangan elektronik Srikandi, dengan pratinjau PDF serta pemeriksaan dan pemesanan Ruang Imbaya dari formulir yang sama"],
+      ["lebar", "kabag_kalender_bersama", "Pengaturan tampilan di Google Calendar bersama: agenda yang disetujui tampil otomatis dan dapat ditahan bila perlu"],
+      ["lebar", "kabag_agenda", "Agenda kegiatan Pimpinan dengan sorotan hari ini, prakiraan cuaca, perkiraan waktu tempuh, dan kartu agenda yang dapat dibagikan"],
+      ["lebar", "kabag_rekap_wa", "Rekap agenda harian siap kirim melalui WhatsApp"],
+      ["lebar", "kabag_laporan", "Laporan mingguan dan bulanan kegiatan Pimpinan, siap cetak"],
+    ]],
   ];
-  for (const [f, t] of layarLebar) {
-    out.push(new Paragraph({ alignment: AlignmentType.CENTER, keepNext: true, spacing: { after: 0, line: 240, lineRule: AUTO }, children: [tangkap(f, 540)] }));
-    out.push(keterangan(`Gambar L.${++g}. ${t}`));
-  }
-  const lk = Math.floor(LEBAR / 2);
-  out.push(new Table({ width: { size: LEBAR, type: WidthType.DXA }, columnWidths: [lk, LEBAR - lk], rows: [new TableRow({ cantSplit: true, children: [
-    ["03-agenda-pimpinan-ponsel.png", "Agenda Wali Kota pada telepon pintar"],
-    ["06-permohonan-audiensi-publik.png", "Halaman publik permohonan audiensi"],
-  ].map(([f, t], i) => new TableCell({ width: { size: i ? LEBAR - lk : lk, type: WidthType.DXA }, borders: tanpaGaris, children: [
-    new Paragraph({ alignment: AlignmentType.CENTER, spacing: { line: 240, lineRule: AUTO }, children: [tangkap(f, 200)] }),
-    keterangan(`Gambar L.${++g}. ${t}`),
-  ] })) })] }));
+  GRUP.forEach(([judul, isiGrup]) => {
+    out.push(subjudulL(judul));
+    for (const it of isiGrup) it[0] === "ponsel" ? ponsel(it[1]) : lebar(it[1], it[2]);
+  });
 
   // ── Lampiran 5 ──
   judulL(5, "Tautan Video");
