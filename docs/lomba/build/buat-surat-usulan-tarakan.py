@@ -39,8 +39,8 @@ with zipfile.ZipFile(SUMBER) as z: x = z.read("word/document.xml").decode("utf8"
 kepala, el, ekor = pecah(x)
 
 JUDUL = "Prokopim Hibot: Superapp Pelayanan Keprotokolan dan Komunikasi Pimpinan Pemerintah Kota Tarakan"
-TIM = ["Anugrah Yega Pranatha, M.Si. (Ketua)", "Saifullah, S.H.", "Pebriadi Banne, S.IP.",
-       "Nuraini Wiliadewi, S.IP.", "Darwis, S.T."]
+TIM = ["Anugrah Yega Pranatha, M.Si. (Ketua)", "Saifullah, S.H.", "Juliyanti, S.AP.",
+       "Pebriadi Banne, S.IP.", "Nuraini Wiliadewi, S.IP."]
 
 el[6]  = isi(el[6],  ["  Lampiran", ": ", "-"])
 el[7]  = isi(el[7],  ["  Perihal", ": ", "Usulan Staf dan Inovasi"])

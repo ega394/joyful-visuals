@@ -3,7 +3,7 @@ Prokopim Hibot: Superapp Pelayanan Keprotokolan dan Komunikasi Pimpinan Pemerint
 Data per 5 Oktober 2026 pukul 15.47 WITA. Dibuat otomatis oleh buat-proposal-tarakan.mjs; angka sama dengan proposal.
 
 ======================================================================
-IDENTITAS USULAN   [777 karakter]
+IDENTITAS USULAN   [781 karakter]
 ======================================================================
 
 Judul inovasi: Prokopim Hibot: Superapp Pelayanan Keprotokolan dan Komunikasi Pimpinan Pemerintah Kota Tarakan
@@ -12,7 +12,7 @@ Kategori: A. Inovasi Tata Kelola Pemerintahan
 
 Bidang fokus: Tata kelola pemerintahan yang adaptif dan responsif (Misi 4 RPJMD Kota Tarakan 2025–2029)
 
-Inovator: Tim Inovasi Prokopim Hibot — Anugrah Yega Pranatha, M.Si. (Ketua); Saifullah, S.H. (Anggota); Pebriadi Banne, S.IP. (Anggota); Nuraini Wiliadewi, S.IP. (Anggota); Darwis, S.T. (Anggota)
+Inovator: Tim Inovasi Prokopim Hibot — Anugrah Yega Pranatha, M.Si. (Ketua); Saifullah, S.H. (Anggota); Juliyanti, S.AP. (Anggota); Pebriadi Banne, S.IP. (Anggota); Nuraini Wiliadewi, S.IP. (Anggota)
 
 Instansi: Bagian Protokol dan Komunikasi Pimpinan, Sekretariat Daerah Kota Tarakan
 
@@ -37,7 +37,7 @@ Penerima manfaat. 40 akun aktif pada 14 peran (Pimpinan Daerah, ajudan, pengawal
 Bukti dampak (data aplikasi per 5 Oktober 2026 pukul 15.47 WITA): 617 kegiatan terkelola; median 1,94 jam dari pengajuan sampai jadwal tayang (sebelumnya diperkirakan 18–24 jam); 99,3% tayang kurang dari 24 jam; 47,9% penelaahan dan persetujuan terjadi di luar jam kerja; 3.331 peristiwa terekam pada jejak audit; 92,5% kegiatan berpenugasan petugas tercatat; belanja pengadaan Rp0.
 
 ======================================================================
-3. PROFIL INOVATOR/TIM   [1.127 karakter]
+3. PROFIL INOVATOR/TIM   [1.180 karakter]
 ======================================================================
 
 Tim Inovasi Prokopim Hibot, Bagian Protokol dan Komunikasi Pimpinan Sekretariat Daerah Kota Tarakan. Susunan tim diambil dari Keputusan Sekda Nomor 100.3.3.6/98/HK/VIII/2026 tentang Tim Koordinasi Peningkatan Pelayanan Keprotokolan dan Komunikasi Pimpinan (42 anggota).
@@ -46,11 +46,11 @@ Tim Inovasi Prokopim Hibot, Bagian Protokol dan Komunikasi Pimpinan Sekretariat 
 
 2. Saifullah, S.H. — Kepala Sub Bagian Protokol — Anggota: Penyelia penerapan pada alur keprotokolan; penguji; pemberi pertimbangan rancangan.
 
-3. Pebriadi Banne, S.IP. — Pengelola Layanan Operasional — Anggota: Pelaksana dan penguji di lapangan; penghimpun kendala pemakaian sehari-hari.
+3. Juliyanti, S.AP. — Kepala Sub Bagian Komunikasi dan Dokumentasi Pimpinan — Anggota: Penyelia penerapan pada alur komunikasi dan dokumentasi; penguji; pemberi pertimbangan rancangan.
 
-4. Nuraini Wiliadewi, S.IP. — Penelaah Teknis Kebijakan — Anggota: Pelaksana dan penguji di lapangan; penghimpun kendala pemakaian sehari-hari.
+4. Pebriadi Banne, S.IP. — Pengelola Layanan Operasional — Anggota: Pelaksana dan penguji di lapangan; penghimpun kendala pemakaian sehari-hari.
 
-5. Darwis, S.T. — Penelaah Teknis Kebijakan — Anggota: Pelaksana dan penguji di lapangan; penghimpun kendala pemakaian sehari-hari.
+5. Nuraini Wiliadewi, S.IP. — Penelaah Teknis Kebijakan — Anggota: Pelaksana dan penguji di lapangan; penghimpun kendala pemakaian sehari-hari.
 
 Kontak ketua tim: 0811-5900-394; anugrahyegapranatha@gmail.com.
 

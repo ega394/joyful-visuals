@@ -278,9 +278,9 @@ const BIDANG_FOKUS = "Tata kelola pemerintahan yang adaptif dan responsif (Misi 
 const TIM = [
   ["Anugrah Yega Pranatha, M.Si.", "Kepala Bagian Protokol dan Komunikasi Pimpinan", "Ketua", "Ketua tim; penggagas; perancang alur kerja dan aturan kewenangan; pengembang aplikasi secara swakelola; penanggung jawab pendaftaran"],
   ["Saifullah, S.H.", "Kepala Sub Bagian Protokol", "Anggota", "Penyelia penerapan pada alur keprotokolan; penguji; pemberi pertimbangan rancangan"],
+  ["Juliyanti, S.AP.", "Kepala Sub Bagian Komunikasi dan Dokumentasi Pimpinan", "Anggota", "Penyelia penerapan pada alur komunikasi dan dokumentasi; penguji; pemberi pertimbangan rancangan"],
   ["Pebriadi Banne, S.IP.", "Pengelola Layanan Operasional", "Anggota", "Pelaksana dan penguji di lapangan; penghimpun kendala pemakaian sehari-hari"],
   ["Nuraini Wiliadewi, S.IP.", "Penelaah Teknis Kebijakan", "Anggota", "Pelaksana dan penguji di lapangan; penghimpun kendala pemakaian sehari-hari"],
-  ["Darwis, S.T.", "Penelaah Teknis Kebijakan", "Anggota", "Pelaksana dan penguji di lapangan; penghimpun kendala pemakaian sehari-hari"],
 ];
 
 // Konsep keterangan — wajib dibaca, disesuaikan, dan ditandatangani sendiri
