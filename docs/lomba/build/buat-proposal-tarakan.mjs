@@ -867,33 +867,36 @@ function lampiran() {
   }));
 
   // ── Lampiran 1: Pakta integritas ──
-  // Mengikuti format Lampiran 2 Petunjuk Teknis (tanpa meterai).
+  // Persis format Lampiran 2 Petunjuk Teknis Kota Tarakan: label dan kalimat
+  // pernyataan apa adanya, tanpa meterai, "Dibuat di/Tanggal" sebaris, dan
+  // tanda tangan rata kiri dengan nama dalam kurung.
   judulL(1, "Pakta Integritas");
-  out.push(tengahTebal("PAKTA INTEGRITAS", { size: 24, after: 280, garis: true }));
+  out.push(tengahTebal("PAKTA INTEGRITAS", { size: 24, after: 280 }));
   const pribadi = (k) => PRIBADI ? PRIBADI[k] : "[[diisi pada berkas final]]";
   out.push(baris2([
     ["Nama lengkap", NAMA_KETUA],
     ["Tempat/tanggal lahir", pribadi("ttl")],
     ["Nomor identitas", pribadi("nik")],
-    ["Instansi", "Bagian Protokol dan Komunikasi Pimpinan, Sekretariat Daerah Kota Tarakan"],
+    [["Instansi/sekolah/", "perguruan tinggi/komunitas"], "Bagian Protokol dan Komunikasi Pimpinan, Sekretariat Daerah Kota Tarakan"],
     ["Nomor telepon", "0811-5900-394"],
     ["Email", "anugrahyegapranatha@gmail.com"],
     ["Alamat", pribadi("alamat")],
-    ["Judul inovasi", JUDUL_LENGKAP],
+    ["Judul inovasi/gagasan", JUDUL_LENGKAP],
     ["Kategori", KATEGORI.replace(/^Kategori /, "")],
-  ]));
-  out.push(PN("Dengan ini menyatakan bahwa:", { before: 120 }));
+  ], 0.345));
+  out.push(PN("Dengan ini menyatakan bahwa:", { before: 240 }));
   tambah(angka([
     "Seluruh data dan informasi yang disampaikan adalah benar, valid, dan dapat dipertanggungjawabkan.",
-    "Inovasi merupakan karya asli dan tidak melanggar hak kekayaan intelektual pihak lain.",
+    "Inovasi atau gagasan merupakan karya asli dan tidak melanggar hak kekayaan intelektual pihak lain.",
     "Usulan tidak sedang dalam sengketa dan tidak diajukan pada lebih dari satu kategori.",
-    "Kami bersedia mengikuti seluruh tahapan penilaian, memberikan klarifikasi, dan menerima verifikasi.",
-    "Kami memberikan izin non-eksklusif kepada penyelenggara untuk mempublikasikan ringkasan, foto, dan video untuk kepentingan promosi dan pembelajaran inovasi daerah dengan mencantumkan nama inovator.",
-    "Kami bersedia menerima diskualifikasi atau pencabutan penghargaan apabila pernyataan ini terbukti tidak benar.",
+    "Saya/kami bersedia mengikuti seluruh tahapan penilaian, memberikan klarifikasi, dan menerima verifikasi.",
+    "Saya/kami memberikan izin non-eksklusif kepada penyelenggara untuk mempublikasikan ringkasan, foto, dan video untuk kepentingan promosi dan pembelajaran inovasi daerah dengan mencantumkan nama inovator.",
+    "Saya/kami bersedia menerima diskualifikasi atau pencabutan penghargaan apabila pernyataan ini terbukti tidak benar.",
   ]));
-  out.push(baris2([["Dibuat di", "Tarakan"], ["Tanggal", TANGGAL_PAKTA]]));
-  out.push(new Paragraph({ spacing: { after: 0 }, children: [] }));
-  out.push(tandaTangan(["Yang membuat pernyataan,", "Ketua Tim Inovasi Prokopim Hibot,"], NAMA_KETUA, [`NIP ${NIP_KETUA}`]));
+  out.push(PN("Dibuat di : Tarakan", { before: 240, after: 0 }));
+  out.push(PN(`Tanggal : ${TANGGAL_PAKTA}`, { after: 240 }));
+  out.push(PN("Yang membuat pernyataan,", { after: 1300 }));
+  out.push(PN(`(${NAMA_KETUA})`));
 
   // ── Lampiran 2: Surat usulan ──
   judulL(2, "Surat Usulan Perangkat Daerah");
@@ -1089,28 +1092,31 @@ function lampiran() {
 //  SAMPUL DAN DAFTAR ISI
 // ═══════════════════════════════════════════════════════════════════
 function sampul() {
-  // Mengikuti format Lampiran 1 Petunjuk Teknis; bidang fokus ditambahkan
-  // sesuai paparan sosialisasi.
+  // Mengikuti format Lampiran 1 Petunjuk Teknis: tiga baris kepala tebal,
+  // lambang, judul tebal berwarna oranye, lalu kategori, inovator/tim,
+  // instansi, dan "Kota Tarakan Tahun 2026" dengan huruf biasa. Bidang fokus
+  // ditambahkan di bawah kategori karena diminta paparan sosialisasi.
   const tengah = (teks, o = {}) => new Paragraph({
     alignment: AlignmentType.CENTER, spacing: { before: o.before ?? 0, after: o.after ?? 0, line: o.line ?? 276, lineRule: AUTO },
     indent: o.inden ? { left: o.inden, right: o.inden } : undefined,
-    children: [new TextRun({ text: teks, bold: o.bold ?? true, size: o.size ?? UK, font: FONT })],
+    children: [new TextRun({ text: teks, bold: o.bold ?? false, size: o.size ?? UK, font: FONT, color: o.color })],
   });
+  const ORANYE = "E8862A";
   return [
-    tengah("PROPOSAL", { size: 32, after: 60 }),
-    tengah("LOMBA INOVASI DAERAH KOTA TARAKAN", { size: 28, after: 60 }),
-    tengah("TAHUN 2026", { size: 28, after: 520 }),
-    new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 520, line: 240, lineRule: AUTO }, children: [gambar("logo_tarakan.png", 140)] }),
-    tengah(JUDUL, { size: 40, after: 100 }),
-    tengah(SUBJUDUL, { size: 26, line: 300, inden: 500, after: 440 }),
-    tengah(KATEGORI.toUpperCase(), { size: 24, after: 80 }),
-    tengah(`Bidang Fokus: ${BIDANG_FOKUS}`, { size: 20, bold: false, inden: 500, after: 440 }),
-    tengah("TIM INOVASI PROKOPIM HIBOT", { size: 24, after: 80 }),
-    ...TIM.map(([nama, , kedudukan]) => tengah(`${nama} (${kedudukan})`, { size: 22, bold: false })),
+    tengah("PROPOSAL", { size: 32, bold: true, after: 40 }),
+    tengah("LOMBA INOVASI DAERAH KOTA TARAKAN", { size: 32, bold: true, after: 40 }),
+    tengah("TAHUN 2026", { size: 32, bold: true, after: 480 }),
+    new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 480, line: 240, lineRule: AUTO }, children: [gambar("logo_tarakan.png", 140)] }),
+    tengah(JUDUL, { size: 36, bold: true, color: ORANYE, after: 60 }),
+    tengah(SUBJUDUL, { size: 28, bold: true, color: ORANYE, line: 300, inden: 400, after: 440 }),
+    tengah(KATEGORI.toUpperCase(), { size: 24, after: 60 }),
+    tengah(`Bidang Fokus: ${BIDANG_FOKUS}`, { size: 20, inden: 500, after: 560 }),
+    tengah("TIM INOVASI PROKOPIM HIBOT", { size: 24, after: 60 }),
+    ...TIM.map(([nama, , kedudukan]) => tengah(`${nama} (${kedudukan})`, { size: 22 })),
     tengah("BAGIAN PROTOKOL DAN KOMUNIKASI PIMPINAN", { size: 24, before: 440 }),
     tengah("SEKRETARIAT DAERAH KOTA TARAKAN", { size: 24 }),
-    tengah("KOTA TARAKAN", { size: 26, before: 700 }),
-    tengah("TAHUN 2026", { size: 26 }),
+    tengah("KOTA TARAKAN", { size: 24, before: 640 }),
+    tengah("TAHUN 2026", { size: 24 }),
   ];
 }
 
