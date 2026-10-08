@@ -816,8 +816,13 @@ function isi() {
 // pindaiannya disisipkan. SOP disisipkan dari berkas PDF-nya oleh gabung.py.
 const NAMA_KETUA = "Anugrah Yega Pranatha, M.Si.";
 const NIP_KETUA = "198811032007011003";
-// Tanggal pakta dikosongkan untuk ditulis tangan saat ditandatangani.
-const TANGGAL_PAKTA = "........ Oktober 2026";
+// Spesimen tanda tangan ketua tim (PNG transparan) hanya di rahasia/tarakan/.
+// Bila ada, pakta pada berkas final langsung dibubuhi tanda tangan dan
+// bertanggal hari penandatanganan; tanpa spesimen, tanggal dikosongkan untuk
+// ditulis tangan.
+const SPESIMEN_TTD = path.join(RAHASIA, "spesimen-ttd.png");
+const TTD_PAKTA = !!PRIBADI && fs.existsSync(SPESIMEN_TTD);
+const TANGGAL_PAKTA = TTD_PAKTA ? "8 Oktober 2026" : "........ Oktober 2026";
 const JUDUL_LENGKAP = `Prokopim Hibot: ${SUBJUDUL}`;
 
 function lampiran() {
@@ -895,7 +900,13 @@ function lampiran() {
   ]));
   out.push(PN("Dibuat di : Tarakan", { before: 240, after: 0 }));
   out.push(PN(`Tanggal : ${TANGGAL_PAKTA}`, { after: 240 }));
-  out.push(PN("Yang membuat pernyataan,", { after: 1300 }));
+  out.push(PN("Yang membuat pernyataan,", { after: TTD_PAKTA ? 0 : 1300 }));
+  if (TTD_PAKTA) {
+    const data = fs.readFileSync(SPESIMEN_TTD);
+    const w = data.readUInt32BE(16), h = data.readUInt32BE(20), lebarTtd = 175;
+    out.push(new Paragraph({ spacing: { before: 0, after: 0, line: 240, lineRule: AUTO },
+      children: [new ImageRun({ type: "png", data, transformation: { width: lebarTtd, height: Math.round(lebarTtd * h / w) } })] }));
+  }
   out.push(PN(`(${NAMA_KETUA})`));
 
   // ── Lampiran 2: Surat usulan ──
