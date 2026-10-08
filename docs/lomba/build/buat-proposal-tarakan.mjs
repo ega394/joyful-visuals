@@ -39,14 +39,19 @@ const REPO = path.resolve(LOMBA, "../..");
 // berisi keterangan bahwa SOP sedang dalam proses pengesahan). Penomoran
 // lampiran tetap sama pada kedua versi.
 const TANPA_SOP = process.env.TANPA_SOP === "1";
-const AKHIRAN = TANPA_SOP ? "-tanpa-SOP" : "";
+// TANPA_LAMPIRAN=1 menghasilkan naskah proposal saja: sampul, daftar isi,
+// Bagian 2–11, dan Bagian 12 berisi daftar lampiran dengan keterangan bahwa
+// lampiran disampaikan terpisah. Tidak memuat data pribadi apa pun (NIK, KTP,
+// tanda tangan semuanya berada di lampiran), sehingga keluarannya di tarakan/.
+const TANPA_LAMPIRAN = process.env.TANPA_LAMPIRAN === "1";
+const AKHIRAN = TANPA_LAMPIRAN ? "-tanpa-Lampiran" : TANPA_SOP ? "-tanpa-SOP" : "";
 const TARAKAN = path.join(LOMBA, "tarakan");
 // PRIBADI=1 menghasilkan berkas final untuk diunggah: data pribadi ketua tim
 // (NIK, tempat/tanggal lahir, alamat) untuk pakta integritas dan pindaian KTP
 // (Lampiran 3). Masukan dan keluarannya hanya di docs/lomba/rahasia/tarakan/
 // yang dikecualikan dari git; salinan repositori memuat isian kosong.
 const RAHASIA = path.join(LOMBA, "rahasia", "tarakan");
-const PRIBADI = process.env.PRIBADI === "1" ? JSON.parse(fs.readFileSync(path.join(LOMBA, "rahasia", "pribadi.json"), "utf8")) : null;
+const PRIBADI = process.env.PRIBADI === "1" && !TANPA_LAMPIRAN ? JSON.parse(fs.readFileSync(path.join(LOMBA, "rahasia", "pribadi.json"), "utf8")) : null;
 const KELUAR = PRIBADI
   ? path.join(RAHASIA, "Proposal-Tarakan-Prokopim-Hibot" + AKHIRAN + "-FINAL")
   : path.join(TARAKAN, "Proposal-Tarakan-Prokopim-Hibot" + AKHIRAN);
@@ -870,6 +875,10 @@ function lampiran() {
       ["10", "Tautan aplikasi untuk verifikasi"],
     ],
   }));
+  if (TANPA_LAMPIRAN) {
+    out.push(PN("Lampiran 1 sampai dengan Lampiran 10 sebagaimana tercantum pada Tabel L.1 disampaikan dalam berkas terpisah."));
+    return out;
+  }
 
   // ── Lampiran 1: Pakta integritas ──
   // Persis format Lampiran 2 Petunjuk Teknis Kota Tarakan: label dan kalimat
@@ -1304,13 +1313,13 @@ const judulSemua = urutanJudul.map((j) => j.teks);
 const hasil = JSON.parse(execFileSync("python3", [path.join(DIR, "halaman.py"), KELUAR + ".pdf", BAB.b2, ...judulSemua], { encoding: "utf8" }));
 await tulisDanRender(hasil.halaman);
 const akhir = JSON.parse(execFileSync("python3", [path.join(DIR, "halaman.py"), KELUAR + ".pdf", BAB.b2, ...judulSemua], { encoding: "utf8" }));
-execFileSync("python3", [path.join(DIR, "gabung.py"), KELUAR + ".pdf",
+if (!TANPA_LAMPIRAN) execFileSync("python3", [path.join(DIR, "gabung.py"), KELUAR + ".pdf",
   ...(TANPA_SOP ? [] : ["7=" + path.join(REPO, "docs/sop/SOP-Prokopim.pdf")]),
   ...(fs.existsSync(SURAT_USULAN_TTE) ? ["2=" + SURAT_USULAN_TTE] : []),
   "6=" + path.join(LOMBA, "lampiran/SK-Tim-Koordinasi-2026.pdf") + "," + path.join(LOMBA, "lampiran/Surat-Sekda-300.2.10-265-2026.pdf"),
 ], { stdio: "inherit" });
 const keluaran = [KELUAR + ".docx", KELUAR + ".pdf"];
-if (!PRIBADI && !TANPA_SOP) { isianRisda(); keluaran.push(path.join(TARAKAN, "Isian-RISDA.txt")); }
+if (!PRIBADI && !TANPA_SOP && !TANPA_LAMPIRAN) { isianRisda(); keluaran.push(path.join(TARAKAN, "Isian-RISDA.txt")); }
 let identitas = null, ttd = null;
 if (PRIBADI) {
   const lamp3 = path.join(RAHASIA, "Lampiran-3-Identitas.pdf");
