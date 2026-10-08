@@ -880,7 +880,7 @@ function lampiran() {
     ["Email", "anugrahyegapranatha@gmail.com"],
     ["Alamat", pribadi("alamat")],
     ["Judul inovasi", JUDUL_LENGKAP],
-    ["Kategori", KATEGORI],
+    ["Kategori", KATEGORI.replace(/^Kategori /, "")],
   ]));
   out.push(PN("Dengan ini menyatakan bahwa:", { before: 120 }));
   tambah(angka([
@@ -1302,6 +1302,16 @@ if (PRIBADI) {
   identitas = JSON.parse(execFileSync("python3", [path.join(DIR, "identitas.py"), path.join(RAHASIA, "identitas"), lamp3, timJson], { encoding: "utf8" }));
   // Halaman judul Lampiran 3 diganti halaman KTP yang sudah memuat judulnya.
   execFileSync("python3", [path.join(DIR, "gabung.py"), KELUAR + ".pdf", "3!=" + lamp3], { stdio: "inherit" });
+  // Pakta integritas sebagai berkas tersendiri untuk dicetak dan ditandatangani
+  // (juga diunggah terpisah pada formulir pendaftaran). Diambil SEBELUM ttd.py,
+  // supaya selalu berupa halaman kosong-tanda-tangan yang terbaru.
+  execFileSync("python3", ["-I", "-c", `
+import pymupdf, sys
+d = pymupdf.open(sys.argv[1])
+i = next(i for i, p in enumerate(d) if p.get_text().startswith("Lampiran 1. Pakta Integritas"))
+o = pymupdf.open(); o.insert_pdf(d, from_page=i, to_page=i); o.save(sys.argv[2], garbage=3, deflate=True)
+`, KELUAR + ".pdf", path.join(RAHASIA, "Pakta-Integritas-Tarakan.pdf")]);
+  keluaran.push(path.join(RAHASIA, "Pakta-Integritas-Tarakan.pdf"));
   // Halaman bertanda tangan (pakta, testimoni) menggantikan halaman kosongnya.
   if (fs.existsSync(path.join(RAHASIA, "ttd.json")))
     ttd = execFileSync("python3", [path.join(DIR, "ttd.py"), KELUAR + ".pdf", path.join(RAHASIA, "ttd.json")], { encoding: "utf8" }).trim().split("\n");
