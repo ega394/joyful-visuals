@@ -3,13 +3,14 @@ Surat usulan Sekretaris Daerah untuk Lomba Inovasi Daerah Kota Tarakan 2026.
 
     python3 buat-surat-usulan-tarakan.py ../lampiran/Templat-Surat-Srikandi-Setda.docx ../tarakan/Surat-Usulan-Sekda-Lomba-Inovasi-Tarakan.docx
 
-Isi dan susunan mengikuti Lampiran 3 Petunjuk Teknis (Surat Usulan Perangkat
-Daerah): No / Lampiran "-" / Hal "Usulan Staf dan Inovasi"; "Yth. Kepala
-Bappeda Litbang Kota Tarakan", di, Tarakan; "Dengan hormat,"; paragraf pembuka
-dengan nama lomba bercetak tebal; Inovasi, Nama Inovator, Lama Implementasi
-Inovasi, dan Kategori (label tebal); kalimat penutup. Templat Srikandi yang sama dengan surat Kaltara
-dipakai (lihat buat-surat-usulan.py); halaman lampirannya dibuang karena
-format Tarakan tidak memakai lampiran.
+Tata naskah dan kerapiannya mengikuti surat usulan Kaltara versi akhir yang
+sudah dirapikan Kabag (Lampiran "1 (satu) halaman", judul inovasi bertanda
+kutip, jabatan "SEKRETARIS DAERAH", tembusan 10 pt, "NIP." tidak tebal, kolom
+nama tabel tim lebar). Isinya memuat unsur Lampiran 3 Petunjuk Teknis Kota
+Tarakan: Hal "Usulan Staf dan Inovasi", kalimat pembuka pedoman, serta
+Inovasi, Nama Inovator, Lama Implementasi Inovasi, dan Kategori (pada lampiran
+surat). Templat Srikandi yang sama dengan surat Kaltara dipakai; variabel
+Srikandi (${nomor_naskah}, ${ttd_pengirim}, dst.) tetap utuh.
 """
 import re, shutil, sys, zipfile
 
@@ -28,6 +29,7 @@ def pecah(x):
             if depth==0: j=mm.end(); break
         el.append(body[i:j]); i=j
     return x[:a], el, x[b:]
+def ts(e): return re.findall(r'<w:t(?: [^>]*)?>([^<]*)</w:t>',e)
 
 def esc(s): return s.replace("&","&amp;").replace("<","&lt;").replace(">","&gt;")
 def isi(e, teks):
@@ -36,64 +38,88 @@ def isi(e, teks):
     return re.sub(r'<w:t(?: [^>]*)?>[^<]*</w:t>', lambda m: f'<w:t xml:space="preserve">{esc(next(it))}</w:t>', e)
 
 SUMBER = sys.argv[1]; KELUAR = sys.argv[2]
+
 with zipfile.ZipFile(SUMBER) as z: x = z.read("word/document.xml").decode("utf8")
 kepala, el, ekor = pecah(x)
 
 JUDUL = "Prokopim Hibot: Superapp Pelayanan Keprotokolan dan Komunikasi Pimpinan Pemerintah Kota Tarakan"
-TIM = ["Anugrah Yega Pranatha, M.Si. (Ketua)", "Saifullah, S.H.", "Juliyanti, S.AP.",
-       "Pebriadi Banne, S.IP.", "Nuraini Wiliadewi, S.IP."]
+KATEGORI = "A. Inovasi Tata Kelola Pemerintahan"
+TIM = [["1", "Anugrah Yega Pranatha, M.Si.", "Kepala Bagian Protokol dan Komunikasi Pimpinan", "Ketua"],
+       ["2", "Saifullah, S.H.", "Kepala Sub Bagian Protokol", "Anggota"],
+       ["3", "Juliyanti, S.AP.", "Kepala Sub Bagian Komunikasi dan Dokumentasi Pimpinan", "Anggota"],
+       ["4", "Pebriadi Banne, S.IP.", "Pengelola Layanan Operasional", "Anggota"],
+       ["5", "Nuraini Wiliadewi, S.IP.", "Penelaah Teknis Kebijakan", "Anggota"]]
 
-# Paragraf baru dibangun dengan gaya huruf templat (Arial 12).
-RPR = ('<w:rPr><w:rFonts w:ascii="Arial" w:eastAsia="Calibri" w:hAnsi="Arial" w:cs="Arial"/>{b}'
-       '<w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr>')
-def run(t, tebal=False, tab=False):
-    return ("<w:r>" + RPR.format(b="<w:b/><w:bCs/>" if tebal else "") + ("<w:tab/>" if tab else "")
-            + f'<w:t xml:space="preserve">{esc(t)}</w:t></w:r>')
-def para(runs, ppr):
-    return f"<w:p><w:pPr>{ppr}</w:pPr>{''.join(runs)}</w:p>"
-SPASI = '<w:spacing w:before="{sb}" w:after="0" w:line="276" w:lineRule="auto"/>'
+def tanpa_tebal_nip(e):
+    """ "NIP." biasa, nomornya tetap tebal — seperti pada contoh."""
+    i = e.index(">NIP. </w:t>"); j = e.rindex("<w:r", 0, i)
+    return e[:j] + e[j:i].replace("<w:b/><w:bCs/>", "") + e[i:]
 
-# ── Kepala surat: No / Lampiran / Hal (Lampiran 3 Petunjuk Teknis) ──
-el[4] = el[4].replace(">  Nomor<", ">  No<", 1)
-el[6] = isi(el[6], ["  Lampiran", ": ", "-"])
-el[7] = isi(el[7].replace('<w:u w:val="single"/>', ""), ["  Hal", ": ", "Usulan Staf dan Inovasi"])
-# Titik dua ketiga baris sejajar pada satu tab tetap (tanpa "Sifat", "No" lebih pendek dari "Nomor").
-for k in (4, 6, 7):
-    el[k] = re.sub(r"<w:tabs>.*?</w:tabs>", "", el[k], flags=re.S)
-    el[k] = el[k].replace("<w:pPr>", '<w:pPr><w:tabs><w:tab w:val="left" w:pos="1276"/></w:tabs>', 1)
+# ── Halaman 1: surat ──
+el[6]  = isi(el[6],  ["  Lampiran", ": ", "1 (satu) halaman"])
+el[7]  = isi(el[7],  ["  Perihal", ": ", "Usulan Staf dan Inovasi"])
+el[10] = isi(el[10], ["Kepala Bappeda Litbang", "Kota Tarakan"])
+el[12] = isi(el[12], ["TARAKAN"])
+el[13] = isi(el[13], [
+  "Dalam rangka mendukung pelaksanaan Lomba Inovasi Daerah Kota Tarakan Tahun 2026 yang diselenggarakan "
+  "oleh Bappeda Litbang Kota Tarakan serta sebagai upaya meningkatkan budaya inovasi di lingkungan "
+  "Pemerintah Daerah, bersama surat ini kami sampaikan usulan nama staf dan inovasi dari Sekretariat "
+  "Daerah Kota Tarakan untuk dapat dipertimbangkan dan diikutsertakan dalam kompetisi tersebut."])
+el[14] = isi(el[14], [
+  "Adapun inovasi yang diikutsertakan yaitu “" + JUDUL + "” pada Kategori " + KATEGORI +
+  " dengan susunan tim dan identitas usulan terlampir. Proposal dan dokumen pendukungnya diunggah "
+  "melalui aplikasi RISDA."])
+el[15] = isi(el[15], ["Demikian usulan ini disampaikan. Atas perhatian dan perkenan Bapak/Ibu, diucapkan terima kasih."])
+el[16] = isi(el[16], ["SEKRETARIS DAERAH", "", ""])
+el[22] = tanpa_tebal_nip(el[22])
+# Tembusan 10 pt; satu tujuan saja, tanpa nomor.
+for k in (24, 25):
+    el[k] = el[k].replace('<w:sz w:val="24"/>', '<w:sz w:val="20"/>').replace('<w:szCs w:val="24"/>', '<w:szCs w:val="20"/>')
+el[25] = re.sub(r"<w:pStyle [^>]*/><w:numPr>.*?</w:numPr>", "", el[25], flags=re.S)
+el[25] = isi(el[25], ["Wali Kota Tarakan.", ""])
 
-# ── Tujuan: satu baris "Yth. Kepala Bappeda Litbang Kota Tarakan", lalu di / Tarakan ──
-el[9] = isi(el[9], ["  Yth. Kepala Bappeda Litbang Kota Tarakan"])
-el[11] = isi(el[11].replace('w:before="240" ', ""), ["di", "", ""])
-el[12] = isi(el[11], ["Tarakan", "", ""])
+# ── Halaman 2: lampiran surat ──
+el[33] = isi(el[33], ["SUSUNAN TIM DAN IDENTITAS USULAN INOVASI"])
+el[34] = isi(el[34], ["Lomba Inovasi Daerah Kota Tarakan Tahun 2026"])
+el[35] = isi(el[35], ["IDENTITAS USULAN"])
+kv = [("Inovasi", JUDUL),
+      ("Nama Inovator", "Tim Inovasi Prokopim Hibot (susunan tim di bawah)"),
+      ("Lama Implementasi Inovasi", "±7 bulan (sejak Maret 2026)"),
+      ("Kategori", KATEGORI),
+      ("Instansi", "Bagian Protokol dan Komunikasi Pimpinan Sekretariat Daerah Kota Tarakan")]
+# Label terpanjang ("Lama Implementasi Inovasi") menentukan letak titik dua;
+# baris lanjutan nilai sejajar sesudah titik dua.
+TITIK2, NILAI = 3402, 3544
+templat = re.sub(r"<w:tabs>.*?</w:tabs>", f'<w:tabs><w:tab w:val="left" w:pos="{TITIK2}"/><w:tab w:val="left" w:pos="{NILAI}"/></w:tabs>'
+                 f'<w:ind w:left="{NILAI}" w:hanging="{NILAI}"/>', el[37], count=1, flags=re.S)
+el[37] = "".join(isi(templat, [a, ":", b]) for a, b in kv)
+for k in range(38, 42): el[k] = ""
+el[55] = isi(el[55], ["SUSUNAN TIM INOVASI"])
 
-# ── Isi surat ──
-rata = '<w:jc w:val="both"/>'
-isi_surat = [
-  para([run("Dengan hormat,")], SPASI.format(sb=360)),
-  para([run("Dalam rangka mendukung pelaksanaan "), run("Lomba Inovasi Daerah Kota Tarakan Tahun 2026", True),
-        run(" yang diselenggarakan oleh Bappeda Litbang Kota Tarakan serta sebagai upaya meningkatkan budaya "
-            "inovasi di lingkungan Pemerintah Daerah, bersama surat ini kami sampaikan usulan nama staf dan inovasi "
-            "dari Sekretariat Daerah Kota Tarakan untuk dapat dipertimbangkan dan diikutsertakan dalam kompetisi tersebut.")],
-       SPASI.format(sb=60) + rata),
-]
-# Baris identitas usulan: label tebal menjorok, titik dua dan nilai sejajar.
-KIRI, TITIK2, NILAI = 284, 3828, 4026
-tabs = (f'<w:tabs><w:tab w:val="left" w:pos="{TITIK2}"/><w:tab w:val="left" w:pos="{NILAI}"/></w:tabs>'
-        f'<w:spacing w:before="40" w:after="0" w:line="264" w:lineRule="auto"/><w:ind w:left="{NILAI}" w:hanging="{NILAI - KIRI}"/>')
-for label, nilai in [
-    ("Inovasi", JUDUL),
-    ("Nama Inovator", "Tim Inovasi Prokopim Hibot: " + ", ".join(TIM[:-1]) + ", dan " + TIM[-1]),
-    ("Lama Implementasi Inovasi", "±7 bulan (sejak Maret 2026)"),
-    ("Kategori", "A. Inovasi Tata Kelola Pemerintahan"),
-]:
-    isi_surat.append(para([run(label, True), run(":", True, tab=True), run(nilai, tab=True)], tabs))
-isi_surat.append(para([run("Atas perhatian dan perkenan Bapak/Ibu, kami ucapkan terima kasih.")], SPASI.format(sb=120) + rata))
-el[13] = "".join(isi_surat)
+# Tabel 4 kolom, lebar kolom seperti contoh (nama tidak terpotong); kolom No
+# sedikit lebih lebar supaya "No" tidak terpenggal pada LibreOffice.
+tim = [["No", "Nama", "Jabatan", "Kedudukan dalam Tim"]] + TIM
+lebar = [620, 3484, 3748, 1508]
+t = el[57]
+gi = iter(lebar); t = re.sub(r'<w:gridCol w:w="\d+"/>', lambda m: f'<w:gridCol w:w="{next(gi)}"/>', t)
+def baris(tr, nilai):
+    sel = iter(nilai); lb = iter(lebar)
+    def ganti_sel(m):
+        c = re.sub(r'<w:tcW w:w="\d+"', f'<w:tcW w:w="{next(lb)}"', m.group(0))
+        return isi(c, [next(sel)])
+    return re.sub(r'<w:tc>.*?</w:tc>', ganti_sel, tr, flags=re.S)
+tr = iter(tim)
+t = re.sub(r'<w:tr[ >].*?</w:tr>', lambda m: baris(m.group(0), next(tr)), t, flags=re.S)
+el[57] = t
 
-# Dibuang: Sifat (tidak ada pada format), baris kedua tujuan templat, paragraf
-# templat lainnya, tembusan, dan seluruh halaman lampiran templat.
-buang = {5, 10, 14, 15, *range(23, 75)}
+el[59] = isi(el[59], ["KONTAK KETUA TIM"])
+el[62] = isi(el[62], ["Nama: Anugrah Yega Pranatha, M.Si.", "Jabatan: Kepala Bagian Protokol dan Komunikasi Pimpinan"])
+el[64] = isi(el[64], ["WhatsApp", ": 0811-5900-394"])
+el[73] = tanpa_tebal_nip(el[73])
+
+# Buang: tembusan kedua, dokumentasi teknis templat (DNS, infrastruktur,
+# spesifikasi), subjudul "Support", "Kontak Utama:", dan paragraf kosong sisa.
+buang = {26, 36, *range(42, 55), 60, 61, 65, 74}
 el = [e for k, e in enumerate(el) if k not in buang]
 
 baru = kepala + "".join(el) + ekor
