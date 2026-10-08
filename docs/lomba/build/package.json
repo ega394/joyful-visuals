@@ -5,7 +5,7 @@
   "description": "Pembuat berkas proposal lomba inovasi 2026 (Kaltara Innovation Awards dan Lomba Inovasi Daerah Kota Tarakan), DOCX + PDF. Terpisah dari aplikasi agar tidak memengaruhi build Vercel.",
   "scripts": {
     "buat": "node buat-proposal.mjs && TANPA_SOP=1 node buat-proposal.mjs && if [ -f ../rahasia/pribadi.json ]; then PRIBADI=1 node buat-proposal.mjs && PRIBADI=1 TANPA_SOP=1 node buat-proposal.mjs; fi",
-    "buat:tarakan": "node buat-proposal-tarakan.mjs && python3 buat-surat-usulan-tarakan.py ../lampiran/Templat-Surat-Srikandi-Setda.docx ../tarakan/Surat-Usulan-Sekda-Lomba-Inovasi-Tarakan.docx && soffice --headless --convert-to pdf --outdir ../tarakan ../tarakan/Surat-Usulan-Sekda-Lomba-Inovasi-Tarakan.docx >/dev/null && if [ -f ../rahasia/pribadi.json ]; then PRIBADI=1 node buat-proposal-tarakan.mjs; fi"
+    "buat:tarakan": "node buat-proposal-tarakan.mjs && python3 -I buat-surat-usulan-tarakan.py ../lampiran/Templat-Surat-Usulan-Tarakan.docx ../tarakan/Surat-Usulan-Sekda-Lomba-Inovasi-Tarakan.docx && soffice --headless --convert-to pdf --outdir ../tarakan ../tarakan/Surat-Usulan-Sekda-Lomba-Inovasi-Tarakan.docx >/dev/null && if [ -f ../rahasia/pribadi.json ]; then PRIBADI=1 node buat-proposal-tarakan.mjs; fi"
   },
   "dependencies": {
     "docx": "^9.5.1"
