@@ -1342,6 +1342,17 @@ o = pymupdf.open(); o.insert_pdf(d, from_page=i, to_page=i); o.save(sys.argv[2],
   if (fs.existsSync(path.join(RAHASIA, "ttd.json")))
     ttd = execFileSync("python3", [path.join(DIR, "ttd.py"), KELUAR + ".pdf", path.join(RAHASIA, "ttd.json")], { encoding: "utf8" }).trim().split("\n");
 }
+// Versi ringkas berkas final (di bawah 5 MB) untuk unggahan berbatas ukuran:
+// gambar diturunkan ke 170 dpi pada ukuran tampilnya, JPEG mutu 65. Tanda
+// tangan dan gambar transparan lain tidak disentuh.
+let ringkasMB = null;
+if (PRIBADI) {
+  const ringkas = KELUAR + "-ringkas.pdf";
+  execFileSync("python3", ["-I", path.join(DIR, "kecilkan.py"), KELUAR + ".pdf", ringkas, "170", "65"], { stdio: "inherit" });
+  ringkasMB = +(fs.statSync(ringkas).size / 1048576).toFixed(2);
+  if (ringkasMB >= 5) console.error(`PERINGATAN: versi ringkas ${ringkasMB} MB, belum di bawah 5 MB.`);
+  keluaran.push(ringkas);
+}
 const ukuranMB = +(fs.statSync(KELUAR + ".pdf").size / 1048576).toFixed(1);
 if (ukuranMB > 20) console.error(`PERINGATAN: PDF ${ukuranMB} MB melebihi batas 20 MB.`);
-console.log(JSON.stringify({ ...akhir, identitas, ttd, ukuranMB, keluaran }, null, 2));
+console.log(JSON.stringify({ ...akhir, identitas, ttd, ukuranMB, ringkasMB, keluaran }, null, 2));
