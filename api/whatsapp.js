@@ -4,10 +4,22 @@
 //  ENV: FONNTE_TOKEN (dari https://fonnte.com)
 // ============================================================
 
+import { wajibSesi } from "./_sesi.js";
+
+// Pesan bebas (event "broadcast") hanya untuk pejabat yang memang mengirim
+// pengumuman/pemberitahuan dari aplikasi: Kabag (Kirim Pengumuman) dan
+// Kasubbag (pencabutan penugasan), termasuk PLH-nya, serta superadmin.
+const PERAN_BROADCAST = ["kabag", "kasubbag_protokol", "kasubbag_komdokpim", "superadmin"];
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
+
+  // Wajib sesi aplikasi: tanpa ini siapa pun dapat mengirim WhatsApp atas nama
+  // nomor resmi Prokopim ke nomor mana pun.
+  const pengirim = await wajibSesi(req, res, (req.body || {}).event === "broadcast" ? { peran: PERAN_BROADCAST } : undefined);
+  if (!pengirim) return;
 
   const FONNTE_TOKEN = process.env.FONNTE_TOKEN;
   if (!FONNTE_TOKEN) {

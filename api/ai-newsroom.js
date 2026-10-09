@@ -17,6 +17,8 @@
  *   API_SECRET           → Secret untuk validasi request internal
  */
 
+import { wajibSesi } from "./_sesi.js";
+
 const SUPA_URL   = process.env.SUPABASE_URL  || process.env.VITE_SUPABASE_URL;
 const SUPA_KEY   = process.env.SUPABASE_KEY  || process.env.VITE_SUPABASE_ANON_KEY;
 const GEMINI_KEY = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
@@ -429,6 +431,10 @@ async function actionList(query) {
 // ── MAIN HANDLER ─────────────────────────────────────────────
 export default async function handler(req, res) {
   const action = req.query.action;
+  // Semua aksi (daftar, buat, setujui, revisi naskah berita) hanya untuk
+  // pengguna aplikasi yang sudah login.
+  const pengguna = await wajibSesi(req, res);
+  if (!pengguna) return;
 
   try {
     let result;

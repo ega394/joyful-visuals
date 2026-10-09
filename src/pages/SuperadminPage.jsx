@@ -666,7 +666,7 @@ function DataTab({ user, T }) {
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 8 }}>
         <div style={{ display: "flex", gap: 6 }}>
-          {["jadwal", "tamu", "pending_regs"].map(k => (
+          {["jadwal", "permohonan_tamu", "pending_regs"].map(k => (
             <button key={k} onClick={() => setSub(k)}
                     style={{ ...btn(sub === k ? "primary" : "ghost"), textTransform: "capitalize" }}>
               {k.replace("_", " ")}
@@ -730,12 +730,12 @@ function DataSummary({ row, table }) {
       </div>
     );
   }
-  if (table === "tamu") {
+  if (table === "permohonan_tamu") {
     return (
       <div>
-        <div style={{ fontWeight: 700 }}>{d.nama || row.nama || "(tanpa nama)"}</div>
+        <div style={{ fontWeight: 700 }}>{row.nama || "(tanpa nama)"}</div>
         <div style={{ fontSize: 11, color: C.muted }}>
-          {d.instansi || row.instansi || "—"} · {d.maksud || row.maksud || ""} · alur: <b>{d.alur || row.alur || "—"}</b>
+          {row.instansi || "—"} · {row.tujuan_pejabat || ""} · {row.maksud_keperluan || ""} · status: <b>{row.status || "—"}</b>
         </div>
       </div>
     );
@@ -755,10 +755,41 @@ const BACKUP_TABLES = [
   { table: "jadwal",             pk: "id" },
   { table: "pending_regs",       pk: "id" },
   { table: "audit_log",          pk: "id" },
-  { table: "tamu",               pk: "id" },
+  { table: "permohonan_tamu",    pk: "id" },
   { table: "room_bookings",      pk: "id" },
   { table: "push_subscriptions", pk: "endpoint" },
+  { table: "drive_files",        pk: "id" },
+  { table: "news_drafts",        pk: "id" },
 ];
+// Kolom rahasia yang TIDAK ikut ke berkas cadangan (ZIP disimpan di perangkat).
+const KOLOM_RAHASIA = ["password", "otp_code", "otp_expires", "session_token", "session_expires"];
+// Bucket yang dipakai aplikasi. Daftar bucket tidak bisa dibaca kunci anon,
+// jadi daftar ini dipakai bila listBuckets() gagal atau kosong.
+const BUCKET_DIKENAL = ["undangan", "sambutan", "room-documents"];
+
+/**
+ * Ambil seluruh baris sebuah tabel, berhalaman. PostgREST memotong jawaban di
+ * batas "Max rows" (bawaan 1000) TANPA galat, jadi tanpa halaman cadangan diam-
+ * diam terpotong. Mengembalikan {rows, total, galat}: total dari Content-Range
+ * (Prefer: count=exact) untuk mencocokkan jumlah.
+ */
+async function ambilSemua(table, pk) {
+  const rows = []; let total = null; const HAL = 1000;
+  for (let off = 0; ; off += HAL) {
+    const r = await fetch(SUPA_URL + "/rest/v1/" + table + "?select=*&order=" + pk + ".asc&limit=" + HAL + "&offset=" + off, {
+      headers: { ...H(), Prefer: "count=exact" },
+    });
+    if (!r.ok) return { rows, total, galat: "HTTP " + r.status };
+    const cr = r.headers.get("content-range") || "";
+    const m = cr.match(/\/(\d+)$/);
+    if (m) total = Number(m[1]);
+    const page = await r.json();
+    rows.push(...page);
+    if (page.length === 0 || (total !== null && rows.length >= total)) break;
+    if (off > 200000) return { rows, total, galat: "berhenti pada 200.000 baris" };
+  }
+  return { rows, total, galat: null };
+}
 
 // Storage helpers ────────────────────────────────────────────
 async function listBuckets() {
@@ -766,19 +797,25 @@ async function listBuckets() {
   if (!r.ok) throw new Error("List buckets gagal (" + r.status + ")");
   return r.json();
 }
-async function listObjectsAll(bucket) {
+async function listObjectsAll(bucket, prefix = "") {
   // PostgREST/Storage list: paginate sampai habis
   const out = []; const lim = 1000; let off = 0;
   while (true) {
     const r = await fetch(SUPA_URL + "/storage/v1/object/list/" + encodeURIComponent(bucket), {
       method: "POST", headers: H(),
-      body: JSON.stringify({ prefix: "", limit: lim, offset: off, sortBy: { column: "name", order: "asc" } }),
+      body: JSON.stringify({ prefix, limit: lim, offset: off, sortBy: { column: "name", order: "asc" } }),
     });
     if (!r.ok) throw new Error("List " + bucket + " gagal (" + r.status + ")");
     const page = await r.json();
     if (!Array.isArray(page) || page.length === 0) break;
-    // Hanya file (objek dengan metadata.size); subfolder muncul tanpa id
-    for (const o of page) if (o && o.id) out.push(o.name);
+    // Objek tanpa id adalah subfolder: telusuri isinya. Hampir semua berkas
+    // aplikasi tersimpan bersarang (undangan/<id>/..., booking-docs/...).
+    for (const o of page) {
+      if (!o) continue;
+      const jalur = prefix ? prefix + "/" + o.name : o.name;
+      if (o.id) out.push(jalur);
+      else out.push(...await listObjectsAll(bucket, jalur));
+    }
     if (page.length < lim) break;
     off += lim;
   }
@@ -791,28 +828,6 @@ async function downloadObject(bucket, name) {
   if (!r.ok) throw new Error("Download " + bucket + "/" + name + " gagal (" + r.status + ")");
   return r.blob();
 }
-async function uploadObject(bucket, name, blob) {
-  const r = await fetch(SUPA_URL + "/storage/v1/object/" + bucket + "/" + name, {
-    method: "POST",
-    headers: {
-      apikey: SUPA_KEY, Authorization: "Bearer " + SUPA_KEY,
-      "Content-Type": blob.type || "application/octet-stream",
-      "x-upsert": "true",
-    },
-    body: blob,
-  });
-  if (!r.ok) throw new Error("Upload " + bucket + "/" + name + " gagal (" + r.status + ")");
-}
-async function deleteObjects(bucket, names) {
-  if (!names.length) return;
-  // Storage menerima DELETE dengan body { prefixes:[...] }
-  const r = await fetch(SUPA_URL + "/storage/v1/object/" + encodeURIComponent(bucket), {
-    method: "DELETE", headers: H(),
-    body: JSON.stringify({ prefixes: names }),
-  });
-  if (!r.ok) throw new Error("Hapus " + bucket + " gagal (" + r.status + ")");
-}
-
 // Otorisasi ganda: Kabag + Kasubbag Protokol harus login di layar yang sama
 function DualAuthModal({ aksi, onConfirm, onCancel, busy }) {
   const [kabagUn, setKabagUn]   = useState("");
@@ -847,7 +862,9 @@ function DualAuthModal({ aksi, onConfirm, onCancel, busy }) {
       const b = await verifyRole(ksbgUn, ksbgPw, "kasubbag_protokol");
       if (!b.ok)  { setErr(b.msg);  setCheck(false); return; }
       setCheck(false);
-      onConfirm({ kabag: a.u, kasubbag: b.u });
+      // Hanya username yang diteruskan. Dulu seluruh baris akun (termasuk hash
+      // sandi) ikut tersimpan ke audit_log pada setiap backup/restore/reset.
+      onConfirm({ kabag: a.u.username, kasubbag_protokol: b.u.username });
     } catch (e) { setErr(e.message); setCheck(false); }
   };
 
@@ -896,11 +913,13 @@ function BackupTab({ user, T }) {
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState("");
   const [pending, setPending] = useState(null); // {type:'backup'|'restore'|'reset', file?}
-  const [restoreFile, setRestoreFile] = useState(null);
 
   const log = (msg) => setProgress(msg);
 
   // ── Backup: DB + Storage → ZIP ──
+  // Setiap tabel diambil berhalaman dan jumlahnya dicocokkan; bila ada tabel
+  // atau berkas yang gagal, cadangan DINYATAKAN TIDAK LENGKAP (dulu galat
+  // ditelan menjadi tabel kosong dan tetap dilaporkan "berhasil").
   const doBackup = async (approvers) => {
     setBusy(true); setProgress("Mengambil tabel...");
     try {
@@ -908,45 +927,53 @@ function BackupTab({ user, T }) {
       const dbDir = zip.folder("db");
       const storageDir = zip.folder("storage");
 
-      const counts = {};
-      for (const { table } of BACKUP_TABLES) {
+      const tabel = {};
+      for (const { table, pk } of BACKUP_TABLES) {
         log("Tabel: " + table);
-        const extra = table === "audit_log" ? "&order=at.desc&limit=10000" : "";
-        const rows = await fetchTable(table, extra).catch(() => []);
-        counts[table] = rows.length;
-        dbDir.file(table + ".json", JSON.stringify(rows, null, 2));
+        const { rows, total, galat } = await ambilSemua(table, pk);
+        const bersih = table === "users"
+          ? rows.map(u => Object.fromEntries(Object.entries(u).filter(([k]) => !KOLOM_RAHASIA.includes(k))))
+          : rows;
+        const cocok = total === null || rows.length === total;
+        tabel[table] = { baris: rows.length, total, status: galat ? "gagal: " + galat : (cocok ? "ok" : "jumlah tidak cocok") };
+        dbDir.file(table + ".json", JSON.stringify(bersih, null, 2));
       }
 
-      // Storage: enumerate buckets (fallback ke daftar yang dikenal jika gagal)
       let buckets = [];
-      try { buckets = (await listBuckets()).map(b => b.name); }
-      catch { buckets = ["room-documents"]; }
+      try { buckets = (await listBuckets()).map(b => b.name); } catch { /* anon tidak boleh mendaftar bucket */ }
+      buckets = [...new Set([...buckets, ...BUCKET_DIKENAL])].filter(b => b !== "backups");
 
-      const fileIndex = {};
+      const berkas = {};
       for (const b of buckets) {
-        if (b === "backups") continue;
         log("Bucket: " + b);
-        const names = await listObjectsAll(b).catch(() => []);
-        fileIndex[b] = names;
+        let names = [], galatDaftar = null;
+        try { names = await listObjectsAll(b); } catch (e) { galatDaftar = e.message; }
         const bucketDir = storageDir.folder(b);
+        let gagal = 0;
         for (let i = 0; i < names.length; i++) {
-          log("Download " + b + "/" + names[i] + " (" + (i+1) + "/" + names.length + ")");
-          try {
-            const blob = await downloadObject(b, names[i]);
-            bucketDir.file(names[i], blob);
-          } catch (e) { /* skip file rusak */ }
+          log("Unduh " + b + "/" + names[i] + " (" + (i + 1) + "/" + names.length + ")");
+          try { bucketDir.file(names[i], await downloadObject(b, names[i])); } catch { gagal++; }
         }
+        berkas[b] = { berkas: names.length, gagal, status: galatDaftar ? "gagal mendaftar: " + galatDaftar : (gagal ? gagal + " berkas gagal diunduh" : "ok") };
       }
 
+      const masalah = [
+        ...Object.entries(tabel).filter(([, v]) => v.status !== "ok").map(([k, v]) => "tabel " + k + " (" + v.status + ")"),
+        ...Object.entries(berkas).filter(([, v]) => v.status !== "ok").map(([k, v]) => "bucket " + k + " (" + v.status + ")"),
+      ];
       const manifest = {
         app: "Prokopim Hibot",
-        kind: "full-backup-v2",
+        kind: "full-backup-v3",
         exportedAt: new Date().toISOString(),
         exportedBy: user.username,
         source: SUPA_URL,
-        approvers: { kabag: approvers.kabag.username, kasubbag_protokol: approvers.kasubbag.username },
-        tables: counts,
-        storage: Object.fromEntries(Object.entries(fileIndex).map(([k, v]) => [k, v.length])),
+        approvers,
+        lengkap: masalah.length === 0,
+        masalah,
+        catatan: "Kolom " + KOLOM_RAHASIA.join(", ") + " pada users tidak disertakan. Tabel ber-RLS (mis. room_bookings) " +
+                 "dibaca dengan kunci publik sehingga dapat kosong; cadangan penuh lewat peladen menyusul.",
+        tables: tabel,
+        storage: berkas,
       };
       zip.file("manifest.json", JSON.stringify(manifest, null, 2));
 
@@ -960,108 +987,17 @@ function BackupTab({ user, T }) {
       URL.revokeObjectURL(url);
 
       await logAudit({ actor: user.username, actor_role: user.role, action: "backup.export_full",
-        detail: { ...manifest, approvers } });
-      T("Backup berhasil di-download (DB + Storage)");
+        detail: { lengkap: manifest.lengkap, masalah, tables: tabel, storage: berkas, approvers } });
+      if (manifest.lengkap) T("Backup LENGKAP diunduh (DB + Storage).");
+      else T("Backup diunduh tetapi TIDAK LENGKAP: " + masalah.join("; "), "error");
     } catch (e) { T("Gagal backup: " + e.message, "error"); }
-    setBusy(false); setProgress("");
-  };
-
-  // ── Restore: ZIP → wipe DB + Storage, lalu impor ──
-  const doRestore = async (approvers) => {
-    setBusy(true); setProgress("Membuka file...");
-    try {
-      const zip = await JSZip.loadAsync(restoreFile);
-      const manifestRaw = await zip.file("manifest.json")?.async("string");
-      if (!manifestRaw) throw new Error("manifest.json tidak ada — file bukan backup valid");
-      const manifest = JSON.parse(manifestRaw);
-      if (manifest.app !== "Prokopim Hibot") throw new Error("File backup bukan dari Prokopim Hibot");
-
-      // 1) Wipe tabel CHILD dulu, lalu PARENT (urut terbalik dari BACKUP_TABLES)
-      for (let i = BACKUP_TABLES.length - 1; i >= 0; i--) {
-        const { table, pk } = BACKUP_TABLES[i];
-        log("Wipe: " + table);
-        const cur = await fetchTable(table).catch(() => []);
-        for (const r of cur) {
-          if (r[pk] == null) continue;
-          await fetch(SUPA_URL + "/rest/v1/" + table + "?" + pk + "=eq." + encodeURIComponent(r[pk]),
-            { method: "DELETE", headers: H() }).catch(() => {});
-        }
-      }
-      // 2) Insert PARENT → CHILD
-      for (const { table } of BACKUP_TABLES) {
-        const f = zip.file("db/" + table + ".json");
-        if (!f) continue;
-        const rows = JSON.parse(await f.async("string"));
-        if (!rows.length) continue;
-        log("Insert: " + table + " (" + rows.length + ")");
-        for (let i = 0; i < rows.length; i += 50) {
-          await fetch(SUPA_URL + "/rest/v1/" + table, {
-            method: "POST",
-            headers: { ...H(), Prefer: "resolution=merge-duplicates,return=minimal" },
-            body: JSON.stringify(rows.slice(i, i + 50)),
-          }).catch(() => {});
-        }
-      }
-      // 3) Storage: hapus file existing (per bucket dalam manifest) lalu upload ulang
-      const storageDir = zip.folder("storage");
-      const bucketsInZip = [];
-      storageDir.forEach((rel, file) => {
-        if (file.dir) return;
-        const [bucket, ...rest] = rel.split("/");
-        if (!bucket || !rest.length) return;
-        const name = rest.join("/");
-        const idx = bucketsInZip.find(b => b.bucket === bucket);
-        if (idx) idx.files.push({ name, file });
-        else bucketsInZip.push({ bucket, files: [{ name, file }] });
-      });
-      for (const { bucket, files } of bucketsInZip) {
-        log("Storage wipe: " + bucket);
-        const existing = await listObjectsAll(bucket).catch(() => []);
-        if (existing.length) await deleteObjects(bucket, existing).catch(() => {});
-        for (let i = 0; i < files.length; i++) {
-          log("Upload " + bucket + "/" + files[i].name + " (" + (i+1) + "/" + files.length + ")");
-          const blob = await files[i].file.async("blob");
-          await uploadObject(bucket, files[i].name, blob).catch(() => {});
-        }
-      }
-
-      await logAudit({ actor: user.username, actor_role: user.role, action: "backup.restore_full",
-        detail: { manifest, approvers } });
-      T("Restore selesai. Aplikasi akan reload.", "warn");
-      setTimeout(() => window.location.reload(), 1500);
-    } catch (e) { T("Gagal restore: " + e.message, "error"); }
-    setBusy(false); setProgress(""); setRestoreFile(null);
-  };
-
-  // ── Reset Storage: hapus seluruh file di SEMUA bucket (DB tidak disentuh) ──
-  const doReset = async (approvers) => {
-    setBusy(true); setProgress("Membaca bucket...");
-    try {
-      let buckets = [];
-      try { buckets = (await listBuckets()).map(b => b.name); }
-      catch { buckets = ["room-documents"]; }
-
-      const summary = {};
-      for (const b of buckets) {
-        if (b === "backups") continue;
-        log("Reset: " + b);
-        const names = await listObjectsAll(b).catch(() => []);
-        summary[b] = names.length;
-        if (names.length) await deleteObjects(b, names).catch(() => {});
-      }
-      await logAudit({ actor: user.username, actor_role: user.role, action: "storage.reset",
-        detail: { deleted: summary, approvers } });
-      T("Reset Storage selesai (" + Object.values(summary).reduce((a,b)=>a+b,0) + " file dihapus).", "warn");
-    } catch (e) { T("Gagal reset: " + e.message, "error"); }
     setBusy(false); setProgress("");
   };
 
   const onAuthConfirm = (approvers) => {
     const type = pending?.type;
     setPending(null);
-    if (type === "backup")  doBackup(approvers);
-    else if (type === "restore") doRestore(approvers);
-    else if (type === "reset")   doReset(approvers);
+    if (type === "backup") doBackup(approvers);
   };
 
   const card = (border) => ({
@@ -1074,45 +1010,31 @@ function BackupTab({ user, T }) {
       <h2 style={{ marginTop: 0, fontSize: 18 }}>Backup & Restore</h2>
 
       <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13, color: "#1E40AF" }}>
-        ⓘ Setiap aksi (Backup / Restore / Reset Storage) wajib mendapat <b>persetujuan Kabag dan Kasubbag Protokol</b> — keduanya login di layar yang sama saat aksi dijalankan.
+        ⓘ Backup memerlukan persetujuan <b>Kabag dan Kasubbag Protokol</b>. Pemeriksaannya masih di peramban;
+        otorisasi dua orang yang ditegakkan peladen sedang disiapkan.
       </div>
 
       {/* Backup */}
       <div style={card(C.border)}>
         <h3 style={{ marginTop: 0, fontSize: 15 }}>Backup Lengkap (DB + Storage)</h3>
         <p style={{ fontSize: 13, color: C.muted, marginTop: 4 }}>
-          Mengunduh 1 file ZIP berisi seluruh tabel ({BACKUP_TABLES.map(t => t.table).join(", ")}) dan semua file di Storage.
+          Mengunduh 1 file ZIP berisi tabel {BACKUP_TABLES.map(t => t.table).join(", ")} (berhalaman, tanpa kolom sandi) dan berkas
+          Storage. Hasilnya dinyatakan <b>LENGKAP</b> atau <b>TIDAK LENGKAP</b> beserta rinciannya di manifest.json.
         </p>
         <button style={btn("primary")} onClick={() => setPending({ type: "backup" })} disabled={busy}>
           {busy && progress ? "Memproses..." : "↓ Backup Sekarang"}
         </button>
       </div>
 
-      {/* Restore */}
-      <div style={card(C.danger)}>
-        <h3 style={{ marginTop: 0, fontSize: 15, color: C.danger }}>Restore dari ZIP ⚠ DESTRUKTIF</h3>
-        <p style={{ fontSize: 13, color: C.muted, marginTop: 4 }}>
-          Mengganti SELURUH data (DB &amp; Storage) dengan isi backup. Pastikan ekspor terbaru sudah dibuat.
+      {/* Restore & Reset: dinonaktifkan sementara */}
+      <div style={card(C.border)}>
+        <h3 style={{ marginTop: 0, fontSize: 15, color: C.muted }}>Restore &amp; Reset Storage — dinonaktifkan sementara</h3>
+        <p style={{ fontSize: 13, color: C.muted, marginTop: 4, marginBottom: 0 }}>
+          Versi sebelumnya terbukti dapat mengosongkan seluruh akun (termasuk superadmin) saat restore, dan
+          Reset Storage melapor selesai tanpa menghapus apa pun. Keduanya kembali setelah versi aman siap:
+          pratinjau perubahan, dijalankan peladen dalam satu transaksi, dan disahkan dua orang.
+          Pemulihan darurat sementara dilakukan lewat dasbor Supabase.
         </p>
-        <input type="file" accept=".zip,application/zip" disabled={busy}
-          onChange={e => {
-            const f = e.target.files?.[0];
-            if (!f) return;
-            setRestoreFile(f);
-            setPending({ type: "restore" });
-          }} />
-      </div>
-
-      {/* Reset Storage */}
-      <div style={card(C.warn)}>
-        <h3 style={{ marginTop: 0, fontSize: 15, color: C.warn }}>Reset Storage (Akhir Tahun) ⚠</h3>
-        <p style={{ fontSize: 13, color: C.muted, marginTop: 4 }}>
-          Menghapus SEMUA file di semua bucket Storage. Database tidak dihapus — tapi tautan dokumen pada baris lama akan menjadi tidak valid.
-          Lakukan <b>setelah</b> Backup Lengkap berhasil disimpan.
-        </p>
-        <button style={btn("warn")} onClick={() => setPending({ type: "reset" })} disabled={busy}>
-          Reset Storage
-        </button>
       </div>
 
       {progress && (
@@ -1123,10 +1045,10 @@ function BackupTab({ user, T }) {
 
       {pending && (
         <DualAuthModal
-          aksi={pending.type === "backup" ? "Backup" : pending.type === "restore" ? "Restore" : "Reset Storage"}
+          aksi="Backup"
           busy={busy}
           onConfirm={onAuthConfirm}
-          onCancel={() => { setPending(null); setRestoreFile(null); }}
+          onCancel={() => setPending(null)}
         />
       )}
     </div>
@@ -1224,7 +1146,7 @@ function SystemTab({ user, T }) {
   useEffect(() => {
     Promise.all([
       countTable("users"), countTable("jadwal"),
-      countTable("tamu"),  countTable("pending_regs"),
+      countTable("permohonan_tamu"),  countTable("pending_regs"),
       countTable("audit_log"),
     ]).then(([u, j, t, p, a]) =>
       setCounts({ users: u, jadwal: j, tamu: t, pending_regs: p, audit_log: a })

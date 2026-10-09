@@ -9,6 +9,8 @@ export const config = {
   api: { bodyParser: { sizeLimit: "15mb" } }, // 15MB untuk terima Base64 file undangan/sambutan
 };
 
+import { wajibSesi, rahasiaCocok } from "./_sesi.js";
+
 const SUPA_URL    = process.env.SUPABASE_URL    || process.env.VITE_SUPABASE_URL;
 const SUPA_KEY    = process.env.SUPABASE_KEY    || process.env.VITE_SUPABASE_ANON_KEY;
 const SA_EMAIL    = process.env.GOOGLE_SA_EMAIL;
@@ -175,10 +177,24 @@ export default async function handler(req, res) {
   // CORS Headers
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-API-Secret");
   if (req.method === "OPTIONS") return res.status(200).end();
 
   const action=req.query.action;
+
+  // ── Penjagaan akses ──
+  // Peramban hanya memakai sync_one_from_db, dan itu wajib sesi aplikasi.
+  // Aksi lain adalah alat admin/diagnosis yang tidak dipakai aplikasi; hanya
+  // boleh dengan API_SECRET/CRON_SECRET. Token Google TIDAK PERNAH dikirim ke
+  // pemanggil (aksi get_credentials dihapus): token itu berhak penuh atas
+  // seluruh Drive instansi.
+  if (action === "sync_one_from_db") {
+    const pengguna = await wajibSesi(req, res);
+    if (!pengguna) return;
+  } else if (!rahasiaCocok(req)) {
+    return res.status(401).json({ error: "Akses tidak sah." });
+  }
+
   try {
 
     // ──────────────────────────────────────────────────────
@@ -347,21 +363,13 @@ export default async function handler(req, res) {
       });
     }
 
-    // ──────────────────────────────────────────────────────
-    // 2. GET CREDENTIALS (Cadangan untuk Direct Upload)
-    // ──────────────────────────────────────────────────────
-    else if (req.method==="POST" && action==="get_credentials") {
-      const { targetYear,targetMonth,targetSub }=req.body;
-      const token=await getToken();
-      const folderPath=targetYear+"/"+targetMonth+"/"+targetSub;
-      const folderId=await getOrCreateFolder(token,folderPath);
-      return res.status(200).json({ ok:true, token, folderId, folderPath });
-    }
+    // 2. GET CREDENTIALS — DIHAPUS (9 Okt 2026): mengembalikan access token
+    //    Google berlingkup Drive penuh kepada pemanggil mana pun.
 
     // ──────────────────────────────────────────────────────
     // 3. FINALIZE (Cadangan untuk Direct Upload)
     // ──────────────────────────────────────────────────────
-    else if (req.method==="POST" && action==="finalize") {
+    if (req.method==="POST" && action==="finalize") {
       const { fileId,agendaId,fileName,mimeType,fileSizeBytes,folderId,folderPath,targetSub }=req.body;
       const token=await getToken();
       await setPublic(token,fileId);

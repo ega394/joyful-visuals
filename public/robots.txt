@@ -1,14 +1,19 @@
 User-agent: Googlebot
+Disallow: /superadmin
 Allow: /
 
 User-agent: Bingbot
+Disallow: /superadmin
 Allow: /
 
 User-agent: Twitterbot
+Disallow: /superadmin
 Allow: /
 
 User-agent: facebookexternalhit
+Disallow: /superadmin
 Allow: /
 
 User-agent: *
+Disallow: /superadmin
 Allow: /

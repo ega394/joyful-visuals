@@ -4,6 +4,8 @@
  * ALUR: Tamu -> Admin RK -> Kasubbag -> Kabag -> Pimpinan
  */
 
+import { wajibSesi } from "./_sesi.js";
+
 const SUPA_URL = process.env.SUPABASE_URL    || process.env.VITE_SUPABASE_URL;
 const SUPA_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 const FONNTE   = process.env.FONNTE_TOKEN;
@@ -721,8 +723,18 @@ async function actionRespond(body) {
 }
 
 // ── HANDLER ──────────────────────────────────────────────────
+// Hanya `checkin` (formulir permohonan audiensi publik di /tamu) yang terbuka.
+// Aksi lain memajukan alur, mengubah jadwal, atau menampilkan data pemohon
+// (nama, nomor WA), sehingga wajib sesi aplikasi. Endpoint ini memakai kunci
+// layanan yang melewati RLS, jadi pintunya harus dijaga di sini.
+const AKSI_PUBLIK = ["checkin"];
+
 export default async function handler(req, res) {
   var action = req.query.action;
+  if (!(req.method === "POST" && AKSI_PUBLIK.includes(action))) {
+    var pengguna = await wajibSesi(req, res);
+    if (!pengguna) return;
+  }
   try {
     var result;
     if (req.method === "GET" && action === "queue") {
