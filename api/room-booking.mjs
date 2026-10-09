@@ -224,7 +224,13 @@ function sessionLabel(s) {
 function genToken() {
   const c = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz0123456789";
   let s = "";
-  for (let i = 0; i < 40; i++) s += c[Math.floor(Math.random() * c.length)];
+  // Acak kriptografis (Math.random dapat ditebak). 58 karakter, bias modulo
+  // dihindari dengan menolak bita >= 232 (4 × 58).
+  while (s.length < 40) {
+    for (const b of globalThis.crypto.getRandomValues(new Uint8Array(48))) {
+      if (b < 232 && s.length < 40) s += c[b % c.length];
+    }
+  }
   return s;
 }
 
@@ -531,11 +537,24 @@ export default async function handler(req, res) {
         // meninjau permohonan tetap diperiksa terpisah lewat verifyAdmin().
         const TTL_MS = 12 * 3600 * 1000;
         const token = genToken();
-        // Sesi lama orang yang sama dibuang lebih dahulu supaya barisnya tidak
-        // menumpuk tiap kali login, dan supaya satu akun hanya punya satu sesi
-        // berlaku — sama seperti perilaku kolom tunggal sebelumnya.
+        // Satu akun boleh punya beberapa sesi (HP dan laptop, atau beberapa
+        // permintaan yang meminta token bersamaan). Dulu semua sesi lama
+        // dihapus di sini, sehingga dua perangkat — bahkan dua permintaan
+        // paralel — saling mencabut token dan notifikasi WA gagal diam-diam.
+        // Kini hanya yang kedaluwarsa dibuang, dan yang berlaku dibatasi
+        // MAKS_SESI terbaru supaya barisnya tidak menumpuk.
+        const MAKS_SESI = 5;
         try {
-          await sbDelete(`sesi?username=eq.${encodeURIComponent(u.username)}`);
+          const ada = await sbGet(
+            `sesi?username=eq.${encodeURIComponent(u.username)}` +
+            `&select=token,kedaluwarsa&order=kedaluwarsa.desc`
+          );
+          const kini = Date.now();
+          const buang = (ada || [])
+            .filter((x, i) => i >= MAKS_SESI - 1 || !x.kedaluwarsa || new Date(x.kedaluwarsa).getTime() < kini)
+            .map((x) => x.token)
+            .filter((t) => /^[A-Za-z0-9_-]+$/.test(String(t || "")));
+          if (buang.length) await sbDelete(`sesi?token=in.(${buang.join(",")})`);
           await sbPost("sesi", {
             token,
             username: u.username,

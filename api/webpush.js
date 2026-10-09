@@ -2,12 +2,13 @@
 // Requires: npm install web-push (tambah ke package.json)
 const webpush = require("web-push");
 const { guard } = require("./_middleware");
+const { wajibSesi } = require("./_sesi");
 
 const VAPID_PUBLIC  = process.env.VAPID_PUBLIC;
 const VAPID_PRIVATE = process.env.VAPID_PRIVATE;
 const VAPID_EMAIL   = process.env.VAPID_EMAIL || "mailto:prokopim@tarakankota.go.id";
 const SUPA_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-const SUPA_KEY = process.env.SUPABASE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+const SUPA_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 const supaHeaders = () => ({
   "Content-Type": "application/json",
   "apikey": SUPA_KEY,
@@ -109,14 +110,24 @@ module.exports = async (req, res) => {
 
   // POST /api/webpush — dua fungsi: subscribe atau send
   if (req.method === "POST") {
-    const { action, subscription, username, role, notify } = req.body || {};
+    const { action, subscription, notify } = req.body || {};
+
+    // Berlangganan dan mengirim wajib sesi aplikasi. Sebelumnya username/peran
+    // diambil dari badan permintaan, sehingga siapa pun dapat mendaftarkan
+    // perangkatnya atas nama pejabat atau mengirim push berisi tautan bebas.
+    // Berhenti berlangganan tetap terbuka: cukup dengan endpoint perangkat itu.
+    let pengguna = null;
+    if (action === "subscribe" || action === "send") {
+      pengguna = await wajibSesi(req, res);
+      if (!pengguna) return;
+    }
 
     // ── SUBSCRIBE: simpan subscription ──
     if (action === "subscribe") {
-      if (!subscription || !username || !role) {
-        return res.status(400).json({ error: "Butuh subscription, username, role" });
+      if (!subscription || !subscription.endpoint) {
+        return res.status(400).json({ error: "Butuh subscription" });
       }
-      await saveSub(subscription, username, role);
+      await saveSub(subscription, pengguna.username, pengguna.role);
       return res.status(200).json({ ok: true });
     }
 
@@ -138,7 +149,13 @@ module.exports = async (req, res) => {
       const subs = await getSubs(targetRole, targetUser);
       if (!subs.length) return res.status(200).json({ ok: true, sent: 0 });
 
-      const payload = JSON.stringify({ title, body, url: url || "/", tag: tag || "prokopim" });
+      // Hanya tautan di dalam aplikasi ("/…", bukan "//host").
+      const urlAman = (typeof url === "string" && /^\/(?!\/)/.test(url)) ? url : "/";
+      const payload = JSON.stringify({
+        title: String(title || "Prokopim").slice(0, 120),
+        body: String(body || "").slice(0, 500),
+        url: urlAman, tag: String(tag || "prokopim").slice(0, 80),
+      });
       let sent = 0; let failed = 0;
 
       await Promise.all(subs.map(async row => {

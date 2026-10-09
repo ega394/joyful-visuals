@@ -69,7 +69,7 @@ function guard(req, res, opts = {}) {
   // 1. CORS
   res.setHeader("Access-Control-Allow-Origin", process.env.ALLOWED_ORIGIN || "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-API-Secret");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-API-Secret");
 
   if (req.method === "OPTIONS") {
     res.status(200).end();

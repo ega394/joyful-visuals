@@ -22,7 +22,8 @@ const SUPA_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_KEY ||
 //     "h1:<hmac hex>:<jumlah salah>"
 // Nilai lama (kode polos dari versi sebelumnya) dianggap kedaluwarsa.
 function kunciOtp() {
-  return process.env.OTP_PEPPER || process.env.SUPABASE_SERVICE_KEY || process.env.API_SECRET ||
+  // API_SECRET tidak dipakai: salinannya pernah ikut bundel peramban.
+  return process.env.OTP_PEPPER || process.env.SUPABASE_SERVICE_KEY ||
          process.env.CRON_SECRET || process.env.FONNTE_TOKEN || process.env.RESEND_API_KEY || "";
 }
 function sidikOtp(username, code) {
@@ -38,21 +39,68 @@ function samaAman(a, b) {
 }
 /**
  * Periksa OTP. Mengembalikan null bila cocok, atau {status, error} bila tidak.
- * Salah ke-5 menghanguskan kode supaya 6 digit tidak bisa ditebak beruntun.
+ *
+ * Setiap percobaan lebih dulu MEMESAN satu jatah dengan menaikkan hitungan di
+ * basis data secara bersyarat (PATCH ... &otp_code=eq.<nilai lama>), baru
+ * kemudian kodenya dibandingkan. Dengan begitu tebakan yang dikirim bersamaan
+ * tetap terhitung satu per satu, dan paling banyak OTP_MAKS_SALAH tebakan
+ * yang pernah dibandingkan untuk satu kode.
  */
 async function periksaOtp(user, otp) {
-  const simpan = bacaOtp(user.otp_code);
-  if (!simpan) return { status: 400, error: "OTP belum diminta atau sudah kedaluwarsa. Minta kode baru." };
-  if (!user.otp_expires || new Date(user.otp_expires) < new Date())
-    return { status: 400, error: "Kode OTP sudah kedaluwarsa. Minta kode baru." };
-  if (samaAman(simpan.sidik, sidikOtp(user.username, String(otp).trim()))) return null;
-  const salah = simpan.salah + 1;
-  if (salah >= OTP_MAKS_SALAH) {
-    await updateUser(user.username, { otp_code: null, otp_expires: null });
-    return { status: 429, error: "Terlalu banyak percobaan salah. Kode dihanguskan — minta kode baru." };
+  let nilai = user.otp_code, expires = user.otp_expires;
+  for (let coba = 0; coba < 8; coba++) {
+    const simpan = bacaOtp(nilai);
+    if (!simpan) return { status: 400, error: "OTP belum diminta atau sudah kedaluwarsa. Minta kode baru." };
+    if (!expires || new Date(expires) < new Date())
+      return { status: 400, error: "Kode OTP sudah kedaluwarsa. Minta kode baru." };
+    if (simpan.salah >= OTP_MAKS_SALAH) {
+      await updateUser(user.username, { otp_code: null, otp_expires: null });
+      return { status: 429, error: "Terlalu banyak percobaan salah. Kode dihanguskan — minta kode baru." };
+    }
+    const dipakai = simpan.salah + 1;
+    const baru = "h1:" + simpan.sidik + ":" + dipakai;
+    if (await gantiOtpBersyarat(user.username, nilai, baru)) {
+      if (samaAman(simpan.sidik, sidikOtp(user.username, String(otp).trim()))) return null;
+      if (dipakai >= OTP_MAKS_SALAH) {
+        await updateUser(user.username, { otp_code: null, otp_expires: null });
+        return { status: 429, error: "Terlalu banyak percobaan salah. Kode dihanguskan — minta kode baru." };
+      }
+      return { status: 400, error: "Kode OTP salah. Sisa percobaan: " + (OTP_MAKS_SALAH - dipakai) + "." };
+    }
+    // Percobaan lain mendahului: baca ulang lalu ulangi pemesanan.
+    const segar = await getUser(user.username);
+    if (!segar) return { status: 400, error: "OTP belum diminta atau sudah kedaluwarsa. Minta kode baru." };
+    nilai = segar.otp_code; expires = segar.otp_expires;
   }
-  await updateUser(user.username, { otp_code: "h1:" + simpan.sidik + ":" + salah });
-  return { status: 400, error: "Kode OTP salah. Sisa percobaan: " + (OTP_MAKS_SALAH - salah) + "." };
+  return { status: 429, error: "Terlalu banyak percobaan bersamaan. Coba lagi." };
+}
+
+/** Ganti otp_code hanya bila nilainya masih `lama`. true bila satu baris berubah. */
+async function gantiOtpBersyarat(username, lama, baru) {
+  const url = SUPA_URL + "/rest/v1/users?username=eq." + encodeURIComponent(username) +
+              "&otp_code=eq." + encodeURIComponent(lama);
+  const r = await fetch(url, {
+    method:  "PATCH",
+    headers: Object.assign({}, supaHeaders(), { Prefer: "return=representation" }),
+    body:    JSON.stringify({ otp_code: baru }),
+  });
+  if (!r.ok) {
+    console.error("[OTP] pemesanan percobaan gagal, status:", r.status);
+    throw new Error(MSG_SERVER_BUSY);
+  }
+  const rows = await r.json().catch(() => []);
+  return Array.isArray(rows) && rows.length === 1;
+}
+
+/** Cabut semua token sesi peladen milik akun (tabel `sesi` dan kolom lama). */
+async function cabutSesi(username) {
+  try {
+    await fetch(SUPA_URL + "/rest/v1/sesi?username=eq." + encodeURIComponent(username), {
+      method: "DELETE", headers: Object.assign({}, supaHeaders(), { Prefer: "return=minimal" }),
+    });
+  } catch (e) { console.warn("[OTP] cabut sesi gagal:", e.message); }
+  try { await updateUser(username, { session_token: null, session_expires: null }); }
+  catch (e) { /* kolom lama mungkin sudah tidak ada */ }
 }
 
 async function catatAudit(baris) {
@@ -258,8 +306,13 @@ module.exports = async function handler(req, res) {
     // Batas permintaan kode: 3 per 10 menit per akun dan 10 per 10 menit per
     // alamat IP, supaya fitur ini tidak dipakai membanjiri WA/email seseorang.
     // Penyimpanannya di memori instans (perlindungan dasar, bukan mutlak).
-    if (!rateLimit("otp-akun:" + user.username, 3, 10 * 60_000).allowed ||
-        !rateLimit("otp-ip:" + getIP(req), 10, 10 * 60_000).allowed) {
+    // Jatah per akun dihitung per alamat IP juga, supaya orang lain yang
+    // menghabiskan jatah dari jaringannya sendiri tidak serta-merta mengunci
+    // pemilik akun; batas per akun total tetap ada sebagai pagar atas.
+    const ip = getIP(req);
+    if (!rateLimit("otp-akun-ip:" + user.username + ":" + ip, 3, 10 * 60_000).allowed ||
+        !rateLimit("otp-akun:" + user.username, 8, 10 * 60_000).allowed ||
+        !rateLimit("otp-ip:" + ip, 10, 10 * 60_000).allowed) {
       return res.status(429).json({ error: "Terlalu sering meminta kode. Coba lagi dalam 10 menit." });
     }
 
@@ -333,6 +386,12 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ error: "Akun ini belum punya nomor WhatsApp atau email." });
   }
 
+  // Batas laju pemeriksaan kode (selain jatah 5 salah per kode).
+  if ((action === "verify" || action === "verify_login") &&
+      !rateLimit("otp-cek-ip:" + getIP(req), 20, 10 * 60_000).allowed) {
+    return res.status(429).json({ error: "Terlalu banyak percobaan. Coba lagi dalam 10 menit." });
+  }
+
   // ── VERIFY OTP UNTUK LOGIN MFA (tanpa ganti password) ───
   if (action === "verify_login") {
     if (!otp) return res.status(400).json({ error: "OTP wajib diisi" });
@@ -381,6 +440,7 @@ module.exports = async function handler(req, res) {
     try   { await updateUser(user.username, { password: hashed, otp_code: null, otp_expires: null,
                                               session_version: (Number(user.session_version) || 0) + 1 }); }
     catch (e) { return res.status(500).json({ error: "Gagal update password: " + e.message }); }
+    await cabutSesi(user.username);
     await catatAudit({ actor: user.username, actor_role: user.role, action: "auth.reset_password_otp",
                        target: user.username, detail: { channel: "otp" },
                        ip: String(req.headers["x-forwarded-for"] || "").split(",")[0].trim() || null });

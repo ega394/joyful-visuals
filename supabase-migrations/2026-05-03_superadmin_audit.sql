@@ -37,23 +37,27 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at      TIMESTAMPTZ NOT NULL 
 ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW();
 
 -- 3. Akun superadmin awal
---    Hash di bawah adalah PLACEHOLDER yang tidak cocok dengan sandi apa pun.
+--    Dibuat NONAKTIF dengan nilai sandi yang bukan hash apa pun. Versi lama
+--    berkas ini menanam "hash placeholder" yang tertulis di repositori publik;
+--    nilai seperti itu bisa dipakai langsung sebagai kredensial di endpoint
+--    yang membandingkan hash, jadi tidak boleh ada lagi.
 --    Setel sandi sendiri lewat SQL Editor (lihat 2026-05-20_superadmin_account.sql);
 --    jangan pernah menulis sandi atau hash sungguhan di repositori publik ini.
-INSERT INTO users (username, password, role, nama, jabatan, "noWA", must_change_pw)
+INSERT INTO users (username, password, role, nama, jabatan, "noWA", must_change_pw, disabled)
 VALUES (
   'superadmin',
-  '$sha256$f8e2c91a3f4d7b8e9c1a2f5d6b8e7c4a3f2d1e0b9c8a7f6e5d4c3b2a1f0e9d8c',
+  '$sha256$terkunci',
   'superadmin',
   'Super Administrator',
   'Super Administrator Sistem',
   '',
+  TRUE,
   TRUE
 )
 ON CONFLICT (username) DO NOTHING;
 
 -- CATATAN PENTING:
--- Hash di atas adalah PLACEHOLDER. Setel sandi lewat SQL Editor — perintahnya
+-- Akun di atas nonaktif dan tanpa sandi yang bisa dipakai. Setel sandi lewat SQL Editor — perintahnya
 -- ada di 2026-05-20_superadmin_account.sql.
 -- Catatan: reset via /api/otp tidak berlaku untuk akun superadmin, dan
 -- must_change_pw belum ditegakkan aplikasi.

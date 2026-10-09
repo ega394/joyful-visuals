@@ -763,6 +763,20 @@ const BACKUP_TABLES = [
 ];
 // Kolom rahasia yang TIDAK ikut ke berkas cadangan (ZIP disimpan di perangkat).
 const KOLOM_RAHASIA = ["password", "otp_code", "otp_expires", "session_token", "session_expires"];
+// Disaring di SEMUA tabel dan di setiap kedalaman: entri audit_log versi lama
+// menyimpan hash sandi pemberi otorisasi di detail.approvers, dan pending_regs
+// versi lama menyimpan sandi polos di data.konfirmasi.
+const KUNCI_RAHASIA = new Set([...KOLOM_RAHASIA, "konfirmasi", "pass", "pin", "token"]);
+function tanpaRahasia(v) {
+  if (Array.isArray(v)) return v.map(tanpaRahasia);
+  if (v && typeof v === "object") {
+    return Object.fromEntries(Object.entries(v).filter(([k]) => !KUNCI_RAHASIA.has(k)).map(([k, x]) => [k, tanpaRahasia(x)]));
+  }
+  return v;
+}
+// Tabel ber-RLS tanpa kebijakan baca untuk kunci publik: konsol ini hanya
+// melihat 0 baris, jadi isinya TIDAK tercakup cadangan ini.
+const TABEL_RLS = ["room_bookings"];
 // Bucket yang dipakai aplikasi. Daftar bucket tidak bisa dibaca kunci anon,
 // jadi daftar ini dipakai bila listBuckets() gagal atau kosong.
 const BUCKET_DIKENAL = ["undangan", "sambutan", "room-documents"];
@@ -931,11 +945,11 @@ function BackupTab({ user, T }) {
       for (const { table, pk } of BACKUP_TABLES) {
         log("Tabel: " + table);
         const { rows, total, galat } = await ambilSemua(table, pk);
-        const bersih = table === "users"
-          ? rows.map(u => Object.fromEntries(Object.entries(u).filter(([k]) => !KOLOM_RAHASIA.includes(k))))
-          : rows;
+        const bersih = tanpaRahasia(rows);
         const cocok = total === null || rows.length === total;
-        tabel[table] = { baris: rows.length, total, status: galat ? "gagal: " + galat : (cocok ? "ok" : "jumlah tidak cocok") };
+        tabel[table] = { baris: rows.length, total, status: galat ? "gagal: " + galat
+          : TABEL_RLS.includes(table) ? "tidak tercakup (RLS; perlu cadangan lewat peladen)"
+          : (cocok ? "ok" : "jumlah tidak cocok") };
         dbDir.file(table + ".json", JSON.stringify(bersih, null, 2));
       }
 
@@ -970,8 +984,8 @@ function BackupTab({ user, T }) {
         approvers,
         lengkap: masalah.length === 0,
         masalah,
-        catatan: "Kolom " + KOLOM_RAHASIA.join(", ") + " pada users tidak disertakan. Tabel ber-RLS (mis. room_bookings) " +
-                 "dibaca dengan kunci publik sehingga dapat kosong; cadangan penuh lewat peladen menyusul.",
+        catatan: "Kolom rahasia (" + [...KUNCI_RAHASIA].join(", ") + ") tidak disertakan di tabel mana pun. Tabel ber-RLS (" +
+                 TABEL_RLS.join(", ") + ") tidak terbaca dengan kunci publik; cadangan penuh lewat peladen menyusul.",
         tables: tabel,
         storage: berkas,
       };
