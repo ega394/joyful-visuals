@@ -3138,10 +3138,10 @@ function AuditPage({events,user,role,isMobile,embedded}){
     if(tl.length===0)return false; // sembunyikan jadwal yg belum punya riwayat sama sekali
     if(q.trim()){
       const needle=q.toLowerCase();
-      if(!(ev.namaAcara||"").toLowerCase().includes(needle)
-        && !(ev.penyelenggara||"").toLowerCase().includes(needle)
-        && !(ev.lokasi||"").toLowerCase().includes(needle)
-        && !((ev.submittedBy||"").toLowerCase().includes(needle))) return false;
+      if(!String(ev.namaAcara??"").toLowerCase().includes(needle)
+        && !String(ev.penyelenggara??"").toLowerCase().includes(needle)
+        && !String(ev.lokasi??"").toLowerCase().includes(needle)
+        && !(String(ev.submittedBy??"").toLowerCase().includes(needle))) return false;
     }
     if(filterAction){
       if(!tl.some(t=>t.action===filterAction)) return false;
@@ -8573,15 +8573,13 @@ const TH={
     const base=getVisible();
     if(!cariTunda.trim())return base;
     const q=cariTunda.trim().toLowerCase();
+    // Isian lama tidak selalu teks: ada nomor surat tersimpan sebagai angka
+    // (dan isian lain bisa berupa daftar). Dulu .toLowerCase() pada angka
+    // menggagalkan seluruh tampilan sehingga layar putih saat mencari.
+    const teks=v=>v==null?"":(Array.isArray(v)?v.join(" "):typeof v==="object"?"":String(v)).toLowerCase();
     return base.filter(e=>
-      (e.namaAcara||"").toLowerCase().includes(q)||
-      (e.penyelenggara||"").toLowerCase().includes(q)||
-      (e.lokasi||"").toLowerCase().includes(q)||
-      (e.catatan||"").toLowerCase().includes(q)||
-      (e.pakaian||"").toLowerCase().includes(q)||
-      (e.buktiUndangan||"").toLowerCase().includes(q)||
-      (e.jenisKegiatan||"").toLowerCase().includes(q)||
-      (e.tanggal||"").includes(q)
+      ["namaAcara","penyelenggara","lokasi","catatan","pakaian","buktiUndangan","jenisKegiatan","tanggal"]
+        .some(k=>teks(e[k]).includes(q))
     );
   })();
   // Memakai peran ASLI juga, bukan hanya peran efektif: Admin RK yang sedang
@@ -10456,7 +10454,7 @@ function KabagDashboard({events, user, upd, showT, askConfirm, deleteAndSync, is
   const riwayat=approved.filter(e=>(e.tanggal+" "+e.jam)<nowStr).reverse();
   // Filter riwayat berdasarkan pencarian
   const riwayatFiltered=searchQ.trim()
-    ?riwayat.filter(e=>(e.namaAcara||"").toLowerCase().includes(searchQ.toLowerCase())||(e.penyelenggara||"").toLowerCase().includes(searchQ.toLowerCase())||(e.tanggal||"").includes(searchQ))
+    ?riwayat.filter(e=>String(e.namaAcara??"").toLowerCase().includes(searchQ.toLowerCase())||String(e.penyelenggara??"").toLowerCase().includes(searchQ.toLowerCase())||(e.tanggal||"").includes(searchQ))
     :riwayat;
 
   const tabs=[
