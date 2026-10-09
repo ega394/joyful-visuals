@@ -472,7 +472,6 @@ function KasubbagDetail({ guest, user, showT, isMobile, onBack, onDone }) {
   var [catatan,   setCatatan]   = useState(guest.catatan_staf || "");
   var [loading,   setLoading]   = useState(false);
   var [konfirm,   setKonfirm]   = useState(null);
-  var [waLoading, setWaLoading] = useState(false);
 
   async function naikkanKabag() {
     setLoading(true);
@@ -517,14 +516,14 @@ function KasubbagDetail({ guest, user, showT, isMobile, onBack, onDone }) {
     finally { setLoading(false); setKonfirm(null); }
   }
 
-  async function kirimWA() {
-    setWaLoading(true);
-    try {
-      await apiPost("verify_wa", { id: guest.id });
-      showT("📱 WA verifikasi terkirim ke "+gPhone(guest));
-    } catch(e) { showT("❌ "+e.message); }
-    finally { setWaLoading(false); }
-  }
+  // Hubungi pemohon langsung dari WhatsApp HP petugas: percakapan dua arah,
+  // dan tidak memakai kuota Fonnte (dulu tombol ini mengirim pesan otomatis
+  // yang meminta dibalas ke nomor gateway yang tidak dipantau).
+  const waPemohon = (() => {
+    let d = String(gPhone(guest) || "").replace(/\D/g, "");
+    if (d.startsWith("0")) d = "62" + d.slice(1); else if (d.startsWith("8")) d = "62" + d;
+    return d.length >= 10 ? "https://wa.me/" + d : null;
+  })();
 
   return (
     <DetailLayout
@@ -551,15 +550,16 @@ function KasubbagDetail({ guest, user, showT, isMobile, onBack, onDone }) {
         <CatatanBox label="📋 Catatan Admin RK" isi={guest.catatan_rk} color="#3B82F6" bg="#EFF6FF"/>
       )}
 
-      {/* WA Verifikasi */}
-      <button onClick={kirimWA} disabled={waLoading} style={{
-        width:"100%",padding:"11px",borderRadius:12,border:"2px solid #25D366",
-        background:"white",color:"#128C7E",fontSize:13,fontWeight:700,cursor:"pointer",
-        display:"flex",alignItems:"center",justifyContent:"center",gap:8,marginBottom:14,
-      }}>
-        {waLoading ? <Spin color="#128C7E"/> : "📱"}
-        {waLoading ? "Mengirim..." : "Kirim WA Verifikasi ke Tamu"}
-      </button>
+      {/* Chat pemohon dari WhatsApp petugas sendiri */}
+      {waPemohon && (
+        <a href={waPemohon} target="_blank" rel="noopener noreferrer" style={{
+          width:"100%",padding:"11px",borderRadius:12,border:"2px solid #25D366",boxSizing:"border-box",
+          background:"white",color:"#128C7E",fontSize:13,fontWeight:700,textDecoration:"none",
+          display:"flex",alignItems:"center",justifyContent:"center",gap:8,marginBottom:14,
+        }}>
+          📱 Chat Pemohon di WhatsApp
+        </a>
+      )}
 
       {/* Prioritas */}
       {guest.status==="pending_kasubbag" && (
@@ -870,7 +870,7 @@ function KabagDetail({ guest, user, events, showT, isMobile, onBack, onDone, rel
                 placeholder="Cth: Mohon klarifikasi keperluan audiensi & pastikan ada surat rekomendasi resmi sebelum diteruskan kembali..."
                 style={inpStyle}/>
               <div style={{fontSize:11,color:"#94A3B8",marginTop:6,lineHeight:1.5}}>
-                ℹ Instruksi ini wajib diisi. Kasubbag Protokol akan menerima permohonan ini kembali beserta instruksi Anda dan notifikasi WhatsApp.
+                ℹ Instruksi ini wajib diisi. Kasubbag Protokol akan menerima permohonan ini kembali beserta instruksi Anda dan notifikasi aplikasi.
               </div>
               <div style={{display:"flex",gap:10,marginTop:16}}>
                 <button onClick={function(){setKonfirm(null);}} disabled={loading}
@@ -1530,7 +1530,7 @@ function PimpinanDetail({ guest, role, user, events, showT, isMobile, onBack, on
             <CardSection title="🔄 Cabut Permohonan dari Pimpinan" accent="#DC2626">
               <div style={{fontSize:12,color:"#64748B",marginBottom:8,lineHeight:1.5}}>
                 Permohonan akan dikembalikan ke tahap Kabag untuk diperbaiki atau dihapus.
-                Kabag akan menerima notifikasi WA.
+                Kabag akan menerima notifikasi aplikasi.
               </div>
               <textarea className="gd-inp" value={alasanCabut}
                 onChange={function(e){setAlasanCabut(e.target.value);}}
