@@ -4,7 +4,7 @@
 //  ENV: FONNTE_TOKEN (dari https://fonnte.com)
 // ============================================================
 
-import { wajibSesi } from "./_sesi.js";
+import { wajibSesi, nomorTerdaftar, normalNomor } from "./_sesi.js";
 
 // Pesan bebas (event "broadcast") hanya untuk pejabat yang memang mengirim
 // pengumuman/pemberitahuan dari aplikasi: Kabag (Kirim Pengumuman) dan
@@ -56,9 +56,34 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "Nomor tujuan (to) wajib diisi" });
   }
 
-  const nomor = to.trim().replace(/^0/, "62").replace(/\D/g, "");
+  const nomor = normalNomor(to);
   if (nomor.length < 10) {
     return res.status(400).json({ error: "Nomor tidak valid: " + to });
+  }
+
+  // Hanya ke nomor pegawai yang terdaftar (lihat nomorTerdaftar di _sesi.js).
+  try {
+    if (!(await nomorTerdaftar(nomor))) {
+      return res.status(403).json({ error: "Nomor tujuan bukan nomor pengguna terdaftar." });
+    }
+  } catch (e) {
+    console.error("[whatsapp] daftar pengguna tidak terbaca:", e.message);
+    return res.status(503).json({ error: "Daftar pengguna tidak terbaca — coba lagi." });
+  }
+
+  // Isian bebas dibatasi panjangnya supaya notifikasi bertemplat tidak bisa
+  // dipakai sebagai pesan bebas yang panjang.
+  const BATAS_TEKS = 600;
+  for (const k of Object.keys(req.body || {})) {
+    if (k !== "pesan" && typeof req.body[k] === "string" && req.body[k].length > BATAS_TEKS) {
+      return res.status(400).json({ error: "Isian '" + k + "' terlalu panjang." });
+    }
+  }
+  if (event === "broadcast" && !(typeof pesanCustom === "string" && pesanCustom.trim())) {
+    return res.status(400).json({ error: "Pesan broadcast kosong." });
+  }
+  if (typeof pesanCustom === "string" && pesanCustom.length > 4000) {
+    return res.status(400).json({ error: "Pesan terlalu panjang." });
   }
 
   // ── Format tanggal ─────────────────────────────────────────

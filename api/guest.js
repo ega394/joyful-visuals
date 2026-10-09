@@ -5,6 +5,7 @@
  */
 
 import { wajibSesi } from "./_sesi.js";
+import { rateLimit, getIP } from "./_middleware.js";
 
 const SUPA_URL = process.env.SUPABASE_URL    || process.env.VITE_SUPABASE_URL;
 const SUPA_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
@@ -379,6 +380,17 @@ async function actionQueue(query) {
   return sbGet("permohonan_tamu?" + filter);
 }
 
+var TUJUAN_SAH = ["Wali Kota", "Wakil Wali Kota"];
+
+function bersihkanNama(v) {
+  return String(v || "")
+    .replace(/https?:\/\/\S+|www\.\S+/gi, "")
+    .replace(/[*_~`\r\n\t]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 80);
+}
+
 // 2. POST: checkin (Entry Point Baru ke Admin RK)
 async function actionCheckin(body) {
   var nama = body.nama || body.name;
@@ -393,7 +405,12 @@ async function actionCheckin(body) {
   }
   await pastikanTidakSpam(no_wa);
 
-  var tujuan = body.tujuan_pejabat || "Wali Kota";
+  // Tujuan hanya salah satu pimpinan yang dilayani formulir; nama dibersihkan
+  // dari format WA, tautan, dan baris baru karena ikut dikirim ulang ke nomor
+  // yang diisi pemohon sendiri.
+  var tujuan = TUJUAN_SAH.indexOf(body.tujuan_pejabat) !== -1 ? body.tujuan_pejabat : "Wali Kota";
+  nama = bersihkanNama(nama);
+  if (!nama) throw new Error("Nama tidak valid");
   var created = await sbPost({
     nama: nama,
     instansi: body.instansi || "-",
@@ -636,22 +653,6 @@ async function actionUpdateJadwal(body) {
   return { ok: true, message: "Jadwal diperbarui", agenda: agenda };
 }
 
-// Notifikasi WA konfirmasi penerimaan permohonan (dipanggil dari form publik)
-async function actionNotifyNew(body) {
-  var nama   = body.nama || body.name || "Pemohon";
-  var no_wa  = body.no_wa || body.phone;
-  var tujuan = body.tujuan_pejabat || "Pimpinan";
-  if (!no_wa) return { ok: false, skipped: true };
-
-  await sendWA(no_wa,
-    "✅ *Permohonan Audiensi Diterima*\n\n" +
-    "Yth. *" + nama + "*,\n" +
-    "Permohonan audiensi Anda kepada *" + tujuan + "* telah kami terima dan sedang diproses oleh Tim Protokol.\n\n" +
-    "Anda akan menerima pemberitahuan melalui WhatsApp ini begitu ada keputusan dan penjadwalan dari pimpinan." +
-    WA_FOOTER);
-  return { ok: true };
-}
-
 // 6. POST: respond (Pimpinan: approved/rejected/disposed)
 async function actionRespond(body) {
   if (!body.id || !body.response) throw new Error("id & response wajib");
@@ -734,6 +735,11 @@ export default async function handler(req, res) {
   if (!(req.method === "POST" && AKSI_PUBLIK.includes(action))) {
     var pengguna = await wajibSesi(req, res);
     if (!pengguna) return;
+  } else {
+    // Satu alamat IP paling banyak 5 pengajuan per jam (dibantu jeda per nomor
+    // di pastikanTidakSpam). Penyimpan memori per instance — penahan ringan.
+    var batas = rateLimit("tamu:" + getIP(req), 5, 60 * 60 * 1000);
+    if (!batas.allowed) return res.status(429).json({ error: "Terlalu banyak pengajuan dari jaringan ini. Coba lagi nanti." });
   }
   try {
     var result;
@@ -741,7 +747,6 @@ export default async function handler(req, res) {
       result = await actionQueue(req.query);
     } else if (req.method === "POST") {
       if      (action === "checkin")    result = await actionCheckin(req.body);
-      else if (action === "notify_new") result = await actionNotifyNew(req.body);
       else if (action === "verify_rk")  result = await actionVerifyRK(req.body);
       else if (action === "return_to_rk") result = await actionReturnToRK(req.body);
       else if (action === "verify_wa")  result = await actionVerifyWA(req.body);

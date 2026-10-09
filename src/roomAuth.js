@@ -35,23 +35,41 @@ export async function getAdminToken(user) {
     return cached.token;
   }
 
-  const r = await fetch("/api/room-booking?op=auth", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username: user.username, pass: user.password }),
-  });
-  const d = await r.json().catch(() => ({}));
-  if (!r.ok || !d.token) {
-    throw new Error(d.error || "Gagal memverifikasi akses pengelola.");
-  }
-  try {
-    localStorage.setItem(KEY, JSON.stringify({
-      username: user.username,
-      token: d.token,
-      exp: Date.now() + (d.ttl_ms || 12 * 3600 * 1000),
-    }));
-  } catch { /* ignore */ }
-  return d.token;
+  // Satu permintaan token untuk semua pemanggil yang datang bersamaan, supaya
+  // notifikasi yang dikirim beruntun tidak masing-masing meminta sesi baru.
+  if (_minta && _minta.username === user.username) return _minta.janji;
+  const janji = (async () => {
+    const r = await fetch("/api/room-booking?op=auth", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: user.username, pass: user.password }),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || !d.token) {
+      const e = new Error(d.error || "Gagal memverifikasi akses pengelola.");
+      e.status = r.status;
+      throw e;
+    }
+    try {
+      localStorage.setItem(KEY, JSON.stringify({
+        username: user.username,
+        token: d.token,
+        exp: Date.now() + (d.ttl_ms || 12 * 3600 * 1000),
+      }));
+    } catch { /* ignore */ }
+    return d.token;
+  })();
+  _minta = { username: user.username, janji };
+  try { return await janji; }
+  finally { if (_minta && _minta.janji === janji) _minta = null; }
+}
+
+let _minta = null;
+
+/** Hapus token tersimpan hanya bila masih sama dengan `token` (yang ditolak peladen). */
+function buangTokenBila(token) {
+  const c = read();
+  if (c && c.token === token) clearAdminToken();
 }
 
 /** fetch dengan header Authorization Bearer token admin. */
@@ -93,9 +111,8 @@ export function setPenggunaSesi(user) {
 /**
  * fetch dengan token sesi pengguna aktif.
  *
- * Token di-cache 12 jam, tetapi peladen hanya menyimpan SATU sesi per akun:
- * login di perangkat lain mencabut token perangkat ini. Karena itu jawaban 401
- * dicoba ulang sekali dengan token baru. Tanpa pengguna aktif (halaman publik),
+ * Token di-cache 12 jam. Bila peladen menolaknya (kedaluwarsa atau dicabut),
+ * jawaban 401 dicoba ulang sekali dengan token baru. Tanpa pengguna aktif (halaman publik),
  * permintaan dikirim apa adanya.
  */
 export async function sesiFetch(url, opts = {}) {
@@ -103,13 +120,27 @@ export async function sesiFetch(url, opts = {}) {
   if (!user) return fetch(url, opts);
   const kirim = async () => {
     let token = null;
-    try { token = await getAdminToken(user); } catch { /* lanjut tanpa token */ }
+    try { token = await getAdminToken(user); }
+    catch (e) {
+      // Kredensial ditolak (mis. sandi diganti dari perangkat lain): beri tahu
+      // aplikasi supaya meminta login ulang, bukan gagal diam-diam.
+      if (e && e.status === 401) beritahuSesiHabis("kredensial");
+    }
     const headers = { ...(opts.headers || {}) };
     if (token) headers["Authorization"] = `Bearer ${token}`;
-    return { r: await fetch(url, { ...opts, headers }), adaToken: !!token };
+    return { r: await fetch(url, { ...opts, headers }), token };
   };
-  const { r, adaToken } = await kirim();
-  if (r.status !== 401 || !adaToken) return r;
-  clearAdminToken();
-  return (await kirim()).r;
+  const { r, token } = await kirim();
+  if (r.status !== 401 || !token) return r;
+  // Hanya buang token yang memang ditolak; permintaan paralel lain mungkin
+  // sudah menyimpan token baru.
+  buangTokenBila(token);
+  const ulang = await kirim();
+  if (ulang.r.status === 401) beritahuSesiHabis("ditolak");
+  return ulang.r;
+}
+
+/** Peristiwa "prokopim:sesi-habis" — didengar aplikasi untuk meminta login ulang. */
+function beritahuSesiHabis(sebab) {
+  try { window.dispatchEvent(new CustomEvent("prokopim:sesi-habis", { detail: { sebab } })); } catch { /* bukan peramban */ }
 }

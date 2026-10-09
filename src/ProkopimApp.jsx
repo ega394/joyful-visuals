@@ -278,6 +278,9 @@ function CaptchaBox({onValid}){
   </div>;
 }
 
+// Baris superadmin hanya ditulis dari konsol /superadmin (lihat dbUpsertUser).
+const SA_DIKELOLA_KONSOL="Akun superadmin hanya dapat diubah dari konsol /superadmin.";
+
 function RegisterModal({onClose, onSuccess}){
   const NAVY="#0A1628",GOLD="#C9A84C";
 
@@ -298,7 +301,9 @@ function RegisterModal({onClose, onSuccess}){
     const pending=loadPendingRegs();
     if(pending.find(r=>r.username===form.username.toLowerCase().trim()))return setErr("Username sudah pernah didaftarkan, menunggu persetujuan.");
     const hash=await sha256(form.password);
-    const reg={...form,username:form.username.toLowerCase().trim(),password:hash,id:Date.now(),tanggal:new Date().toISOString()};
+    // `konfirmasi` adalah sandi polos — tidak boleh ikut tersimpan.
+    const{konfirmasi:_k,...isian}=form;
+    const reg={...isian,username:form.username.toLowerCase().trim(),password:hash,id:Date.now(),tanggal:new Date().toISOString()};
     savePendingRegs([...pending,reg]);
     // Simpan juga ke Supabase agar Kabag bisa lihat dari device lain
     dbSavePendingReg(reg).catch(e=>console.warn("Sync:",e?.message||e));
@@ -2789,13 +2794,13 @@ function ProfileModal({user,onClose,showT}){
   const inp={width:"100%",padding:"10px 12px",borderRadius:9,border:"1.5px solid #e2e8f0",fontSize:14,background:"white",color:"#1e293b"};
 
   const saveProfile=()=>{
-    setErr("");if(!form.nama.trim())return setErr("Nama wajib diisi.");
+    setErr("");if(user.role==="superadmin")return setErr(SA_DIKELOLA_KONSOL);if(!form.nama.trim())return setErr("Nama wajib diisi.");
     if(form.email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))return setErr("Format email tidak valid.");
     const users=loadUsers();const updated=users.map(u=>u.username===user.username?{...u,nama:form.nama,jabatan:form.jabatan,noWA:form.noWA,email:form.email}:u);
     saveUsers(updated);showT("Profil disimpan ✓");onClose({...user,nama:form.nama,jabatan:form.jabatan,noWA:form.noWA,email:form.email});
   };
   const changePassword=async()=>{
-    setErr("");
+    setErr("");if(user.role==="superadmin")return setErr(SA_DIKELOLA_KONSOL);
     if(!pw.old||!pw.next||!pw.confirm)return setErr("Semua kolom wajib diisi.");
     if(pw.next.length<6)return setErr("Password minimal 6 karakter.");
     if(pw.next!==pw.confirm)return setErr("Konfirmasi tidak cocok.");
@@ -2808,7 +2813,7 @@ function ProfileModal({user,onClose,showT}){
     setPw({old:"",next:"",confirm:""});showT("Password berhasil diubah ✓");
   };
   const changeUsername=async()=>{
-    setErr("");
+    setErr("");if(user.role==="superadmin")return setErr(SA_DIKELOLA_KONSOL);
     if(!uname.newUsername.trim())return setErr("Username baru wajib diisi.");
     const un=uname.newUsername.toLowerCase().trim();
     const users=loadUsers();const cur=users.find(u=>u.username===user.username);
@@ -3931,14 +3936,27 @@ function AdminModal({onClose, showT, events, updAndSync}) {
   };
 
   // 2. FUNGSI PERSETUJUAN (Dipindah ke atas agar aman)
-  const doApprove = (r) => {
+  const doApprove = async (r) => {
     const chosenRole = approveRoles[r.id] === "superadmin" ? "staf" : (approveRoles[r.id] || "staf");
+    // Pendaftaran tidak boleh menimpa akun yang sudah ada (termasuk superadmin
+    // yang tidak tampil di panel ini): baris baru disisipkan TANPA
+    // merge-duplicates, sehingga username yang sudah terpakai ditolak basis data.
+    if (loadUsers().some(u => u.username === r.username)) {
+      showT("Username " + r.username + " sudah dipakai akun lain — pendaftaran tidak bisa disetujui.", "error");
+      return;
+    }
+    const newU = {username: r.username, password: r.password, nama: r.nama, jabatan: r.jabatan, role: chosenRole, noWA: r.noWA || ""};
+    if (SUPA_OK) {
+      const resp = await fetch(SUPA_URL + "/rest/v1/users", {method: "POST", headers: {...H(), Prefer: "return=minimal"}, body: JSON.stringify(newU)}).catch(() => null);
+      if (!resp || !resp.ok) {
+        showT(resp && resp.status === 409 ? "Username " + r.username + " sudah dipakai akun lain — pendaftaran tidak bisa disetujui." : "Gagal menyimpan akun baru. Coba lagi.", "error");
+        return;
+      }
+    }
     const regs = loadPendingRegs().filter(x => x.id !== r.id);
     savePendingRegs(regs); setPendRegs(regs);
     dbDeletePendingReg(r.id).catch(e => console.warn("Sync:", e?.message || e));
-    const newU = {username: r.username, password: r.password, nama: r.nama, jabatan: r.jabatan, role: chosenRole, noWA: r.noWA || ""};
     const all = loadUsers(); saveUsers([...all, newU]); setUsers([...all, newU]);
-    dbUpsertUser(newU).catch(e => console.warn("Sync:", e?.message || e));
     showT("Akun " + r.username + " diaktifkan sebagai " + (ALL_ROLE_DEFS.find(x => x.key === chosenRole)?.label || "Staf") + " ✓");
   };
 
@@ -4871,12 +4889,9 @@ const fld=(k,l,type="text",full=false)=>(
 }
 
 // ==================== MAIN APP ====================
-// ── API Secret Header Helper ──
-const API_SECRET = import.meta.env.VITE_API_SECRET || "";
-const apiHeaders = () => ({
-  "Content-Type": "application/json",
-  ...(API_SECRET ? {"X-API-Secret": API_SECRET} : {})
-});
+// Rahasia peladen tidak boleh ikut bundel peramban (semua VITE_* terbaca
+// publik). Endpoint dijaga dengan token sesi lewat sesiFetch.
+const apiHeaders = () => ({"Content-Type": "application/json"});
 
 // ==================== LUPA PASSWORD MODAL ====================
 function ForgotPasswordModal({onClose}){
@@ -5124,7 +5139,7 @@ async function sendPush({targetRole,targetUser,title,body,url,tag}){
     return;
   }
   try{
-    await fetch("/api/webpush",{
+    await sesiFetch("/api/webpush",{
       method:"POST",
       headers:apiHeaders(),
       body:JSON.stringify({action:"send",notify:{title,body,url:url||"/",targetRole,targetUser,tag}})
@@ -5155,7 +5170,7 @@ async function registerPush(username,role){
       });
     }
     // Simpan subscription ke server
-    await fetch("/api/webpush",{
+    await sesiFetch("/api/webpush",{
       method:"POST",
       headers:apiHeaders(),
       body:JSON.stringify({action:"subscribe",subscription:sub,username,role})
@@ -7993,6 +8008,19 @@ export default function App(){
   },[user]);
 
   const showT=useCallback((msg,type="ok")=>{if(type==="ok")haptic(40);else if(type==="warn")haptic(80);else if(type==="error")haptic([50,30,50]);setToast({msg,type});setTimeout(()=>setToast(null),type==="error"?5000:type==="warn"?4000:3000);},[]);
+  // sesiFetch memberi tahu bila peladen menolak sesi. Kredensial yang ditolak
+  // berarti sandi akun sudah diganti (mis. lewat OTP di perangkat lain), jadi
+  // perangkat ini dikeluarkan; selain itu cukup diberi peringatan.
+  useEffect(()=>{
+    const f=(e)=>{
+      if(e?.detail?.sebab==="kredensial"){
+        setUser(null);try{localStorage.removeItem("jp_session");}catch{}clearAdminToken();
+        setLE("Sandi akun Anda telah berubah atau sesi dicabut. Silakan login kembali.");
+      }else showT("Sesi ditolak peladen — notifikasi mungkin tidak terkirim. Coba keluar lalu login ulang.","error");
+    };
+    window.addEventListener("prokopim:sesi-habis",f);
+    return()=>window.removeEventListener("prokopim:sesi-habis",f);
+  },[showT]);
   _toast.fn=showT; // bridge for components without showT prop
   // Google Calendar bersama: sesudah jadwal tersimpan, peladen diminta
   // menyamakan kalender dengan keadaan tersimpan jadwal itu. Hanya dipicu bila
@@ -11124,7 +11152,7 @@ function KasubbagDashboard({events, user, upd, showT, askConfirm, isMobile, onPe
             if(tUser?.noWA){
               const sby=role==="kasubbag_protokol"?"Kasubbag Protokol":"Kasubbag Komdokpim";
               const pesan="\u274C *Pencabutan Penugasan*\n\nYth. "+cabutTarget.nama+",\n\nPenugasan Anda pada kegiatan berikut telah dicabut:\n\n\uD83D\uDCCC *"+ev.namaAcara+"*\n\uD83D\uDCC5 "+ev.tanggal+"\n\u23F0 "+fmtJamWita(ev)+""+(ev.lokasi?"\n\uD83D\uDCCD "+ev.lokasi:"")+"\n\n\uD83D\uDCDD Alasan: "+alasanCabut+"\n\nJika ada pertanyaan silakan hubungi "+sby+".\n\n_Prokopim Kota Tarakan_\n_prokopim.tarakankota.go.id_";
-              sesiFetch("/api/whatsapp",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({event:"broadcast",pesanCustom:pesan,to:tUser.noWA})}).catch(e=>console.warn("Sync:",e?.message||e));
+              sesiFetch("/api/whatsapp",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({event:"broadcast",pesan,to:tUser.noWA})}).catch(e=>console.warn("Sync:",e?.message||e));
             }
             showT("Penugasan "+cabutTarget.nama+" dicabut & pemberitahuan terkirim","warn");
             setCabutTarget(null);setAlasanCabut("");

@@ -93,13 +93,35 @@ async function wajibSesi(req, res, opts) {
   return u;
 }
 
-/** Permintaan membawa API_SECRET atau CRON_SECRET (alat admin/diagnosis, bukan peramban). */
+/**
+ * Permintaan membawa DRIVE_ADMIN_SECRET atau CRON_SECRET (alat admin/diagnosis,
+ * bukan peramban). API_SECRET sengaja TIDAK diterima: versi lama aplikasi
+ * menanam salinannya (VITE_API_SECRET) di bundel peramban, sehingga nilainya
+ * harus dianggap publik.
+ */
 function rahasiaCocok(req) {
-  const rahasia = [process.env.API_SECRET, process.env.CRON_SECRET].filter(Boolean);
+  const rahasia = [process.env.DRIVE_ADMIN_SECRET, process.env.CRON_SECRET].filter(Boolean);
   if (rahasia.length === 0) return false;
   const auth = req.headers["authorization"] || "";
   const diberi = req.headers["x-api-secret"] || (auth.startsWith("Bearer ") ? auth.slice(7) : "");
   return !!diberi && rahasia.includes(diberi);
 }
 
-module.exports = { verifikasiSesi, wajibSesi, rahasiaCocok, peranDipegang, ambilToken };
+// "08xx" / "+62 8xx" / "628xx" → "628xx".
+function normalNomor(n) {
+  return String(n || "").trim().replace(/^\+/, "").replace(/^0/, "62").replace(/\D/g, "");
+}
+
+/**
+ * Nomor WA milik akun aktif yang terdaftar di tabel users. Notifikasi aplikasi
+ * hanya dikirim ke pegawai sendiri; tanpa pemeriksaan ini akun mana pun yang
+ * login dapat memakai nomor resmi Prokopim untuk mengirim pesan ke nomor luar.
+ */
+async function nomorTerdaftar(nomor) {
+  const target = normalNomor(nomor);
+  if (target.length < 10 || !SUPA_URL || !SUPA_KEY) return false;
+  const rows = await sbGet("users?select=*");
+  return rows.some((u) => !u.disabled && [u.noWA, u.no_wa].some((n) => n && normalNomor(n) === target));
+}
+
+module.exports = { verifikasiSesi, wajibSesi, rahasiaCocok, peranDipegang, ambilToken, nomorTerdaftar, normalNomor };
