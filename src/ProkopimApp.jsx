@@ -22,6 +22,7 @@ import { clearAdminToken, adminFetch, sesiFetch, setPenggunaSesi } from "./roomA
 import { JADWAL_STATUS } from "./lib/statusColors.js";
 import { peranEfektif, plhAktif, punyaPeran, jejakPlh, bolehMemutus, LABEL_PERAN } from "./lib/plh.js";
 import { acaraDekat, kunciNomor, penerimaUnik, perubahanMaterial, kanalKehadiran, perluWALapangan } from "./lib/aturanWA.js";
+import { bolehSantai, barisNuansa, TEKS_MEMUAT, TEKS_KOSONG, BAITUL_ARSIP, KEJUTAN } from "./lib/nuansa.js";
 import { umurUsulan, bandingUsulan } from "./lib/usulan.js";
 
 // ═══════════════════════════════════════════════════════
@@ -280,6 +281,8 @@ function CaptchaBox({onValid}){
 }
 
 // Baris superadmin hanya ditulis dari konsol /superadmin (lihat dbUpsertUser).
+// Teks layar pemuatan dipilih sekali per pembukaan aplikasi.
+const _memuatKe=Math.floor(Math.random()*TEKS_MEMUAT.length);
 const SA_DIKELOLA_KONSOL="Akun superadmin hanya dapat diubah dari konsol /superadmin.";
 
 function RegisterModal({onClose, onSuccess}){
@@ -3456,7 +3459,8 @@ function ApprovalQueueView({events,role,user,upd,showT,askConfirm,deleteAndSync,
     </div>
     {totalAntrian===0&&<div style={{background:"#f8fafc",borderRadius:12,padding:24,textAlign:"center",color:"#94a3b8",fontSize:13,marginBottom:20}}>
       <div style={{fontSize:28,marginBottom:8}}>✅</div>
-      Tidak ada yang menunggu {isKasubbag?"verifikasi":"persetujuan"} Anda.
+      {/* Candaan "kalau Kabag tanya" hanya untuk Kasubbag, bukan untuk Kabag sendiri. */}
+      {isKasubbag?TEKS_KOSONG.antrean:"Tidak ada yang menunggu persetujuan Anda."}
     </div>}
     {pending.map(ev=>{
       const BULAN=["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
@@ -5963,7 +5967,7 @@ function WeatherJarak({tanggal, jam, lokasi}) {
 // ── KartuSorotanHariIni ─────────────────────────────────────────────────────
 // Menampilkan agenda hari ini yang belum lewat, dengan cuaca + estimasi jarak
 // Muncul di atas daftar agenda untuk semua role (kecuali role khusus pimpinan)
-function KartuSorotanHariIni({ events, filterForRole, filterPimpinan, isMobile, showUnconfirmed }) {
+function KartuSorotanHariIni({ events, filterForRole, filterPimpinan, isMobile, showUnconfirmed, santai }) {
   const WEATHER_KEY = (import.meta?.env?.VITE_OPENWEATHER_KEY) || "";
   const LAT = "3.3169", LON = "117.5765";
   const now = new Date();
@@ -6093,7 +6097,7 @@ function KartuSorotanHariIni({ events, filterForRole, filterPimpinan, isMobile, 
       {agendaHariIni.length === 0 ? (
         <div style={{ textAlign: "center", padding: "14px 12px" }}>
           <div style={{ fontSize: isMobile?12:13, color: "rgba(255,255,255,0.5)", lineHeight: 1.6 }}>
-            Belum ada agenda kegiatan yang dijadwalkan pada hari ini.
+            {santai ? TEKS_KOSONG.hariIni : "Belum ada agenda kegiatan yang dijadwalkan pada hari ini."}
           </div>
         </div>
       ) : (
@@ -7667,8 +7671,9 @@ function ArsipModal({events, onClose, user}){
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
             <div>
               <div style={{color:GOLD,fontSize:13,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",marginBottom:4}}>Admin Rencana Kegiatan</div>
-              <div style={{color:"white",fontSize:18,fontWeight:800}}>📦 Unduh Arsip Berkas</div>
-              <div style={{color:"rgba(255,255,255,0.6)",fontSize:12,marginTop:3}}>Unduhan & Sambutan per bulan</div>
+              <div style={{color:"white",fontSize:18,fontWeight:800}}>🏛️ {BAITUL_ARSIP.judul}</div>
+              <div style={{color:"rgba(255,255,255,0.75)",fontSize:12,marginTop:3}}>{BAITUL_ARSIP.sub} · undangan & sambutan per bulan</div>
+              <div style={{color:"rgba(255,255,255,0.45)",fontSize:11,marginTop:4,fontStyle:"italic"}}>{BAITUL_ARSIP.keterangan}</div>
             </div>
             <button onClick={onClose} style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:9,padding:"7px 12px",cursor:"pointer",color:"white",fontSize:14,fontWeight:700}}>✕</button>
           </div>
@@ -7733,7 +7738,7 @@ function ArsipModal({events, onClose, user}){
           {arsipList.length===0
             ?<div style={{textAlign:"center",padding:"40px 20px",color:"#94A3B8"}}>
               <div style={{fontSize:36,marginBottom:8}}>📭</div>
-              <div style={{fontSize:14,fontWeight:700,color:"#475569"}}>Tidak ada berkas di bulan ini</div>
+              <div style={{fontSize:14,fontWeight:700,color:"#475569"}}>{BAITUL_ARSIP.kosong}</div>
               <div style={{fontSize:12,marginTop:4}}>Coba pilih bulan lain atau filter berbeda</div>
             </div>
             :<div style={{display:"flex",flexDirection:"column",gap:8}}>
@@ -8100,6 +8105,16 @@ export default function App(){
   },[user]);
 
   const showT=useCallback((msg,type="ok")=>{if(type==="ok")haptic(40);else if(type==="warn")haptic(80);else if(type==="error")haptic([50,30,50]);setToast({msg,type});setTimeout(()=>setToast(null),type==="error"?5000:type==="warn"?4000:3000);},[]);
+  // Nuansa santai (src/lib/nuansa.js): sapaan/kutipan di bawah judul halaman,
+  // dan kejutan kecil bila logo diketuk 5 kali. Pimpinan tetap formal.
+  const nuansa=barisNuansa(role,user?.nama);
+  const ketukRef=React.useRef({n:0,t:0});
+  const ketukLogo=()=>{
+    if(!bolehSantai(role))return;
+    const k=ketukRef.current,now=Date.now();
+    k.n=now-k.t<1500?k.n+1:1;k.t=now;
+    if(k.n>=5){k.n=0;showT(KEJUTAN);}
+  };
   // sesiFetch memberi tahu bila peladen menolak sesi. Kredensial yang ditolak
   // berarti sandi akun sudah diganti (mis. lewat OTP di perangkat lain), jadi
   // perangkat ini dikeluarkan; selain itu cukup diberi peringatan.
@@ -8540,7 +8555,7 @@ const submit = async () => {
             if (data.undangan) patch.undanganFile = data.undangan;
             if (data.sambutan) patch.sambutanFile = data.sambutan;
             setEvents(prev => prev.map(e => String(e.id) === String(evId) ? { ...e, ...patch } : e));
-            showT("Arsip berhasil menetap di Google Drive! ✅", "ok");
+            showT(BAITUL_ARSIP.masuk+" ✅", "ok");
           }
         })
         .catch(err => console.error("Drive upload gagal:", err));
@@ -8990,7 +9005,7 @@ const TH={
     <div style={{minHeight:"100vh",background:"linear-gradient(160deg,"+NAVY+" 0%,#142238 60%,#0D1F35 100%)",display:"flex",alignItems:"center",justifyContent:"center",gap:16,flexDirection:"column"}}><style>{CSS}</style>
       <img src="/logo_tarakan.png" alt="" style={{height:56,width:"auto",objectFit:"contain",filter:"drop-shadow(0 4px 16px rgba(0,0,0,0.4))",marginBottom:8,animation:"pulse 2s ease infinite"}} onError={e=>e.target.style.display="none"}/>
       <div style={{width:40,height:40,border:"3px solid rgba(212,175,90,0.2)",borderTopColor:GOLD,borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/>
-      <div style={{color:"white",fontSize:14,fontWeight:600,letterSpacing:"0.3px",opacity:0.85}}>Memuat data...</div>
+      <div style={{color:"white",fontSize:14,fontWeight:600,letterSpacing:"0.3px",opacity:0.85}}>{TEKS_MEMUAT[_memuatKe]}</div>
       {dbError&&<div style={{color:"#FCA5A5",fontSize:12,maxWidth:260,textAlign:"center",padding:"8px 16px",background:"rgba(220,38,38,0.15)",borderRadius:10,border:"1px solid rgba(220,38,38,0.3)"}}>{dbError}</div>}
     </div>
   );
@@ -9105,7 +9120,7 @@ const TH={
     ...(REKAP_SAYA_ROLES.includes(role)?[{key:"rekap_saya",icon:"🏅",label:"Rekap Kinerja Saya"}]:[]),
     // punyaPeran, bukan role: pengarsipan berkas adalah pekerjaan Admin RK
     // sendiri, jadi tidak boleh hilang ketika ia sedang mengampu Kasubbag.
-    ...(bolehInputJadwal||role==="kabag"?[{key:"action:arsip",icon:"📦",label:"Unduh Arsip Berkas"}]:[]),
+    ...(bolehInputJadwal||role==="kabag"?[{key:"action:arsip",icon:"🏛️",label:BAITUL_ARSIP.judul}]:[]),
     ...(!["walikota","wakilwalikota","ajudan_walikota","ajudan_wakilwalikota","admin_undangan","mitra_kerja"].includes(role)?[{key:"ekinerja",icon:"📊",label:"E-Kinerja"}]:[]),
     ...(["kabag","kasubbag_protokol",...PERAN_PETUGAS,"admin_rk"].includes(role)?[{key:"action:undangan",icon:"📋",label:"Generator Undangan"}]:[]),
     ...(bolehKalenderRuangan?[{key:"kalender_ruangan",icon:"🏛️",label:"Kalender Ruangan"}]:[]),
@@ -9128,7 +9143,7 @@ const TH={
   const sidebarJSX=(<aside style={{width:260,minHeight:"100vh",background:th.g,display:"flex",flexDirection:"column",flexShrink:0,position:"sticky",top:0,height:"100vh",overflowY:"auto",boxShadow:"4px 0 20px rgba(0,0,0,0.18)"}}>
     <div style={{padding:"20px 16px 14px",borderBottom:"1px solid rgba(255,255,255,0.1)"}}>
       <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
-        <img src="/logo_tarakan.png" alt="Logo" style={{height:36,width:"auto",objectFit:"contain",filter:"drop-shadow(0 1px 4px rgba(0,0,0,0.3))",flexShrink:0}} onError={e=>e.target.style.display="none"}/>
+        <img src="/logo_tarakan.png" alt="Logo" onClick={ketukLogo} style={{height:36,width:"auto",objectFit:"contain",filter:"drop-shadow(0 1px 4px rgba(0,0,0,0.3))",flexShrink:0}} onError={e=>e.target.style.display="none"}/>
         <div><div style={{color:th.a,fontSize:8,letterSpacing:1.5,textTransform:"uppercase",fontWeight:700}}>Pemkot Tarakan</div><div style={{color:"white",fontSize:13,fontWeight:700,lineHeight:1.3}}>Protokol &amp; Komunikasi</div></div>
       </div>
       <button onClick={()=>setShowProfile(true)} style={{width:"100%",background:"rgba(255,255,255,0.09)",borderRadius:11,padding:"10px 12px",display:"flex",alignItems:"center",gap:10,border:"1px solid rgba(255,255,255,0.12)",cursor:"pointer",textAlign:"left",transition:"all 0.15s"}} onMouseOver={e=>e.currentTarget.style.background="rgba(255,255,255,0.16)"} onMouseOut={e=>e.currentTarget.style.background="rgba(255,255,255,0.09)"}>
@@ -9243,7 +9258,7 @@ const TH={
     {/* ── TOP NAV BAR ── */}
     <div style={{background:"linear-gradient(to bottom,"+NAVY+" 0%,"+NAVY+" 100%)",position:"sticky",top:0,zIndex:200,paddingTop:"env(safe-area-inset-top,0px)"}}>
       <div style={{padding:"10px 16px 10px",display:"flex",alignItems:"center",gap:10,borderBottom:"0.5px solid rgba(255,255,255,0.1)"}}>
-        <img src="/logo_tarakan.png" alt="" style={{height:32,width:"auto",objectFit:"contain",flexShrink:0,filter:"drop-shadow(0 1px 3px rgba(0,0,0,0.3))"}} onError={e=>e.target.style.display="none"}/>
+        <img src="/logo_tarakan.png" alt="" onClick={ketukLogo} style={{height:32,width:"auto",objectFit:"contain",flexShrink:0,filter:"drop-shadow(0 1px 3px rgba(0,0,0,0.3))"}} onError={e=>e.target.style.display="none"}/>
         <div style={{flex:1,minWidth:0}}>
           <div style={{color:"white",fontSize:13,fontWeight:800,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",letterSpacing:"-0.2px"}}>{user?.nama}</div>
           <div style={{color:GOLD,fontSize:12.5,fontWeight:600,letterSpacing:"0.5px",textTransform:"uppercase"}}>{roleInfo.label}</div>
@@ -9258,6 +9273,7 @@ const TH={
         </button>
         <div title={SUPA_OK?"Terhubung ke Database":"Mode Lokal"} style={{width:8,height:8,borderRadius:"50%",background:SUPA_OK?"#34D399":"#F87171",flexShrink:0,boxShadow:SUPA_OK?"0 0 6px rgba(52,211,153,0.6)":"none"}}/>
       </div>
+      {nuansa&&<div style={{padding:"5px 16px 7px",fontSize:12,color:"rgba(255,255,255,0.62)",fontStyle:"italic",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{nuansa}</div>}
     </div>
 
     {/* ── iOS BOTTOM TAB BAR ── */}
@@ -9306,7 +9322,7 @@ const TH={
               {icon:"👤",label:"Profil",action:()=>{setShowProfile(true);setMobMenu(false);}},
               ...(role==="kabag"?[{icon:"⚙️",label:"Kelola User"+(loadPendingRegs().length>0?" ("+loadPendingRegs().length+")":""),action:()=>{setShowAdmin(true);setMobMenu(false);}}]:[]),
               ...(role==="kabag"?[{icon:"📢",label:"Kirim Pengumuman",action:()=>{setShowBroadcast(true);setMobMenu(false);}}]:[]),
-              ...((bolehInputJadwal||role==="kabag")?[{icon:"📦",label:"Arsip Berkas",action:()=>{setShowArsip(true);setMobMenu(false);}}]:[]),
+              ...((bolehInputJadwal||role==="kabag")?[{icon:"🏛️",label:BAITUL_ARSIP.judul,action:()=>{setShowArsip(true);setMobMenu(false);}}]:[]),
               ...(["kabag","kasubbag_protokol",...PERAN_PETUGAS,"admin_rk"].includes(role)?[{icon:"📋",label:"Generator Undangan",action:()=>{setShowUndanganTool(true);setMobMenu(false);}}]:[]),
             ].map((btn,i)=>(
               <button key={i} onClick={btn.action} className="btn-ios" style={{padding:"14px 12px",borderRadius:14,border:"1.5px solid #E4EAF2",background:"#F8FAFF",color:NAVY,cursor:"pointer",fontSize:13,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
@@ -12365,6 +12381,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
       <div style={{flex:1}}>
         <div style={{fontSize:20,fontWeight:800,color:NAVY,letterSpacing:"-0.4px"}}>{pageTitle}</div>
         <div style={{fontSize:13.5,color:"#64748B",marginTop:2,fontWeight:500}}>{smartGreetText}</div>
+        {nuansa&&<div style={{fontSize:12.5,color:"#94A3B8",marginTop:2,fontStyle:"italic"}}>{nuansa}</div>}
       </div>
       {pendingList.length>0&&["kasubbag_protokol","kasubbag_komdokpim","kabag","walikota","wakilwalikota","admin_rk"].includes(role)&&<button onClick={goToPending} className="btn-ios" style={{padding:"9px 16px",borderRadius:10,border:"none",background:role==="walikota"||role==="wakilwalikota"?"linear-gradient(135deg,#0A1628,#1E3A5F)":"linear-gradient(135deg,#EF4444,#DC2626)",color:"white",cursor:"pointer",fontSize:12,fontWeight:700,display:"flex",alignItems:"center",gap:7,boxShadow:role==="walikota"||role==="wakilwalikota"?"0 4px 14px rgba(10,22,40,0.4)":"0 4px 14px rgba(220,38,38,0.35)"}}>
         <span style={{background:"rgba(255,255,255,0.25)",borderRadius:"50%",width:20,height:20,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:900}}>{pendingList.length}</span>
@@ -12575,7 +12592,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
       })()}
       {/* ── Kartu Sorotan Hari Ini — cuaca+jarak, tampil semua role ── */}
       {(tab==="tayang"||tab==="semua")&&(
-        <KartuSorotanHariIni events={events} role={role} isMobile={isMobile}/>
+        <KartuSorotanHariIni events={events} role={role} isMobile={isMobile} santai={bolehSantai(role)}/>
       )}
       {/* ── Morning Summary + Streak ── */}
       {(tab==="tayang"||tab==="semua")&&<>

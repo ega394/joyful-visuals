@@ -1,4 +1,5 @@
 import React from "react";
+import { hitungJulukan, JULUKAN } from "./lib/nuansa.js";
 
 const BULAN_LABEL = [
   "Januari","Februari","Maret","April","Mei","Juni",
@@ -159,6 +160,19 @@ export default function RekapPenugasanBulanan({ events, user, isMobile, allUsers
     };
   }, [allUsers, user, evBulan, sambutanBulan, isAjudan, isAjudanWK, hanyaHadir]);
 
+  // Julukan bulanan ringan (src/lib/nuansa.js): satu pemegang per julukan,
+  // dihitung dari seluruh jadwal pada periode terpilih.
+  const julukan = React.useMemo(
+    () => hitungJulukan(events, allUsers, inPeriode),
+    [events, allUsers, inPeriode]
+  );
+  const ChipJulukan = ({ un }) => (julukan[un] || []).map(k => (
+    <span key={k} title={JULUKAN[k].ket} style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 700,
+      color: "#92400E", background: "#FEF3C7", border: "1px solid #FDE68A", borderRadius: 20, padding: "2px 8px", marginRight: 4 }}>
+      {JULUKAN[k].ikon} {JULUKAN[k].label}
+    </span>
+  ));
+
   // Label menyesuaikan jenis kinerja: ajudan = pendampingan, bukan penugasan
   const labelTugas = isAjudan ? "Pendampingan Pimpinan" : "Penugasan Lapangan";
 
@@ -313,7 +327,7 @@ ${s.jumlahNaskah>0
 
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontWeight: 700, fontSize: 13, color: "#0F172A", marginBottom: 4 }}>
-              {s.nama || s.username}
+              {s.nama || s.username} <ChipJulukan un={s.username}/>
             </div>
             <div style={{ height: 6, background: "#F1F5F9", borderRadius: 3, overflow: "hidden" }}>
               <div style={{
@@ -451,6 +465,13 @@ ${s.jumlahNaskah>0
                 Kinerja ajudan dihitung dari pendampingan {isAjudanWK ? "Wali Kota" : "Wakil Wali Kota"}
                 {hanyaHadir ? " yang benar-benar dihadiri (yang diwakilkan/tidak hadir tidak dihitung)." : " — termasuk yang diwakilkan atau belum dikonfirmasi."}
               </div>
+            </div>
+          )}
+
+          {(julukan[meRow.username] || []).length > 0 && (
+            <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 12, padding: "10px 14px", marginBottom: 14 }}>
+              <div style={{ fontSize: 11, fontWeight: 800, color: "#92400E", letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 6 }}>Julukan periode ini</div>
+              <ChipJulukan un={meRow.username}/>
             </div>
           )}
 

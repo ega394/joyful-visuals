@@ -12,6 +12,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { TAMU_STATUS, PRIORITY_COLORS } from "./lib/statusColors.js";
 import { sesiFetch } from "./roomAuth";
 import { punyaPeran, peranDipegang } from "./lib/plh.js";
+import { BAITUL_ARSIP } from "./lib/nuansa.js";
 
 // ── Design Tokens ─────────────────────────────────────────────
 var NAVY     = "#0A1628";
@@ -246,7 +247,7 @@ function AdminRKView({ user, events, showT, isMobile, reloadEvents }) {
     {k:"pending_kasubbag", l:"Diteruskan"},
     {k:"pending_pimpinan", l:"📅 Siap Dijadwalkan"},
     {k:"approved",         l:"✅ Disetujui"},
-    {k:"selesai",          l:"🗄 Arsip"},
+    {k:"selesai",          l:"🏛️ Baitul Arsip"},
     {k:"rejected",         l:"Ditolak"},
     {k:"all",              l:"🔎 Lacak Semua"},
   ];
@@ -279,7 +280,7 @@ function AdminRKView({ user, events, showT, isMobile, reloadEvents }) {
 
       {/* List */}
       <div style={{padding:"12px 16px"}}>
-        {loading ? <SkeletonList/> : shown.length===0 ? <EmptyState label="Tidak ada permohonan di kategori ini"/> :
+        {loading ? <SkeletonList/> : shown.length===0 ? <EmptyState label={tab==="selesai"?BAITUL_ARSIP.kosong:"Tidak ada permohonan di kategori ini"}/> :
           shown.map(function(g){
             return <GuestCard key={g.id} guest={g} onClick={function(){setDetail(g);}} showChain={tab==="all"}/>;
           })
@@ -692,7 +693,7 @@ function KabagView({ user, events, showT, isMobile, reloadEvents }) {
     {k:"pending_kabag",    l:"Menunggu Telaah Anda"},
     {k:"pending_pimpinan", l:"Di Pimpinan"},
     {k:"approved",         l:"Disetujui"},
-    {k:"selesai",          l:"🗄 Arsip"},
+    {k:"selesai",          l:"🏛️ Baitul Arsip"},
     {k:"rejected",         l:"Ditolak"},
     {k:"all",              l:"🔎 Lacak Semua"},
   ];
@@ -719,7 +720,7 @@ function KabagView({ user, events, showT, isMobile, reloadEvents }) {
       <MetaBar lastLoaded={lastLoaded} onRefresh={load} loading={loading}/>
 
       <div style={{padding:"12px 16px"}}>
-        {loading ? <SkeletonList/> : (tab==="all"?filterByQuery(guests,q):guests).length===0 ? <EmptyState label="Tidak ada permohonan"/> :
+        {loading ? <SkeletonList/> : (tab==="all"?filterByQuery(guests,q):guests).length===0 ? <EmptyState label={tab==="selesai"?BAITUL_ARSIP.kosong:"Tidak ada permohonan"}/> :
           (tab==="all"?filterByQuery(guests,q):guests).map(function(g){
             return <GuestCard key={g.id} guest={g} onClick={function(){setDetail(g);}} showChain/>;
           })
