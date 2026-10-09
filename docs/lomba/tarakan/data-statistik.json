@@ -1,0 +1,149 @@
+{
+  "tamu": {
+    "total": 59,
+    "per_status": {
+      "selesai": 49,
+      "rejected": 1,
+      "pending_rk": 2,
+      "pending_pimpinan": 7
+    },
+    "instansi_berbeda": 55,
+    "median_diputus_jam": null
+  },
+  "jejak": {
+    "pertama": "2026-05-12",
+    "oleh_plh": 67,
+    "per_aksi": {
+      "create": 432,
+      "submit": 432,
+      "publish": 455,
+      "resubmit": 21,
+      "wk_hadir": 194,
+      "wwk_hadir": 63,
+      "wk_diwakilkan": 109,
+      "evaluasi_diisi": 337,
+      "wk_tidak_hadir": 6,
+      "wwk_diwakilkan": 9,
+      "cancel_delegasi": 13,
+      "delegasi_to_wwk": 67,
+      "reject_by_kabag": 7,
+      "upload_sambutan": 3,
+      "upload_undangan": 12,
+      "wwk_tidak_hadir": 5,
+      "delegasi_jajaran": 1,
+      "forward_to_kabag": 457,
+      "recall_published": 26,
+      "sambutan_disahkan": 3,
+      "penugasan_personil": 567,
+      "return_by_kasubbag": 24,
+      "usulan_edit_diajukan": 28,
+      "usulan_edit_ke_kabag": 28,
+      "usulan_edit_disetujui": 32
+    },
+    "terakhir": "2026-10-05",
+    "peristiwa_total": 3331,
+    "kegiatan_berjejak": 466,
+    "dengan_daftar_periksa": 77
+  },
+  "modul": {
+    "berita_per_status": {},
+    "caption_per_status": {
+      "menunggu": 2,
+      "disetujui": 1
+    },
+    "kegiatan_disetujui": 610,
+    "kalender_disembunyikan": 0,
+    "ruang_internal_pengajuan": 0,
+    "kegiatan_disetujui_bulan_ini": 25,
+    "kegiatan_ditolak_atau_ditarik": 7,
+    "kalender_agenda_mendatang_tampil": 17
+  },
+  "ruang": {
+    "pengajuan": 129,
+    "baris_slot": 137,
+    "per_status": {
+      "Approved": 104,
+      "Rejected": 8,
+      "Cancelled": 17
+    },
+    "instansi_berbeda": 68,
+    "peserta_disetujui": 3153
+  },
+  "pengguna": {
+    "aktif": 40,
+    "total": 40,
+    "per_peran": {
+      "staf": 7,
+      "kabag": 1,
+      "timkom": 5,
+      "walpri": 4,
+      "admin_rk": 1,
+      "walikota": 2,
+      "superadmin": 1,
+      "mitra_kerja": 9,
+      "wakilwalikota": 1,
+      "admin_undangan": 1,
+      "ajudan_walikota": 3,
+      "kasubbag_protokol": 1,
+      "kasubbag_komdokpim": 2,
+      "ajudan_wakilwalikota": 2
+    }
+  },
+  "kecepatan": {
+    "tayang_dalam_4_jam": 311,
+    "tayang_dalam_24_jam": 429,
+    "kegiatan_jejak_lengkap": 432,
+    "rata_ajukan_tayang_jam": 3.95,
+    "median_ajukan_tayang_jam": 1.94,
+    "median_ajukan_teruskan_jam": 1.29,
+    "median_teruskan_tayang_jam": 0.14
+  },
+  "dihitung_pada": "2026-10-05 15:47 WITA",
+  "jenis_kegiatan": {
+    "Sambutan": 288,
+    "Menghadiri": 272,
+    "Pengarahan": 43,
+    "Rapat Koordinasi": 2,
+    "High Level Meeting": 1,
+    "Sambutan membuka acara": 5,
+    "sambutan melepas pawai": 1,
+    "Ibadah dan Perayaan Paskah": 1,
+    "Olahraga Gabungan Instansi": 1,
+    "Peresmian dan Pendistribusian": 1,
+    "Rapat Koordinasi Kelembagaan Program Rehabilitasi": 1,
+    "Audiensi dan silaturahmi untuk meminta petunjuk/arahan dari Bapak Wali Kota": 1
+  },
+  "kegiatan_total": 617,
+  "penelaahan_waktu": {
+    "total": 912,
+    "di_luar_jam_kerja": 437
+  },
+  "sudah_dievaluasi": 341,
+  "tanggal_kegiatan": {
+    "awal": "2026-03-09",
+    "akhir": "2026-10-26"
+  },
+  "sambutan_disahkan": 3,
+  "undangan_terarsip": 479,
+  "kegiatan_per_bulan": {
+    "2026-03": 45,
+    "2026-04": 72,
+    "2026-05": 71,
+    "2026-06": 71,
+    "2026-07": 99,
+    "2026-08": 120,
+    "2026-09": 114,
+    "2026-10": 25
+  },
+  "perangkat_notifikasi": {
+    "pengguna": 20,
+    "perangkat": 37
+  },
+  "kegiatan_per_pimpinan": {
+    "walikota": 498,
+    "wakilwalikota": 180
+  },
+  "dengan_penugasan_petugas": 571,
+  "agenda_dari_permohonan_tamu": 31,
+  "dikembalikan_untuk_diperbaiki": 29
+}

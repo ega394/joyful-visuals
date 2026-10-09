@@ -18,7 +18,7 @@ import SuperadminPage from "./pages/SuperadminPage.jsx";
 import BookingDashboard from "./components/BookingDashboard.jsx";
 import RoomManagement from "./components/RoomManagement.jsx";
 const PlhManagement = React.lazy(() => import("./components/PlhManagement.jsx"));
-import { clearAdminToken, adminFetch } from "./roomAuth";
+import { clearAdminToken, adminFetch, sesiFetch, setPenggunaSesi } from "./roomAuth";
 import { JADWAL_STATUS } from "./lib/statusColors.js";
 import { peranEfektif, plhAktif, punyaPeran, jejakPlh, bolehMemutus, LABEL_PERAN } from "./lib/plh.js";
 import { umurUsulan, bandingUsulan } from "./lib/usulan.js";
@@ -392,6 +392,11 @@ const ALL_ROLE_DEFS=[
   {key:"mitra_kerja",        label:"Mitra Kerja Pemkot",            icon:"eye"},
   {key:"walpri",             label:"Walpri",                        icon:"eye"},
 ];
+// Peran yang boleh ditetapkan dari aplikasi utama (panel Kelola Pengguna milik
+// Kabag). Superadmin hanya diberikan dan dikelola dari konsol /superadmin:
+// kalau Kabag bisa membuat atau mengubah superadmin, siapa pun yang menguasai
+// akun Kabag ikut menguasai seluruh sistem.
+const PERAN_PANEL_KABAG=ALL_ROLE_DEFS.filter(r=>r.key!=="superadmin");
 // Workflow status jadwal — warna & label diambil dari sumber tunggal
 // di src/lib/statusColors.js agar selaras dengan GuestDashboard.
 const WF = JADWAL_STATUS;
@@ -547,7 +552,9 @@ function loadUsers(){
   if(_usersCache)return _usersCache;
   try{
     const s=localStorage.getItem("jp_users");
-    const users=s?JSON.parse(s):DEFAULT_USERS;
+    // DEFAULT_USERS (sandinya tertulis di kode publik) hanya untuk mode lokal
+    // tanpa basis data. Di produksi, tanpa cache berarti tanpa akun.
+    const users=s?JSON.parse(s):(SUPA_OK?[]:DEFAULT_USERS);
     const hasPlain=users.some(u=>u.password&&!u.password.startsWith("$sha256$"));
     if(hasPlain){
       migratePasswords(users).then(migrated=>{
@@ -556,7 +563,7 @@ function loadUsers(){
       });
     }
     return users;
-  }catch{return DEFAULT_USERS;}
+  }catch{return SUPA_OK?[]:DEFAULT_USERS;}
 }
 function saveUsers(u){
   const sebelum=new Map((_usersCache||[]).map(x=>[x.username,x]));
@@ -795,6 +802,10 @@ const KOLOM_PELADEN=["plh_untuk","plh_mulai","plh_selesai","plh_dasar",
 
 async function dbUpsertUser(u){
   if(!SUPA_OK)return;
+  // Baris superadmin hanya ditulis dari konsol /superadmin. Cache perangkat lain
+  // bisa basi, dan menyimpannya dari sini dapat memundurkan sandi/status akun
+  // superadmin atau memberi peran superadmin tanpa lewat konsol.
+  if(u?.role==="superadmin")return;
   const{_newPw,...clean}=u; // jangan simpan field temp
   for(const k of KOLOM_PELADEN)delete clean[k];
   await fetch(SUPA_URL+"/rest/v1/users",{
@@ -828,12 +839,13 @@ async function initUsers(){
       }
       return _usersCache;
     } else {
-      // Supabase kosong — seed dari localStorage
-      const local=loadUsers();
-      const migrated=await migratePasswords(local);
-      _usersCache=migrated;
-      await Promise.all(migrated.map(u=>dbUpsertUser(u))).catch(console.warn);
-      return migrated;
+      // Tabel users kosong (atau tertutup bagi kunci ini). DULU daftar lokal —
+      // atau DEFAULT_USERS bersandi publik — ditanam ulang ke basis data. Itu
+      // menghidupkan akun lama/bawaan setelah restore gagal atau saat akses
+      // tabel dipersempit, jadi sekarang tidak ada penanaman ulang sama sekali.
+      console.error("initUsers: tabel users kosong — tidak ada akun yang dimuat.");
+      _usersCache=[];
+      return [];
     }
   }catch(e){
     console.warn("initUsers Supabase error, fallback localStorage:",e.message);
@@ -2079,7 +2091,7 @@ _Setda Kota Tarakan_`;
     const results=[];
     for(const u of targets){
       try{
-        const resp=await fetch("/api/whatsapp",{
+        const resp=await sesiFetch("/api/whatsapp",{
           method:"POST",
           headers:{"Content-Type":"application/json"},
           body:JSON.stringify({to:u.noWA,pesan,event:"broadcast"})
@@ -3888,6 +3900,7 @@ function AdminModal({onClose, showT, events, updAndSync}) {
     setErr("");
     if (!newUser.username || !newUser.password || !newUser.nama) return setErr("Username, password & nama wajib.");
     if (users.find(u => u.username === newUser.username.toLowerCase())) return setErr("Username sudah ada.");
+    if (newUser.role === "superadmin") return setErr("Peran superadmin hanya dapat diberikan dari konsol superadmin.");
     const hashed = await hashPassword(newUser.password);
     save([...users, {...newUser, username: newUser.username.toLowerCase(), password: hashed}]);
     setNewUser({username: "", password: "", nama: "", jabatan: "", role: "staf", noWA: ""});
@@ -3895,6 +3908,7 @@ function AdminModal({onClose, showT, events, updAndSync}) {
   };
 
   const doDelete = async un => {
+    if (users.find(u => u.username === un)?.role === "superadmin") return setErr("Akun superadmin hanya dapat dikelola dari konsol superadmin.");
     const updated = users.filter(u => u.username !== un);
     save(updated);
     await dbDeleteUser(un).catch(e => console.warn("dbDeleteUser error:", e));
@@ -3904,6 +3918,8 @@ function AdminModal({onClose, showT, events, updAndSync}) {
   const doSaveEdit = async () => {
     setErr("");
     if (!editUser.nama) return setErr("Nama wajib.");
+    if (editUser.role === "superadmin" || users.find(u => u.username === editUser.username)?.role === "superadmin")
+      return setErr("Akun dan peran superadmin hanya dapat dikelola dari konsol superadmin.");
     let toSave = {...editUser};
     if (toSave._newPw) {
       toSave.password = await hashPassword(toSave._newPw);
@@ -3916,7 +3932,7 @@ function AdminModal({onClose, showT, events, updAndSync}) {
 
   // 2. FUNGSI PERSETUJUAN (Dipindah ke atas agar aman)
   const doApprove = (r) => {
-    const chosenRole = approveRoles[r.id] || "staf";
+    const chosenRole = approveRoles[r.id] === "superadmin" ? "staf" : (approveRoles[r.id] || "staf");
     const regs = loadPendingRegs().filter(x => x.id !== r.id);
     savePendingRegs(regs); setPendRegs(regs);
     dbDeletePendingReg(r.id).catch(e => console.warn("Sync:", e?.message || e));
@@ -3949,7 +3965,7 @@ function AdminModal({onClose, showT, events, updAndSync}) {
 
       try {
         // KITA HANYA MENGIRIM ID! (Sangat ringan)
-        const res = await fetch("/api/drive?action=sync_one_from_db", {
+        const res = await sesiFetch("/api/drive?action=sync_one_from_db", {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ agendaId: ev.id })
         });
@@ -4001,8 +4017,12 @@ function AdminModal({onClose, showT, events, updAndSync}) {
                     <div style={{fontSize: 13, fontWeight: 700, color: "#1e293b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"}}>{u.nama}</div>
                     <div style={{fontSize: 13, color: "#64748b"}}>{u.username} | {ALL_ROLE_DEFS.find(r => r.key === u.role)?.label || u.role}</div>
                   </div>
+                  {u.role === "superadmin"
+                    ? <span style={{fontSize: 12, color: "#64748b", fontStyle: "italic"}}>Dikelola dari konsol superadmin</span>
+                    : <>
                   <button onClick={() => setEditUser({...u, _newPw: ""})} style={{padding: "5px 10px", borderRadius: 7, border: "1.5px solid #0A1628", background: "white", color: "#0A1628", cursor: "pointer", fontSize: 13, fontWeight: 700}}>Edit</button>
                   <button onClick={() => doDelete(u.username)} style={{padding: "5px 10px", borderRadius: 7, border: "1.5px solid #fca5a5", background: "white", color: "#ef4444", cursor: "pointer", fontSize: 13, fontWeight: 700}}>Hapus</button>
+                    </>}
                 </div>
               ))}
               {/* ── Form Edit User ── */}
@@ -4042,7 +4062,7 @@ function AdminModal({onClose, showT, events, updAndSync}) {
                       onChange={e => setEditUser(p => ({ ...p, role: e.target.value }))}
                       style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1.5px solid #BFDBFE", fontSize: 13, background: "white", color: "#1e293b", WebkitAppearance: "none", boxSizing: "border-box" }}
                     >
-                      {ALL_ROLE_DEFS.map(r => <option key={r.key} value={r.key}>{r.label}</option>)}
+                      {PERAN_PANEL_KABAG.map(r => <option key={r.key} value={r.key}>{r.label}</option>)}
                     </select>
                   </div>
 
@@ -4084,7 +4104,7 @@ function AdminModal({onClose, showT, events, updAndSync}) {
                <div key={f.k} style={{marginBottom: 10}}><label style={{display: "block", fontSize: 12, color: "#64748b", fontWeight: 600, marginBottom: 3}}>{f.l}</label><input value={newUser[f.k] || ""} onChange={e => setNewUser(p => ({...p, [f.k]: e.target.value}))} autoCapitalize="none" style={inp}/></div>
              ))}
              <div style={{marginBottom: 10}}><label style={{display: "block", fontSize: 12, color: "#64748b", fontWeight: 600, marginBottom: 3}}>Password *</label><input type="password" value={newUser.password || ""} onChange={e => setNewUser(p => ({...p, password: e.target.value}))} style={inp}/></div>
-             <div style={{marginBottom: 16}}><label style={{display: "block", fontSize: 12, color: "#64748b", fontWeight: 600, marginBottom: 3}}>Role / Hak Akses</label><select value={newUser.role} onChange={e => setNewUser(p => ({...p, role: e.target.value}))} style={{...inp, WebkitAppearance: "none"}}>{ALL_ROLE_DEFS.map(r => <option key={r.key} value={r.key}>{r.label}</option>)}</select></div>
+             <div style={{marginBottom: 16}}><label style={{display: "block", fontSize: 12, color: "#64748b", fontWeight: 600, marginBottom: 3}}>Role / Hak Akses</label><select value={newUser.role} onChange={e => setNewUser(p => ({...p, role: e.target.value}))} style={{...inp, WebkitAppearance: "none"}}>{PERAN_PANEL_KABAG.map(r => <option key={r.key} value={r.key}>{r.label}</option>)}</select></div>
              <button onClick={doAdd} style={{width: "100%", padding: "12px", borderRadius: 10, border: "none", background: "#0A1628", color: "white", cursor: "pointer", fontSize: 14, fontWeight: 700}}>Tambahkan Pengguna</button>
            </>
           )}
@@ -4104,7 +4124,7 @@ function AdminModal({onClose, showT, events, updAndSync}) {
                   <div style={{background: "#FFFBEB", border: "1.5px solid #FDE68A", borderRadius: 9, padding: "10px 12px", marginBottom: 10}}>
                     <div style={{fontSize: 13, fontWeight: 700, color: "#92400E", marginBottom: 6}}>⚙️ Tetapkan Role / Hak Akses</div>
                     <select value={approveRoles[r.id] || "staf"} onChange={e => setApproveRoles(p => ({...p, [r.id]: e.target.value}))} style={{width: "100%", padding: "8px 10px", borderRadius: 8, border: "1.5px solid #FCD34D", fontSize: 13, fontWeight: 600, color: "#0A1628", background: "white", outline: "none", WebkitAppearance: "none"}}>
-                      {ALL_ROLE_DEFS.map(rd => <option key={rd.key} value={rd.key}>{rd.label}</option>)}
+                      {PERAN_PANEL_KABAG.map(rd => <option key={rd.key} value={rd.key}>{rd.label}</option>)}
                     </select>
                   </div>
                   <div style={{display: "flex", gap: 8}}>
@@ -5082,7 +5102,7 @@ async function sendWA(params){
   const nomor=params.to.trim().replace(/^0/,"62").replace(/\D/g,"");
   if(nomor.length<10){console.warn("sendWA: nomor tidak valid",params.to);return;}
   try{
-    const r=await fetch("/api/whatsapp",{
+    const r=await sesiFetch("/api/whatsapp",{
       method:"POST",
       headers:{"Content-Type":"application/json"},
       body:JSON.stringify({...params,to:nomor})
@@ -7136,7 +7156,7 @@ function ReportingTamuModal({ user, onClose, cetakOleh, showT }) {
   // ── Fetch data ────────────────────────────────────────────
   React.useEffect(() => {
     setLoading(true);
-    fetch("/api/guest?action=queue&status=all&limit=500")
+    sesiFetch("/api/guest?action=queue&status=all&limit=500")
       .then(r => r.json())
       .then(d => setGuests(Array.isArray(d) ? d : []))
       .catch(() => { if (showT) showT("Gagal memuat data tamu", "error"); })
@@ -7665,6 +7685,9 @@ export default function App(){
     return <React.Suspense fallback={<_LazyFallback />}><TamuPage /></React.Suspense>;
   const width=useWindowWidth();const isMobile=width<768;
   const[user,setUser]=useState(null);
+  // Pengguna aktif untuk sesiFetch(): endpoint WhatsApp, tamu, arsip Drive, dan
+  // newsroom kini menolak permintaan tanpa token sesi.
+  useEffect(()=>{setPenggunaSesi(user);},[user]);
   // Gerbang kewenangan memakai peran efektif, sehingga PLH ikut berlaku pada
   // seluruh pemeriksaan `role === "..."` tanpa perlu disentuh satu per satu.
   // `user.role` sengaja dibiarkan utuh sebagai peran ASLI — dipakai jejak audit
@@ -8386,7 +8409,7 @@ const submit = async () => {
       const isUrlSupabase = typeof finalUndanganFile === 'string' && finalUndanganFile.includes("supabase.co");
       if (hasNewFile || isUrlSupabase) {
         showT("Meneruskan arsip ke Google Drive...", "warn");
-        fetch("/api/drive?action=sync_one_from_db", {
+        sesiFetch("/api/drive?action=sync_one_from_db", {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ agendaId: evId })
         })
@@ -11101,7 +11124,7 @@ function KasubbagDashboard({events, user, upd, showT, askConfirm, isMobile, onPe
             if(tUser?.noWA){
               const sby=role==="kasubbag_protokol"?"Kasubbag Protokol":"Kasubbag Komdokpim";
               const pesan="\u274C *Pencabutan Penugasan*\n\nYth. "+cabutTarget.nama+",\n\nPenugasan Anda pada kegiatan berikut telah dicabut:\n\n\uD83D\uDCCC *"+ev.namaAcara+"*\n\uD83D\uDCC5 "+ev.tanggal+"\n\u23F0 "+fmtJamWita(ev)+""+(ev.lokasi?"\n\uD83D\uDCCD "+ev.lokasi:"")+"\n\n\uD83D\uDCDD Alasan: "+alasanCabut+"\n\nJika ada pertanyaan silakan hubungi "+sby+".\n\n_Prokopim Kota Tarakan_\n_prokopim.tarakankota.go.id_";
-              fetch("/api/whatsapp",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({event:"broadcast",pesanCustom:pesan,target:tUser.noWA})}).catch(e=>console.warn("Sync:",e?.message||e));
+              sesiFetch("/api/whatsapp",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({event:"broadcast",pesanCustom:pesan,to:tUser.noWA})}).catch(e=>console.warn("Sync:",e?.message||e));
             }
             showT("Penugasan "+cabutTarget.nama+" dicabut & pemberitahuan terkirim","warn");
             setCabutTarget(null);setAlasanCabut("");

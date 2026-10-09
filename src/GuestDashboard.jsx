@@ -10,6 +10,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { TAMU_STATUS, PRIORITY_COLORS } from "./lib/statusColors.js";
+import { sesiFetch } from "./roomAuth";
 import { punyaPeran, peranDipegang } from "./lib/plh.js";
 
 // ── Design Tokens ─────────────────────────────────────────────
@@ -61,7 +62,7 @@ function gPrioritas(g){
 }
 
 async function apiPost(action, body) {
-  var r = await fetch(API+"?action="+action, {
+  var r = await sesiFetch(API+"?action="+action, {
     method:"POST", headers:{"Content-Type":"application/json"},
     body: JSON.stringify(body),
   });
@@ -183,7 +184,7 @@ function AdminRKView({ user, events, showT, isMobile, reloadEvents }) {
 
   var load = useCallback(function() {
     setLoading(true);
-    fetch(API+"?action=queue&status="+tab+"&limit=60")
+    sesiFetch(API+"?action=queue&status="+tab+"&limit=60")
       .then(function(r){return r.json();})
       .then(function(d){setGuests(Array.isArray(d)?d:[]); setLastLoaded(new Date());})
       .catch(function(){setGuests([]);})
@@ -408,7 +409,7 @@ function KasubbagView({ user, showT, isMobile }) {
 
   var load = useCallback(function() {
     setLoading(true);
-    fetch(API+"?action=queue&status="+tab+"&limit=60")
+    sesiFetch(API+"?action=queue&status="+tab+"&limit=60")
       .then(function(r){return r.json();})
       .then(function(d){setGuests(Array.isArray(d)?d:[]); setLastLoaded(new Date());})
       .catch(function(){setGuests([]);})
@@ -648,7 +649,7 @@ function KabagView({ user, events, showT, isMobile, reloadEvents }) {
 
   var load = useCallback(function() {
     setLoading(true);
-    fetch(API+"?action=queue&status="+tab+"&limit=60")
+    sesiFetch(API+"?action=queue&status="+tab+"&limit=60")
       .then(function(r){return r.json();})
       .then(function(d){setGuests(Array.isArray(d)?d:[]); setLastLoaded(new Date());})
       .catch(function(){setGuests([]);})
@@ -960,7 +961,7 @@ function PimpinanView({ role, user, events, showT, isMobile, reloadEvents }) {
     var statusQ = tab;
     var url = API+"?action=queue&status="+statusQ+"&limit=50";
     setLoading(true);
-    fetch(url)
+    sesiFetch(url)
       .then(function(r){return r.json();})
       .then(function(d){
         var list = Array.isArray(d) ? d : [];
@@ -1605,7 +1606,7 @@ function AjudanView({ role, user, events, showT, isMobile, reloadEvents }) {
   // Mode penyambutan: tamu disetujui hari ini & besok
   useEffect(function() {
     setLoading(true);
-    fetch(API+"?action=queue&status=approved&limit=100&pimpinan="+(role==="ajudan_walikota"?"walikota":"wakilwalikota"))
+    sesiFetch(API+"?action=queue&status=approved&limit=100&pimpinan="+(role==="ajudan_walikota"?"walikota":"wakilwalikota"))
       .then(function(r){return r.json();})
       .then(function(d){
         var list = Array.isArray(d)?d:[];
@@ -1625,7 +1626,7 @@ function AjudanView({ role, user, events, showT, isMobile, reloadEvents }) {
   // Mode penjadwalan: permohonan tahap akhir (pending_pimpinan)
   var loadJadwal = useCallback(function() {
     setJadwalLoading(true);
-    fetch(API+"?action=queue&status=pending_pimpinan&limit=80&pimpinan="+(role==="ajudan_walikota"?"walikota":"wakilwalikota"))
+    sesiFetch(API+"?action=queue&status=pending_pimpinan&limit=80&pimpinan="+(role==="ajudan_walikota"?"walikota":"wakilwalikota"))
       .then(function(r){return r.json();})
       .then(function(d){
         var list = Array.isArray(d)?d:[];
@@ -1749,7 +1750,7 @@ function ReadOnlyView({ isMobile }) {
 
   useEffect(function(){
     setLoading(true);
-    fetch(API+"?action=queue&status="+tab+"&limit=50")
+    sesiFetch(API+"?action=queue&status="+tab+"&limit=50")
       .then(function(r){return r.json();})
       .then(function(d){setGuests(Array.isArray(d)?d:[]);})
       .catch(function(){setGuests([]);})

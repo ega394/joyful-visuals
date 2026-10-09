@@ -1,0 +1,155 @@
+TEKS ISIAN RISDA — LOMBA INOVASI DAERAH KOTA TARAKAN 2026
+Prokopim Hibot: Superapp Pelayanan Keprotokolan dan Komunikasi Pimpinan Pemerintah Kota Tarakan
+Data per 5 Oktober 2026 pukul 15.47 WITA. Dibuat otomatis oleh buat-proposal-tarakan.mjs; angka sama dengan proposal.
+
+======================================================================
+IDENTITAS USULAN   [781 karakter]
+======================================================================
+
+Judul inovasi: Prokopim Hibot: Superapp Pelayanan Keprotokolan dan Komunikasi Pimpinan Pemerintah Kota Tarakan
+
+Kategori: A. Inovasi Tata Kelola Pemerintahan
+
+Bidang fokus: Tata kelola pemerintahan yang adaptif dan responsif (Misi 4 RPJMD Kota Tarakan 2025–2029)
+
+Inovator: Tim Inovasi Prokopim Hibot — Anugrah Yega Pranatha, M.Si. (Ketua); Saifullah, S.H. (Anggota); Juliyanti, S.AP. (Anggota); Pebriadi Banne, S.IP. (Anggota); Nuraini Wiliadewi, S.IP. (Anggota)
+
+Instansi: Bagian Protokol dan Komunikasi Pimpinan, Sekretariat Daerah Kota Tarakan
+
+Mulai diterapkan: Maret 2026 (kegiatan pertama 9 Maret 2026); lama implementasi per 1 Oktober 2026: 6 bulan 22 hari
+
+Tautan aplikasi: https://prokopim.tarakankota.go.id
+
+Kontak ketua tim: 0811-5900-394; anugrahyegapranatha@gmail.com
+
+======================================================================
+2. RINGKASAN EKSEKUTIF   [1.823 karakter]
+======================================================================
+
+Masalah. Bagian Protokol dan Komunikasi Pimpinan mengelola agenda Wali Kota dan Wakil Wali Kota dengan volume rata-rata 91 kegiatan per bulan. Sampai awal 2026 seluruh prosesnya manual: rencana kegiatan disusun di spreadsheet lalu dicetak, penelaahan hanya dalam satu jendela sekitar 30 menit menjelang jam pulang, disposisi diteruskan sebagai foto di grup percakapan, dan penugasan petugas bergantung pada ingatan. Pada Januari 2026 satu lembar disposisi agenda tidak ikut terkirim tanpa ada yang mengetahuinya. Akar masalahnya: tidak ada satu sumber data yang sahih dan dapat diperiksa semua pihak.
+
+Solusi. Prokopim Hibot adalah superapp pelayanan keprotokolan dan komunikasi pimpinan: satu aplikasi web progresif yang menyatukan sebelas alur kerja dalam satu data dan satu pintu, mulai dari penetapan jadwal berjenjang, penugasan petugas, audiensi dan peminjaman ruangan, undangan siap tanda tangan elektronik Srikandi, sampai daftar hadir digital dan evaluasi petugas. Setiap keputusan terekam pada jejak audit.
+
+Implementasi. Digunakan sejak Maret 2026, dikuatkan Surat Sekda Nomor 300.2.10/265/SETDA/2026 dan Keputusan Sekda Nomor 100.3.3.6/98/HK/VIII/2026, dengan sebelas SOP. Per 1 Oktober 2026 telah berjalan 6 bulan 22 hari.
+
+Penerima manfaat. 40 akun aktif pada 14 peran (Pimpinan Daerah, ajudan, pengawal pribadi, pejabat, petugas, mitra kerja lintas unit), serta 68 instansi peminjam ruangan dan 55 instansi pemohon audiensi.
+
+Bukti dampak (data aplikasi per 5 Oktober 2026 pukul 15.47 WITA): 617 kegiatan terkelola; median 1,94 jam dari pengajuan sampai jadwal tayang (sebelumnya diperkirakan 18–24 jam); 99,3% tayang kurang dari 24 jam; 47,9% penelaahan dan persetujuan terjadi di luar jam kerja; 3.331 peristiwa terekam pada jejak audit; 92,5% kegiatan berpenugasan petugas tercatat; belanja pengadaan Rp0.
+
+======================================================================
+3. PROFIL INOVATOR/TIM   [1.180 karakter]
+======================================================================
+
+Tim Inovasi Prokopim Hibot, Bagian Protokol dan Komunikasi Pimpinan Sekretariat Daerah Kota Tarakan. Susunan tim diambil dari Keputusan Sekda Nomor 100.3.3.6/98/HK/VIII/2026 tentang Tim Koordinasi Peningkatan Pelayanan Keprotokolan dan Komunikasi Pimpinan (42 anggota).
+
+1. Anugrah Yega Pranatha, M.Si. — Kepala Bagian Protokol dan Komunikasi Pimpinan — Ketua: Ketua tim; penggagas; perancang alur kerja dan aturan kewenangan; pengembang aplikasi secara swakelola; penanggung jawab pendaftaran.
+
+2. Saifullah, S.H. — Kepala Sub Bagian Protokol — Anggota: Penyelia penerapan pada alur keprotokolan; penguji; pemberi pertimbangan rancangan.
+
+3. Juliyanti, S.AP. — Kepala Sub Bagian Komunikasi dan Dokumentasi Pimpinan — Anggota: Penyelia penerapan pada alur komunikasi dan dokumentasi; penguji; pemberi pertimbangan rancangan.
+
+4. Pebriadi Banne, S.IP. — Pengelola Layanan Operasional — Anggota: Pelaksana dan penguji di lapangan; penghimpun kendala pemakaian sehari-hari.
+
+5. Nuraini Wiliadewi, S.IP. — Penelaah Teknis Kebijakan — Anggota: Pelaksana dan penguji di lapangan; penghimpun kendala pemakaian sehari-hari.
+
+Kontak ketua tim: 0811-5900-394; anugrahyegapranatha@gmail.com.
+
+======================================================================
+4. LATAR BELAKANG DAN ANALISIS MASALAH   [1.766 karakter]
+======================================================================
+
+Data dasar. Berdasarkan Perwali Tarakan 50/2021, Bagian Prokopim menyiapkan jadwal, mengoordinasikan kegiatan, menyusun naskah sambutan, dan mendokumentasikan kegiatan Kepala Daerah. Sejak Maret sampai 5 Oktober 2026 tercatat 617 kegiatan (498 untuk Wali Kota, 180 untuk Wakil Wali Kota), 294 di antaranya kegiatan sambutan.
+
+Kondisi sebelum. Rencana kegiatan disusun di spreadsheet dan dicetak; penelaahan hanya sekali sehari ±30 menit pada hari kerja; kegiatan mendesak memerlukan cetak ulang; disposisi diteruskan sebagai foto; penugasan tidak tercatat; ketersediaan ruangan di papan tulis; pemohon audiensi harus datang atau menelepon.
+
+Peristiwa pemicu. Januari 2026, satu berkas disposisi tiga lembar hanya diterima dua lembar karena satu lembar tidak ikut terfoto saat diteruskan di grup percakapan, dan tidak ada pihak yang dapat mengetahuinya.
+
+Akar masalah: tidak ada satu sumber data yang sahih. Turunannya: penelaahan terikat jendela waktu; keputusan tidak berjejak; versi dokumen beredar ganda; pengetahuan kerja melekat pada orang; layanan publik tidak dapat ditelusuri. Karena persoalan tersebar di banyak saluran (kertas, spreadsheet, grup percakapan, papan tulis, telepon), jawabannya adalah satu wadah bagi seluruh layanan: superapp.
+
+Urgensi. Kegiatan yang tidak tercatat berarti Pimpinan hadir tanpa pendampingan, peliputan, dan naskah yang matang. SE Wali Kota Nomor 000.7.2.4/70/Bappeda Litbang/2026 mendorong inovasi berbasis digital.
+
+Sasaran: Wali Kota dan Wakil Wali Kota; ajudan dan pengawal pribadi; Kepala Bagian dan Kepala Sub Bagian; petugas protokol, pramu tamu, dan dokumentasi; masyarakat, instansi, dan mitra kerja. Sumber data: telaah alur kerja (kondisi sebelum) dan basis data aplikasi melalui kueri baca-saja (kondisi sesudah).
+
+======================================================================
+5. KESELARASAN DENGAN RPJMD   [1.401 karakter]
+======================================================================
+
+Mendukung visi RPJMD Kota Tarakan 2025–2029 "Tarakan sebagai Kota Cerdas" pada sisi tata kelola, khususnya Misi 4: tata kelola pemerintahan yang adaptif, responsif, dan menjaga stabilitas ketertiban dan ketenteraman kota. Adaptif: kerja tanpa kertas dari telepon pintar. Responsif: jadwal ditetapkan dalam hitungan jam dan permohonan masyarakat dapat ditelusuri. Stabilitas: kehadiran Pimpinan selalu didampingi petugas yang siap.
+
+Kategori A dijawab langsung: tata kelola (kewenangan melekat pada jabatan, Pelaksana Harian bermasa berlaku), proses bisnis (tanpa jendela waktu, sebelas SOP), digitalisasi (sebelas alur dalam satu superapp, undangan siap TTE Srikandi), data (satu data kegiatan), manajemen (sebaran beban dan kinerja petugas), pengawasan (jejak audit dan daftar periksa wajib), efisiensi (median 1,94 jam, Rp0 pengadaan).
+
+Nama inovasi mengusung semboyan "Tarakan HIBOT" (Handal, Inovatif, Berbudaya, Unggul/Oenggoel, Tangguh) dan sejalan dengan tema "Inovasi Berdampak, Tarakan Maju dan Berdaya Saing".
+
+Regulasi terkait: UU 23/2014; UU 25/2009; UU 9/2010 tentang Keprotokolan; PP 38/2017; Permendagri 104/2018; Perpres 95/2018 dan 82/2023; PermenPAN-RB 35/2012; Perda Kota Tarakan 2/2025 (RPJMD); Perwali 20/2025 (RKPD 2026); Perwali 41/2025 (Penyelenggaraan Inovasi Daerah); Perwali 50/2021; SE Wali Kota 000.7.2.4/70/Bappeda Litbang/2026; Keputusan Sekda 100.3.3.6/98/HK/VIII/2026.
+
+======================================================================
+6. DESKRIPSI DAN KEBARUAN   [1.713 karakter]
+======================================================================
+
+Konsep: setiap kegiatan Pimpinan memiliki satu data yang sama bagi semua pihak, dan setiap keputusan atasnya tercatat. Di atasnya dibangun superapp: satu aplikasi, satu pintu, banyak layanan, dengan tampilan sesuai peran.
+
+Lapisan layanan: Pimpinan Daerah (agenda terkini, disposisi kepada Wakil Wali Kota); ajudan dan pengawal pribadi (pemberitahuan dini, konfirmasi kehadiran, pengingat); pejabat struktural (antrean persetujuan dengan daftar periksa, pemantauan usulan perubahan, Pelaksana Harian); petugas (penugasan melalui aplikasi dan WhatsApp, rekap pagi, evaluasi); masyarakat dan instansi (audiensi dan peminjaman ruangan daring dengan kode penelusuran, daftar hadir QR); integrasi (Google Calendar otomatis, notifikasi, undangan siap TTE Srikandi).
+
+Cara kerja: Admin Rencana Kegiatan menginput jadwal dan undangan → Kepala Sub Bagian Protokol menelaah → Kepala Bagian menyetujui → jadwal tayang kepada Pimpinan, ajudan, dan petugas, lalu tersalin otomatis ke kalender bersama.
+
+Kebaruan: (a) jejak audit melekat pada setiap kegiatan; (b) daftar periksa wajib sebelum persetujuan; (c) kewenangan melekat pada jabatan dengan Pelaksana Harian yang padam sendiri; (d) pengawasan usulan perubahan menurut kegentingan; (e) kanal publik yang dapat ditelusuri tanpa membuka data pribadi; (f) sinkron otomatis ke Google Calendar; (g) undangan PDF siap TTE Srikandi dengan pemesanan ruang rapat Imbaya/Kenawai sekaligus.
+
+Perbedaan dengan cara lama: satu data terkini menggantikan beberapa versi cetakan; pemberitahuan otomatis hanya kepada yang berubah; alur tidak berhenti saat pejabat berhalangan; kalender bersama terisi sendiri; satu superapp menggantikan kertas, grup percakapan, papan tulis, dan telepon.
+
+======================================================================
+7. PELAKSANAAN INOVASI   [980 karakter]
+======================================================================
+
+Waktu mulai: Maret 2026 (kegiatan pertama 9 Maret 2026). Lama implementasi per 1 Oktober 2026: 6 bulan 22 hari. Lokasi: Bagian Prokopim Setda Kota Tarakan, dapat diakses dari mana saja. Pengguna: 40 akun aktif pada 14 peran.
+
+Tahapan: Januari 2026 peristiwa pemicu dan telaah alur kerja; Februari–Maret pembangunan, uji coba, dan mulai digunakan; Mei jejak audit dan kanal peminjaman ruangan; Juli–Agustus audiensi terhubung ke agenda, notifikasi, kalender ruangan, daftar hadir digital; September Pelaksana Harian, daftar periksa wajib, pemantauan usulan perubahan, sinkron Google Calendar; Oktober generator undangan siap TTE Srikandi dan pemesanan ruang rapat internal. Tercatat lebih dari 580 pembaruan aplikasi sejak Maret 2026.
+
+SOP dan regulasi: sebelas SOP format PermenPAN-RB 35/2012 (satu untuk setiap alur), Keputusan Sekda Nomor 100.3.3.6/98/HK/VIII/2026, dan Surat Sekda Nomor 300.2.10/265/SETDA/2026. Dokumentasi: tangkapan layar (Lampiran 4) dan video bagi finalis.
+
+======================================================================
+8. SUMBER DAYA DAN KOLABORASI   [934 karakter]
+======================================================================
+
+SDM: dikembangkan swakelola oleh Ketua Tim dengan asisten pemrograman berbasis kecerdasan buatan; anggota tim dan pelaksana Bagian Prokopim menjadi pengguna sekaligus penguji; diperkuat Tim Koordinasi 42 orang termasuk para Sekretaris Dinas.
+
+Anggaran: belanja pengadaan Rp0. Teknologi dan sarana: peladen tanpa server dan basis data terkelola pada kuota tanpa biaya, Google Calendar dan spreadsheet milik instansi, telepon pintar milik pengguna; biaya berjalan hanya langganan gerbang pesan WhatsApp. Ketika lalu lintas data sempat 6,4 GB/bulan (kuota 5 GB), pengambilan data diubah sehingga turun menjadi ±1 GB.
+
+Mitra dan peran: Sekda (menetapkan Tim Koordinasi dan menguatkan penggunaan); Wali Kota dan Wakil Wali Kota (pengguna langsung, 67 disposisi); ajudan dan pengawal pribadi (386 konfirmasi kehadiran); DKISP (subdomain prokopim.tarakankota.go.id); Bappeda Litbang (pengampu inovasi daerah); 9 akun mitra kerja lintas unit.
+
+======================================================================
+9. HASIL, MANFAAT, DAN BUKTI DAMPAK   [1.325 karakter]
+======================================================================
+
+Sebelum–sesudah: waktu dari undangan masuk sampai tercantum di agenda ±18–24 jam (jalur tercepat, estimasi) menjadi median 1,94 jam; 72,0% tayang kurang dari 4 jam dan 99,3% kurang dari 24 jam. Penelaahan dari sekali sehari menjadi setiap saat (47,9% di luar jam kerja). Keputusan Kepala Bagian median 8 menit.
+
+Mutu dan akuntabilitas: 3.331 peristiwa terekam; 29 kegiatan dikembalikan untuk diperbaiki sebelum ditetapkan; 77 keputusan melalui daftar periksa wajib; 67 tindakan oleh Pelaksana Harian; 571 kegiatan (92,5%) berpenugasan petugas; 479 undangan terarsip; 341 kegiatan dievaluasi.
+
+Pertumbuhan: 72 kegiatan pada April 2026 menjadi 114 pada September 2026 (naik 58%).
+
+Jangkauan: 129 pengajuan ruangan dari 68 instansi (3.153 peserta); 59 permohonan audiensi dari 55 instansi, 31 menjadi agenda Pimpinan; notifikasi aktif pada 37 perangkat.
+
+Kepuasan: testimoni tertulis bertanda tangan dari Wali Kota Tarakan, Ajudan Wakil Wali Kota, Staf Protokol, dan Pelaksana Harian (Lampiran 9).
+
+Sosial-ekonomi: masyarakat tidak perlu datang atau menelepon berulang; hemat kertas dan waktu kerja; tanpa belanja pengadaan.
+
+Catatan: pengesahan naskah sambutan melalui aplikasi baru 3 naskah karena Pimpinan lebih nyaman dengan naskah tercetak; modul keterangan foto berbantuan AI dan pemesanan ruang internal masih tahap awal.
+
+======================================================================
+10. KEBERLANJUTAN DAN PELEMBAGAAN   [939 karakter]
+======================================================================
+
+Pembiayaan: biaya berjalan mendekati nol, tidak bergantung anggaran tahunan. Pengelola: Bagian Protokol dan Komunikasi Pimpinan Setda. Pemeliharaan: pembaruan berkelanjutan berdasarkan masukan pengguna. SOP: sebelas SOP untuk disahkan Sekda. Kebijakan: Keputusan Sekda tentang Tim Koordinasi, Surat Sekda 12 Maret 2026, SE Wali Kota tentang Inovasi Daerah. Kelembagaan: kewenangan melekat pada jabatan sehingga mutasi pejabat tidak memutus alur.
+
+Rencana: Oktober–Desember 2026 pengesahan SOP; Januari–Juni 2027 pendampingan pengelola kedua dan dokumentasi teknis; Juli–Desember 2027 paket replikasi.
+
+Risiko dan mitigasi: ketergantungan pada satu pengembang (SOP, repositori kode, akun atas nama instansi, alih pengetahuan 2027); kuota layanan tanpa biaya (pemantauan, penggabungan fungsi); kehilangan data (pencadangan berkala); data pribadi (kanal publik tanpa identitas pemohon); pejabat berhalangan (Pelaksana Harian bermasa berlaku).
+
+======================================================================
+11. REPLIKASI, PERLUASAN, DAN DISEMINASI   [891 karakter]
+======================================================================
+
+Potensi adopsi: dapat direplikasi utuh atau per modul. Di lingkungan Pemkot Tarakan: Sekretariat DPRD (agenda pimpinan dewan) serta perangkat daerah yang mengelola ruang pertemuan atau menerima tamu (modul ruangan, audiensi, daftar hadir). Di luar Tarakan: Pemprov Kalimantan Utara dan kabupaten di Kaltara.
+
+Syarat replikasi: peramban dan internet, layanan awan kuota tanpa biaya, sebelas SOP siap diadaptasi, satu pengelola dengan pendampingan. Dokumentasi: sebelas SOP, panduan pemasangan daftar hadir, catatan teknis kode.
+
+Diseminasi dan publikasi: Tim Koordinasi lintas perangkat daerah; pengenalan langsung kepada Pimpinan, ajudan, dan mitra kerja; 68 instansi peminjam ruangan dan 55 instansi pemohon audiensi; Surat Sekda kepada DKISP ditembuskan kepada Wali Kota dan Kepala Bappeda Litbang; alamat resmi prokopim.tarakankota.go.id dan Google Calendar bersama yang dapat dilanggani.

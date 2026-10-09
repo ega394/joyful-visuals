@@ -37,10 +37,9 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at      TIMESTAMPTZ NOT NULL 
 ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW();
 
 -- 3. Akun superadmin awal
---    Password awal: SuperAdmin@2026
---    Hash format aplikasi: "$sha256$<hex>"  (akan otomatis di-rehash ke bcrypt
---    saat login pertama jika upgrade hashing diaktifkan).
---    Hash di bawah = SHA-256 dari "SuperAdmin@2026"
+--    Hash di bawah adalah PLACEHOLDER yang tidak cocok dengan sandi apa pun.
+--    Setel sandi sendiri lewat SQL Editor (lihat 2026-05-20_superadmin_account.sql);
+--    jangan pernah menulis sandi atau hash sungguhan di repositori publik ini.
 INSERT INTO users (username, password, role, nama, jabatan, "noWA", must_change_pw)
 VALUES (
   'superadmin',
@@ -54,15 +53,10 @@ VALUES (
 ON CONFLICT (username) DO NOTHING;
 
 -- CATATAN PENTING:
--- Hash di atas adalah PLACEHOLDER. Gunakan salah satu cara untuk set password:
---  (a) Login pakai username "superadmin" + lakukan reset via /api/otp (perlu noWA),
---      atau
---  (b) Update manual via SQL setelah aplikasi pertama kali boot:
---      Buka aplikasi, generate hash dari console browser:
---        await (await import('/src/lib/hash.js')).hashPassword('PASSWORDBARU')
---      lalu UPDATE users SET password='$sha256$xxx' WHERE username='superadmin';
---  (c) Setelah login pertama, halaman /superadmin akan paksa ganti password
---      karena flag must_change_pw=TRUE.
+-- Hash di atas adalah PLACEHOLDER. Setel sandi lewat SQL Editor — perintahnya
+-- ada di 2026-05-20_superadmin_account.sql.
+-- Catatan: reset via /api/otp tidak berlaku untuk akun superadmin, dan
+-- must_change_pw belum ditegakkan aplikasi.
 
 -- 4. Trigger updated_at otomatis (idempotent)
 CREATE OR REPLACE FUNCTION set_updated_at()

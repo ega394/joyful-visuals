@@ -76,3 +76,40 @@ export async function userFetch(user, url, opts = {}) {
   if (token) headers["Authorization"] = `Bearer ${token}`;
   return fetch(url, { ...opts, headers });
 }
+
+// ── Sesi pengguna yang sedang login (untuk endpoint yang wajib sesi) ─────
+//
+// Endpoint seperti /api/whatsapp, /api/guest, /api/drive, dan /api/ai-newsroom
+// menolak permintaan tanpa token sesi. Pemanggilnya tersebar (termasuk fungsi
+// tingkat modul seperti sendWA yang tidak memegang `user`), jadi pengguna aktif
+// dicatat sekali di sini oleh aplikasi saat login/keluar.
+let _penggunaSesi = null;
+
+/** Dipanggil aplikasi setiap kali pengguna yang login berubah (null saat keluar). */
+export function setPenggunaSesi(user) {
+  _penggunaSesi = user && user.username ? user : null;
+}
+
+/**
+ * fetch dengan token sesi pengguna aktif.
+ *
+ * Token di-cache 12 jam, tetapi peladen hanya menyimpan SATU sesi per akun:
+ * login di perangkat lain mencabut token perangkat ini. Karena itu jawaban 401
+ * dicoba ulang sekali dengan token baru. Tanpa pengguna aktif (halaman publik),
+ * permintaan dikirim apa adanya.
+ */
+export async function sesiFetch(url, opts = {}) {
+  const user = _penggunaSesi;
+  if (!user) return fetch(url, opts);
+  const kirim = async () => {
+    let token = null;
+    try { token = await getAdminToken(user); } catch { /* lanjut tanpa token */ }
+    const headers = { ...(opts.headers || {}) };
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    return { r: await fetch(url, { ...opts, headers }), adaToken: !!token };
+  };
+  const { r, adaToken } = await kirim();
+  if (r.status !== 401 || !adaToken) return r;
+  clearAdminToken();
+  return (await kirim()).r;
+}

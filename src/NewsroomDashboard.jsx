@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { sesiFetch } from "./roomAuth";
 
 // ═══════════════════════════════════════════════════════════════
 //  NEWSROOM DASHBOARD — Prokopim Hibot v2.0
@@ -108,7 +109,7 @@ export default function NewsroomDashboard({ events, user, showT, isMobile, upd }
 
   const callAI = async (systemPrompt, extra={}) => {
     let provider = "gemini"; try { provider = localStorage.getItem("ai_provider") || "gemini"; } catch(_) {}
-    const res = await fetch("/api/ai-newsroom", {
+    const res = await sesiFetch("/api/ai-newsroom", {
       method:"POST", headers:{"Content-Type":"application/json"},
       body: JSON.stringify({ provider, namaAcara: selectedEv?.namaAcara, systemPrompt, ...extra })
     });

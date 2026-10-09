@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════════════
---  STATISTIK PROPOSAL KALTARA INNOVATION AWARDS 2026
+--  STATISTIK PROPOSAL LOMBA INOVASI (KALTARA INNOVATION AWARDS & INOVDA KOTA TARAKAN 2026)
 -- ═══════════════════════════════════════════════════════════════════
 --
 -- Jalankan di Supabase → SQL Editor, lalu salin SELURUH isi sel hasilnya
@@ -178,6 +178,30 @@ SELECT jsonb_pretty(jsonb_build_object(
   ),
   'perangkat_notifikasi', jsonb_build_object(
       'perangkat', (SELECT count(*) FROM push_subscriptions),
-      'pengguna',  (SELECT count(DISTINCT to_jsonb(s)->>'username') FROM push_subscriptions s))
+      'pengguna',  (SELECT count(DISTINCT to_jsonb(s)->>'username') FROM push_subscriptions s)),
+
+  -- ── Pemakaian per modul (bukti "superapp": satu pintu, banyak layanan) ──
+  -- Daftar hadir digital (Google Sheets) dan generator undangan (PDF dibuat
+  -- di peramban) tidak menyimpan data di basis data ini, jadi tidak terhitung.
+  'modul', jsonb_build_object(
+      'kalender_agenda_mendatang_tampil', (SELECT count(*) FROM j
+                                  WHERE d->>'alur' = 'disetujui'
+                                    AND d->>'tanggal' >= to_char(now() AT TIME ZONE 'Asia/Makassar', 'YYYY-MM-DD')
+                                    AND coalesce(d->>'sembunyiKalender', 'false') NOT IN ('true')),
+      'kalender_disembunyikan',   (SELECT count(*) FROM j WHERE d->>'sembunyiKalender' = 'true'),
+      'ruang_internal_pengajuan', (SELECT count(DISTINCT r->>'booking_code') FROM ruang WHERE r->>'notes' LIKE '[INTERNAL]%'),
+      'caption_per_status',       (SELECT coalesce(jsonb_object_agg(st, n), '{}'::jsonb) FROM (
+                                    SELECT d->>'captionStatus' AS st, count(*) AS n FROM j
+                                    WHERE coalesce(d->>'captionStatus', '') <> '' GROUP BY 1) s),
+      'berita_per_status',        (SELECT coalesce(jsonb_object_agg(st, n), '{}'::jsonb) FROM (
+                                    SELECT d->'evaluasi'->>'news_status' AS st, count(*) AS n FROM j
+                                    WHERE jsonb_typeof(d->'evaluasi') = 'object'
+                                      AND coalesce(d->'evaluasi'->>'news_status', '') <> '' GROUP BY 1) s),
+      'kegiatan_disetujui_bulan_ini', (SELECT count(*) FROM j
+                                  WHERE d->>'alur' = 'disetujui'
+                                    AND left(d->>'tanggal', 7) = to_char(now() AT TIME ZONE 'Asia/Makassar', 'YYYY-MM')),
+      'kegiatan_disetujui',       (SELECT count(*) FROM j WHERE d->>'alur' = 'disetujui'),
+      'kegiatan_ditolak_atau_ditarik', (SELECT count(*) FROM j WHERE d->>'alur' IN ('ditolak', 'ditarik', 'dibatalkan'))
+  )
 
 )) AS statistik;

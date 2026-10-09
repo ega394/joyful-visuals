@@ -4,10 +4,66 @@
 //   VITE_SUPABASE_ANON_KEY = anon key Supabase
 //   FONNTE_TOKEN           = token dari https://fonnte.com
 
+const nodeCrypto = require("crypto");
+const { rateLimit, getIP } = require("./_middleware");
+
 const OTP_TTL_MS = 10 * 60 * 1000;
+const OTP_MAKS_SALAH = 5;
 
 const SUPA_URL = process.env.VITE_SUPABASE_URL  || process.env.SUPABASE_URL  || "";
-const SUPA_KEY = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_KEY || "";
+// Utamakan kunci layanan (sama dengan api/room-booking.mjs) supaya OTP tetap
+// berjalan ketika tabel users kelak ditutup bagi kunci anon.
+const SUPA_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_KEY || process.env.VITE_SUPABASE_ANON_KEY || "";
+
+// ── Penyimpanan OTP ─────────────────────────────────────────
+// Kolom users.otp_code terbaca kunci anon selama tabel users belum ber-RLS.
+// Karena itu yang disimpan BUKAN kodenya, melainkan HMAC kode dengan kunci
+// yang hanya ada di peladen, ditambah hitungan percobaan salah:
+//     "h1:<hmac hex>:<jumlah salah>"
+// Nilai lama (kode polos dari versi sebelumnya) dianggap kedaluwarsa.
+function kunciOtp() {
+  return process.env.OTP_PEPPER || process.env.SUPABASE_SERVICE_KEY || process.env.API_SECRET ||
+         process.env.CRON_SECRET || process.env.FONNTE_TOKEN || process.env.RESEND_API_KEY || "";
+}
+function sidikOtp(username, code) {
+  return nodeCrypto.createHmac("sha256", kunciOtp()).update(String(username) + ":" + String(code)).digest("hex");
+}
+function bacaOtp(nilai) {
+  const m = /^h1:([0-9a-f]{64}):(\d+)$/.exec(String(nilai || ""));
+  return m ? { sidik: m[1], salah: Number(m[2]) } : null;
+}
+function samaAman(a, b) {
+  const x = Buffer.from(String(a)), y = Buffer.from(String(b));
+  return x.length === y.length && nodeCrypto.timingSafeEqual(x, y);
+}
+/**
+ * Periksa OTP. Mengembalikan null bila cocok, atau {status, error} bila tidak.
+ * Salah ke-5 menghanguskan kode supaya 6 digit tidak bisa ditebak beruntun.
+ */
+async function periksaOtp(user, otp) {
+  const simpan = bacaOtp(user.otp_code);
+  if (!simpan) return { status: 400, error: "OTP belum diminta atau sudah kedaluwarsa. Minta kode baru." };
+  if (!user.otp_expires || new Date(user.otp_expires) < new Date())
+    return { status: 400, error: "Kode OTP sudah kedaluwarsa. Minta kode baru." };
+  if (samaAman(simpan.sidik, sidikOtp(user.username, String(otp).trim()))) return null;
+  const salah = simpan.salah + 1;
+  if (salah >= OTP_MAKS_SALAH) {
+    await updateUser(user.username, { otp_code: null, otp_expires: null });
+    return { status: 429, error: "Terlalu banyak percobaan salah. Kode dihanguskan — minta kode baru." };
+  }
+  await updateUser(user.username, { otp_code: "h1:" + simpan.sidik + ":" + salah });
+  return { status: 400, error: "Kode OTP salah. Sisa percobaan: " + (OTP_MAKS_SALAH - salah) + "." };
+}
+
+async function catatAudit(baris) {
+  try {
+    await fetch(SUPA_URL + "/rest/v1/audit_log", {
+      method: "POST",
+      headers: Object.assign({}, supaHeaders(), { Prefer: "return=minimal" }),
+      body: JSON.stringify(baris),
+    });
+  } catch (e) { console.warn("[OTP] audit gagal:", e.message); }
+}
 
 function supaHeaders() {
   return {
@@ -53,7 +109,7 @@ async function hashPassword(plain) {
 }
 
 function generateOTP() {
-  return String(Math.floor(100000 + Math.random() * 900000));
+  return String(nodeCrypto.randomInt(100000, 1000000));
 }
 
 function maskPhone(phone) {
@@ -184,6 +240,9 @@ module.exports = async function handler(req, res) {
   if (!SUPA_URL || !SUPA_KEY) {
     return res.status(500).json({ error: "Konfigurasi server belum lengkap (SUPABASE env)." });
   }
+  if (!kunciOtp()) {
+    return res.status(500).json({ error: "Konfigurasi server belum lengkap (kunci OTP)." });
+  }
 
   const { action, username, otp, newPassword, channel: wantChannel } = req.body || {};
   if (!username) return res.status(400).json({ error: "Username wajib diisi" });
@@ -195,6 +254,14 @@ module.exports = async function handler(req, res) {
     catch (e) { return res.status(500).json({ error: "Gagal membaca data: " + e.message }); }
 
     if (!user) return res.status(404).json({ error: "Username tidak ditemukan" });
+
+    // Batas permintaan kode: 3 per 10 menit per akun dan 10 per 10 menit per
+    // alamat IP, supaya fitur ini tidak dipakai membanjiri WA/email seseorang.
+    // Penyimpanannya di memori instans (perlindungan dasar, bukan mutlak).
+    if (!rateLimit("otp-akun:" + user.username, 3, 10 * 60_000).allowed ||
+        !rateLimit("otp-ip:" + getIP(req), 10, 10 * 60_000).allowed) {
+      return res.status(429).json({ error: "Terlalu sering meminta kode. Coba lagi dalam 10 menit." });
+    }
 
     // Tentukan channel: "wa" | "email" | "auto"
     // - "auto" (default): pakai WA jika ada noWA, kalau tidak fallback ke email
@@ -217,7 +284,7 @@ module.exports = async function handler(req, res) {
     const code    = generateOTP();
     const expires = new Date(Date.now() + OTP_TTL_MS).toISOString();
 
-    try   { await updateUser(user.username, { otp_code: code, otp_expires: expires }); }
+    try   { await updateUser(user.username, { otp_code: "h1:" + sidikOtp(user.username, code) + ":0", otp_expires: expires }); }
     catch (e) { return res.status(500).json({ error: "Gagal menyimpan OTP: " + e.message }); }
 
     // Pengiriman dengan strategi:
@@ -275,11 +342,10 @@ module.exports = async function handler(req, res) {
     catch (e) { return res.status(500).json({ error: "Gagal membaca data: " + e.message }); }
 
     if (!user)          return res.status(404).json({ error: "Username tidak ditemukan" });
-    if (!user.otp_code) return res.status(400).json({ error: "OTP belum diminta atau sudah kedaluwarsa" });
-    if (new Date(user.otp_expires) < new Date())
-                        return res.status(400).json({ error: "Kode OTP sudah kedaluwarsa. Minta kode baru." });
-    if (user.otp_code !== otp.trim())
-                        return res.status(400).json({ error: "Kode OTP salah" });
+    let gagal;
+    try   { gagal = await periksaOtp(user, otp); }
+    catch (e) { return res.status(500).json({ error: "Gagal memeriksa OTP: " + e.message }); }
+    if (gagal) return res.status(gagal.status).json({ error: gagal.error });
 
     // Sukses — bersihkan OTP supaya tidak bisa dipakai ulang
     try   { await updateUser(user.username, { otp_code: null, otp_expires: null }); }
@@ -298,17 +364,26 @@ module.exports = async function handler(req, res) {
     catch (e) { return res.status(500).json({ error: "Gagal membaca data: " + e.message }); }
 
     if (!user)          return res.status(404).json({ error: "Username tidak ditemukan" });
-    if (!user.otp_code) return res.status(400).json({ error: "OTP belum diminta atau sudah kedaluwarsa" });
-    if (new Date(user.otp_expires) < new Date())
-                        return res.status(400).json({ error: "Kode OTP sudah kedaluwarsa. Minta kode baru." });
-    if (user.otp_code !== otp.trim())
-                        return res.status(400).json({ error: "Kode OTP salah" });
+    // Sandi superadmin tidak dipulihkan lewat OTP (WA/email bisa diambil alih).
+    // Pemulihannya melalui pemegang kunci lain atau jalur darurat basis data.
+    if (user.role === "superadmin")
+      return res.status(403).json({ error: "Sandi akun superadmin tidak dapat direset lewat OTP. Hubungi pemegang kunci lain." });
     if (newPassword.length < 6)
                         return res.status(400).json({ error: "Password minimal 6 karakter" });
+    let gagal;
+    try   { gagal = await periksaOtp(user, otp); }
+    catch (e) { return res.status(500).json({ error: "Gagal memeriksa OTP: " + e.message }); }
+    if (gagal) return res.status(gagal.status).json({ error: gagal.error });
 
     const hashed = await hashPassword(newPassword);
-    try   { await updateUser(user.username, { password: hashed, otp_code: null, otp_expires: null }); }
+    // session_version dinaikkan: semua perangkat yang masih masuk dengan sandi
+    // lama dikeluarkan saat memuat aplikasi.
+    try   { await updateUser(user.username, { password: hashed, otp_code: null, otp_expires: null,
+                                              session_version: (Number(user.session_version) || 0) + 1 }); }
     catch (e) { return res.status(500).json({ error: "Gagal update password: " + e.message }); }
+    await catatAudit({ actor: user.username, actor_role: user.role, action: "auth.reset_password_otp",
+                       target: user.username, detail: { channel: "otp" },
+                       ip: String(req.headers["x-forwarded-for"] || "").split(",")[0].trim() || null });
 
     return res.status(200).json({ ok: true });
   }

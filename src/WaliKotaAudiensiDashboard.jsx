@@ -1,4 +1,5 @@
 import React from "react";
+import { sesiFetch } from "./roomAuth";
 
 const SUPA_URL = typeof import.meta !== "undefined" && import.meta.env
   ? (import.meta.env.VITE_SUPABASE_URL || "") : "";
@@ -36,7 +37,7 @@ export default function WaliKotaAudiensiDashboard({ role, user, showT, isMobile,
 
   const load = () => {
     setLoading(true);
-    fetch("/api/guest?action=queue&status=pending_pimpinan&limit=100&pimpinan="+role)
+    sesiFetch("/api/guest?action=queue&status=pending_pimpinan&limit=100&pimpinan="+role)
       .then(r => r.json())
       .then(d => setGuests(Array.isArray(d) ? d.sort((a,b) => {
         const po = { mendesak:0, penting:1, biasa:2 };
@@ -59,7 +60,7 @@ export default function WaliKotaAudiensiDashboard({ role, user, showT, isMobile,
       ? { id:decideId, response:"approved", responded_by:decidedBy, scheduled_date:tgl, scheduled_time:jam||null, tempat:tempatFinal }
       : { id:decideId, response:"rejected", responded_by:decidedBy, reason:alasan };
     try {
-      const r = await fetch("/api/guest?action=respond", {
+      const r = await sesiFetch("/api/guest?action=respond", {
         method:"POST",
         headers:{"Content-Type":"application/json"},
         body: JSON.stringify(body)
@@ -323,7 +324,7 @@ function TerjadwalPimpinan({ labelPimpinan, user, showT, PRIORITY, fmtTs, reload
 
   const load = () => {
     setLoading(true);
-    fetch("/api/guest?action=queue&status=approved&limit=100&pimpinan="+(labelPimpinan==="Wakil Wali Kota"?"wakilwalikota":"walikota"))
+    sesiFetch("/api/guest?action=queue&status=approved&limit=100&pimpinan="+(labelPimpinan==="Wakil Wali Kota"?"wakilwalikota":"walikota"))
       .then(r => r.json())
       .then(d => setList((Array.isArray(d)?d:[]).filter(g => g.tujuan_pejabat===labelPimpinan)
         .sort((a,b)=>((a.jadwal_tanggal||"")+(a.jadwal_jam||"")).localeCompare((b.jadwal_tanggal||"")+(b.jadwal_jam||"")))))
@@ -344,7 +345,7 @@ function TerjadwalPimpinan({ labelPimpinan, user, showT, PRIORITY, fmtTs, reload
     const tempatFinal = String(eTempat||"").trim() || "Ruang Kerja";
     setSaving(true);
     try {
-      const r = await fetch("/api/guest?action=update_jadwal", {
+      const r = await sesiFetch("/api/guest?action=update_jadwal", {
         method:"POST", headers:{"Content-Type":"application/json"},
         body: JSON.stringify({ id:g.id, scheduled_date:eTgl, scheduled_time:eJam, tempat:tempatFinal, updated_by:user?.username }),
       });
@@ -368,7 +369,7 @@ function TerjadwalPimpinan({ labelPimpinan, user, showT, PRIORITY, fmtTs, reload
   const tambahKeAgenda = async (g) => {
     setSaving(true);
     try {
-      const r = await fetch("/api/guest?action=sync_agenda", {
+      const r = await sesiFetch("/api/guest?action=sync_agenda", {
         method:"POST", headers:{"Content-Type":"application/json"},
         body: JSON.stringify({
           id:g.id, scheduled_date:g.jadwal_tanggal||"", scheduled_time:g.jadwal_jam||"",
