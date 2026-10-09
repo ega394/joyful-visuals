@@ -68,7 +68,40 @@ async function apiPost(action, body) {
   });
   var data = await r.json().catch(function(){return{};});
   if(!r.ok) throw new Error(data.error || "Gagal (HTTP "+r.status+")");
+  // Status permohonan berubah: daftar tersimpan tidak boleh dipakai lagi.
+  _antrean.clear();
   return data;
+}
+
+// ── Daftar permohonan: tampil seketika dari simpanan, lalu diperbarui ──
+// Setiap pemuatan melewati peladen (cek sesi + kueri), dan sebelumnya layar
+// kosong menunggu setiap kali pindah tab. Kini daftar terakhir untuk alamat
+// yang sama langsung ditampilkan sementara versi terbarunya diambil.
+// Permintaan yang sama dan sedang berjalan juga tidak dikirim dua kali.
+var _antrean = new Map();      // url → { data, waktu }
+var _antreanJalan = new Map(); // url → Promise
+function antreanTersimpan(url) {
+  var c = _antrean.get(url);
+  return c && Date.now() - c.waktu < 10 * 60 * 1000 ? c.data : null;
+}
+function ambilAntrean(url) {
+  if (_antreanJalan.has(url)) return _antreanJalan.get(url);
+  var janji = sesiFetch(url)
+    .then(function(r){ if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); })
+    .then(function(d){ var list = Array.isArray(d) ? d : []; _antrean.set(url, { data: list, waktu: Date.now() }); return list; })
+    .finally(function(){ _antreanJalan.delete(url); });
+  _antreanJalan.set(url, janji);
+  return janji;
+}
+/** Pola umum: tampilkan simpanan (bila ada), lalu muat ulang. */
+function muatAntrean(url, setData, setLoading, olah, setelah) {
+  var lama = antreanTersimpan(url);
+  if (lama) { setData(olah ? olah(lama) : lama); setLoading(false); }
+  else setLoading(true);
+  return ambilAntrean(url)
+    .then(function(list){ setData(olah ? olah(list) : list); if (setelah) setelah(); })
+    .catch(function(){ if (!lama) setData([]); })
+    .finally(function(){ setLoading(false); });
 }
 
 // ── Sinkronisasi Tamu → Agenda ────────────────────────────────
@@ -183,12 +216,8 @@ function AdminRKView({ user, events, showT, isMobile, reloadEvents }) {
   var [q,          setQ]          = useState("");
 
   var load = useCallback(function() {
-    setLoading(true);
-    sesiFetch(API+"?action=queue&status="+tab+"&limit=60")
-      .then(function(r){return r.json();})
-      .then(function(d){setGuests(Array.isArray(d)?d:[]); setLastLoaded(new Date());})
-      .catch(function(){setGuests([]);})
-      .finally(function(){setLoading(false);});
+    muatAntrean(API+"?action=queue&status="+tab+"&limit=60", setGuests, setLoading, null,
+      function(){ setLastLoaded(new Date()); });
   }, [tab]);
 
   useEffect(function(){load();}, [load]);
@@ -273,6 +302,7 @@ function AdminRKDetail({ guest, user, events, showT, isMobile, onBack, onDone, r
         id: guest.id,
         catatan_rk: catatan.trim(),
         admin_name: user?.nama || user?.username,
+        oleh: user?.username,
       });
       showT("✅ Diteruskan ke Kasubbag Protokol");
       done();
@@ -408,12 +438,8 @@ function KasubbagView({ user, showT, isMobile }) {
   var [q,          setQ]          = useState("");
 
   var load = useCallback(function() {
-    setLoading(true);
-    sesiFetch(API+"?action=queue&status="+tab+"&limit=60")
-      .then(function(r){return r.json();})
-      .then(function(d){setGuests(Array.isArray(d)?d:[]); setLastLoaded(new Date());})
-      .catch(function(){setGuests([]);})
-      .finally(function(){setLoading(false);});
+    muatAntrean(API+"?action=queue&status="+tab+"&limit=60", setGuests, setLoading, null,
+      function(){ setLastLoaded(new Date()); });
   }, [tab]);
 
   useEffect(function(){load();}, [load]);
@@ -472,7 +498,6 @@ function KasubbagDetail({ guest, user, showT, isMobile, onBack, onDone }) {
   var [catatan,   setCatatan]   = useState(guest.catatan_staf || "");
   var [loading,   setLoading]   = useState(false);
   var [konfirm,   setKonfirm]   = useState(null);
-  var [waLoading, setWaLoading] = useState(false);
 
   async function naikkanKabag() {
     setLoading(true);
@@ -517,14 +542,14 @@ function KasubbagDetail({ guest, user, showT, isMobile, onBack, onDone }) {
     finally { setLoading(false); setKonfirm(null); }
   }
 
-  async function kirimWA() {
-    setWaLoading(true);
-    try {
-      await apiPost("verify_wa", { id: guest.id });
-      showT("📱 WA verifikasi terkirim ke "+gPhone(guest));
-    } catch(e) { showT("❌ "+e.message); }
-    finally { setWaLoading(false); }
-  }
+  // Hubungi pemohon langsung dari WhatsApp HP petugas: percakapan dua arah,
+  // dan tidak memakai kuota Fonnte (dulu tombol ini mengirim pesan otomatis
+  // yang meminta dibalas ke nomor gateway yang tidak dipantau).
+  const waPemohon = (() => {
+    let d = String(gPhone(guest) || "").replace(/\D/g, "");
+    if (d.startsWith("0")) d = "62" + d.slice(1); else if (d.startsWith("8")) d = "62" + d;
+    return d.length >= 10 ? "https://wa.me/" + d : null;
+  })();
 
   return (
     <DetailLayout
@@ -551,15 +576,16 @@ function KasubbagDetail({ guest, user, showT, isMobile, onBack, onDone }) {
         <CatatanBox label="📋 Catatan Admin RK" isi={guest.catatan_rk} color="#3B82F6" bg="#EFF6FF"/>
       )}
 
-      {/* WA Verifikasi */}
-      <button onClick={kirimWA} disabled={waLoading} style={{
-        width:"100%",padding:"11px",borderRadius:12,border:"2px solid #25D366",
-        background:"white",color:"#128C7E",fontSize:13,fontWeight:700,cursor:"pointer",
-        display:"flex",alignItems:"center",justifyContent:"center",gap:8,marginBottom:14,
-      }}>
-        {waLoading ? <Spin color="#128C7E"/> : "📱"}
-        {waLoading ? "Mengirim..." : "Kirim WA Verifikasi ke Tamu"}
-      </button>
+      {/* Chat pemohon dari WhatsApp petugas sendiri */}
+      {waPemohon && (
+        <a href={waPemohon} target="_blank" rel="noopener noreferrer" style={{
+          width:"100%",padding:"11px",borderRadius:12,border:"2px solid #25D366",boxSizing:"border-box",
+          background:"white",color:"#128C7E",fontSize:13,fontWeight:700,textDecoration:"none",
+          display:"flex",alignItems:"center",justifyContent:"center",gap:8,marginBottom:14,
+        }}>
+          📱 Chat Pemohon di WhatsApp
+        </a>
+      )}
 
       {/* Prioritas */}
       {guest.status==="pending_kasubbag" && (
@@ -648,12 +674,8 @@ function KabagView({ user, events, showT, isMobile, reloadEvents }) {
   var [q,          setQ]          = useState("");
 
   var load = useCallback(function() {
-    setLoading(true);
-    sesiFetch(API+"?action=queue&status="+tab+"&limit=60")
-      .then(function(r){return r.json();})
-      .then(function(d){setGuests(Array.isArray(d)?d:[]); setLastLoaded(new Date());})
-      .catch(function(){setGuests([]);})
-      .finally(function(){setLoading(false);});
+    muatAntrean(API+"?action=queue&status="+tab+"&limit=60", setGuests, setLoading, null,
+      function(){ setLastLoaded(new Date()); });
   }, [tab]);
 
   useEffect(function(){load();}, [load]);
@@ -870,7 +892,7 @@ function KabagDetail({ guest, user, events, showT, isMobile, onBack, onDone, rel
                 placeholder="Cth: Mohon klarifikasi keperluan audiensi & pastikan ada surat rekomendasi resmi sebelum diteruskan kembali..."
                 style={inpStyle}/>
               <div style={{fontSize:11,color:"#94A3B8",marginTop:6,lineHeight:1.5}}>
-                ℹ Instruksi ini wajib diisi. Kasubbag Protokol akan menerima permohonan ini kembali beserta instruksi Anda dan notifikasi WhatsApp.
+                ℹ Instruksi ini wajib diisi. Kasubbag Protokol akan menerima permohonan ini kembali beserta instruksi Anda dan notifikasi aplikasi.
               </div>
               <div style={{display:"flex",gap:10,marginTop:16}}>
                 <button onClick={function(){setKonfirm(null);}} disabled={loading}
@@ -960,20 +982,10 @@ function PimpinanView({ role, user, events, showT, isMobile, reloadEvents }) {
     var pimpinanLabel = role==="wakilwalikota" ? "Wakil Wali Kota" : "Wali Kota";
     var statusQ = tab;
     var url = API+"?action=queue&status="+statusQ+"&limit=50";
-    setLoading(true);
-    sesiFetch(url)
-      .then(function(r){return r.json();})
-      .then(function(d){
-        var list = Array.isArray(d) ? d : [];
-        // Filter hanya untuk pimpinan ini
-        list = list.filter(function(g){
-          return g.tujuan_pejabat === pimpinanLabel;
-        });
-        setGuests(list);
-        setLastLoaded(new Date());
-      })
-      .catch(function(){setGuests([]);})
-      .finally(function(){setLoading(false);});
+    // Filter hanya untuk pimpinan ini
+    muatAntrean(url, setGuests, setLoading,
+      function(list){ return list.filter(function(g){ return g.tujuan_pejabat === pimpinanLabel; }); },
+      function(){ setLastLoaded(new Date()); });
   }, [tab, role]);
 
   useEffect(function(){load();}, [load]);
@@ -1530,7 +1542,7 @@ function PimpinanDetail({ guest, role, user, events, showT, isMobile, onBack, on
             <CardSection title="🔄 Cabut Permohonan dari Pimpinan" accent="#DC2626">
               <div style={{fontSize:12,color:"#64748B",marginBottom:8,lineHeight:1.5}}>
                 Permohonan akan dikembalikan ke tahap Kabag untuk diperbaiki atau dihapus.
-                Kabag akan menerima notifikasi WA.
+                Kabag akan menerima notifikasi aplikasi.
               </div>
               <textarea className="gd-inp" value={alasanCabut}
                 onChange={function(e){setAlasanCabut(e.target.value);}}
@@ -1605,35 +1617,23 @@ function AjudanView({ role, user, events, showT, isMobile, reloadEvents }) {
 
   // Mode penyambutan: tamu disetujui hari ini & besok
   useEffect(function() {
-    setLoading(true);
-    sesiFetch(API+"?action=queue&status=approved&limit=100&pimpinan="+(role==="ajudan_walikota"?"walikota":"wakilwalikota"))
-      .then(function(r){return r.json();})
-      .then(function(d){
-        var list = Array.isArray(d)?d:[];
-        list = list.filter(function(g){
+    muatAntrean(API+"?action=queue&status=approved&limit=100&pimpinan="+(role==="ajudan_walikota"?"walikota":"wakilwalikota"),
+      setGuests, setLoading, function(d){
+        var list = d.filter(function(g){
           return g.tujuan_pejabat===pimpinanLabel &&
             (g.jadwal_tanggal===today||g.jadwal_tanggal===tomorrow);
         });
-        list.sort(function(a,b){
+        return list.slice().sort(function(a,b){
           return ((a.jadwal_tanggal||"")+(a.jadwal_jam||"")).localeCompare((b.jadwal_tanggal||"")+(b.jadwal_jam||""));
         });
-        setGuests(list);
-      })
-      .catch(function(){setGuests([]);})
-      .finally(function(){setLoading(false);});
+      });
   }, [pimpinanLabel]);
 
   // Mode penjadwalan: permohonan tahap akhir (pending_pimpinan)
   var loadJadwal = useCallback(function() {
-    setJadwalLoading(true);
-    sesiFetch(API+"?action=queue&status=pending_pimpinan&limit=80&pimpinan="+(role==="ajudan_walikota"?"walikota":"wakilwalikota"))
-      .then(function(r){return r.json();})
-      .then(function(d){
-        var list = Array.isArray(d)?d:[];
-        setJadwalList(list.filter(function(g){return g.tujuan_pejabat===pimpinanLabel;}));
-      })
-      .catch(function(){setJadwalList([]);})
-      .finally(function(){setJadwalLoading(false);});
+    muatAntrean(API+"?action=queue&status=pending_pimpinan&limit=80&pimpinan="+(role==="ajudan_walikota"?"walikota":"wakilwalikota"),
+      setJadwalList, setJadwalLoading,
+      function(list){ return list.filter(function(g){return g.tujuan_pejabat===pimpinanLabel;}); });
   }, [pimpinanLabel]);
 
   useEffect(function(){ if(subtab==="jadwal") loadJadwal(); }, [subtab, loadJadwal]);
@@ -1749,12 +1749,7 @@ function ReadOnlyView({ isMobile }) {
   var [tab,     setTab]     = useState("approved");
 
   useEffect(function(){
-    setLoading(true);
-    sesiFetch(API+"?action=queue&status="+tab+"&limit=50")
-      .then(function(r){return r.json();})
-      .then(function(d){setGuests(Array.isArray(d)?d:[]);})
-      .catch(function(){setGuests([]);})
-      .finally(function(){setLoading(false);});
+    muatAntrean(API+"?action=queue&status="+tab+"&limit=50", setGuests, setLoading);
   }, [tab]);
 
   return (

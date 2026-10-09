@@ -6,6 +6,7 @@
 
 const nodeCrypto = require("crypto");
 const { rateLimit, getIP } = require("./_middleware");
+const { catatWA } = require("./_walog");
 
 const OTP_TTL_MS = 10 * 60 * 1000;
 const OTP_MAKS_SALAH = 5;
@@ -269,11 +270,14 @@ async function sendOTPviaWA(noWA, otp, nama) {
 
     if (d.status === false || d.status === "false") {
       console.error("[OTP] Fonnte gagal:", d.reason || d.message || JSON.stringify(d));
+      await catatWA({ jenis: "otp", sumber: "otp", berhasil: false, catatan: String(d.reason || d.message || "fonnte_error") });
       return { ok: false, reason: d.reason || d.message || "fonnte_error", detail: d };
     }
+    await catatWA({ jenis: "otp", sumber: "otp", berhasil: true });
     return { ok: true };
   } catch (e) {
     console.error("[OTP] Fetch ke Fonnte error:", e.message);
+    await catatWA({ jenis: "otp", sumber: "otp", berhasil: false, catatan: e.message });
     return { ok: false, reason: "fetch_error", message: e.message };
   }
 }

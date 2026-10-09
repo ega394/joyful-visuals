@@ -118,10 +118,15 @@ function normalNomor(n) {
  * login dapat memakai nomor resmi Prokopim untuk mengirim pesan ke nomor luar.
  */
 async function nomorTerdaftar(nomor) {
-  const target = normalNomor(nomor);
-  if (target.length < 10 || !SUPA_URL || !SUPA_KEY) return false;
-  const rows = await sbGet("users?select=*");
-  return rows.some((u) => !u.disabled && [u.noWA, u.no_wa].some((n) => n && normalNomor(n) === target));
+  return !!(await penggunaNomor(nomor));
 }
 
-module.exports = { verifikasiSesi, wajibSesi, rahasiaCocok, peranDipegang, ambilToken, nomorTerdaftar, normalNomor };
+/** Akun aktif pemilik nomor WA itu (dipakai juga untuk mencatat peran penerima), atau null. */
+async function penggunaNomor(nomor) {
+  const target = normalNomor(nomor);
+  if (target.length < 10 || !SUPA_URL || !SUPA_KEY) return null;
+  const rows = await sbGet("users?select=*");
+  return rows.find((u) => !u.disabled && [u.noWA, u.no_wa].some((n) => n && normalNomor(n) === target)) || null;
+}
+
+module.exports = { verifikasiSesi, wajibSesi, rahasiaCocok, peranDipegang, ambilToken, nomorTerdaftar, penggunaNomor, normalNomor };

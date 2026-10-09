@@ -4,12 +4,21 @@
 //  ENV: FONNTE_TOKEN (dari https://fonnte.com)
 // ============================================================
 
-import { wajibSesi, nomorTerdaftar, normalNomor } from "./_sesi.js";
+import { wajibSesi, penggunaNomor, normalNomor } from "./_sesi.js";
+import { catatWA, hasilFonnte } from "./_walog.js";
 
 // Pesan bebas (event "broadcast") hanya untuk pejabat yang memang mengirim
 // pengumuman/pemberitahuan dari aplikasi: Kabag (Kirim Pengumuman) dan
 // Kasubbag (pencabutan penugasan), termasuk PLH-nya, serta superadmin.
 const PERAN_BROADCAST = ["kabag", "kasubbag_protokol", "kasubbag_komdokpim", "superadmin"];
+
+// Event yang punya templat di bawah. Event lain ditolak (lihat handler).
+const EVENT_DIKENAL = [
+  "broadcast", "submit", "kasubbag_approve", "approved", "rejected", "recalled",
+  "penugasan", "konfirmasi_kehadiran", "jadwal_diubah", "delegasi_wwk", "undangan_sore",
+  "ajukan_batal", "batal_ke_kabag", "batal_disetujui_kabag", "batal_ditolak",
+  "ajukan_edit", "edit_ke_kabag", "edit_disetujui", "edit_ditolak", "kabar_lapangan",
+];
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -49,8 +58,18 @@ export default async function handler(req, res) {
     catatanPenugasan,
     rekanBertugas,      // array nama rekan yang bertugas
     namaEditor,
+    jenisKabar,         // kabar_lapangan: disetujui | diubah | ditarik | dibatalkan
+    jenis,              // label pencatatan untuk broadcast (mis. "pengumuman")
     pesan: pesanCustom,
   } = req.body || {};
+
+  // Hanya event yang punya templat. Dulu event tak dikenal jatuh ke pesan
+  // generik "Notifikasi Jadwal" — memakan kuota tanpa isi yang berguna.
+  if (!EVENT_DIKENAL.includes(event)) {
+    return res.status(400).json({ error: "Event WA tidak dikenal: " + String(event).slice(0, 40) });
+  }
+  // Jenis pesan untuk wa_log: event, atau label broadcast yang lebih rinci.
+  const jenisLog = event === "broadcast" && /^[a-z_]{2,40}$/.test(String(jenis || "")) ? jenis : event;
 
   if (!to) {
     return res.status(400).json({ error: "Nomor tujuan (to) wajib diisi" });
@@ -61,9 +80,11 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "Nomor tidak valid: " + to });
   }
 
-  // Hanya ke nomor pegawai yang terdaftar (lihat nomorTerdaftar di _sesi.js).
+  // Hanya ke nomor pegawai yang terdaftar (lihat penggunaNomor di _sesi.js).
+  let penerima;
   try {
-    if (!(await nomorTerdaftar(nomor))) {
+    penerima = await penggunaNomor(nomor);
+    if (!penerima) {
       return res.status(403).json({ error: "Nomor tujuan bukan nomor pengguna terdaftar." });
     }
   } catch (e) {
@@ -122,18 +143,7 @@ export default async function handler(req, res) {
 
   // ── Broadcast custom ──────────────────────────────────────
   if (event === "broadcast" && pesanCustom) {
-    try {
-      const r = await fetch("https://api.fonnte.com/send", {
-        method: "POST",
-        headers: { "Authorization": FONNTE_TOKEN, "Content-Type": "application/json" },
-        body: JSON.stringify({ target: nomor, message: pesanCustom }),
-      });
-      const d = await r.json();
-      if (!r.ok || d.status === false) return res.status(500).json({ error: "Gagal kirim WA", detail: d });
-      return res.status(200).json({ ok: true, detail: d });
-    } catch (err) {
-      return res.status(500).json({ error: err.message });
-    }
+    return kirim(pesanCustom);
   }
 
   let pesan = "";
@@ -387,25 +397,50 @@ export default async function handler(req, res) {
       `\n\nJadwal tetap tayang dengan data lama. Anda dapat memperbaiki usulan lalu mengajukannya kembali.` +
       FOOTER;
 
-} else {
-    pesan = HEADER + sapa + `🔔 *Notifikasi Jadwal*\n\n` + infoJadwal + FOOTER;
+  // ── kabar_lapangan: ajudan & petugas, jadwal hari ini/besok ──
+  // Klien hanya memakai WA untuk acara yang sudah dekat; selebihnya push.
+  } else if (event === "kabar_lapangan") {
+    const KABAR = {
+      disetujui:  ["📅 *Agenda Baru Pimpinan*", "Jadwal berikut baru saja *disetujui dan tayang*."],
+      diubah:     ["✏️ *Perubahan Jadwal*", "Jadwal berikut *berubah*. Mohon sesuaikan persiapan Anda."],
+      ditarik:    ["↩️ *Jadwal Ditarik Sementara*", "Jadwal berikut *ditarik dari publikasi* untuk ditinjau ulang. Mohon jangan dijalankan sampai jadwal tayang kembali."],
+      dibatalkan: ["❌ *Jadwal Dibatalkan*", "Jadwal berikut *dibatalkan*."],
+    }[jenisKabar];
+    if (!KABAR) return res.status(400).json({ error: "jenisKabar tidak dikenal." });
+    const untuk  = labelPimpinan ? `\n👤 Untuk: *${labelPimpinan}*` : "";
+    const ubah   = ringkasEdit ? `\n\n🔄 *Yang berubah:* ${ringkasEdit}` : "";
+    const alasan = alasanHapus ? `\n\n📝 *Keterangan:* ${alasanHapus}` : "";
+    pesan = HEADER +
+      sapa +
+      KABAR[0] + `\n` + KABAR[1] + `\n\n` +
+      infoJadwal + untuk + ubah + alasan +
+      `\n\nDetail lengkap ada di aplikasi Prokopim.` +
+      FOOTER;
   }
 
-  // ── Kirim via Fonnte ──────────────────────────────────────
-  try {
-    const fonnteRes = await fetch("https://api.fonnte.com/send", {
-      method: "POST",
-      headers: { "Authorization": FONNTE_TOKEN, "Content-Type": "application/json" },
-      body: JSON.stringify({ target: nomor, message: pesan }),
-    });
-    const data = await fonnteRes.json();
-    if (!fonnteRes.ok || data.status === false) {
-      console.error("Fonnte error:", data);
-      return res.status(500).json({ error: "Gagal kirim WA", detail: data });
+  return kirim(pesan);
+
+  // ── Kirim via Fonnte (+ catat di wa_log) ───────────────────
+  async function kirim(teks) {
+    let hasil = { ok: false, detail: null };
+    try {
+      const r = await fetch("https://api.fonnte.com/send", {
+        method: "POST",
+        headers: { "Authorization": FONNTE_TOKEN, "Content-Type": "application/json" },
+        body: JSON.stringify({ target: nomor, message: teks }),
+      });
+      hasil = await hasilFonnte(r);
+    } catch (err) {
+      console.error("Fetch ke Fonnte gagal:", err.message);
+      await catatWA({ jenis: jenisLog, sumber: "aplikasi", peran: penerima.role, berhasil: false, catatan: err.message });
+      return res.status(500).json({ error: err.message });
     }
-    return res.status(200).json({ ok: true, detail: data });
-  } catch (err) {
-    console.error("Fetch ke Fonnte gagal:", err.message);
-    return res.status(500).json({ error: err.message });
+    await catatWA({ jenis: jenisLog, sumber: "aplikasi", peran: penerima.role, berhasil: hasil.ok,
+                    catatan: hasil.ok ? null : JSON.stringify(hasil.detail || {}).slice(0, 200) });
+    if (!hasil.ok) {
+      console.error("Fonnte error:", hasil.detail);
+      return res.status(500).json({ error: "Gagal kirim WA", detail: hasil.detail });
+    }
+    return res.status(200).json({ ok: true, detail: hasil.detail });
   }
 }

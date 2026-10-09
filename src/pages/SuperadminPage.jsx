@@ -7,7 +7,8 @@
 //   2. Manajemen Data (jadwal, tamu, pending_regs)
 //   3. Backup & Restore (ZIP: DB + Storage) + Reset Storage — otorisasi ganda Kabag & Kasubbag Protokol
 //   4. Audit Log (siapa-melakukan-apa)
-//   5. System Info (counts, koneksi, env masked)
+//   5. Notifikasi & WA (pemakaian WA per jenis, status push per pengguna)
+//   6. System Info (counts, koneksi, env masked)
 // ============================================================
 
 import React, { useState, useEffect, useCallback } from "react";
@@ -328,6 +329,7 @@ export default function SuperadminPage() {
           ["backup", "Backup & Restore"],
           ["audit",  "Audit Log"],
           ["plh",    "Pelaksana Harian"],
+          ["notif",  "Notifikasi & WA"],
           ["system", "System Info"],
         ].map(([k, l]) => (
           <button key={k} onClick={() => setTab(k)}
@@ -349,6 +351,7 @@ export default function SuperadminPage() {
         {/* Jalur kedua penetapan PLH: dipakai bila Kabag mendadak berhalangan
             dan belum sempat menunjuk pengampu sebelum cuti. */}
         {tab === "plh"    && <PlhManagement user={user} isMobile={false} />}
+        {tab === "notif"  && <NotifTab />}
         {tab === "system" && <SystemTab user={user} T={T} />}
       </div>
 
@@ -1152,6 +1155,163 @@ function AuditTab({ user, T }) {
 // ──────────────────────────────────────────────────────────────
 //  TAB 5: SYSTEM INFO
 // ──────────────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────
+//  TAB: NOTIFIKASI & WA
+//  Dua hal yang perlu dipastikan sebelum/selama menghemat kuota Fonnte:
+//  1. berapa WA terkirim per jenis pesan (tabel wa_log, tanpa nomor/isi);
+//  2. siapa yang notifikasi aplikasinya (push) sudah aktif — memindahkan
+//     pesan dari WA ke push sama dengan menghilangkannya bagi yang belum.
+// ──────────────────────────────────────────────────────────────
+// Peran yang notifikasinya paling menentukan alur kerja.
+const PERAN_KUNCI = ["kabag", "kasubbag_protokol", "kasubbag_komdokpim", "admin_rk", "ajudan_walikota", "ajudan_wakilwalikota"];
+
+async function ambilJson(path) {
+  const r = await fetch(SUPA_URL + "/rest/v1/" + path, { headers: H() });
+  if (!r.ok) throw new Error("HTTP " + r.status + " " + (await r.text()).slice(0, 120));
+  return r.json();
+}
+
+function NotifTab() {
+  const [wa, setWa] = useState(null);       // { baris } | { galat }
+  const [orang, setOrang] = useState(null); // { users, subs } | { galat }
+  const [hari, setHari] = useState(30);
+
+  useEffect(() => {
+    setWa(null);
+    const sejak = new Date(Date.now() - hari * 86400000).toISOString();
+    (async () => {
+      try {
+        const baris = [];
+        for (let off = 0; off < 20000; off += 1000) {
+          const page = await ambilJson("wa_log?select=waktu,jenis,sumber,peran,berhasil&waktu=gte." +
+            encodeURIComponent(sejak) + "&order=waktu.asc&limit=1000&offset=" + off);
+          baris.push(...page);
+          if (page.length < 1000) break;
+        }
+        setWa({ baris });
+      } catch (e) { setWa({ galat: e.message }); }
+    })();
+  }, [hari]);
+
+  useEffect(() => {
+    Promise.all([
+      ambilJson("users?select=username,nama,role,noWA,disabled&order=role.asc"),
+      ambilJson("push_subscriptions?select=username"),
+    ]).then(([users, subs]) => setOrang({ users, subs }))
+      .catch(e => setOrang({ galat: e.message }));
+  }, []);
+
+  // ── Ringkasan WA ──
+  let ringkas = null;
+  if (wa?.baris) {
+    const perJenis = {};
+    const perTanggal = {};
+    for (const b of wa.baris) {
+      const k = b.jenis + "|" + (b.sumber || "");
+      perJenis[k] = perJenis[k] || { jenis: b.jenis, sumber: b.sumber || "-", jumlah: 0, gagal: 0 };
+      perJenis[k].jumlah++;
+      if (!b.berhasil) perJenis[k].gagal++;
+      const tgl = new Date(new Date(b.waktu).getTime() + 8 * 3600000).toISOString().slice(0, 10);
+      perTanggal[tgl] = (perTanggal[tgl] || 0) + 1;
+    }
+    const total = wa.baris.length;
+    const gagal = wa.baris.filter(b => !b.berhasil).length;
+    ringkas = {
+      total, gagal,
+      rata: (total / hari).toFixed(1),
+      jenis: Object.values(perJenis).sort((a, b) => b.jumlah - a.jumlah),
+      tanggal: Object.entries(perTanggal).sort((a, b) => b[0].localeCompare(a[0])).slice(0, 14),
+    };
+  }
+
+  // ── Status notifikasi aplikasi per pengguna ──
+  let daftar = null;
+  if (orang?.users) {
+    const n = {};
+    for (const s of orang.subs || []) if (s.username) n[s.username] = (n[s.username] || 0) + 1;
+    daftar = orang.users.filter(u => !u.disabled && u.role !== "superadmin").map(u => ({
+      ...u, perangkat: n[u.username] || 0, kunci: PERAN_KUNCI.includes(u.role),
+    })).sort((a, b) => (b.kunci - a.kunci) || (a.perangkat - b.perangkat) || String(a.role).localeCompare(String(b.role)));
+  }
+  const aktif = daftar ? daftar.filter(u => u.perangkat > 0).length : 0;
+  const kunciBelum = daftar ? daftar.filter(u => u.kunci && !u.perangkat) : [];
+
+  const kartu = (label, nilai, warna) => (
+    <div style={{ background: "white", borderRadius: 10, padding: 16, border: "1px solid " + C.border }}>
+      <div style={{ fontSize: 11, color: C.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>{label}</div>
+      <div style={{ fontSize: 26, fontWeight: 800, color: warna || C.text }}>{nilai}</div>
+    </div>
+  );
+
+  return (
+    <div>
+      <h2 style={{ marginTop: 0, fontSize: 18 }}>Notifikasi & WhatsApp</h2>
+
+      <div style={{ background: "white", borderRadius: 10, border: "1px solid " + C.border, padding: 20, marginBottom: 14 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+          <h3 style={{ margin: 0, fontSize: 15 }}>Pemakaian WA (Fonnte)</h3>
+          <select value={hari} onChange={e => setHari(Number(e.target.value))} style={{ ...inp, width: "auto" }}>
+            <option value={7}>7 hari terakhir</option>
+            <option value={30}>30 hari terakhir</option>
+            <option value={90}>90 hari terakhir</option>
+          </select>
+        </div>
+        {!wa && <div style={{ color: C.muted }}>Memuat...</div>}
+        {wa?.galat && <Banner kind="warn">Catatan WA belum tersedia ({wa.galat}). Jalankan migrasi <code>supabase-migrations/2026-10-10_wa_log.sql</code>; pencatatan dimulai sejak saat itu.</Banner>}
+        {ringkas && <>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 12, marginBottom: 14 }}>
+            {kartu("Total WA", ringkas.total.toLocaleString("id-ID"))}
+            {kartu("Rata-rata / hari", ringkas.rata)}
+            {kartu("Gagal", ringkas.gagal, ringkas.gagal ? C.danger : C.ok)}
+          </div>
+          {ringkas.total === 0 ? <div style={{ color: C.muted, fontSize: 13 }}>Belum ada WA tercatat pada rentang ini.</div> :
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead><tr><th style={th}>Jenis pesan</th><th style={th}>Sumber</th><th style={th}>Jumlah</th><th style={th}>Porsi</th><th style={th}>Gagal</th></tr></thead>
+              <tbody>{ringkas.jenis.map(j => (
+                <tr key={j.jenis + j.sumber}>
+                  <td style={td}><code>{j.jenis}</code></td><td style={td}>{j.sumber}</td>
+                  <td style={td}>{j.jumlah.toLocaleString("id-ID")}</td>
+                  <td style={td}>{Math.round(j.jumlah * 100 / ringkas.total)}%</td>
+                  <td style={{ ...td, color: j.gagal ? C.danger : C.muted }}>{j.gagal}</td>
+                </tr>))}</tbody>
+            </table>
+            <div style={{ fontSize: 12, color: C.muted, marginTop: 10 }}>
+              Per hari (WITA): {ringkas.tanggal.map(([t, n]) => t.slice(5) + " · " + n).join("  |  ")}
+            </div>
+          </div>}
+        </>}
+      </div>
+
+      <div style={{ background: "white", borderRadius: 10, border: "1px solid " + C.border, padding: 20 }}>
+        <h3 style={{ marginTop: 0, fontSize: 15 }}>Notifikasi aplikasi (push) per pengguna</h3>
+        {!orang && <div style={{ color: C.muted }}>Memuat...</div>}
+        {orang?.galat && <Banner kind="error">Gagal memuat: {orang.galat}</Banner>}
+        {daftar && <>
+          <Banner kind={kunciBelum.length ? "warn" : "ok"}>
+            {aktif} dari {daftar.length} pengguna aktif sudah menyalakan notifikasi aplikasi.
+            {kunciBelum.length ? " " + kunciBelum.length + " pejabat/petugas kunci belum — mereka hanya menerima kabar lewat WA atau saat membuka aplikasi. Minta mereka membuka aplikasi di HP, mengizinkan notifikasi, dan (iPhone) memasang aplikasi ke layar utama." : ""}
+          </Banner>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead><tr><th style={th}>Nama</th><th style={th}>Peran</th><th style={th}>No. WA</th><th style={th}>Notifikasi aplikasi</th></tr></thead>
+              <tbody>{daftar.map(u => (
+                <tr key={u.username} style={{ background: u.kunci && !u.perangkat ? "#FEF3C7" : undefined }}>
+                  <td style={td}>{u.nama || u.username}</td>
+                  <td style={td}>{u.role}</td>
+                  <td style={td}>{u.noWA ? "ada" : <span style={{ color: C.muted }}>kosong</span>}</td>
+                  <td style={{ ...td, fontWeight: 700, color: u.perangkat ? C.ok : C.danger }}>
+                    {u.perangkat ? "✓ aktif (" + u.perangkat + " perangkat)" : "✗ belum aktif"}
+                  </td>
+                </tr>))}</tbody>
+            </table>
+          </div>
+        </>}
+      </div>
+    </div>
+  );
+}
+
 function SystemTab({ user, T }) {
   const [counts, setCounts] = useState(null);
   const [supaPing, setSupaPing] = useState(null);

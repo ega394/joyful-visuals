@@ -46,6 +46,9 @@
 // pendapat tentang penetapan yang sah.
 import { periksaPenetapan } from "../src/lib/plh.js";
 import { sinkronSatu } from "./_kalender.mjs";
+// CommonJS (lihat kepala _walog.js) — impor bawaan, lalu ambil fungsinya.
+import walog from "./_walog.js";
+const { catatWA, hasilFonnte } = walog;
 
 const SUPA_URL = process.env.SUPABASE_URL  || process.env.VITE_SUPABASE_URL;
 // Utamakan service key: dengan itu endpoint ini tetap berjalan meski kebijakan
@@ -101,15 +104,38 @@ async function sbDelete(path) {
 const tabelBelumAda = (e) => /PGRST205|Could not find the table/i.test(e?.message || "");
 
 // ── WA helper ─────────────────────────────────────────────────
-async function sendWA(to, message) {
-  if (!FONNTE || !to) return;
+// `jenis` dan `peran` hanya untuk wa_log (tanpa nomor/isi pesan).
+async function sendWA(to, message, jenis = "ruangan", peran = "") {
+  if (!FONNTE || !to) return false;
   try {
-    await fetch("https://api.fonnte.com/send", {
+    const r = await fetch("https://api.fonnte.com/send", {
       method: "POST",
       headers: { "Authorization": FONNTE, "Content-Type": "application/json" },
       body: JSON.stringify({ target: String(to).replace(/\D/g, ""), message }),
     });
-  } catch { /* non-critical */ }
+    const h = await hasilFonnte(r);
+    await catatWA({ jenis, sumber: "ruangan", peran, berhasil: h.ok });
+    return h.ok;
+  } catch (e) {
+    await catatWA({ jenis, sumber: "ruangan", peran, berhasil: false, catatan: e?.message });
+    return false;
+  }
+}
+
+// Peninjau permohonan ruangan yang AKTIF (akun nonaktif tidak dikirimi),
+// satu per nomor. `kabag`: "selalu" — Kabag ikut (pengajuan baru, sesuai
+// SOP 6); "cadangan" — Kabag hanya bila tidak ada pengelola aktif.
+async function peninjauRuangan(kabag = "selalu") {
+  const aktif = "&disabled=not.is.true";
+  const [managers, kabagList] = await Promise.all([
+    sbGet("users?can_manage_rooms=eq.true&select=nama,noWA,role" + aktif).catch(() => []),
+    sbGet("users?role=eq.kabag&select=nama,noWA,role" + aktif).catch(() => []),
+  ]);
+  const pengelola = (managers || []).filter(u => u.noWA);
+  const ikutKabag = kabag === "selalu" || pengelola.length === 0;
+  const semua = [...pengelola, ...(ikutKabag ? (kabagList || []) : [])];
+  const nomor = (n) => String(n || "").replace(/\D/g, "").replace(/^0/, "62");
+  return semua.filter((u, i, a) => u.noWA && a.findIndex(x => nomor(x.noWA) === nomor(u.noWA)) === i);
 }
 
 // ── Push notification helper ──────────────────────────────────
@@ -123,8 +149,8 @@ async function sendPushToManagers({ title, body, url, tag }) {
 
   // Ambil username peninjau permohonan + kabag
   const [managers, kabagList] = await Promise.all([
-    sbGet("users?can_manage_rooms=eq.true&select=username").catch(()=>[]),
-    sbGet("users?role=eq.kabag&select=username").catch(()=>[]),
+    sbGet("users?can_manage_rooms=eq.true&select=username&disabled=not.is.true").catch(()=>[]),
+    sbGet("users?role=eq.kabag&select=username&disabled=not.is.true").catch(()=>[]),
   ]);
   const usernames = [...new Set([...(managers||[]),...(kabagList||[])].map(u=>u.username).filter(Boolean))];
   if (!usernames.length) return;
@@ -433,18 +459,19 @@ export default async function handler(req, res) {
 
         const head = rows[0];
         try {
-          const [managers, kabagList] = await Promise.all([
-            sbGet("users?can_manage_rooms=eq.true&select=noWA"),
-            sbGet("users?role=eq.kabag&select=noWA"),
-          ]);
-          const targets = [...(managers || []), ...(kabagList || [])].filter(
-            (u, i, a) => u.noWA && a.findIndex(x => x.noWA === u.noWA) === i
-          );
+          // WA ke pengelola aktif; Kabag hanya bila tidak ada pengelola.
+          // Push ke semua peninjau (termasuk Kabag) tetap dikirim.
+          const targets = await peninjauRuangan("cadangan");
           const msg =
             `*[PERMINTAAN PEMBATALAN RUANGAN]*\nKode *${code}* — ${head.event_name}\n` +
             `Instansi: ${head.instansi} · PIC: ${head.pic_name}\n` +
             `Alasan: ${String(reason).trim()}\n\nMohon ditinjau di dashboard peminjaman ruangan.`;
-          for (const u of targets) await sendWA(u.noWA, msg);
+          for (const u of targets) await sendWA(u.noWA, msg, "ruangan_minta_batal", u.role);
+          await sendPushToManagers({
+            title: `🗑️ Permintaan Pembatalan Ruangan — ${code}`,
+            body: `${head.event_name} (${head.instansi}): ${String(reason).trim().slice(0, 100)}`,
+            url: "/", tag: `booking-${code}`,
+          });
         } catch (_) {}
 
         return res.status(200).json({ ok: true, booking_code: code });
@@ -689,13 +716,7 @@ export default async function handler(req, res) {
         .join("\n");
 
       // WA ke peninjau permohonan
-      const [managers, kabagList] = await Promise.all([
-        sbGet("users?can_manage_rooms=eq.true&select=nama,noWA"),
-        sbGet("users?role=eq.kabag&select=nama,noWA"),
-      ]);
-      const targets = [...(managers||[]),...(kabagList||[])].filter(
-        (u,i,a) => u.noWA && a.findIndex(x=>x.noWA===u.noWA)===i
-      );
+      const targets = await peninjauRuangan("selalu");
       const adminMsg =
         `*[PENGAJUAN RUANGAN BARU]*\n` +
         `Kode: *${booking_code}*\n` +
@@ -704,7 +725,7 @@ export default async function handler(req, res) {
         `Jadwal (${slots.length} slot):\n${slotLines}\n` +
         (srikandi_ref ? `Srikandi: ${srikandi_ref}\n` : "") +
         `\nSilakan validasi di dashboard Peninjau Permohonan.`;
-      for (const u of targets) await sendWA(u.noWA, adminMsg);
+      for (const u of targets) await sendWA(u.noWA, adminMsg, "ruangan_pengajuan_baru", u.role);
 
       await sendPushToManagers({
         title: `🏛️ Pengajuan Ruangan Baru — ${room.name}`,
@@ -718,7 +739,8 @@ export default async function handler(req, res) {
         `Kode Booking: *${booking_code}*\n` +
         `Ruangan: ${room.name}\nJadwal (${slots.length} slot):\n${slotLines}\n\n` +
         `Cek status: prokopim.tarakankota.go.id/pinjamruangan?cek=${booking_code}\n` +
-        `Status saat ini: *Menunggu Konfirmasi*`
+        `Status saat ini: *Menunggu Konfirmasi*`,
+        "ruangan_tanda_terima", "pemohon"
       );
 
       return res.status(201).json({
@@ -821,6 +843,19 @@ export default async function handler(req, res) {
       if (!group?.length) return res.status(404).json({ error: "Booking tidak ditemukan" });
       const head = group[0];
 
+      // Dasbor yang basi bisa mengirim keputusan untuk pengajuan yang sudah
+      // dibatalkan pemohon — slot terkunci lagi dan PIC menerima WA
+      // "DISETUJUI" yang keliru. Keputusan atas pengajuan batal ditolak.
+      if (group.some(b => b.status === "Cancelled") && status !== "Cancelled")
+        return res.status(409).json({ error: "Pengajuan ini sudah dibatalkan. Muat ulang dasbor." });
+
+      // "Tolak Pembatalan (Tetap Disetujui)": booking sudah Approved dan
+      // pemohon sedang minta batal. Pemohon diberi kabar khusus, bukan WA
+      // "DISETUJUI" ulang yang tidak menyebut permintaan batalnya.
+      const sudahDisetujui = group.every(b => b.status === "Approved");
+      const tolakPembatalan = status === "Approved" && sudahDisetujui &&
+        String(head.notes || "").startsWith("[MINTA BATAL]");
+
       // Konflik dicek per slot saat menyetujui (abaikan grup sendiri)
       if (status === "Approved") {
         for (const b of group) {
@@ -866,7 +901,19 @@ export default async function handler(req, res) {
           (notes ? `Keterangan: ${notes}\n` : "") +
           `Hubungi Bagian Prokopim jika ada pertanyaan.`,
       };
-      if (msgs[status] && head.pic_wa) await sendWA(head.pic_wa, msgs[status]);
+      if (tolakPembatalan) {
+        msgs.Approved =
+          `*[PROKOPIM TARAKAN]* Permintaan pembatalan Anda *tidak dapat dikabulkan*.\n\n` +
+          `Kode: *${head.booking_code}*\n` +
+          `Ruangan: ${head.rooms?.name}\nAcara: ${head.event_name}\n` +
+          `Jadwal (${group.length} slot):\n${slotLines}\n\n` +
+          `Peminjaman *tetap berlaku*. Hubungi Bagian Prokopim bila ada pertanyaan.`;
+      } else if (status === "Approved" && sudahDisetujui) {
+        // Disetujui ulang tanpa perubahan: pemohon sudah menerima WA-nya.
+        delete msgs.Approved;
+      }
+      if (msgs[status] && head.pic_wa)
+        await sendWA(head.pic_wa, msgs[status], tolakPembatalan ? "ruangan_batal_ditolak" : "ruangan_keputusan_" + status.toLowerCase(), "pemohon");
 
       return res.status(200).json({ ok: true, count: group.length, booking_code: head.booking_code });
     }
@@ -889,15 +936,13 @@ export default async function handler(req, res) {
 
       await sbPatch(`room_bookings?booking_code=eq.${booking.booking_code}`, { status:"Cancelled", notes:"Dibatalkan oleh peminjam" });
 
-      const [managers, kabagList] = await Promise.all([
-        sbGet("users?can_manage_rooms=eq.true&select=noWA"),
-        sbGet("users?role=eq.kabag&select=noWA"),
-      ]);
-      const targets = [...(managers||[]),...(kabagList||[])].filter(
-        (u,i,a) => u.noWA && a.findIndex(x=>x.noWA===u.noWA)===i
-      );
-      const msg = `*[PEMBATALAN RUANGAN]* Kode *${booking.booking_code}* — ${booking.event_name}\nDibatalkan oleh peminjam (${booking.pic_name}).`;
-      for (const u of targets) await sendWA(u.noWA, msg);
+      // Cukup push: slot otomatis lepas dan tidak ada yang perlu diputus.
+      // Tag yang sama menggantikan push "pengajuan baru" di perangkat.
+      await sendPushToManagers({
+        title: `🗑️ Pengajuan Ruangan Dibatalkan — ${booking.booking_code}`,
+        body: `${booking.event_name} — dibatalkan oleh peminjam (${booking.pic_name})`,
+        url: "/", tag: `booking-${booking.booking_code}`,
+      });
 
       return res.status(200).json({ ok: true });
     }
