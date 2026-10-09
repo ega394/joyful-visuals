@@ -19,8 +19,9 @@
  * Jika sudah → skip. Jika belum → kirim + catat ke log.
  *
  * JADWAL CRON (vercel.json, dalam UTC; paket Hobby → bisa meleset ≤1 jam):
- *   type=pimpinan  → "30 22 * * *"  = 06:30 WITA  briefing WK & WWK (WA)
- *   type=pagi      → "30 23 * * *"  = 07:30 WITA  rekap hari ini: ajudan (WA), Kabag & Kasubbag (push)
+ *   type=pimpinan  → "30 22 * * *"  = 06:30 WITA  briefing WK & WWK (WA) + jumlah audiensi menunggu
+ *   type=pagi      → "30 23 * * *"  = 07:30 WITA  rekap hari ini: ajudan (WA), Kabag & Kasubbag (push);
+ *                                                antrean permohonan tamu per tahap (push)
  *   type=ajudan    → "0 8 * * *"    = 16:00 WITA  agenda besok untuk ajudan (WA)
  *   type=pending   → "0 8 * * *"    = 16:00 WITA  ringkasan sore: SATU WA per pejabat
  *   type=reminder  → tidak terjadwal lagi; isinya kini bagian ringkasan sore
@@ -326,6 +327,25 @@ async function loadUsulanEdit() {
     );
 }
 
+// Permohonan tamu yang masih berjalan (belum diputus). Tabel/kolom belum ada
+// → daftar kosong, pengingat jadwal tetap berjalan.
+const TAHAP_TAMU = ["pending_rk", "pending_kasubbag", "pending_kabag", "pending_pimpinan"];
+async function loadTamuAntre() {
+  const rows = await sbGet(
+    `permohonan_tamu?select=id,nama,instansi,tujuan_pejabat,status,prioritas,created_at` +
+    `&status=in.(${TAHAP_TAMU.join(",")})&order=created_at.asc`
+  );
+  return Array.isArray(rows) ? rows : [];
+}
+const PERAN_TAHAP_TAMU = {
+  pending_rk: "admin_rk", pending_kasubbag: "kasubbag_protokol", pending_kabag: "kabag",
+};
+const ajudanUntuk = (tujuan) => tujuan === "Wakil Wali Kota" ? "ajudan_wakilwalikota" : "ajudan_walikota";
+const fmtTamu = (g) =>
+  `• ${g.prioritas === "Tinggi" ? "🔴 " : ""}*${g.nama || "Pemohon"}*` +
+  `${g.instansi && g.instansi !== "-" ? " (" + g.instansi + ")" : ""} → ${g.tujuan_pejabat || "Pimpinan"}` +
+  (g.created_at ? `\n   masuk ${fmtTgl(new Date(new Date(g.created_at).getTime() + 8 * 3600000).toISOString().slice(0, 10))}` : "");
+
 async function loadUsers() {
   // Kolom PLH baru ada setelah migrasi dijalankan, sedangkan deploy selalu
   // mendahului migrasi. Tanpa penahan ini, seluruh pengingat terjadwal mati
@@ -368,9 +388,13 @@ const AJUDAN = [
  *   Kabag & Kasubbag → push saja: isinya jadwal yang mereka verifikasi dan
  *     setujui sendiri, dan dasbor aplikasi sudah menampilkannya.
  */
-async function notifPagi(jadwal, users) {
+async function notifPagi(jadwal, users, tamu = []) {
   const today    = localDateWITA(0);
   const todayEvs = jadwal.filter(e => e.tanggal === today).sort(urutJam);
+
+  // Permohonan tamu: antrean tiap tahap dikabarkan lewat push (gratis). Ini
+  // juga yang menyampaikan permohonan yang masuk pada jam tenang 21:00–06:00.
+  await pushAntreanTamu(tamu);
 
   if (todayEvs.length === 0) {
     console.log("[PAGI] Tidak ada agenda hari ini, skip.");
@@ -413,6 +437,27 @@ async function notifPagi(jadwal, users) {
   }
 }
 
+/** Push "N permohonan tamu menunggu Anda" ke pemegang setiap tahap. */
+async function pushAntreanTamu(tamu) {
+  const kelompok = new Map();
+  for (const g of tamu || []) {
+    const role = g.status === "pending_pimpinan" ? ajudanUntuk(g.tujuan_pejabat) : PERAN_TAHAP_TAMU[g.status];
+    if (!role) continue;
+    const k = role + "|" + g.status;
+    if (!kelompok.has(k)) kelompok.set(k, { role, status: g.status, daftar: [] });
+    kelompok.get(k).daftar.push(g);
+  }
+  for (const { role, status, daftar } of kelompok.values()) {
+    const mendesak = daftar.filter(g => g.prioritas === "Tinggi").length;
+    await sendPushRole(role, {
+      title: `📨 ${daftar.length} permohonan tamu menunggu Anda`,
+      body: (mendesak ? `${mendesak} mendesak · ` : "") + daftar.slice(0, 3).map(g => g.nama || "Pemohon").join(", ") +
+            (daftar.length > 3 ? ` +${daftar.length - 3}` : ""),
+      url: "/", tag: "tamu-" + status + (status === "pending_pimpinan" ? "-" + role : ""),
+    });
+  }
+}
+
 /**
  * REMINDER — tidak dikirim tersendiri lagi. "Agenda besok tanpa petugas"
  * kini menjadi bagian ringkasan sore (type=pending), supaya Kasubbag tidak
@@ -427,7 +472,7 @@ async function notifReminder() {
  * AJUDAN (16:00 WITA) — rekap agenda BESOK + minta konfirmasi kehadiran
  * Penerima: Ajudan WK & Ajudan WWK, masing-masing agenda pimpinannya saja.
  */
-async function notifAjudan(jadwal, users) {
+async function notifAjudan(jadwal, users, tamu = []) {
   const tomorrow = localDateWITA(1);
   const tmrwEvs  = jadwal.filter(e => e.tanggal === tomorrow).sort(urutJam);
 
@@ -440,11 +485,16 @@ async function notifAjudan(jadwal, users) {
     ).join("\n\n");
     const belum = myEvs.filter(e => labelStatus(e, a.kunci).startsWith("⏳")).length;
 
+    // Permohonan audiensi yang menunggu keputusan pimpinan ini (menumpang
+    // pesan yang sudah ada, tanpa WA tambahan).
+    const audiensi = (tamu || []).filter(g => g.status === "pending_pimpinan" && ajudanUntuk(g.tujuan_pejabat) === a.role).length;
+
     const msg =
       `📅 *Agenda ${a.label}*\n` +
       `${fmtTgl(tomorrow)} | ${myEvs.length} kegiatan\n\n` +
       daftar +
       (belum ? `\n\nMohon konfirmasi kehadiran ${a.label} (${belum} agenda) melalui aplikasi Prokopim.` : "") +
+      (audiensi ? `\n\n📨 ${audiensi} permohonan audiensi menunggu keputusan ${a.label}.` : "") +
       `\n_Prokopim Kota Tarakan_`;
 
     for (const u of unikNomor(users.filter(u => u.role === a.role && u.noWA))) {
@@ -459,7 +509,7 @@ async function notifAjudan(jadwal, users) {
  * Penerima: Wali Kota & Wakil Wali Kota (nomor pribadi)
  * Nada ringan, informatif, tanpa perlu dibalas.
  */
-async function notifPimpinan(jadwal, users) {
+async function notifPimpinan(jadwal, users, tamu = []) {
   const today    = localDateWITA(0);
   const todayEvs = jadwal
     .filter(e => e.tanggal === today)
@@ -514,11 +564,20 @@ async function notifPimpinan(jadwal, users) {
       else nunggu.push(e); // belum dikonfirmasi
     }
 
+    // Satu baris jumlah permohonan audiensi yang menunggu keputusan — tanpa
+    // rincian dan tanpa WA terpisah; rinciannya disampaikan ajudan.
+    const nAudiensi = (tamu || []).filter(g => g.status === "pending_pimpinan" &&
+      (g.tujuan_pejabat === "Wakil Wali Kota" ? "wakilwalikota" : "walikota") === p.key).length;
+    const barisAudiensi = nAudiensi
+      ? `\n\n📨 Terdapat *${nAudiensi} permohonan audiensi* menunggu keputusan Bapak. Rinciannya dapat disampaikan oleh ajudan.`
+      : "";
+
     let msg;
     if (myEvs.length === 0) {
       msg =
         `🌅 *Selamat Pagi, ${p.sapaan}*\n\n` +
         `Tidak ada agenda resmi terjadwal hari ini.` +
+        barisAudiensi +
         FOOTER_KOSONG;
     } else {
       let body = `🌅 *Selamat Pagi, ${p.sapaan}*\n\nAgenda ${p.label} hari ini — ${fmtTgl(today)}:\n`;
@@ -535,7 +594,7 @@ async function notifPimpinan(jadwal, users) {
       if (!hadir.length && !wakil.length && !nunggu.length) {
         body += `\nTidak ada agenda yang memerlukan perhatian Bapak hari ini.`;
       }
-      msg = body + FOOTER_ADA;
+      msg = body + barisAudiensi + FOOTER_ADA;
     }
 
     for (const u of orang) {
@@ -550,6 +609,12 @@ async function notifPimpinan(jadwal, users) {
  */
 async function notifPersonil() {
   console.log("[PERSONIL] Notifikasi penugasan dinonaktifkan — skip.");
+}
+
+/** Permohonan tamu di tahap `status` yang masuk lebih dari 24 jam lalu. */
+function tertahan(tamu, status) {
+  const batas = Date.now() - 24 * 3600000;
+  return (tamu || []).filter(g => g.status === status && g.created_at && new Date(g.created_at).getTime() < batas);
 }
 
 // Agenda yang semua pimpinan tujuannya sudah menyatakan tidak hadir tidak
@@ -569,17 +634,20 @@ function semuaPimpinanAbsen(e) {
  *   Kasubbag Komdokpim (+PLH): agenda besok tanpa petugas saja — mereka tidak
  *                             memutus antrian verifikasi.
  *   Kabag (+PLH):             persetujuan akhir, usulan perubahan, pembatalan.
+ *   Admin RK:                 permohonan tamu yang belum diverifikasi > 1 hari.
+ *   Permohonan tamu yang tertahan > 1 hari ikut di bagian pemegang tahapnya.
  *
  * Seseorang yang memegang dua jabatan (mis. Kasubbag yang sedang PLH Kabag)
  * tetap menerima satu pesan berisi kedua bagian. Dikirim juga pada akhir
  * pekan, karena banyak agenda pimpinan jatuh pada Sabtu/Minggu.
  */
-async function notifPendingApproval(users, jadwal) {
+async function notifPendingApproval(users, jadwal, tamu = []) {
   const [pendings, usulans] = await Promise.all([loadJadwalPending(), loadUsulanEdit()]);
   const besok = localDateWITA(1);
 
   const fmtItem = (e) =>
     `• ${fmtTgl(e.tanggal)} ${fmtRentangJam(e)} — *${e.namaAcara}*\n   📍 ${e.lokasi || e.penyelenggara || "-"}`;
+  const fmtKunci = (kunci) => kunci.startsWith("tamu") ? fmtTamu : fmtItem;
 
   const daftar = {
     tanpaPetugas: (jadwal || []).filter(e => e.tanggal === besok && !(e.personil || []).length && !semuaPimpinanAbsen(e)).sort(urutJam),
@@ -589,6 +657,11 @@ async function notifPendingApproval(users, jadwal) {
     usulKabag:    usulans.filter(e => e.alurEdit === "menunggu_kabag").sort(urutJam),
     batalKasubbag: (jadwal || []).filter(e => e.alurHapus === "menunggu_kasubbag").sort(urutJam),
     batalKabag:    (jadwal || []).filter(e => e.alurHapus === "menunggu_kabag").sort(urutJam),
+    // Permohonan tamu yang sudah lebih dari sehari sejak masuk dan masih
+    // tertahan di tahap penerima.
+    tamuRK:       tertahan(tamu, "pending_rk"),
+    tamuKasubbag: tertahan(tamu, "pending_kasubbag"),
+    tamuKabag:    tertahan(tamu, "pending_kabag"),
   };
 
   // Urutan bagian = urutan kepentingan; yang paling mendesak paling atas.
@@ -598,6 +671,7 @@ async function notifPendingApproval(users, jadwal) {
       ["verifikasi",   "⏰ *Menunggu verifikasi Anda*"],
       ["batalKasubbag","🗑️ *Permintaan pembatalan*"],
       ["usulKasubbag", "✏️ *Usulan perubahan jadwal*"],
+      ["tamuKasubbag", "📨 *Permohonan tamu tertahan lebih dari 1 hari*"],
     ],
     kasubbag_komdokpim: [
       ["tanpaPetugas", `⚠️ *Agenda besok (${fmtTgl(besok)}) belum ada petugas*`],
@@ -606,6 +680,10 @@ async function notifPendingApproval(users, jadwal) {
       ["akhir",        "⏰ *Menunggu persetujuan akhir Anda*"],
       ["batalKabag",   "🗑️ *Permintaan pembatalan*"],
       ["usulKabag",    "✏️ *Usulan perubahan jadwal*"],
+      ["tamuKabag",    "📨 *Permohonan tamu tertahan lebih dari 1 hari*"],
+    ],
+    admin_rk: [
+      ["tamuRK",       "📨 *Permohonan tamu menunggu verifikasi lebih dari 1 hari*"],
     ],
   };
 
@@ -627,7 +705,7 @@ async function notifPendingApproval(users, jadwal) {
   for (const { u, peran, bagian } of perNomor.values()) {
     if (!bagian.length) continue;
     const isiPesan = bagian.map(b =>
-      `${b.judul} (${daftar[b.kunci].length})\n` + daftar[b.kunci].map(fmtItem).join("\n")
+      `${b.judul} (${daftar[b.kunci].length})\n` + daftar[b.kunci].map(fmtKunci(b.kunci)).join("\n")
     ).join("\n\n");
     const msg =
       `🗓️ *Ringkasan Sore Prokopim*\n` +
@@ -645,6 +723,7 @@ async function notifPendingApproval(users, jadwal) {
     hitung("verifikasi") && `${hitung("verifikasi")} menunggu verifikasi`,
     hitung("batalKasubbag") && `${hitung("batalKasubbag")} permintaan batal`,
     hitung("usulKasubbag") && `${hitung("usulKasubbag")} usulan perubahan`,
+    hitung("tamuKasubbag") && `${hitung("tamuKasubbag")} permohonan tamu tertahan`,
   ].filter(Boolean).join(" · ");
   if (pushKasubbag) await sendPushRole("kasubbag_protokol", { title: "🗓️ Ringkasan Sore", body: pushKasubbag, url: "/", tag: "ringkasan-sore" });
   if (hitung("tanpaPetugas")) await sendPushRole("kasubbag_komdokpim", { title: "⚠️ Agenda Besok Tanpa Petugas", body: `${hitung("tanpaPetugas")} agenda besok belum ada petugas`, url: "/", tag: "ringkasan-sore" });
@@ -652,6 +731,7 @@ async function notifPendingApproval(users, jadwal) {
     hitung("akhir") && `${hitung("akhir")} menunggu persetujuan akhir`,
     hitung("batalKabag") && `${hitung("batalKabag")} permintaan batal`,
     hitung("usulKabag") && `${hitung("usulKabag")} usulan perubahan`,
+    hitung("tamuKabag") && `${hitung("tamuKabag")} permohonan tamu tertahan`,
   ].filter(Boolean).join(" · ");
   if (pushKabag) await sendPushRole("kabag", { title: "🗓️ Ringkasan Sore", body: pushKabag, url: "/", tag: "ringkasan-sore" });
 
@@ -708,15 +788,15 @@ export default async function handler(req, res) {
   }
 
   try {
-    const [jadwal, users] = await Promise.all([loadJadwal(), loadUsers()]);
-    console.log(`[CRON] Data: ${jadwal.length} jadwal, ${users.length} users`);
+    const [jadwal, users, tamu] = await Promise.all([loadJadwal(), loadUsers(), loadTamuAntre()]);
+    console.log(`[CRON] Data: ${jadwal.length} jadwal, ${users.length} users, ${tamu.length} permohonan tamu berjalan`);
 
-    if      (type === "pagi")     await notifPagi(jadwal, users);
-    else if (type === "pimpinan") await notifPimpinan(jadwal, users);
+    if      (type === "pagi")     await notifPagi(jadwal, users, tamu);
+    else if (type === "pimpinan") await notifPimpinan(jadwal, users, tamu);
     else if (type === "reminder") await notifReminder(jadwal, users);
-    else if (type === "ajudan")   await notifAjudan(jadwal, users);
+    else if (type === "ajudan")   await notifAjudan(jadwal, users, tamu);
     else if (type === "personil") await notifPersonil(jadwal, users);
-    else if (type === "pending")  await notifPendingApproval(users, jadwal);
+    else if (type === "pending")  await notifPendingApproval(users, jadwal, tamu);
     else {
       return res.status(400).json({ error: `Tipe tidak dikenal: ${type}` });
     }

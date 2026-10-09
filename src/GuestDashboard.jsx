@@ -273,6 +273,7 @@ function AdminRKDetail({ guest, user, events, showT, isMobile, onBack, onDone, r
         id: guest.id,
         catatan_rk: catatan.trim(),
         admin_name: user?.nama || user?.username,
+        oleh: user?.username,
       });
       showT("✅ Diteruskan ke Kasubbag Protokol");
       done();

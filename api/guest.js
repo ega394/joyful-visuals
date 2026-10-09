@@ -363,19 +363,25 @@ async function sendWA(to, message, jenis) {
 // Pemegang = peran asli atau PLH yang sedang berlaku (WITA). Pelaku tindakan
 // sendiri tidak dikirimi kabar atas tindakannya.
 function hariIniWita() { return new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 10); }
+/** Pengguna aktif pemegang `role` hari ini (asli + PLH), tanpa `kecualiUsername`. */
+async function pemegangJabatan(role, kecualiUsername) {
+  var t = hariIniWita();
+  var users = await sbGet("users?select=username,nama,role,noWA,plh_untuk,plh_mulai,plh_selesai,disabled")
+    .catch(function () { return sbGet("users?select=username,nama,role,noWA"); });
+  return (users || []).filter(function (u) {
+    if (u.disabled || (kecualiUsername && u.username === kecualiUsername)) return false;
+    return u.role === role ||
+      (u.plh_untuk === role && u.plh_mulai && u.plh_selesai && u.plh_mulai <= t && t <= u.plh_selesai);
+  });
+}
+
 async function pushPemegang(role, notif, kecualiUsername) {
   var VPUB = process.env.VAPID_PUBLIC, VPRIV = process.env.VAPID_PRIVATE;
   if (!VPUB || !VPRIV) return 0;
   try {
     webpush.setVapidDetails(process.env.VAPID_EMAIL || "mailto:prokopim@tarakankota.go.id", VPUB, VPRIV);
-    var t = hariIniWita();
-    var users = await sbGet("users?select=username,role,plh_untuk,plh_mulai,plh_selesai,disabled")
-      .catch(function () { return sbGet("users?select=username,role"); });
-    var nama = (users || []).filter(function (u) {
-      if (u.disabled || u.username === kecualiUsername) return false;
-      return u.role === role ||
-        (u.plh_untuk === role && u.plh_mulai && u.plh_selesai && u.plh_mulai <= t && t <= u.plh_selesai);
-    }).map(function (u) { return encodeURIComponent(u.username); });
+    var nama = (await pemegangJabatan(role, kecualiUsername))
+      .map(function (u) { return encodeURIComponent(u.username); });
     if (!nama.length) return 0;
     var subs = await sbGet("push_subscriptions?select=subscription&username=in.(" + nama.join(",") + ")");
     var payload = JSON.stringify({ title: notif.title, body: notif.body, url: notif.url || "/", tag: notif.tag || "tamu" });
@@ -385,6 +391,128 @@ async function pushPemegang(role, notif, kecualiUsername) {
     }
     return n;
   } catch (e) { console.warn("[push guest]", e.message); return 0; }
+}
+
+// ── Kabar alur permohonan tamu (keputusan Kabag, Oktober 2026) ──
+//
+// Tingkat admin dikabari rapat; Wali Kota/Wakil TIDAK dikabari per
+// permohonan — ajudan yang menyaringnya, dan briefing pagi 06:30 hanya
+// memuat satu baris jumlah permohonan yang menunggu keputusan.
+//
+//   tahap baru   → push ke pemegang tahap itu (+PLH), kecuali pelakunya;
+//                  notifikasi bertag sama sehingga di HP tampil satu saja,
+//                  berisi jumlah antrean terkini.
+//   Mendesak     → ditambah WA (prioritas "Tinggi").
+//   21:00–06:00  → yang tidak mendesak ditahan; rekap 07:30 mengabarkannya.
+//   tertahan     → masuk ringkasan sore 16:00 (api/notif-cron.mjs).
+
+var TAHAP_TAMU = {
+  pending_rk:       { judul: "📨 Permohonan Tamu Baru",              tindakan: "verifikasi" },
+  pending_kasubbag: { judul: "📨 Permohonan Tamu — Telaah Kasubbag", tindakan: "telaah" },
+  pending_kabag:    { judul: "📨 Permohonan Tamu — Telaah Kabag",    tindakan: "telaah" },
+  pending_pimpinan: { judul: "📨 Permohonan Audiensi untuk Pimpinan", tindakan: "penyampaian kepada Pimpinan" },
+};
+
+function peranTahap(status, tujuan) {
+  if (status === "pending_rk") return "admin_rk";
+  if (status === "pending_kasubbag") return "kasubbag_protokol";
+  if (status === "pending_kabag") return "kabag";
+  if (status === "pending_pimpinan") return tujuan === "Wakil Wali Kota" ? "ajudan_wakilwalikota" : "ajudan_walikota";
+  return null;
+}
+
+function jamTenang() {
+  var h = new Date(Date.now() + 8 * 3600000).getUTCHours();
+  return h >= 21 || h < 6;
+}
+
+function besokWita() { return new Date(Date.now() + 8 * 3600000 + 86400000).toISOString().slice(0, 10); }
+
+/** Kirim WA internal ke daftar pegawai: satu nomor sekali, tercatat di wa_log. */
+async function waPegawai(daftar, pesan, jenis, peran) {
+  var sudah = {};
+  for (var i = 0; i < (daftar || []).length; i++) {
+    var u = daftar[i];
+    var k = String(u.noWA || "").replace(/\D/g, "").replace(/^0/, "62");
+    if (k.length < 10 || sudah[k]) continue;
+    sudah[k] = true;
+    try {
+      var r = await fetch("https://api.fonnte.com/send", {
+        method: "POST",
+        headers: { "Authorization": FONNTE, "Content-Type": "application/json" },
+        body: JSON.stringify({ target: u.noWA, message: pesan, countryCode: "62" }),
+      });
+      var h = await hasilFonnte(r);
+      await catatWA({ jenis: jenis, sumber: "tamu", peran: peran || u.role, berhasil: h.ok });
+    } catch (e) {
+      await catatWA({ jenis: jenis, sumber: "tamu", peran: peran || u.role, berhasil: false, catatan: e.message });
+    }
+  }
+}
+
+/** Permohonan `id` baru tiba di tahap `status`. Tidak pernah menggagalkan aksinya. */
+async function kabarTahap(id, status, pelaku, prioritasBaru) {
+  try {
+    var t = TAHAP_TAMU[status];
+    if (!t || !id) return { dikirim: false };
+    var g = ((await sbGet("permohonan_tamu?id=eq." + encodeURIComponent(id) +
+      "&select=nama,instansi,tujuan_pejabat,prioritas&limit=1")) || [])[0] || {};
+    var mendesak = normPrioritas(prioritasBaru || g.prioritas) === "Tinggi" && !!(prioritasBaru || g.prioritas);
+    if (jamTenang() && !mendesak) return { dikirim: false, ditunda: true };
+
+    var role = peranTahap(status, g.tujuan_pejabat);
+    var filter = "status=eq." + status + (status === "pending_pimpinan" && g.tujuan_pejabat
+      ? "&tujuan_pejabat=eq." + encodeURIComponent(g.tujuan_pejabat) : "");
+    var antre = ((await sbGet("permohonan_tamu?" + filter + "&select=id")) || []).length;
+    var siapa = (g.nama || "Pemohon") + (g.instansi && g.instansi !== "-" ? " (" + g.instansi + ")" : "");
+    var judul = status === "pending_pimpinan" && g.tujuan_pejabat ? "📨 Permohonan Audiensi untuk " + g.tujuan_pejabat : t.judul;
+    await pushPemegang(role, {
+      title: (mendesak ? "🔴 " : "") + judul,
+      body: (mendesak ? "MENDESAK · " : "") + siapa + (antre > 1 ? " · " + antre + " permohonan menunggu" : ""),
+      tag: "tamu-" + status + (status === "pending_pimpinan" ? "-" + role : ""),
+    }, pelaku);
+
+    if (mendesak) {
+      var pesan =
+        "🔴 *Permohonan Tamu Mendesak*\n\n" +
+        "Permohonan audiensi a.n. *" + siapa + "* kepada *" + (g.tujuan_pejabat || "Pimpinan") + "* " +
+        "menunggu " + t.tindakan + " Anda.\n\nMohon ditindaklanjuti melalui aplikasi Prokopim." +
+        "\n\n_Prokopim Kota Tarakan_";
+      await waPegawai(await pemegangJabatan(role, pelaku), pesan, "tamu_mendesak", role);
+    }
+    return { dikirim: true, mendesak: mendesak };
+  } catch (e) {
+    console.warn("[kabar tamu]", e.message);
+    return { dikirim: false };
+  }
+}
+
+/** Keputusan atas permohonan: Admin RK (tindak lanjut), dan bila disetujui Kasubbag Protokol & ajudan. */
+async function kabarKeputusan(id, response, pelaku, jadwalTanggal) {
+  try {
+    var g = ((await sbGet("permohonan_tamu?id=eq." + encodeURIComponent(id) +
+      "&select=nama,instansi,tujuan_pejabat,jadwal_tanggal,jadwal_jam&limit=1")) || [])[0] || {};
+    var siapa = (g.nama || "Pemohon") + (g.instansi && g.instansi !== "-" ? " (" + g.instansi + ")" : "");
+    var tgl = jadwalTanggal || g.jadwal_tanggal || "";
+    var label = { approved: "✅ Audiensi Disetujui", rejected: "❌ Permohonan Ditolak", disposed: "↪️ Permohonan Didisposisi" }[response];
+    if (!label) return;
+    var body = siapa + (response === "approved" && tgl ? " · " + fmtTanggalWA(tgl) + (g.jadwal_jam ? " " + String(g.jadwal_jam).slice(0, 5) : "") : "");
+    await pushPemegang("admin_rk", { title: label, body: body, tag: "tamu-putus-" + id }, pelaku);
+    if (response !== "approved") return;
+
+    await pushPemegang("kasubbag_protokol", { title: label + " — siapkan pelaksanaan", body: body, tag: "tamu-putus-" + id }, pelaku);
+    var ajudan = peranTahap("pending_pimpinan", g.tujuan_pejabat);
+    await pushPemegang(ajudan, { title: label, body: body, tag: "tamu-putus-" + id }, pelaku);
+    // Audiensi hari ini/besok: ajudan juga lewat WA (aturan "acara dekat").
+    if (tgl && tgl >= hariIniWita() && tgl <= besokWita()) {
+      var pesan =
+        "📅 *Audiensi Disetujui*\n\n" +
+        "Audiensi *" + siapa + "* dengan *" + (g.tujuan_pejabat || "Pimpinan") + "* dijadwalkan " +
+        fmtTanggalWA(tgl) + (g.jadwal_jam ? ", pukul " + String(g.jadwal_jam).slice(0, 5) + " WITA" : "") + ".\n\n" +
+        "Detail lengkap ada di aplikasi Prokopim.\n\n_Prokopim Kota Tarakan_";
+      await waPegawai(await pemegangJabatan(ajudan, pelaku), pesan, "tamu_disetujui_ajudan", ajudan);
+    }
+  } catch (e) { console.warn("[kabar keputusan tamu]", e.message); }
 }
 
 // Format tanggal Indonesia (WITA) untuk pesan WA, mis. "Senin, 16 Juni 2026"
@@ -474,6 +602,7 @@ async function actionCheckin(body) {
       "Anda akan menerima pemberitahuan melalui WhatsApp ini begitu ada keputusan dan penjadwalan dari pimpinan."
     : "✅ *Tamu Terdaftar*\n\nYth. *" + nama + "*,\nPermohonan Anda telah diterima dan sedang diperiksa oleh *Admin RK*.";
   await sendWA(no_wa, pesanWA + WA_FOOTER, "tamu_tanda_terima");
+  if (created && created[0] && created[0].id) await kabarTahap(created[0].id, "pending_rk", null);
 
   return { ok: true, id: created[0]?.id, nama: nama, tujuan_pejabat: tujuan };
 }
@@ -485,6 +614,7 @@ async function actionVerifyRK(body) {
     status: "pending_kasubbag",
     catatan_staf: body.notes || "Diverifikasi oleh Admin RK"
   });
+  await kabarTahap(body.id, "pending_kasubbag", body.oleh || "");
   return { ok: true, message: "Diteruskan ke Kasubbag" };
 }
 
@@ -533,17 +663,22 @@ async function actionScreen(body) {
     dikurasi_oleh: body.dikurasi_oleh || body.screened_by || "",
     status: "pending_kabag"
   });
+  await kabarTahap(body.id, "pending_kabag", body.screened_by || body.dikurasi_oleh || "", body.prioritas || body.priority);
   return { ok: true };
 }
 
 // 5. POST: forward (Kabag -> Pimpinan)
 async function actionForward(body) {
   if (!body.id) throw new Error("id wajib");
-  await sbPatch(body.id, {
+  var patchForward = {
     telaah_kabag: body.telaah_kabag || body.kabag_notes || "",
     ditelaah_oleh: body.ditelaah_oleh || body.forwarded_by || "",
     status: "pending_pimpinan"
-  });
+  };
+  // Kabag dapat mengubah prioritas saat meneruskan; dulu nilainya dibuang.
+  if (body.prioritas || body.priority) patchForward.prioritas = normPrioritas(body.prioritas || body.priority);
+  await sbPatch(body.id, patchForward);
+  await kabarTahap(body.id, "pending_pimpinan", body.forwarded_by || body.ditelaah_oleh || "", body.prioritas || body.priority);
   return { ok: true };
 }
 
@@ -582,6 +717,12 @@ async function actionRecallFromPimpinan(body) {
     ditelaah_oleh: body.recalled_by || ""
   });
 
+  // Ajudan: permohonan hilang dari antrean penjadwalannya.
+  await pushPemegang(peranTahap("pending_pimpinan", g.tujuan_pejabat), {
+    title: "↩️ Permohonan Audiensi Ditarik Kembali",
+    body: (g.nama || "-") + " — dikembalikan ke Kabag",
+    tag: "tamu-pending_pimpinan-" + peranTahap("pending_pimpinan", g.tujuan_pejabat),
+  }, body.recalled_by);
   // Push ke Kabag (dan PLH-nya), kecuali bila Kabag sendiri yang mencabut.
   await pushPemegang("kabag", {
     title: "🔄 Permohonan Tamu Dicabut dari Pimpinan",
@@ -751,6 +892,7 @@ async function actionRespond(body) {
     if (msg) await sendWA(guest.no_wa, msg, "tamu_keputusan_" + body.response);
   }
 
+  await kabarKeputusan(body.id, body.response, body.responded_by || "", updateData.jadwal_tanggal);
   return { ok: true };
 }
 
