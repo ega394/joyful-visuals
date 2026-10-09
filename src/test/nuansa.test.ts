@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  bolehSantai, namaPanggil, sapaanSantai, kutipanHarian, barisNuansa, KUTIPAN, hitungJulukan,
+  bolehSantai, namaPanggil, sapaanSantai, barisNuansa, hitungJulukan,
 } from "../lib/nuansa.js";
 
 // Waktu WITA → epoch (WITA = UTC+8). 9 Okt 2026 = Jumat, 12 Okt 2026 = Senin.
@@ -41,12 +41,17 @@ describe("sapaanSantai", () => {
   });
 });
 
-describe("kutipanHarian", () => {
-  it("sama sepanjang hari dan berganti esoknya", () => {
-    const pagi = kutipanHarian(wita("2026-10-08", "07:00"));
-    expect(kutipanHarian(wita("2026-10-08", "23:00"))).toBe(pagi);
-    expect(KUTIPAN).toContain(pagi);
-    expect(kutipanHarian(wita("2026-10-09", "07:00"))).not.toBe(pagi);
+describe("barisNuansa", () => {
+  it("Kata-kata Hari Ini dari Kabag didahulukan", () => {
+    expect(barisNuansa("staf", "Rina", wita("2026-10-08", "12:30"), "Apel jam 7.30 ya"))
+      .toBe("💬 Apel jam 7.30 ya");
+  });
+  it("tanpa kata hari ini → sapaan sesuai waktu, atau kosong", () => {
+    expect(barisNuansa("staf", "Rina", wita("2026-10-08", "12:30"), "")).toContain("Selamat siang");
+    expect(barisNuansa("staf", "Rina", wita("2026-10-08", "08:00"), "  ")).toBeNull();
+  });
+  it("pimpinan tidak melihat apa pun", () => {
+    expect(barisNuansa("wakilwalikota", "X", wita("2026-10-08", "12:30"), "Halo")).toBeNull();
   });
 });
 

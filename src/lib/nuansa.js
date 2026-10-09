@@ -7,6 +7,8 @@
  *
  * Aturan tampil:
  *  - Wali Kota dan Wakil Wali Kota tetap melihat tampilan formal.
+ *  - "Kata-kata Hari Ini" ditulis Kabag dari menu Profil (tabel
+ *    pengaturan_aplikasi), bukan dari berkas ini.
  *  - Ajudan, Kabag, Kasubbag, staf, dan admin ikut nuansa santai.
  *  - Tidak pernah dipakai di pesan ke pemohon/warga, WA, surat, atau PDF.
  */
@@ -47,22 +49,16 @@ export function sapaanSantai(nama, saat = Date.now()) {
   return null;
 }
 
-export const KUTIPAN = [
-  "Jangan lupa ngopi.",
-  "Kalau ada yang aneh di lapangan, jangan toleh-toleh :D",
-];
-
-/** Satu kutipan per hari (sama sepanjang hari, berganti esoknya). */
-export function kutipanHarian(saat = Date.now()) {
-  const t = hariIniWita(saat);
-  const urut = Math.floor(Date.parse(t + "T00:00:00Z") / 86400000);
-  return KUTIPAN[((urut % KUTIPAN.length) + KUTIPAN.length) % KUTIPAN.length];
-}
-
-/** Baris nuansa di bawah judul halaman: sapaan bila ada, selain itu kutipan. */
-export function barisNuansa(role, nama, saat = Date.now()) {
+/**
+ * Baris di bawah judul halaman. "Kata-kata Hari Ini" yang ditulis Kabag
+ * (menu Profil) didahulukan; bila kosong, sapaan sesuai waktu. Kutipan
+ * bawaan sengaja tidak ada lagi — isinya kini sepenuhnya dari Kabag.
+ */
+export function barisNuansa(role, nama, saat = Date.now(), kata = "") {
   if (!bolehSantai(role)) return null;
-  return sapaanSantai(nama, saat) || kutipanHarian(saat);
+  const k = String(kata || "").trim();
+  if (k) return "💬 " + k;
+  return sapaanSantai(nama, saat);
 }
 
 export const TEKS_MEMUAT = ["Lagi diambilkan datanya…", "Bentar, servernya lagi ngopi."];

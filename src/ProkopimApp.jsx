@@ -2769,8 +2769,24 @@ function NotifTab({user,showT}){
 }
 
 // ==================== PROFILE MODAL (ganti username & password) ====================
-function ProfileModal({user,onClose,showT}){
+function ProfileModal({user,onClose,showT,kata,onKataBerubah}){
   const[tabP,setTabP]=useState("profile");
+  // Kata-kata Hari Ini: hanya Kabag (atau PLH Kabag) yang menulis.
+  const bolehKata=punyaPeran(user,"kabag");
+  const[kataTeks,setKataTeks]=useState(kata?.teks||"");
+  const[kataSimpan,setKataSimpan]=useState(false);
+  const simpanKata=async(teks)=>{
+    setErr("");setKataSimpan(true);
+    try{
+      const r=await sesiFetch("/api/room-booking?op=kata_hari_ini",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({teks})});
+      const d=await r.json().catch(()=>({}));
+      if(!r.ok)throw new Error(d.error||"Gagal menyimpan");
+      onKataBerubah&&onKataBerubah(d.nilai||null);
+      setKataTeks(d.nilai?.teks||"");
+      showT(d.nilai?"Kata-kata hari ini tayang untuk tim ✓":"Kata-kata hari ini dihapus","ok");
+    }catch(e){setErr(e.message);}
+    finally{setKataSimpan(false);}
+  };
   const[form,setForm]=useState({nama:user.nama,jabatan:user.jabatan,noWA:user.noWA||"",email:user.email||""});
   const[pw,setPw]=useState({old:"",next:"",confirm:""});
   const[uname,setUname]=useState({newUsername:"",pwConfirm:""});
@@ -2811,7 +2827,7 @@ function ProfileModal({user,onClose,showT}){
     showT("Username diubah. Silakan login ulang.","warn");
     setTimeout(()=>{localStorage.removeItem("jp_session");window.location.reload();},1800);
   };
-  const tabs=[{k:"profile",l:"Profil"},{k:"password",l:"Ganti Password"},{k:"username",l:"Ganti Username"},{k:"biometric",l:"Biometrik"},{k:"notif",l:"🔔 Notifikasi"},{k:"ai",l:"🤖 AI"}];
+  const tabs=[{k:"profile",l:"Profil"},...(bolehKata?[{k:"kata",l:"💬 Kata Hari Ini"}]:[]),{k:"password",l:"Ganti Password"},{k:"username",l:"Ganti Username"},{k:"biometric",l:"Biometrik"},{k:"notif",l:"🔔 Notifikasi"},{k:"ai",l:"🤖 AI"}];
   return <div style={{position:"fixed",inset:0,zIndex:8200,background:"rgba(0,0,0,0.55)",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
     <div style={{background:"white",borderRadius:16,width:"100%",maxWidth:480,maxHeight:"90vh",display:"flex",flexDirection:"column"}}>
       <div style={{padding:"16px 20px 0",borderBottom:"1px solid #f1f5f9",flexShrink:0}}>
@@ -2830,6 +2846,23 @@ function ProfileModal({user,onClose,showT}){
         {tabP==="username"&&<><div style={{background:"#fef3c7",borderRadius:9,padding:"9px 12px",marginBottom:14,fontSize:13,color:"#92400e",border:"1px solid #fde68a"}}>Setelah ubah username, Anda akan diminta login ulang.</div><div style={{marginBottom:12}}><label style={{display:"block",fontSize:12,color:"#64748b",fontWeight:600,marginBottom:4}}>Username Baru</label><input value={uname.newUsername} onChange={e=>setUname(p=>({...p,newUsername:e.target.value}))} autoCapitalize="none" style={inp}/></div><div style={{marginBottom:16}}><label style={{display:"block",fontSize:12,color:"#64748b",fontWeight:600,marginBottom:4}}>Konfirmasi dengan Password Anda</label><input type="password" value={uname.pwConfirm} onChange={e=>setUname(p=>({...p,pwConfirm:e.target.value}))} style={inp}/></div><button onClick={changeUsername} style={{width:"100%",padding:"12px",borderRadius:10,border:"none",background:"#d97706",color:"white",cursor:"pointer",fontSize:14,fontWeight:700}}>Ubah Username</button></>}
         {tabP==="biometric"&&<BiometricTab user={user} showT={showT}/>}
         {tabP==="notif"&&<NotifTab user={user} showT={showT}/>}
+        {tabP==="kata"&&bolehKata&&<div>
+          <div style={{fontSize:13,color:"#475569",lineHeight:1.6,marginBottom:10}}>
+            Tulis pesan singkat untuk tim. Pesan tampil di bawah judul halaman bagi semua pegawai (Wali Kota & Wakil tidak melihatnya), sampai Bapak ganti atau hapus.
+          </div>
+          <textarea value={kataTeks} onChange={e=>setKataTeks(e.target.value.slice(0,160))} rows={3}
+            placeholder="Mis. Besok apel gabungan jam 07.30, jangan telat ya."
+            style={{...inp,resize:"vertical",fontFamily:"inherit",lineHeight:1.5}}/>
+          <div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:"#94a3b8",margin:"4px 0 12px"}}>
+            <span>{kata?.teks?"Sedang tayang · ditulis "+(kata.nama||kata.oleh||"")+(kata.pada?" · "+new Date(kata.pada).toLocaleString("id-ID",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}):""):"Belum ada pesan yang tayang"}</span>
+            <span>{kataTeks.length}/160</span>
+          </div>
+          {kataTeks.trim()&&<div style={{background:"#F8FAFC",border:"1px dashed #CBD5E1",borderRadius:9,padding:"8px 12px",fontSize:12.5,color:"#64748B",fontStyle:"italic",marginBottom:12}}>Pratinjau: 💬 {kataTeks.trim()}</div>}
+          <div style={{display:"flex",gap:8}}>
+            <button disabled={kataSimpan||!kataTeks.trim()} onClick={()=>simpanKata(kataTeks)} style={{flex:2,padding:"12px",borderRadius:10,border:"none",background:kataTeks.trim()?NAVY:"#94A3B8",color:"white",cursor:kataTeks.trim()?"pointer":"default",fontSize:14,fontWeight:700}}>{kataSimpan?"Menyimpan…":"Tayangkan"}</button>
+            {kata?.teks&&<button disabled={kataSimpan} onClick={()=>simpanKata("")} style={{flex:1,padding:"12px",borderRadius:10,border:"1.5px solid #FCA5A5",background:"white",color:"#DC2626",cursor:"pointer",fontSize:14,fontWeight:700}}>Hapus</button>}
+          </div>
+        </div>}
         {tabP==="ai"&&<AIProviderTab showT={showT}/>}
       </div>
     </div>
@@ -8107,7 +8140,18 @@ export default function App(){
   const showT=useCallback((msg,type="ok")=>{if(type==="ok")haptic(40);else if(type==="warn")haptic(80);else if(type==="error")haptic([50,30,50]);setToast({msg,type});setTimeout(()=>setToast(null),type==="error"?5000:type==="warn"?4000:3000);},[]);
   // Nuansa santai (src/lib/nuansa.js): sapaan/kutipan di bawah judul halaman,
   // dan kejutan kecil bila logo diketuk 5 kali. Pimpinan tetap formal.
-  const nuansa=barisNuansa(role,user?.nama);
+  // "Kata-kata Hari Ini" ditulis Kabag dari menu Profil, dibaca semua pengguna.
+  const[kataHariIni,setKataHariIni]=useState(null);
+  useEffect(()=>{
+    if(!SUPA_OK||!user?.username)return;
+    let batal=false;
+    const muat=()=>fetch(SUPA_URL+"/rest/v1/pengaturan_aplikasi?kunci=eq.kata_hari_ini&select=nilai",{headers:H()})
+      .then(r=>r.ok?r.json():[]).then(d=>{if(!batal)setKataHariIni((d&&d[0]&&d[0].nilai)||null);}).catch(()=>{});
+    muat();
+    const t=setInterval(muat,10*60*1000);
+    return()=>{batal=true;clearInterval(t);};
+  },[user?.username]);
+  const nuansa=barisNuansa(role,user?.nama,Date.now(),kataHariIni?.teks);
   const ketukRef=React.useRef({n:0,t:0});
   const ketukLogo=()=>{
     if(!bolehSantai(role))return;
@@ -12889,7 +12933,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
     {showAdmin&&<AdminModal onClose={()=>setShowAdmin(false)} showT={showT} events={events} updAndSync={updAndSync}/>}
     {showBroadcast&&<BroadcastModal onClose={()=>setShowBroadcast(false)} showT={showT} senderNama={user?.nama||"Kabag Protokol dan Komunikasi Pimpinan"}/>}
     {showReport&&<ReportingModal events={events} kabagNama={kabagNama} cetakOleh={user?.nama||user?.username||""} onClose={()=>setShowReport(false)}/>}
-    {showProfile&&<ProfileModal user={user} onClose={updated=>{setShowProfile(false);if(updated)setUser(updated);}} showT={showT}/>}
+    {showProfile&&<ProfileModal user={user} onClose={updated=>{setShowProfile(false);if(updated)setUser(updated);}} showT={showT} kata={kataHariIni} onKataBerubah={setKataHariIni}/>}
     {showReportTamu&&<ReportingTamuModal user={user} cetakOleh={user?.nama||user?.username||"Sistem"} showT={showT} onClose={()=>setShowReportTamu(false)}/>}
     {showLaporan&&<LaporanModal events={events} kabagNama={kabagNama} cetakOleh={user?.nama||user?.username||""} onClose={()=>setShowLaporan(false)}/>}
     {showArsip&&<ArsipModal events={events} user={user} onClose={()=>setShowArsip(false)}/>}

@@ -44,7 +44,7 @@
 // Aturan PLH sengaja tidak disalin ulang di sini: peramban dan peladen harus
 // memakai pemeriksaan yang sama persis, kalau tidak keduanya bisa berbeda
 // pendapat tentang penetapan yang sah.
-import { periksaPenetapan } from "../src/lib/plh.js";
+import { periksaPenetapan, plhAktif } from "../src/lib/plh.js";
 import { sinkronSatu } from "./_kalender.mjs";
 // CommonJS (lihat kepala _walog.js) — impor bawaan, lalu ambil fungsinya.
 import walog from "./_walog.js";
@@ -796,6 +796,42 @@ export default async function handler(req, res) {
           ok: true, username: target, nama: tgt[0].nama,
           plh_untuk, plh_mulai, plh_selesai,
         });
+      }
+
+      // ?op=kata_hari_ini → Kabag (atau PLH-nya) menulis/menghapus "Kata-kata
+      // Hari Ini" yang tampil di bawah judul halaman bagi seluruh tim.
+      // Menumpang endpoint ini karena kuota fungsi Vercel Hobby sudah penuh.
+      if (query.op === "kata_hari_ini") {
+        const pemohon = await verifySession(req);
+        if (!pemohon) return res.status(403).json({ error: "Sesi tidak valid — silakan login ulang." });
+        let boleh = pemohon.role === "kabag" || pemohon.role === "superadmin";
+        if (!boleh) {
+          const plh = (await sbGet(
+            `users?username=eq.${encodeURIComponent(pemohon.username)}&select=role,plh_untuk,plh_mulai,plh_selesai`
+          ).catch(() => []))?.[0];
+          boleh = plhAktif(plh || {})?.untuk === "kabag";
+        }
+        if (!boleh) return res.status(403).json({ error: "Hanya Kabag (atau PLH Kabag) yang dapat mengubah Kata-kata Hari Ini." });
+
+        const teks = String((body && body.teks) || "").replace(/\s+/g, " ").trim().slice(0, 160);
+        const nilai = teks
+          ? { teks, oleh: pemohon.username, nama: pemohon.nama || pemohon.username, pada: new Date().toISOString() }
+          : null;
+        const r = await fetch(`${SUPA_URL}/rest/v1/pengaturan_aplikasi?on_conflict=kunci`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json", apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}`,
+            Prefer: "resolution=merge-duplicates,return=minimal",
+          },
+          body: JSON.stringify({ kunci: "kata_hari_ini", nilai, diubah_oleh: pemohon.username, diubah_pada: new Date().toISOString() }),
+        });
+        if (!r.ok) {
+          const t = await r.text();
+          if (/PGRST205|Could not find the table/i.test(t))
+            return res.status(503).json({ error: "Tabel pengaturan belum dibuat — jalankan migrasi 2026-10-10_kata_hari_ini.sql." });
+          return res.status(500).json({ error: "Gagal menyimpan: " + t.slice(0, 120) });
+        }
+        return res.status(200).json({ ok: true, nilai });
       }
 
       const admin = await verifyAdmin(req);
