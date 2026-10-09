@@ -5595,6 +5595,30 @@ function EventCard({ev}){
 
 // ── GroupedEventList — tampilkan semua agenda dengan pemisah upcoming/past ──
 // Digunakan saat filter "Semua" aktif (tidak ada filter tanggal)
+// Menampilkan daftar panjang secara bertahap. Merender ratusan kartu agenda
+// sekaligus membuat setiap ketikan di kolom Cari tertahan beberapa detik di
+// HP (1.500 agenda ≈ 0,8 dtk per huruf di komputer). `dariAkhir`: ambil yang
+// paling akhir (mis. agenda lampau terbaru) dan tombolnya memuat yang lebih
+// lama di atas, supaya urutan tanggal tetap naik.
+function BatasTampil({ list, awal = 40, langkah = 40, dariAkhir = false, children }) {
+  const [n, setN] = React.useState(awal);
+  React.useEffect(() => { setN(awal); }, [list.length, awal]);
+  if (list.length <= n) return children(list);
+  const sisa = list.length - n;
+  const tombol = (
+    <button onClick={() => setN(x => x + langkah)} className="btn-ios"
+      style={{ display: "block", width: "100%", margin: "10px 0", padding: "11px", borderRadius: 12,
+               border: "1.5px dashed #CBD5E1", background: "white", color: "#475569",
+               cursor: "pointer", fontSize: 13, fontWeight: 700 }}>
+      {dariAkhir ? "↑ Tampilkan " + Math.min(langkah, sisa) + " agenda sebelumnya" : "↓ Tampilkan " + Math.min(langkah, sisa) + " agenda lagi"}
+      <span style={{ fontWeight: 500, color: "#94A3B8" }}> · {sisa} belum ditampilkan</span>
+    </button>
+  );
+  return dariAkhir
+    ? <>{tombol}{children(list.slice(list.length - n))}</>
+    : <>{children(list.slice(0, n))}{tombol}</>;
+}
+
 function GroupedEventList({ evList, isMobile, viewMode }) {
   const NAVY = "#0A1628", GOLD = "#C9A84C";
   const nowStr = new Date().toISOString().slice(0,16).replace("T"," ");
@@ -5634,7 +5658,7 @@ function GroupedEventList({ evList, isMobile, viewMode }) {
           </div>
           <div style={{ flex: 1, height: 1, background: "linear-gradient(90deg,#E2E8F0,transparent)" }}/>
         </div>
-        {renderList(upcoming)}
+        <BatasTampil list={upcoming} awal={60}>{renderList}</BatasTampil>
       </>}
 
       {/* ── Pemisah dan bagian sudah berlalu ── */}
@@ -5662,7 +5686,7 @@ function GroupedEventList({ evList, isMobile, viewMode }) {
           <div style={{ flex: 1, height: 1, background: "linear-gradient(90deg,#E2E8F0,transparent)" }}/>
         </div>
         <div style={{ opacity: 0.75 }}>
-          {renderList(past)}
+          <BatasTampil list={past} awal={20} dariAkhir>{renderList}</BatasTampil>
         </div>
       </>}
 
@@ -7805,6 +7829,9 @@ export default function App(){
   // (menunggu persetujuan) alih-alih langsung menimpa jadwal.
   const[usulanMode,setUsulanMode]=useState(false);
   const[toast,setToast]=useState(null);const[globalLoading,setGlobalLoading]=useState(false);const[confirmDlg,setConfirmDlg]=useState(null);const[showOnboarding,setShowOnboarding]=useState(false);const[filterDate,setFDate]=useState("");const[filterFrom,setFilterFrom]=useState("");const[filterTo,setFilterTo]=useState("");const[showRangeFilter,setShowRangeFilter]=useState(false);const[searchQ,setSearchQ]=useState("");const[showSearch,setShowSearch]=useState(false);
+  // Kolom Cari tetap langsung terisi saat diketik; penyaringan dan
+  // penggambaran ulang daftar agenda menyusul dengan prioritas rendah.
+  const cariTunda=React.useDeferredValue(searchQ);
   const[showAI,setShowAI]=useState(false);const[showReport,setShowReport]=useState(false);const[showReportTamu,setShowReportTamu]=useState(false);const[showSummary,setShowSummary]=useState(false);const[showAdmin,setShowAdmin]=useState(false);const[showProfile,setShowProfile]=useState(false);const[showLaporan,setShowLaporan]=useState(false);const[showBroadcast,setShowBroadcast]=useState(false);const[showArsip,setShowArsip]=useState(false);const[showUndanganTool,setShowUndanganTool]=useState(false);
   const[showForgot,setShowForgot]=useState(false);const[showRegister,setShowRegister]=useState(false);const[pendingRegs,setPendingRegs]=useState(()=>loadPendingRegs());
   const[loginLoading,setLoginLoading]=useState(false);const[loginPhase,setLoginPhase]=useState("");
@@ -8544,14 +8571,16 @@ const TH={
   const isKasubbagAny=KASUBBAG_ROLES.includes(role);
   const listEvents=(()=>{
     const base=getVisible();
-    if(!searchQ.trim())return base;
-    const q=searchQ.trim().toLowerCase();
+    if(!cariTunda.trim())return base;
+    const q=cariTunda.trim().toLowerCase();
     return base.filter(e=>
       (e.namaAcara||"").toLowerCase().includes(q)||
       (e.penyelenggara||"").toLowerCase().includes(q)||
       (e.lokasi||"").toLowerCase().includes(q)||
       (e.catatan||"").toLowerCase().includes(q)||
       (e.pakaian||"").toLowerCase().includes(q)||
+      (e.buktiUndangan||"").toLowerCase().includes(q)||
+      (e.jenisKegiatan||"").toLowerCase().includes(q)||
       (e.tanggal||"").includes(q)
     );
   })();
@@ -12362,7 +12391,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
               autoFocus
               value={searchQ}
               onChange={e=>setSearchQ(e.target.value)}
-              placeholder="Cari nama acara, penyelenggara, lokasi, catatan..."
+              placeholder="Cari nama acara, penyelenggara, lokasi, no. surat..."
               style={{flex:1,border:"none",background:"transparent",fontSize:13,color:"#1E293B",outline:"none",minWidth:0}}
             />
             {searchQ&&<button onClick={()=>setSearchQ("")} style={{border:"none",background:"none",color:"#94A3B8",cursor:"pointer",fontSize:16,lineHeight:1,padding:"0 2px",flexShrink:0}}>✕</button>}
@@ -12666,13 +12695,13 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
           </div>
           {listEvents.length===0
             ?<EmptyState icon="📭" message="Belum ada agenda" sub="Jadwal akan muncul setelah disetujui Kabag."/>
-            :(!filterDate||filterDate===""||filterDate==="week")&&!searchQ.trim()
+            :(!filterDate||filterDate===""||filterDate==="week")&&!cariTunda.trim()
               ?<GroupedEventList evList={listEvents} isMobile={isMobile} viewMode={viewMode}/>
-              :viewMode==="timeline"
-              ?<TimelineView evList={listEvents}/>
+              :<BatasTampil list={listEvents}>{daftar=>viewMode==="timeline"
+              ?<TimelineView evList={daftar}/>
               :isMobile
-                ?<div>{listEvents.map(ev=><EventCard key={ev.id} ev={ev}/>)}</div>
-                :<TableView evList={listEvents}/>
+                ?<div>{daftar.map(ev=><EventCard key={ev.id} ev={ev}/>)}</div>
+                :<TableView evList={daftar}/>}</BatasTampil>
           }
         </>
 
@@ -12695,14 +12724,14 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
                 : "Jadwal akan muncul setelah disetujui Kabag."
               }
             />
-          :(!filterDate||filterDate===""||filterDate==="week")&&!searchQ.trim()
+          :(!filterDate||filterDate===""||filterDate==="week")&&!cariTunda.trim()
               // Semua / Minggu Ini — tampilkan dengan pemisah upcoming/past
               ?<GroupedEventList evList={listEvents} isMobile={isMobile} viewMode={viewMode}/>
-              :viewMode==="timeline"
-              ?<TimelineView evList={listEvents}/>
+              :<BatasTampil list={listEvents}>{daftar=>viewMode==="timeline"
+              ?<TimelineView evList={daftar}/>
               :isMobile
-                ?<div>{listEvents.map(ev=><EventCard key={ev.id} ev={ev}/>)}</div>
-                :<TableView evList={listEvents}/>
+                ?<div>{daftar.map(ev=><EventCard key={ev.id} ev={ev}/>)}</div>
+                :<TableView evList={daftar}/>}</BatasTampil>
         }</>
 
       /* 12. Notif — ditangani oleh bell icon, tidak perlu render */

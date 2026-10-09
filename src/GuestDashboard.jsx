@@ -68,7 +68,40 @@ async function apiPost(action, body) {
   });
   var data = await r.json().catch(function(){return{};});
   if(!r.ok) throw new Error(data.error || "Gagal (HTTP "+r.status+")");
+  // Status permohonan berubah: daftar tersimpan tidak boleh dipakai lagi.
+  _antrean.clear();
   return data;
+}
+
+// ── Daftar permohonan: tampil seketika dari simpanan, lalu diperbarui ──
+// Setiap pemuatan melewati peladen (cek sesi + kueri), dan sebelumnya layar
+// kosong menunggu setiap kali pindah tab. Kini daftar terakhir untuk alamat
+// yang sama langsung ditampilkan sementara versi terbarunya diambil.
+// Permintaan yang sama dan sedang berjalan juga tidak dikirim dua kali.
+var _antrean = new Map();      // url → { data, waktu }
+var _antreanJalan = new Map(); // url → Promise
+function antreanTersimpan(url) {
+  var c = _antrean.get(url);
+  return c && Date.now() - c.waktu < 10 * 60 * 1000 ? c.data : null;
+}
+function ambilAntrean(url) {
+  if (_antreanJalan.has(url)) return _antreanJalan.get(url);
+  var janji = sesiFetch(url)
+    .then(function(r){ if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); })
+    .then(function(d){ var list = Array.isArray(d) ? d : []; _antrean.set(url, { data: list, waktu: Date.now() }); return list; })
+    .finally(function(){ _antreanJalan.delete(url); });
+  _antreanJalan.set(url, janji);
+  return janji;
+}
+/** Pola umum: tampilkan simpanan (bila ada), lalu muat ulang. */
+function muatAntrean(url, setData, setLoading, olah, setelah) {
+  var lama = antreanTersimpan(url);
+  if (lama) { setData(olah ? olah(lama) : lama); setLoading(false); }
+  else setLoading(true);
+  return ambilAntrean(url)
+    .then(function(list){ setData(olah ? olah(list) : list); if (setelah) setelah(); })
+    .catch(function(){ if (!lama) setData([]); })
+    .finally(function(){ setLoading(false); });
 }
 
 // ── Sinkronisasi Tamu → Agenda ────────────────────────────────
@@ -183,12 +216,8 @@ function AdminRKView({ user, events, showT, isMobile, reloadEvents }) {
   var [q,          setQ]          = useState("");
 
   var load = useCallback(function() {
-    setLoading(true);
-    sesiFetch(API+"?action=queue&status="+tab+"&limit=60")
-      .then(function(r){return r.json();})
-      .then(function(d){setGuests(Array.isArray(d)?d:[]); setLastLoaded(new Date());})
-      .catch(function(){setGuests([]);})
-      .finally(function(){setLoading(false);});
+    muatAntrean(API+"?action=queue&status="+tab+"&limit=60", setGuests, setLoading, null,
+      function(){ setLastLoaded(new Date()); });
   }, [tab]);
 
   useEffect(function(){load();}, [load]);
@@ -409,12 +438,8 @@ function KasubbagView({ user, showT, isMobile }) {
   var [q,          setQ]          = useState("");
 
   var load = useCallback(function() {
-    setLoading(true);
-    sesiFetch(API+"?action=queue&status="+tab+"&limit=60")
-      .then(function(r){return r.json();})
-      .then(function(d){setGuests(Array.isArray(d)?d:[]); setLastLoaded(new Date());})
-      .catch(function(){setGuests([]);})
-      .finally(function(){setLoading(false);});
+    muatAntrean(API+"?action=queue&status="+tab+"&limit=60", setGuests, setLoading, null,
+      function(){ setLastLoaded(new Date()); });
   }, [tab]);
 
   useEffect(function(){load();}, [load]);
@@ -649,12 +674,8 @@ function KabagView({ user, events, showT, isMobile, reloadEvents }) {
   var [q,          setQ]          = useState("");
 
   var load = useCallback(function() {
-    setLoading(true);
-    sesiFetch(API+"?action=queue&status="+tab+"&limit=60")
-      .then(function(r){return r.json();})
-      .then(function(d){setGuests(Array.isArray(d)?d:[]); setLastLoaded(new Date());})
-      .catch(function(){setGuests([]);})
-      .finally(function(){setLoading(false);});
+    muatAntrean(API+"?action=queue&status="+tab+"&limit=60", setGuests, setLoading, null,
+      function(){ setLastLoaded(new Date()); });
   }, [tab]);
 
   useEffect(function(){load();}, [load]);
@@ -961,20 +982,10 @@ function PimpinanView({ role, user, events, showT, isMobile, reloadEvents }) {
     var pimpinanLabel = role==="wakilwalikota" ? "Wakil Wali Kota" : "Wali Kota";
     var statusQ = tab;
     var url = API+"?action=queue&status="+statusQ+"&limit=50";
-    setLoading(true);
-    sesiFetch(url)
-      .then(function(r){return r.json();})
-      .then(function(d){
-        var list = Array.isArray(d) ? d : [];
-        // Filter hanya untuk pimpinan ini
-        list = list.filter(function(g){
-          return g.tujuan_pejabat === pimpinanLabel;
-        });
-        setGuests(list);
-        setLastLoaded(new Date());
-      })
-      .catch(function(){setGuests([]);})
-      .finally(function(){setLoading(false);});
+    // Filter hanya untuk pimpinan ini
+    muatAntrean(url, setGuests, setLoading,
+      function(list){ return list.filter(function(g){ return g.tujuan_pejabat === pimpinanLabel; }); },
+      function(){ setLastLoaded(new Date()); });
   }, [tab, role]);
 
   useEffect(function(){load();}, [load]);
@@ -1606,35 +1617,23 @@ function AjudanView({ role, user, events, showT, isMobile, reloadEvents }) {
 
   // Mode penyambutan: tamu disetujui hari ini & besok
   useEffect(function() {
-    setLoading(true);
-    sesiFetch(API+"?action=queue&status=approved&limit=100&pimpinan="+(role==="ajudan_walikota"?"walikota":"wakilwalikota"))
-      .then(function(r){return r.json();})
-      .then(function(d){
-        var list = Array.isArray(d)?d:[];
-        list = list.filter(function(g){
+    muatAntrean(API+"?action=queue&status=approved&limit=100&pimpinan="+(role==="ajudan_walikota"?"walikota":"wakilwalikota"),
+      setGuests, setLoading, function(d){
+        var list = d.filter(function(g){
           return g.tujuan_pejabat===pimpinanLabel &&
             (g.jadwal_tanggal===today||g.jadwal_tanggal===tomorrow);
         });
-        list.sort(function(a,b){
+        return list.slice().sort(function(a,b){
           return ((a.jadwal_tanggal||"")+(a.jadwal_jam||"")).localeCompare((b.jadwal_tanggal||"")+(b.jadwal_jam||""));
         });
-        setGuests(list);
-      })
-      .catch(function(){setGuests([]);})
-      .finally(function(){setLoading(false);});
+      });
   }, [pimpinanLabel]);
 
   // Mode penjadwalan: permohonan tahap akhir (pending_pimpinan)
   var loadJadwal = useCallback(function() {
-    setJadwalLoading(true);
-    sesiFetch(API+"?action=queue&status=pending_pimpinan&limit=80&pimpinan="+(role==="ajudan_walikota"?"walikota":"wakilwalikota"))
-      .then(function(r){return r.json();})
-      .then(function(d){
-        var list = Array.isArray(d)?d:[];
-        setJadwalList(list.filter(function(g){return g.tujuan_pejabat===pimpinanLabel;}));
-      })
-      .catch(function(){setJadwalList([]);})
-      .finally(function(){setJadwalLoading(false);});
+    muatAntrean(API+"?action=queue&status=pending_pimpinan&limit=80&pimpinan="+(role==="ajudan_walikota"?"walikota":"wakilwalikota"),
+      setJadwalList, setJadwalLoading,
+      function(list){ return list.filter(function(g){return g.tujuan_pejabat===pimpinanLabel;}); });
   }, [pimpinanLabel]);
 
   useEffect(function(){ if(subtab==="jadwal") loadJadwal(); }, [subtab, loadJadwal]);
@@ -1750,12 +1749,7 @@ function ReadOnlyView({ isMobile }) {
   var [tab,     setTab]     = useState("approved");
 
   useEffect(function(){
-    setLoading(true);
-    sesiFetch(API+"?action=queue&status="+tab+"&limit=50")
-      .then(function(r){return r.json();})
-      .then(function(d){setGuests(Array.isArray(d)?d:[]);})
-      .catch(function(){setGuests([]);})
-      .finally(function(){setLoading(false);});
+    muatAntrean(API+"?action=queue&status="+tab+"&limit=50", setGuests, setLoading);
   }, [tab]);
 
   return (

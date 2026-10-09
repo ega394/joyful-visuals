@@ -905,6 +905,12 @@ const AKSI_PUBLIK = ["checkin"];
 
 export default async function handler(req, res) {
   var action = req.query.action;
+  // Daftar permohonan diambil BERSAMAAN dengan pemeriksaan sesi (dulu
+  // berurutan: sesi → pengguna → daftar). Hasilnya baru dikirim setelah sesi
+  // terbukti sah, jadi tidak ada data yang keluar tanpa sesi.
+  var antreDini = (req.method === "GET" && action === "queue")
+    ? actionQueue(req.query).then(function (d) { return { d: d }; }, function (e) { return { e: e }; })
+    : null;
   if (!(req.method === "POST" && AKSI_PUBLIK.includes(action))) {
     var pengguna = await wajibSesi(req, res);
     if (!pengguna) return;
@@ -917,7 +923,9 @@ export default async function handler(req, res) {
   try {
     var result;
     if (req.method === "GET" && action === "queue") {
-      result = await actionQueue(req.query);
+      var hasilAntre = await antreDini;
+      if (hasilAntre.e) throw hasilAntre.e;
+      result = hasilAntre.d;
     } else if (req.method === "POST") {
       if      (action === "checkin")    result = await actionCheckin(req.body);
       else if (action === "verify_rk")  result = await actionVerifyRK(req.body);
