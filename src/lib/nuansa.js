@@ -48,7 +48,6 @@ export function sapaanSantai(nama, saat = Date.now()) {
 }
 
 export const KUTIPAN = [
-  "Rencana A boleh bagus. Rencana B harus ada.",
   "Jangan lupa ngopi.",
   "Kalau ada yang aneh di lapangan, jangan toleh-toleh :D",
 ];
