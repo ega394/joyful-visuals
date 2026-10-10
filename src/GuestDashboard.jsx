@@ -333,6 +333,7 @@ function AdminRKDetail({ guest, user, events, showT, isMobile, onBack, onDone, r
       badge={<StatusBadge status={guest.status}/>}
     >
       <DataTamu guest={guest}/>
+      <KirimUlangWA guest={guest} showT={showT}/>
 
       {/* Catatan/Instruksi dari Kasubbag — tampil mencolok bila dikembalikan */}
       {guest.status==="pending_rk" && guest.catatan_staf && (
@@ -559,6 +560,7 @@ function KasubbagDetail({ guest, user, showT, isMobile, onBack, onDone }) {
       badge={<StatusBadge status={guest.status}/>}
     >
       <DataTamu guest={guest}/>
+      <KirimUlangWA guest={guest} showT={showT}/>
 
       {/* Instruksi Kabag — tampil mencolok bila dikembalikan untuk klarifikasi */}
       {guest.status==="pending_kasubbag" && guest.telaah_kabag && (
@@ -806,6 +808,7 @@ function KabagDetail({ guest, user, events, showT, isMobile, onBack, onDone, rel
       badge={<StatusBadge status={guest.status}/>}
     >
       <DataTamu guest={guest}/>
+      <KirimUlangWA guest={guest} showT={showT}/>
 
       {/* Riwayat catatan */}
       {guest.catatan_rk && (
@@ -1396,6 +1399,7 @@ function PimpinanDetail({ guest, role, user, events, showT, isMobile, onBack, on
       </div>
 
       <DataTamu guest={guest}/>
+      {(role==="admin_rk"||role==="kabag") && <KirimUlangWA guest={guest} showT={showT}/>}
 
       {/* Riwayat Lengkap — hanya Admin RK + Telaahan Staf (tidak menampilkan catatan kasubbag agar tidak membingungkan Pimpinan) */}
       {guest.catatan_rk && (
@@ -1778,6 +1782,73 @@ function ReadOnlyView({ isMobile }) {
 // ══════════════════════════════════════════════════════════════
 //  SHARED: DataTamu — tampilkan semua isi formulir
 // ══════════════════════════════════════════════════════════════
+// ── Kirim ulang pemberitahuan WA ke pemohon ──────────────────
+// Untuk Kabag, Kasubbag Protokol, dan Admin RK. Isi pesan disusun peladen
+// sesuai status permohonan saat ini; petugas melihat pratinjaunya dulu.
+function KirimUlangWA({ guest, showT }) {
+  var [pratinjau, setPratinjau] = useState(null); // { pesan, tungguMenit }
+  var [sibuk, setSibuk] = useState(false);
+  // Penahan klik ganda: state React baru berubah setelah render berikutnya,
+  // jadi dua ketukan cepat bisa lolos sebelum tombol tampak nonaktif.
+  var jalan = React.useRef(false);
+  if (!guest || !guest.no_wa || guest.status === "selesai") return null;
+
+  async function minta(kirim) {
+    if (jalan.current) return;
+    jalan.current = true;
+    setSibuk(true);
+    try {
+      var r = await sesiFetch(API + "?action=kirim_ulang_wa", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: guest.id, pratinjau: !kirim }),
+      });
+      var d = await r.json().catch(function(){ return {}; });
+      if (!r.ok) throw new Error(d.error || "Gagal (HTTP " + r.status + ")");
+      if (kirim) { showT("✅ " + (d.message || "Terkirim")); setPratinjau(null); }
+      else setPratinjau(d);
+    } catch (e) { showT("❌ " + e.message); if (kirim) setPratinjau(null); }
+    finally { setSibuk(false); jalan.current = false; }
+  }
+
+  var tertahan = pratinjau && (pratinjau.tungguMenit > 0 || pratinjau.kuotaHabis);
+
+  if (!pratinjau) return (
+    <button disabled={sibuk} onClick={function(){ minta(false); }} style={{
+      width:"100%",padding:"11px",borderRadius:12,border:"2px solid #CBD5E1",boxSizing:"border-box",
+      background:"white",color:NAVY,fontSize:13,fontWeight:700,cursor:sibuk?"default":"pointer",
+      display:"flex",alignItems:"center",justifyContent:"center",gap:8,marginBottom:14,
+    }}>
+      {sibuk ? "Menyiapkan pesan…" : "🔁 Kirim Ulang Notifikasi WA ke Pemohon"}
+    </button>
+  );
+
+  return (
+    <CardSection title="🔁 Kirim Ulang Notifikasi WA" accent="#0EA5E9">
+      <div style={{fontSize:12.5,color:"#64748B",marginBottom:8,lineHeight:1.5}}>
+        Pesan berikut akan dikirim ke <b>{gPhone(guest)}</b> sesuai status permohonan saat ini:
+      </div>
+      <div style={{whiteSpace:"pre-wrap",fontSize:12.5,lineHeight:1.55,color:"#1E293B",background:"#F0FDF4",
+        border:"1px solid #BBF7D0",borderRadius:10,padding:"10px 12px",marginBottom:10,maxHeight:260,overflowY:"auto"}}>
+        {pratinjau.pesan}
+      </div>
+      {pratinjau.kuotaHabis ? (
+        <InfoBox type="warn" msg="Sudah 3 kali dikirim ulang hari ini. Bila pemohon tetap belum menerima, hubungi langsung lewat Chat WhatsApp."/>
+      ) : pratinjau.tungguMenit > 0 ? (
+        <InfoBox type="warn" msg={"Pesan ini baru saja dikirim ulang. Dapat dikirim lagi dalam " + pratinjau.tungguMenit + " menit."}/>
+      ) : (
+        <div style={{fontSize:12,color:"#94A3B8"}}>Sisa kirim ulang hari ini: {pratinjau.sisaHariIni} dari 3 · jeda 30 menit antarkiriman.</div>
+      )}
+      <div style={{display:"flex",gap:8,marginTop:8}}>
+        <button onClick={function(){ setPratinjau(null); }} disabled={sibuk} style={{flex:1,padding:"11px",borderRadius:10,
+          border:"1.5px solid #CBD5E1",background:"white",color:"#475569",fontSize:13,fontWeight:700,cursor:"pointer"}}>Batal</button>
+        <button onClick={function(){ minta(true); }} disabled={sibuk || tertahan} style={{flex:2,padding:"11px",borderRadius:10,
+          border:"none",background:(sibuk||tertahan)?"#94A3B8":"#16A34A",color:"white",fontSize:13,fontWeight:700,
+          cursor:(sibuk||tertahan)?"default":"pointer"}}>{sibuk ? "Mengirim…" : "📲 Kirim Sekarang"}</button>
+      </div>
+    </CardSection>
+  );
+}
+
 function DataTamu({ guest }) {
   return (
     <>
