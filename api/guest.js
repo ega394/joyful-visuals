@@ -527,6 +527,56 @@ function fmtTanggalWA(ymd) {
   } catch (e) { return ymd; }
 }
 
+// ── Isi WA ke pemohon ────────────────────────────────────────
+// Dipakai saat keputusan/pendaftaran dan saat petugas mengirim ulang, supaya
+// isi pesan ulang sama persis dengan aslinya. `ulang` menandai judul pesan.
+function judulWA(judul, ulang) { return "*" + judul + "*" + (ulang ? " _(dikirim ulang)_" : ""); }
+
+function pesanDiterima(nama, tujuan, ulang) {
+  return "✅ " + judulWA("Permohonan Audiensi Diterima", ulang) + "\n\n" +
+    "Yth. *" + (nama || "Pemohon") + "*,\n" +
+    "Permohonan audiensi Anda kepada *" + (tujuan || "Pimpinan") + "* telah kami terima dan sedang diproses oleh Tim Protokol.\n\n" +
+    "Anda akan menerima pemberitahuan melalui WhatsApp ini begitu ada keputusan dan penjadwalan dari pimpinan." + WA_FOOTER;
+}
+
+function pesanKeputusan(status, g, ulang) {
+  var pejabat = g.tujuan_pejabat || "Pimpinan";
+  var nama    = g.nama || "Pemohon";
+  if (status === "approved") {
+    var jadwalStr = "";
+    if (g.jadwal_tanggal) {
+      jadwalStr = "\n🗓️ *Jadwal:* " + fmtTanggalWA(g.jadwal_tanggal) +
+        (g.jadwal_jam ? ", pukul " + String(g.jadwal_jam).slice(0,5) + " WITA" : "");
+    }
+    var lokasiWA = (g.tempat && String(g.tempat).trim()) || "Ruang Kerja";
+    return "✅ " + judulWA("Audiensi Disetujui", ulang) + "\n\n" +
+      "Yth. *" + nama + "*,\n" +
+      "Permohonan audiensi Anda kepada *" + pejabat + "* telah *DISETUJUI*." +
+      jadwalStr + "\n\n" +
+      "📍 Tempat: " + lokasiWA + ".\n" +
+      "Mohon hadir 15 menit sebelum jadwal dan membawa identitas diri." +
+      WA_FOOTER;
+  }
+  if (status === "rejected") {
+    return "🙏 " + judulWA("Pemberitahuan Permohonan Audiensi", ulang) + "\n\n" +
+      "Yth. *" + nama + "*,\n" +
+      "Mohon maaf, permohonan audiensi Anda kepada *" + pejabat +
+      "* belum dapat kami penuhi saat ini." +
+      (g.alasan_tolak ? "\n\n📝 Keterangan: " + g.alasan_tolak : "") +
+      "\n\nAnda dipersilakan mengajukan kembali di lain waktu." +
+      WA_FOOTER;
+  }
+  if (status === "disposed") {
+    return "↪️ " + judulWA("Permohonan Diteruskan", ulang) + "\n\n" +
+      "Yth. *" + nama + "*,\n" +
+      "Permohonan audiensi Anda telah diteruskan kepada *" +
+      (g.disposisi_ke || "unit terkait") +
+      "* untuk ditindaklanjuti. Tim terkait akan menghubungi Anda lebih lanjut." +
+      WA_FOOTER;
+  }
+  return null;
+}
+
 // 1. GET: queue
 async function actionQueue(query) {
   var status   = query.status;
@@ -597,11 +647,9 @@ async function actionCheckin(body) {
   // Formulir publik memakai sapaan audiensi; pemanggil lain memakai sapaan
   // pendaftaran tamu seperti sebelumnya.
   var pesanWA = body.sumber === "publik"
-    ? "✅ *Permohonan Audiensi Diterima*\n\nYth. *" + nama + "*,\n" +
-      "Permohonan audiensi Anda kepada *" + tujuan + "* telah kami terima dan sedang diproses oleh Tim Protokol.\n\n" +
-      "Anda akan menerima pemberitahuan melalui WhatsApp ini begitu ada keputusan dan penjadwalan dari pimpinan."
-    : "✅ *Tamu Terdaftar*\n\nYth. *" + nama + "*,\nPermohonan Anda telah diterima dan sedang diperiksa oleh *Admin RK*.";
-  await sendWA(no_wa, pesanWA + WA_FOOTER, "tamu_tanda_terima");
+    ? pesanDiterima(nama, tujuan)
+    : "✅ *Tamu Terdaftar*\n\nYth. *" + nama + "*,\nPermohonan Anda telah diterima dan sedang diperiksa oleh *Admin RK*." + WA_FOOTER;
+  await sendWA(no_wa, pesanWA, "tamu_tanda_terima");
   if (created && created[0] && created[0].id) await kabarTahap(created[0].id, "pending_rk", null);
 
   return { ok: true, id: created[0]?.id, nama: nama, tujuan_pejabat: tujuan };
@@ -852,48 +900,136 @@ async function actionRespond(body) {
 
   // ── Notifikasi WA ke pemohon sesuai keputusan ──
   if (guest.no_wa) {
-    var pejabat = guest.tujuan_pejabat || "Pimpinan";
-    var nama    = guest.nama || "Pemohon";
-    var msg     = null;
-
-    if (body.response === "approved") {
-      var jadwalStr = "";
-      if (updateData.jadwal_tanggal) {
-        jadwalStr = "\n🗓️ *Jadwal:* " + fmtTanggalWA(updateData.jadwal_tanggal) +
-          (updateData.jadwal_jam ? ", pukul " + String(updateData.jadwal_jam).slice(0,5) + " WITA" : "");
-      }
-      var lokasiWA = (body.tempat && String(body.tempat).trim()) || "Ruang Kerja";
-      msg =
-        "✅ *Audiensi Disetujui*\n\n" +
-        "Yth. *" + nama + "*,\n" +
-        "Permohonan audiensi Anda kepada *" + pejabat + "* telah *DISETUJUI*." +
-        jadwalStr + "\n\n" +
-        "📍 Tempat: " + lokasiWA + ".\n" +
-        "Mohon hadir 15 menit sebelum jadwal dan membawa identitas diri." +
-        WA_FOOTER;
-    } else if (body.response === "rejected") {
-      msg =
-        "🙏 *Pemberitahuan Permohonan Audiensi*\n\n" +
-        "Yth. *" + nama + "*,\n" +
-        "Mohon maaf, permohonan audiensi Anda kepada *" + pejabat +
-        "* belum dapat kami penuhi saat ini." +
-        (updateData.alasan_tolak ? "\n\n📝 Keterangan: " + updateData.alasan_tolak : "") +
-        "\n\nAnda dipersilakan mengajukan kembali di lain waktu." +
-        WA_FOOTER;
-    } else if (body.response === "disposed") {
-      msg =
-        "↪️ *Permohonan Diteruskan*\n\n" +
-        "Yth. *" + nama + "*,\n" +
-        "Permohonan audiensi Anda telah diteruskan kepada *" +
-        (updateData.disposisi_ke || "unit terkait") +
-        "* untuk ditindaklanjuti. Tim terkait akan menghubungi Anda lebih lanjut." +
-        WA_FOOTER;
-    }
+    var msg = pesanKeputusan(body.response, {
+      nama: guest.nama, tujuan_pejabat: guest.tujuan_pejabat,
+      jadwal_tanggal: updateData.jadwal_tanggal, jadwal_jam: updateData.jadwal_jam,
+      tempat: body.tempat, alasan_tolak: updateData.alasan_tolak, disposisi_ke: updateData.disposisi_ke,
+    });
     if (msg) await sendWA(guest.no_wa, msg, "tamu_keputusan_" + body.response);
   }
 
   await kabarKeputusan(body.id, body.response, body.responded_by || "", updateData.jadwal_tanggal);
   return { ok: true };
+}
+
+// 7. POST: kirim_ulang_wa (Kabag / Kasubbag Protokol / Admin RK)
+// Mengirim ulang pemberitahuan terakhir ke pemohon sesuai statusnya saat ini,
+// mis. bila pemohon mengaku belum menerima WA atau perangkat Fonnte sempat
+// terputus. Isi pesan disusun di peladen dari data permohonan (bukan dari
+// peramban). `pratinjau:true` hanya mengembalikan isi pesan tanpa mengirim.
+// Jeda per permohonan supaya pemohon tidak dibanjiri pesan yang sama.
+var JEDA_KIRIM_ULANG_MENIT = 30;
+var MAKS_KIRIM_ULANG_HARIAN = 3;
+
+// Kunci singkat lintas instance memakai indeks unik notif_daily_log
+// (notif_type, notif_date). Kunci yang tertinggal (mis. fungsi terhenti di
+// tengah kirim) dianggap kedaluwarsa setelah 2 menit.
+async function ambilKunci(nama) {
+  var hari = hariIniWita();
+  var pasang = function () {
+    return fetch(SUPA_URL + "/rest/v1/notif_daily_log", {
+      method: "POST", headers: H("return=minimal"),
+      body: JSON.stringify({ notif_type: nama, notif_date: hari }),
+    });
+  };
+  try {
+    var r = await pasang();
+    if (r.ok) return true;
+    if (r.status !== 409) return true; // tabel belum ada dsb. → tidak menahan
+    var ada = await sbGet("notif_daily_log?notif_type=eq." + encodeURIComponent(nama) +
+      "&notif_date=eq." + hari + "&select=sent_at&limit=1").catch(function () { return []; });
+    var t = ada && ada[0] && Date.parse(ada[0].sent_at);
+    if (t && Date.now() - t > 2 * 60000) { await lepasKunci(nama); return (await pasang()).ok; }
+    return false;
+  } catch (e) { return true; }
+}
+async function lepasKunci(nama) {
+  try {
+    await fetch(SUPA_URL + "/rest/v1/notif_daily_log?notif_type=eq." + encodeURIComponent(nama) +
+      "&notif_date=eq." + hariIniWita(), { method: "DELETE", headers: H() });
+  } catch (e) {}
+}
+var STATUS_DIPROSES = ["pending_rk", "pending_kasubbag", "pending_kabag", "pending_pimpinan"];
+
+async function riwayatKirimUlang(tanda) {
+  var awalHari = new Date(Date.parse(hariIniWita() + "T00:00:00+08:00")).toISOString();
+  var hariIni = [];
+  try {
+    hariIni = await sbGet("wa_log?jenis=eq.tamu_kirim_ulang&berhasil=is.true&catatan=eq." +
+      encodeURIComponent(tanda) + "&waktu=gte." + encodeURIComponent(awalHari) + "&select=waktu&order=waktu.desc&limit=10");
+  } catch (e) { hariIni = []; } // tabel wa_log belum ada → tidak menahan
+  hariIni = hariIni || [];
+  var tunggu = 0;
+  if (hariIni[0]) {
+    var sisa = Date.parse(hariIni[0].waktu) + JEDA_KIRIM_ULANG_MENIT * 60000 - Date.now();
+    if (sisa > 0) tunggu = Math.max(1, Math.ceil(sisa / 60000));
+  }
+  var habis = hariIni.length >= MAKS_KIRIM_ULANG_HARIAN;
+  return { tungguMenit: tunggu, kuotaHabis: habis, sisaHariIni: Math.max(0, MAKS_KIRIM_ULANG_HARIAN - hariIni.length) };
+}
+function tolakBilaTertahan(info) {
+  if (info.kuotaHabis) throw new Error("Sudah dikirim ulang " + MAKS_KIRIM_ULANG_HARIAN + " kali hari ini untuk permohonan ini. Bila pemohon tetap belum menerima, hubungi langsung lewat tombol Chat WhatsApp.");
+  if (info.tungguMenit) throw new Error("WA ke pemohon ini baru saja dikirim ulang. Coba lagi dalam " + info.tungguMenit + " menit.");
+}
+
+async function actionKirimUlangWA(body) {
+  if (!body.id) throw new Error("id wajib");
+  var rows = await sbGet("permohonan_tamu?id=eq." + encodeURIComponent(body.id) +
+    "&select=id,status,nama,no_wa,tujuan_pejabat,jadwal_tanggal,jadwal_jam,alasan_tolak,disposisi_ke&limit=1");
+  var g = (rows && rows[0]) || null;
+  if (!g) throw new Error("Permohonan tidak ditemukan");
+  if (!g.no_wa) throw new Error("Permohonan ini tidak memiliki nomor WhatsApp");
+
+  var pesan = null;
+  if (STATUS_DIPROSES.indexOf(g.status) !== -1) {
+    pesan = pesanDiterima(g.nama, g.tujuan_pejabat, true);
+  } else if (g.status === "approved") {
+    if (g.jadwal_tanggal && g.jadwal_tanggal < hariIniWita())
+      throw new Error("Jadwal audiensi ini sudah lewat — tidak perlu dikirim ulang");
+    var tempat = "";
+    try {
+      var ag = await findAgendaRows(g.id);
+      if (ag && ag.length) tempat = (ag[0].data && ag[0].data.lokasi) || "";
+    } catch (e) { tempat = ""; }
+    pesan = pesanKeputusan("approved", Object.assign({}, g, { tempat: tempat }), true);
+  } else if (g.status === "rejected" || g.status === "disposed") {
+    pesan = pesanKeputusan(g.status, g, true);
+  } else if (g.status === "selesai") {
+    throw new Error("Permohonan sudah diarsipkan (tamu sudah diterima) — tidak ada pemberitahuan untuk dikirim ulang");
+  }
+  if (!pesan) throw new Error("Tidak ada pemberitahuan untuk status ini");
+
+  // Pengaman spam & klik ganda:
+  //  1. jeda 30 menit sejak kiriman ulang terakhir yang berhasil;
+  //  2. paling banyak 3 kiriman ulang per permohonan per hari (WITA);
+  //  3. kunci atomik (indeks unik notif_daily_log) selama proses kirim,
+  //     supaya dua klik/dua petugas bersamaan tetap hanya satu WA.
+  var tanda = "id:" + g.id;
+  var info = await riwayatKirimUlang(tanda);
+  if (body.pratinjau) return Object.assign({ ok: true, pesan: pesan, status: g.status }, info);
+  tolakBilaTertahan(info);
+
+  var kunci = "kirim_ulang_tamu:" + g.id;
+  if (!(await ambilKunci(kunci))) throw new Error("Pesan untuk permohonan ini sedang dikirim. Tunggu sebentar lalu muat ulang.");
+  // Periksa sekali lagi setelah memegang kunci: permintaan lain mungkin baru
+  // saja selesai mengirim di antara pemeriksaan pertama dan kunci didapat.
+  try { tolakBilaTertahan(await riwayatKirimUlang(tanda)); }
+  catch (e) { await lepasKunci(kunci); throw e; }
+
+  var ok = false;
+  try {
+    var r = await fetch("https://api.fonnte.com/send", {
+      method: "POST",
+      headers: { "Authorization": FONNTE, "Content-Type": "application/json" },
+      body: JSON.stringify({ target: g.no_wa, message: pesan, countryCode: "62" }),
+    });
+    ok = (await hasilFonnte(r)).ok;
+  } catch (e) { ok = false; }
+  if (FONNTE) await catatWA({ jenis: "tamu_kirim_ulang", sumber: "tamu", peran: "pemohon", berhasil: ok, catatan: tanda });
+  // Kunci dilepas setelah tercatat; jeda 30 menit selanjutnya dijaga wa_log.
+  await lepasKunci(kunci);
+  if (!ok) throw new Error("WA gagal terkirim. Periksa sambungan perangkat Fonnte, lalu coba lagi.");
+  return { ok: true, message: "Pemberitahuan dikirim ulang ke pemohon" };
 }
 
 // ── HANDLER ──────────────────────────────────────────────────
@@ -902,6 +1038,10 @@ async function actionRespond(body) {
 // (nama, nomor WA), sehingga wajib sesi aplikasi. Endpoint ini memakai kunci
 // layanan yang melewati RLS, jadi pintunya harus dijaga di sini.
 const AKSI_PUBLIK = ["checkin"];
+// Aksi yang hanya boleh dilakukan peran tertentu (termasuk PLH-nya).
+const AKSI_PERAN = {
+  kirim_ulang_wa: ["kabag", "kasubbag_protokol", "admin_rk", "superadmin"],
+};
 
 export default async function handler(req, res) {
   var action = req.query.action;
@@ -912,7 +1052,7 @@ export default async function handler(req, res) {
     ? actionQueue(req.query).then(function (d) { return { d: d }; }, function (e) { return { e: e }; })
     : null;
   if (!(req.method === "POST" && AKSI_PUBLIK.includes(action))) {
-    var pengguna = await wajibSesi(req, res);
+    var pengguna = await wajibSesi(req, res, AKSI_PERAN[action] ? { peran: AKSI_PERAN[action] } : undefined);
     if (!pengguna) return;
   } else {
     // Satu alamat IP paling banyak 5 pengajuan per jam (dibantu jeda per nomor
@@ -938,6 +1078,7 @@ export default async function handler(req, res) {
       else if (action === "update_jadwal") result = await actionUpdateJadwal(req.body);
       else if (action === "sync_agenda")  result = await actionSyncAgenda(req.body);
       else if (action === "respond")    result = await actionRespond(req.body);
+      else if (action === "kirim_ulang_wa") result = await actionKirimUlangWA(req.body);
       else throw new Error("Action " + action + " tidak dikenal");
     }
     return res.status(200).json(result);
