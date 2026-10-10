@@ -799,7 +799,9 @@ export default async function handler(req, res) {
       }
 
       // ?op=kata_hari_ini → Kabag (atau PLH-nya) menulis/menghapus "Kata-kata
-      // Hari Ini" yang tampil di bawah judul halaman bagi seluruh tim.
+      // Hari Ini" yang tampil di bawah judul halaman bagi seluruh tim, atau —
+      // bila body.putaran berupa daftar — mengganti kalimat putaran harian
+      // (daftar kosong = kembali ke bawaan aplikasi).
       // Menumpang endpoint ini karena kuota fungsi Vercel Hobby sudah penuh.
       if (query.op === "kata_hari_ini") {
         const pemohon = await verifySession(req);
@@ -813,17 +815,25 @@ export default async function handler(req, res) {
         }
         if (!boleh) return res.status(403).json({ error: "Hanya Kabag (atau PLH Kabag) yang dapat mengubah Kata-kata Hari Ini." });
 
-        const teks = String((body && body.teks) || "").replace(/\s+/g, " ").trim().slice(0, 160);
-        const nilai = teks
-          ? { teks, oleh: pemohon.username, nama: pemohon.nama || pemohon.username, pada: new Date().toISOString() }
-          : null;
+        const rapikan = (x) => String(x || "").replace(/\s+/g, " ").trim().slice(0, 160);
+        const jejak = { oleh: pemohon.username, nama: pemohon.nama || pemohon.username, pada: new Date().toISOString() };
+        const putaran = Array.isArray(body && body.putaran);
+        let kunci = "kata_hari_ini", nilai;
+        if (putaran) {
+          kunci = "kutipan_putaran";
+          const daftar = [...new Set(body.putaran.map(rapikan).filter(Boolean))].slice(0, 30);
+          nilai = daftar.length ? { daftar, ...jejak } : null;
+        } else {
+          const teks = rapikan(body && body.teks);
+          nilai = teks ? { teks, ...jejak } : null;
+        }
         const r = await fetch(`${SUPA_URL}/rest/v1/pengaturan_aplikasi?on_conflict=kunci`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json", apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}`,
             Prefer: "resolution=merge-duplicates,return=minimal",
           },
-          body: JSON.stringify({ kunci: "kata_hari_ini", nilai, diubah_oleh: pemohon.username, diubah_pada: new Date().toISOString() }),
+          body: JSON.stringify({ kunci, nilai, diubah_oleh: pemohon.username, diubah_pada: new Date().toISOString() }),
         });
         if (!r.ok) {
           const t = await r.text();

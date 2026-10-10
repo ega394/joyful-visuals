@@ -22,7 +22,7 @@ import { clearAdminToken, adminFetch, sesiFetch, setPenggunaSesi } from "./roomA
 import { JADWAL_STATUS } from "./lib/statusColors.js";
 import { peranEfektif, plhAktif, punyaPeran, jejakPlh, bolehMemutus, LABEL_PERAN } from "./lib/plh.js";
 import { acaraDekat, kunciNomor, penerimaUnik, perubahanMaterial, kanalKehadiran, perluWALapangan } from "./lib/aturanWA.js";
-import { bolehSantai, barisNuansa, TEKS_MEMUAT, TEKS_KOSONG, BAITUL_ARSIP, KEJUTAN } from "./lib/nuansa.js";
+import { bolehSantai, barisNuansa, KUTIPAN, TEKS_MEMUAT, TEKS_KOSONG, BAITUL_ARSIP, KEJUTAN } from "./lib/nuansa.js";
 import { umurUsulan, bandingUsulan } from "./lib/usulan.js";
 
 // ═══════════════════════════════════════════════════════
@@ -2769,23 +2769,37 @@ function NotifTab({user,showT}){
 }
 
 // ==================== PROFILE MODAL (ganti username & password) ====================
-function ProfileModal({user,onClose,showT,kata,onKataBerubah}){
+function ProfileModal({user,onClose,showT,kata,onKataBerubah,putaran,onPutaranBerubah}){
   const[tabP,setTabP]=useState("profile");
   // Kata-kata Hari Ini: hanya Kabag (atau PLH Kabag) yang menulis.
   const bolehKata=punyaPeran(user,"kabag");
   const[kataTeks,setKataTeks]=useState(kata?.teks||"");
   const[kataSimpan,setKataSimpan]=useState(false);
-  const simpanKata=async(teks)=>{
+  const simpanNuansa=async(isi)=>{
     setErr("");setKataSimpan(true);
     try{
-      const r=await sesiFetch("/api/room-booking?op=kata_hari_ini",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({teks})});
+      const r=await sesiFetch("/api/room-booking?op=kata_hari_ini",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(isi)});
       const d=await r.json().catch(()=>({}));
       if(!r.ok)throw new Error(d.error||"Gagal menyimpan");
-      onKataBerubah&&onKataBerubah(d.nilai||null);
-      setKataTeks(d.nilai?.teks||"");
-      showT(d.nilai?"Kata-kata hari ini tayang untuk tim ✓":"Kata-kata hari ini dihapus","ok");
-    }catch(e){setErr(e.message);}
+      return d.nilai||null;
+    }catch(e){setErr(e.message);return undefined;}
     finally{setKataSimpan(false);}
+  };
+  const simpanKata=async(teks)=>{
+    const nilai=await simpanNuansa({teks});
+    if(nilai===undefined)return;
+    onKataBerubah&&onKataBerubah(nilai);
+    setKataTeks(nilai?.teks||"");
+    showT(nilai?"Kata-kata hari ini tayang untuk tim ✓":"Kata-kata hari ini dihapus","ok");
+  };
+  // Kalimat putaran harian: daftar milik Kabag, atau bawaan aplikasi bila belum diatur.
+  const[putDaftar,setPutDaftar]=useState(()=>[...(putaran?.daftar?.length?putaran.daftar:KUTIPAN)]);
+  const simpanPutaran=async(daftar)=>{
+    const nilai=await simpanNuansa({putaran:daftar});
+    if(nilai===undefined)return;
+    onPutaranBerubah&&onPutaranBerubah(nilai);
+    setPutDaftar([...(nilai?.daftar?.length?nilai.daftar:KUTIPAN)]);
+    showT(nilai?"Kalimat putaran disimpan ✓":"Kalimat putaran kembali ke bawaan","ok");
   };
   const[form,setForm]=useState({nama:user.nama,jabatan:user.jabatan,noWA:user.noWA||"",email:user.email||""});
   const[pw,setPw]=useState({old:"",next:"",confirm:""});
@@ -2848,7 +2862,7 @@ function ProfileModal({user,onClose,showT,kata,onKataBerubah}){
         {tabP==="notif"&&<NotifTab user={user} showT={showT}/>}
         {tabP==="kata"&&bolehKata&&<div>
           <div style={{fontSize:13,color:"#475569",lineHeight:1.6,marginBottom:10}}>
-            Tulis pesan singkat untuk tim. Pesan tampil di bawah judul halaman bagi semua pegawai (Wali Kota & Wakil tidak melihatnya), sampai Bapak ganti atau hapus.
+            Tulis pesan singkat untuk tim. Pesan tampil di bawah judul halaman bagi semua pegawai (Wali Kota & Wakil tidak melihatnya), sampai Bapak ganti atau hapus. Selama kosong, yang tampil kalimat putaran harian biasa.
           </div>
           <textarea value={kataTeks} onChange={e=>setKataTeks(e.target.value.slice(0,160))} rows={3}
             placeholder="Mis. Besok apel gabungan jam 07.30, jangan telat ya."
@@ -2861,6 +2875,23 @@ function ProfileModal({user,onClose,showT,kata,onKataBerubah}){
           <div style={{display:"flex",gap:8}}>
             <button disabled={kataSimpan||!kataTeks.trim()} onClick={()=>simpanKata(kataTeks)} style={{flex:2,padding:"12px",borderRadius:10,border:"none",background:kataTeks.trim()?NAVY:"#94A3B8",color:"white",cursor:kataTeks.trim()?"pointer":"default",fontSize:14,fontWeight:700}}>{kataSimpan?"Menyimpan…":"Tayangkan"}</button>
             {kata?.teks&&<button disabled={kataSimpan} onClick={()=>simpanKata("")} style={{flex:1,padding:"12px",borderRadius:10,border:"1.5px solid #FCA5A5",background:"white",color:"#DC2626",cursor:"pointer",fontSize:14,fontWeight:700}}>Hapus</button>}
+          </div>
+          <div style={{borderTop:"1px solid #E2E8F0",margin:"20px 0 14px"}}/>
+          <div style={{fontSize:14,fontWeight:700,color:NAVY,marginBottom:4}}>🔄 Kalimat Putaran Harian</div>
+          <div style={{fontSize:12.5,color:"#64748B",lineHeight:1.6,marginBottom:10}}>
+            Tampil bila Kata Hari Ini kosong: satu kalimat per hari, bergiliran. Pada jam sapaan (siang, sore, Senin pagi, menjelang Jumatan, malam) sapaan itu yang didahulukan.
+          </div>
+          {putDaftar.map((k,i)=><div key={i} style={{display:"flex",gap:6,marginBottom:6}}>
+            <input value={k} maxLength={160} onChange={e=>{const v=e.target.value;setPutDaftar(p=>p.map((x,j)=>j===i?v:x));}} placeholder="Tulis kalimat…" style={{...inp,flex:1,padding:"8px 10px",fontSize:13}}/>
+            <button aria-label="Hapus kalimat" onClick={()=>setPutDaftar(p=>p.filter((_,j)=>j!==i))} style={{border:"1.5px solid #FCA5A5",background:"white",color:"#DC2626",borderRadius:8,padding:"0 10px",cursor:"pointer",fontWeight:700}}>✕</button>
+          </div>)}
+          {putDaftar.length<30&&<button onClick={()=>setPutDaftar(p=>[...p,""])} style={{width:"100%",padding:"8px",borderRadius:8,border:"1.5px dashed #CBD5E1",background:"#F8FAFC",color:"#475569",cursor:"pointer",fontSize:13,fontWeight:600,marginBottom:8}}>+ Tambah kalimat</button>}
+          <div style={{fontSize:12,color:"#94a3b8",marginBottom:10}}>
+            {putaran?.daftar?.length?"Diatur "+(putaran.nama||putaran.oleh||"")+(putaran.pada?" · "+new Date(putaran.pada).toLocaleString("id-ID",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}):""):"Memakai kalimat bawaan aplikasi"}
+          </div>
+          <div style={{display:"flex",gap:8}}>
+            <button disabled={kataSimpan||!putDaftar.some(x=>x.trim())} onClick={()=>simpanPutaran(putDaftar)} style={{flex:2,padding:"12px",borderRadius:10,border:"none",background:putDaftar.some(x=>x.trim())?NAVY:"#94A3B8",color:"white",cursor:putDaftar.some(x=>x.trim())?"pointer":"default",fontSize:14,fontWeight:700}}>{kataSimpan?"Menyimpan…":"Simpan Kalimat Putaran"}</button>
+            {putaran?.daftar?.length>0&&<button disabled={kataSimpan} onClick={()=>simpanPutaran([])} style={{flex:1,padding:"12px",borderRadius:10,border:"1.5px solid #CBD5E1",background:"white",color:"#475569",cursor:"pointer",fontSize:13,fontWeight:700}}>Kembalikan Bawaan</button>}
           </div>
         </div>}
         {tabP==="ai"&&<AIProviderTab showT={showT}/>}
@@ -8140,18 +8171,24 @@ export default function App(){
   const showT=useCallback((msg,type="ok")=>{if(type==="ok")haptic(40);else if(type==="warn")haptic(80);else if(type==="error")haptic([50,30,50]);setToast({msg,type});setTimeout(()=>setToast(null),type==="error"?5000:type==="warn"?4000:3000);},[]);
   // Nuansa santai (src/lib/nuansa.js): sapaan/kutipan di bawah judul halaman,
   // dan kejutan kecil bila logo diketuk 5 kali. Pimpinan tetap formal.
-  // "Kata-kata Hari Ini" ditulis Kabag dari menu Profil, dibaca semua pengguna.
+  // "Kata-kata Hari Ini" dan kalimat putaran harian ditulis Kabag dari menu
+  // Profil, dibaca semua pengguna.
   const[kataHariIni,setKataHariIni]=useState(null);
+  const[putaran,setPutaran]=useState(null);
   useEffect(()=>{
     if(!SUPA_OK||!user?.username)return;
     let batal=false;
-    const muat=()=>fetch(SUPA_URL+"/rest/v1/pengaturan_aplikasi?kunci=eq.kata_hari_ini&select=nilai",{headers:H()})
-      .then(r=>r.ok?r.json():[]).then(d=>{if(!batal)setKataHariIni((d&&d[0]&&d[0].nilai)||null);}).catch(()=>{});
+    const muat=()=>fetch(SUPA_URL+"/rest/v1/pengaturan_aplikasi?kunci=in.(kata_hari_ini,kutipan_putaran)&select=kunci,nilai",{headers:H()})
+      .then(r=>r.ok?r.json():[]).then(d=>{
+        if(batal||!Array.isArray(d))return;
+        const ambil=k=>(d.find(x=>x.kunci===k)||{}).nilai||null;
+        setKataHariIni(ambil("kata_hari_ini"));setPutaran(ambil("kutipan_putaran"));
+      }).catch(()=>{});
     muat();
     const t=setInterval(muat,10*60*1000);
     return()=>{batal=true;clearInterval(t);};
   },[user?.username]);
-  const nuansa=barisNuansa(role,user?.nama,Date.now(),kataHariIni?.teks);
+  const nuansa=barisNuansa(role,user?.nama,Date.now(),kataHariIni?.teks,putaran?.daftar);
   const ketukRef=React.useRef({n:0,t:0});
   const ketukLogo=()=>{
     if(!bolehSantai(role))return;
@@ -12933,7 +12970,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
     {showAdmin&&<AdminModal onClose={()=>setShowAdmin(false)} showT={showT} events={events} updAndSync={updAndSync}/>}
     {showBroadcast&&<BroadcastModal onClose={()=>setShowBroadcast(false)} showT={showT} senderNama={user?.nama||"Kabag Protokol dan Komunikasi Pimpinan"}/>}
     {showReport&&<ReportingModal events={events} kabagNama={kabagNama} cetakOleh={user?.nama||user?.username||""} onClose={()=>setShowReport(false)}/>}
-    {showProfile&&<ProfileModal user={user} onClose={updated=>{setShowProfile(false);if(updated)setUser(updated);}} showT={showT} kata={kataHariIni} onKataBerubah={setKataHariIni}/>}
+    {showProfile&&<ProfileModal user={user} onClose={updated=>{setShowProfile(false);if(updated)setUser(updated);}} showT={showT} kata={kataHariIni} onKataBerubah={setKataHariIni} putaran={putaran} onPutaranBerubah={setPutaran}/>}
     {showReportTamu&&<ReportingTamuModal user={user} cetakOleh={user?.nama||user?.username||"Sistem"} showT={showT} onClose={()=>setShowReportTamu(false)}/>}
     {showLaporan&&<LaporanModal events={events} kabagNama={kabagNama} cetakOleh={user?.nama||user?.username||""} onClose={()=>setShowLaporan(false)}/>}
     {showArsip&&<ArsipModal events={events} user={user} onClose={()=>setShowArsip(false)}/>}

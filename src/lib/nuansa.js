@@ -7,8 +7,9 @@
  *
  * Aturan tampil:
  *  - Wali Kota dan Wakil Wali Kota tetap melihat tampilan formal.
- *  - "Kata-kata Hari Ini" ditulis Kabag dari menu Profil (tabel
- *    pengaturan_aplikasi), bukan dari berkas ini.
+ *  - "Kata-kata Hari Ini" dan kalimat putaran harian diatur Kabag dari
+ *    menu Profil (tabel pengaturan_aplikasi); KUTIPAN di bawah hanya bawaan
+ *    bila Kabag belum mengisi daftarnya sendiri.
  *  - Ajudan, Kabag, Kasubbag, staf, dan admin ikut nuansa santai.
  *  - Tidak pernah dipakai di pesan ke pemohon/warga, WA, surat, atau PDF.
  */
@@ -49,16 +50,33 @@ export function sapaanSantai(nama, saat = Date.now()) {
   return null;
 }
 
+export const KUTIPAN = [
+  "Jangan lupa ngopi.",
+  "Kalau ada yang aneh di lapangan, jangan toleh-toleh :D",
+];
+
+/**
+ * Satu kutipan per hari (sama sepanjang hari, berganti esoknya). `daftar`
+ * berasal dari menu Profil Kabag; bila kosong dipakai KUTIPAN bawaan.
+ */
+export function kutipanHarian(saat = Date.now(), daftar) {
+  const d = (Array.isArray(daftar) ? daftar : []).map((x) => String(x || "").trim()).filter(Boolean);
+  const pakai = d.length ? d : KUTIPAN;
+  const t = hariIniWita(saat);
+  const urut = Math.floor(Date.parse(t + "T00:00:00Z") / 86400000);
+  return pakai[((urut % pakai.length) + pakai.length) % pakai.length];
+}
+
 /**
  * Baris di bawah judul halaman. "Kata-kata Hari Ini" yang ditulis Kabag
- * (menu Profil) didahulukan; bila kosong, sapaan sesuai waktu. Kutipan
- * bawaan sengaja tidak ada lagi — isinya kini sepenuhnya dari Kabag.
+ * (menu Profil) didahulukan; bila kosong, putaran biasa: sapaan sesuai
+ * waktu, atau kutipan harian bila jam itu tidak punya sapaan khusus.
  */
-export function barisNuansa(role, nama, saat = Date.now(), kata = "") {
+export function barisNuansa(role, nama, saat = Date.now(), kata = "", putaran) {
   if (!bolehSantai(role)) return null;
   const k = String(kata || "").trim();
   if (k) return "💬 " + k;
-  return sapaanSantai(nama, saat);
+  return sapaanSantai(nama, saat) || kutipanHarian(saat, putaran);
 }
 
 export const TEKS_MEMUAT = ["Lagi diambilkan datanya…", "Bentar, servernya lagi ngopi."];
@@ -77,82 +95,3 @@ export const BAITUL_ARSIP = {
 };
 
 export const KEJUTAN = "Aplikasi ini dibuat pakai kopi, sabar, dan revisi berkali-kali.";
-
-// ── Julukan bulanan (Rekap Kinerja) ─────────────────────────────────
-export const JULUKAN = {
-  gercep:   { label: "Paling Gercep",       ikon: "⚡", ket: "Verifikasi/persetujuan tercepat" },
-  lapangan: { label: "Langganan Lapangan",  ikon: "🎗️", ket: "Penugasan lapangan terbanyak" },
-  sapu:     { label: "Tukang Sapu Antrean", ikon: "🧹", ket: "Paling banyak menuntaskan antrean" },
-  ketik:    { label: "Juru Ketik Andalan",  ikon: "⌨️", ket: "Input jadwal terbanyak" },
-  kamera:   { label: "Mata Kamera",         ikon: "📸", ket: "Dokumentasi terbanyak" },
-};
-
-const AKSI_PUTUS = ["forward_to_kabag", "publish", "return_by_kasubbag", "reject_by_kabag"];
-const AKSI_AWAL = { forward_to_kabag: ["submit", "resubmit"], publish: ["forward_to_kabag"] };
-
-function tglWita(iso) {
-  const t = Date.parse(iso || "");
-  return Number.isFinite(t) ? new Date(t + 8 * 3600000).toISOString().slice(0, 10) : "";
-}
-
-function juara(skor, { kecil = false, minimal = 1 } = {}) {
-  let terbaik = null;
-  for (const [un, v] of Object.entries(skor)) {
-    if (!(kecil ? v.n >= minimal : v >= minimal)) continue;
-    const nilai = kecil ? v.median : v;
-    if (terbaik === null || (kecil ? nilai < terbaik.nilai : nilai > terbaik.nilai)) terbaik = { un, nilai };
-    else if (nilai === terbaik.nilai) terbaik.seri = true;
-  }
-  // Seri di puncak tidak memberi julukan, supaya tidak berebut gelar.
-  return terbaik && !terbaik.seri ? terbaik.un : null;
-}
-
-/**
- * Pemegang julukan pada suatu periode → { username: [kode,…] }.
- *  events    : seluruh jadwal
- *  users     : daftar pengguna (untuk peran Komdokpim)
- *  dalamPeriode(tglYYYYMMDD) → boolean
- */
-export function hitungJulukan(events, users, dalamPeriode) {
-  const peran = {};
-  for (const u of users || []) peran[u.username] = u.role;
-  const tugas = {}, kamera = {}, ketik = {}, sapu = {}, cepat = {};
-
-  for (const e of events || []) {
-    if (e && e.alur === "disetujui" && dalamPeriode(String(e.tanggal || ""))) {
-      for (const un of e.personil || []) {
-        if (["timkom", "kasubbag_komdokpim"].includes(peran[un])) kamera[un] = (kamera[un] || 0) + 1;
-        else tugas[un] = (tugas[un] || 0) + 1;
-      }
-    }
-    const tl = Array.isArray(e && e.timeline) ? e.timeline : [];
-    tl.forEach((x, i) => {
-      if (!x || !x.actor || !dalamPeriode(tglWita(x.at))) return;
-      if (x.action === "submit") ketik[x.actor] = (ketik[x.actor] || 0) + 1;
-      if (AKSI_PUTUS.includes(x.action)) sapu[x.actor] = (sapu[x.actor] || 0) + 1;
-      const awal = AKSI_AWAL[x.action];
-      if (awal) {
-        for (let j = i - 1; j >= 0; j--) {
-          if (awal.includes(tl[j] && tl[j].action)) {
-            const menit = (Date.parse(x.at) - Date.parse(tl[j].at)) / 60000;
-            if (Number.isFinite(menit) && menit >= 0) (cepat[x.actor] = cepat[x.actor] || []).push(menit);
-            break;
-          }
-        }
-      }
-    });
-  }
-
-  const median = (a) => { const s = [...a].sort((p, q) => p - q); const m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
-  const skorCepat = {};
-  for (const [un, a] of Object.entries(cepat)) skorCepat[un] = { n: a.length, median: median(a) };
-
-  const hasil = {};
-  const beri = (un, kode) => { if (un) (hasil[un] = hasil[un] || []).push(kode); };
-  beri(juara(skorCepat, { kecil: true, minimal: 3 }), "gercep");
-  beri(juara(tugas, { minimal: 2 }), "lapangan");
-  beri(juara(sapu, { minimal: 3 }), "sapu");
-  beri(juara(ketik, { minimal: 3 }), "ketik");
-  beri(juara(kamera, { minimal: 2 }), "kamera");
-  return hasil;
-}

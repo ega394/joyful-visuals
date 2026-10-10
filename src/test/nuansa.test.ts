@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  bolehSantai, namaPanggil, sapaanSantai, barisNuansa, hitungJulukan,
+  bolehSantai, namaPanggil, sapaanSantai, barisNuansa, kutipanHarian, KUTIPAN,
 } from "../lib/nuansa.js";
 
 // Waktu WITA → epoch (WITA = UTC+8). 9 Okt 2026 = Jumat, 12 Okt 2026 = Senin.
@@ -46,48 +46,36 @@ describe("barisNuansa", () => {
     expect(barisNuansa("staf", "Rina", wita("2026-10-08", "12:30"), "Apel jam 7.30 ya"))
       .toBe("💬 Apel jam 7.30 ya");
   });
-  it("tanpa kata hari ini → sapaan sesuai waktu, atau kosong", () => {
+  it("tanpa kata hari ini → putaran biasa: sapaan sesuai waktu, atau kutipan harian", () => {
     expect(barisNuansa("staf", "Rina", wita("2026-10-08", "12:30"), "")).toContain("Selamat siang");
-    expect(barisNuansa("staf", "Rina", wita("2026-10-08", "08:00"), "  ")).toBeNull();
+    expect(barisNuansa("staf", "Rina", wita("2026-10-08", "08:00"), "  ")).toBe(kutipanHarian(wita("2026-10-08", "08:00")));
+  });
+  it("kata hari ini juga menggantikan sapaan dan kutipan", () => {
+    expect(barisNuansa("staf", "Rina", wita("2026-10-08", "08:00"), "Rapat jam 9")).toBe("💬 Rapat jam 9");
   });
   it("pimpinan tidak melihat apa pun", () => {
     expect(barisNuansa("wakilwalikota", "X", wita("2026-10-08", "12:30"), "Halo")).toBeNull();
   });
 });
 
-describe("hitungJulukan", () => {
-  const users = [
-    { username: "rina", role: "staf" }, { username: "fajar", role: "staf" },
-    { username: "agus", role: "timkom" }, { username: "ksp", role: "kasubbag_protokol" },
-    { username: "adm", role: "admin_rk" },
-  ];
-  const ev = (id: number, personil: string[], timeline: any[] = []) =>
-    ({ id, alur: "disetujui", tanggal: "2026-10-05", personil, timeline });
-  const tl = (submit: string, forward: string) => [
-    { action: "submit", at: submit, actor: "adm" },
-    { action: "forward_to_kabag", at: forward, actor: "ksp" },
-  ];
-  const events = [
-    ev(1, ["rina", "agus"], tl("2026-10-05T01:00:00Z", "2026-10-05T01:20:00Z")),
-    ev(2, ["rina", "agus"], tl("2026-10-06T01:00:00Z", "2026-10-06T01:10:00Z")),
-    ev(3, ["rina", "fajar"], tl("2026-10-07T01:00:00Z", "2026-10-07T01:30:00Z")),
-  ];
-  const oktober = (t: string) => t.startsWith("2026-10");
-  const j = hitungJulukan(events, users, oktober);
+describe("kutipanHarian", () => {
+  it("sama sepanjang hari, berganti esoknya, tanpa kutipan yang sudah dicoret", () => {
+    expect(kutipanHarian(wita("2026-10-08", "06:00"))).toBe(kutipanHarian(wita("2026-10-08", "20:00")));
+    expect(kutipanHarian(wita("2026-10-08", "08:00"))).not.toBe(kutipanHarian(wita("2026-10-09", "08:00")));
+    expect(KUTIPAN.join(" ")).not.toContain("Rencana A");
+  });
+});
 
-  it("penugasan terbanyak dan dokumentasi terbanyak", () => {
-    expect(j.rina).toContain("lapangan");
-    expect(j.agus).toContain("kamera");
+describe("kalimat putaran dari Kabag", () => {
+  it("daftar dari Profil menggantikan bawaan; daftar kosong kembali ke bawaan", () => {
+    const d = ["Satu", "Dua", "Tiga"];
+    const hasil = new Set([8, 9, 10, 11].map((h) => kutipanHarian(wita(`2026-10-${String(h).padStart(2, "0")}`, "08:00"), d)));
+    expect([...hasil].every((x) => d.includes(x))).toBe(true);
+    expect(hasil.size).toBe(3);
+    expect(KUTIPAN).toContain(kutipanHarian(wita("2026-10-08", "08:00"), []));
+    expect(KUTIPAN).toContain(kutipanHarian(wita("2026-10-08", "08:00"), ["  "]));
   });
-  it("input jadwal, penuntas antrean, dan verifikasi tercepat (minimal 3 kali)", () => {
-    expect(j.adm).toContain("ketik");
-    expect(j.ksp).toEqual(expect.arrayContaining(["sapu", "gercep"]));
-  });
-  it("di luar periode tidak dihitung", () => {
-    expect(hitungJulukan(events, users, (t: string) => t.startsWith("2026-09"))).toEqual({});
-  });
-  it("seri di puncak tidak memberi julukan", () => {
-    const seri = [ev(1, ["rina", "fajar"]), ev(2, ["rina", "fajar"])];
-    expect(hitungJulukan(seri, users, oktober).rina).toBeUndefined();
+  it("barisNuansa memakai daftar Kabag bila tidak ada kata hari ini", () => {
+    expect(barisNuansa("staf", "Rina", wita("2026-10-08", "08:00"), "", ["Hanya ini"])).toBe("Hanya ini");
   });
 });
