@@ -187,7 +187,7 @@ export default function DaftarHadirPage() {
   const lbl = { display: "block", fontSize: 12.5, fontWeight: 700, color: "#475569", marginBottom: 5 };
   const kotak = {
     minHeight: "100dvh", background: "#F4F7FF", padding: "18px 14px 40px",
-    fontFamily: "Inter, system-ui, sans-serif",
+    fontFamily: "var(--font-sans)",
   };
 
   // Halaman tidak lagi ditahan menunggu jawaban Apps Script. Layanan itu sering

@@ -1181,7 +1181,7 @@ export default function PinjamRuanganPage() {
   ];
 
   return (
-    <div style={{minHeight:"100vh",background:"#F1F5F9",fontFamily:"Inter,system-ui,sans-serif"}}>
+    <div style={{minHeight:"100vh",background:"#F1F5F9",fontFamily:"var(--font-sans)"}}>
       {/* Header */}
       <div style={{background:`linear-gradient(135deg,${NAVY} 0%,${NAVY2} 100%)`,boxShadow:"0 4px 24px rgba(0,0,0,0.3)",position:"sticky",top:0,zIndex:100}}>
         <div style={{maxWidth:860,margin:"0 auto",padding:"16px 16px 0"}}>

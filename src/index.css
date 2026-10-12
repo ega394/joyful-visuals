@@ -1,3 +1,23 @@
+/* Huruf aplikasi: Plus Jakarta Sans (SIL Open Font License 1.1, lisensi di
+   public/fonts/OFL-PlusJakartaSans.txt). Disimpan di aplikasi sendiri, tidak
+   diambil dari Google Fonts, supaya tampil sama saat sinyal lemah/luring dan
+   ikut tersimpan oleh service worker. Satu berkas variabel per gaya
+   (ketebalan 200–800), dipangkas ke huruf Latin. Dokumen cetak/PDF tetap Arial. */
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url("/fonts/PlusJakartaSans-Variable.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  font-style: italic;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url("/fonts/PlusJakartaSans-Italic-Variable.woff2") format("woff2");
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -37,6 +57,8 @@ All colors MUST be HSL.
     --ring: 222.2 84% 4.9%;
 
     --radius: 0.5rem;
+
+    --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
 
     --sidebar-background: 0 0% 98%;
 
@@ -101,5 +123,9 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+  }
+  input, select, textarea, button {
+    font-family: inherit;
   }
 }

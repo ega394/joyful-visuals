@@ -93,7 +93,7 @@ export default function RoomManagement({ user, isMobile }) {
   const others   = users.filter(u => !u.can_manage_rooms);
 
   return (
-    <div style={{ padding: isMobile ? "12px" : "20px 24px", fontFamily: "Inter, system-ui, sans-serif" }}>
+    <div style={{ padding: isMobile ? "12px" : "20px 24px", fontFamily: "var(--font-sans)" }}>
       <div style={{ maxWidth: 700, margin: "0 auto" }}>
         <div style={{ marginBottom: 20 }}>
           <h2 style={{ margin: "0 0 4px", fontSize: 20, fontWeight: 800, color: NAVY }}>

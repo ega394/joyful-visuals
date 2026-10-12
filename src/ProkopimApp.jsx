@@ -1986,7 +1986,7 @@ function SummaryModal({events,onToggleHide,onClose}){
           </button>
         </div>)}
         {pub.length>0&&<>
-          <div style={{background:"#f8fafc",borderRadius:10,padding:12,border:"1px solid #e2e8f0",marginTop:6,marginBottom:12}}><textarea readOnly value={shareText} style={{width:"100%",border:"none",background:"transparent",resize:"none",fontSize:12,color:"#334155",fontFamily:"sans-serif",lineHeight:1.7,outline:"none",height:"auto",minHeight:120}} rows={shareLines.length}/></div>
+          <div style={{background:"#f8fafc",borderRadius:10,padding:12,border:"1px solid #e2e8f0",marginTop:6,marginBottom:12}}><textarea readOnly value={shareText} style={{width:"100%",border:"none",background:"transparent",resize:"none",fontSize:12,color:"#334155",fontFamily:"inherit",lineHeight:1.7,outline:"none",height:"auto",minHeight:120}} rows={shareLines.length}/></div>
           <div style={{display:"flex",flexDirection:"column",gap:8}}>
             <button onClick={copy} style={{padding:"12px",borderRadius:10,border:"none",background:NAVY,color:"white",cursor:"pointer",fontWeight:700,fontSize:13}}>Salin Teks WA</button>
             <div style={{display:"flex",gap:6}}>
@@ -6288,7 +6288,9 @@ async function generateAndShareAgendaCard(ev) {
   const NAVY="#0A1628",NAVY_DARK="#050e1a";
   const GOLD="rgba(201,168,76,";
 
-  const setFont=(ctx,size,weight="400",family="system-ui,sans-serif")=>{ctx.font=`${weight} ${size}px ${family}`;};
+  const setFont=(ctx,size,weight="400",family="'Plus Jakarta Sans',system-ui,sans-serif")=>{ctx.font=`${weight} ${size}px ${family}`;};
+  // Kanvas tidak menunggu huruf sendiri: pastikan ketebalan yang dipakai sudah termuat.
+  try{await Promise.all(["400","600","700","800"].map(w=>document.fonts.load(w+" 20px 'Plus Jakarta Sans'")));}catch{}
   const wrapText=(ctx,text,maxW)=>{
     const words=(text||"").split(" ");let line="";const lines=[];
     for(const w of words){const t=line+w+" ";if(ctx.measureText(t).width>maxW&&line){lines.push(line.trim());line=w+" ";}else line=t;}
@@ -8686,9 +8688,8 @@ const TH={
   const showPenugasan=tab==="penugasan";
 
   const CSS=`
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
     html,body{margin:0;padding:0;width:100%;overflow-x:hidden;-webkit-text-size-adjust:100%;background:#0A1628;scroll-behavior:smooth;}
-    *{box-sizing:border-box;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif;}
+    *{box-sizing:border-box;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-family:var(--font-sans);}
     input,select,textarea,button{font-family:inherit;}
     input[type=text],input[type=password],input[type=date],input[type=time],input[type=email],select,textarea{font-size:16px!important;-webkit-appearance:none;appearance:none;}
     a{-webkit-tap-highlight-color:transparent;color:inherit;}
@@ -8870,21 +8871,20 @@ const TH={
       border:"1.5px solid "+BORDER,
       background:"hsla(215,25%,20%,0.5)",
       color:FG,fontSize:14,outline:"none",boxSizing:"border-box",
-      fontFamily:"'Plus Jakarta Sans',sans-serif",
+      fontFamily:"var(--font-sans)",
     };
     return(
     <div style={{minHeight:"100vh",width:"100%",background:BG,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:isMobile?"flex-start":"center",padding:isMobile?"0":"24px",overflowY:"auto",position:"relative",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
       <style>{CSS+`
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
         @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
         @keyframes slideRight{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:translateX(0)}}
         @keyframes pulseGlow{0%,100%{box-shadow:0 0 40px -10px hsla(42,78%,55%,0.2)}50%{box-shadow:0 0 40px -10px hsla(42,78%,55%,0.45)}}
         @keyframes focusBorder{to{border-color:hsl(42,78%,55%)}}
         .login-inp:focus{border-color:hsl(42,78%,55%)!important;box-shadow:0 0 0 3px hsla(42,78%,55%,0.15)!important;}
-        .login-btn-primary{background:hsl(42,78%,55%);color:hsl(215,30%,10%);border:none;font-weight:800;font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;transition:all 0.2s;}
+        .login-btn-primary{background:hsl(42,78%,55%);color:hsl(215,30%,10%);border:none;font-weight:800;font-family:var(--font-sans);cursor:pointer;transition:all 0.2s;}
         .login-btn-primary:hover{background:hsl(42,85%,70%);box-shadow:0 4px 20px hsla(42,78%,55%,0.4);transform:translateY(-1px);}
         .login-btn-primary:active{transform:scale(0.97);}
-        .login-btn-outline{background:transparent;border:1.5px solid hsla(215,20%,60%,0.25);color:${MUTED};font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;transition:all 0.2s;}
+        .login-btn-outline{background:transparent;border:1.5px solid hsla(215,20%,60%,0.25);color:${MUTED};font-family:var(--font-sans);cursor:pointer;transition:all 0.2s;}
         .login-btn-outline:hover{border-color:hsla(42,78%,55%,0.4);color:${FG};}
         .feat-item{animation:fadeUp 0.6s ease both;}
         .layanan-link:hover,.layanan-link:focus-visible{background:hsla(42,78%,55%,0.14)!important;border-color:hsla(42,78%,55%,0.45)!important;transform:translateY(-1px);}

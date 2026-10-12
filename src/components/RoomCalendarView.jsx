@@ -73,7 +73,7 @@ export default function RoomCalendarView({ isMobile, user }) {
     : [];
 
   return (
-    <div style={{ padding: isMobile ? "12px 12px" : "20px 24px", fontFamily: "Inter, system-ui, sans-serif" }}>
+    <div style={{ padding: isMobile ? "12px 12px" : "20px 24px", fontFamily: "var(--font-sans)" }}>
       <div style={{ maxWidth: 900, margin: "0 auto" }}>
 
         <div style={{ background: `linear-gradient(135deg,${NAVY},#1A2F50)`, borderRadius: 16, padding: "18px 20px", marginBottom: 16 }}>

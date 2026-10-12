@@ -363,13 +363,6 @@ export default function TamuPage() {
 
   // ── Font loader ────────────────────────────────────────
   useEffect(function() {
-    if (!document.getElementById("tp-font")) {
-      var l = document.createElement("link");
-      l.id   = "tp-font";
-      l.rel  = "stylesheet";
-      l.href = "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Lora:wght@600&display=swap";
-      document.head.appendChild(l);
-    }
     var meta = document.querySelector("meta[name=viewport]");
     if (meta) meta.content = "width=device-width,initial-scale=1,viewport-fit=cover"; // izinkan zoom (aksesibilitas)
   }, []);
@@ -378,7 +371,7 @@ export default function TamuPage() {
     <div style={{
       minHeight:  "100dvh",
       background: NAVY,
-      fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
+      fontFamily: "var(--font-sans)",
     }}>
 
       {/* ── Widget Aksesibilitas ─────────────────────────────── */}
@@ -1218,8 +1211,8 @@ var SuccessView = React.forwardRef(function SuccessView({ result, form }, ref) {
         </div>
 
         <h2 style={{
-          fontFamily:"'Lora', Georgia, serif",
-          fontSize:22, fontWeight:600, color:NAVY,
+          fontFamily:"var(--font-sans)",
+          fontSize:22, fontWeight:800, color:NAVY,
           margin:"0 0 10px", letterSpacing:-.3,
         }}>
           ✔ Permohonan Berhasil Terkirim
@@ -1349,9 +1342,9 @@ function PageHeader() {
       </p>
 
       <h1 style={{
-        fontFamily:"'Lora', Georgia, serif",
+        fontFamily:"var(--font-sans)",
         fontSize:"clamp(22px,6vw,28px)",
-        fontWeight:600, color:"#fff",
+        fontWeight:800, color:"#fff",
         lineHeight:1.2, margin:"0 0 10px", letterSpacing:-.3,
       }}>
         Permohonan Audiensi

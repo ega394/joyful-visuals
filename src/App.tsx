@@ -19,7 +19,7 @@ const DaftarHadirPage   = lazy(() => import("./pages/DaftarHadirPage.jsx"));
 const queryClient = new QueryClient();
 
 const PageFallback = () => (
-  <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", color: "#64748b", fontFamily: "Inter,system-ui,sans-serif" }}>
+  <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", color: "#64748b", fontFamily: "var(--font-sans)" }}>
     Memuat…
   </div>
 );

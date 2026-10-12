@@ -119,7 +119,7 @@ export default function PlhManagement({ user, isMobile }) {
   const lbl = { fontSize: 11, fontWeight: 700, color: GRAY, display: "block", marginBottom: 3 };
 
   return (
-    <div style={{ padding: isMobile ? "12px" : "20px 24px", fontFamily: "Inter, system-ui, sans-serif" }}>
+    <div style={{ padding: isMobile ? "12px" : "20px 24px", fontFamily: "var(--font-sans)" }}>
       <div style={{ maxWidth: 820, margin: "0 auto" }}>
 
         <div style={{ background: `linear-gradient(135deg,${NAVY},#1A2F50)`, borderRadius: 16,
