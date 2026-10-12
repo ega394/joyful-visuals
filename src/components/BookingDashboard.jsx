@@ -1120,7 +1120,7 @@ export default function BookingDashboard({ user, isMobile }) {
   ).length;
 
   return (
-    <div style={{ padding: isMobile ? "12px 12px" : "20px 24px", fontFamily: "Inter, system-ui, sans-serif" }}>
+    <div style={{ padding: isMobile ? "12px 12px" : "20px 24px", fontFamily: "var(--font-sans)" }}>
       <div style={{ maxWidth: 900, margin: "0 auto" }}>
 
         {/* Header */}

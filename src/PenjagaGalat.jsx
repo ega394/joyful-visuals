@@ -26,7 +26,7 @@ export default class PenjagaGalat extends React.Component {
     const pesan = String((this.state.galat && this.state.galat.message) || this.state.galat).slice(0, 200);
     return (
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
-                    padding: 20, background: "#F1F5F9", fontFamily: "system-ui, sans-serif" }}>
+                    padding: 20, background: "#F1F5F9", fontFamily: "var(--font-sans)" }}>
         <div style={{ background: "white", borderRadius: 16, padding: "28px 24px", maxWidth: 420, width: "100%",
                       boxShadow: "0 10px 30px rgba(0,0,0,0.08)", textAlign: "center" }}>
           <div style={{ fontSize: 40, marginBottom: 8 }}>⚠️</div>
