@@ -15,6 +15,7 @@ const Index             = lazy(() => import("./pages/Index.tsx"));
 const TamuPage          = lazy(() => import("./TamuPage.jsx"));
 const PinjamRuanganPage = lazy(() => import("./pages/PinjamRuanganPage.jsx"));
 const DaftarHadirPage   = lazy(() => import("./pages/DaftarHadirPage.jsx"));
+const PrivasiPage       = lazy(() => import("./pages/PrivasiPage.jsx"));
 
 const queryClient = new QueryClient();
 
@@ -39,6 +40,8 @@ const App = () => {
               <Route path="/tamu" element={<TamuPage />} />
               <Route path="/pinjamruangan" element={<PinjamRuanganPage />} />
               <Route path="/daftarhadir" element={<DaftarHadirPage />} />
+              <Route path="/privasi" element={<PrivasiPage />} />
+              <Route path="/ketentuan" element={<PrivasiPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
