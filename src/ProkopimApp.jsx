@@ -18,7 +18,8 @@ import SuperadminPage from "./pages/SuperadminPage.jsx";
 import BookingDashboard from "./components/BookingDashboard.jsx";
 import RoomManagement from "./components/RoomManagement.jsx";
 const PlhManagement = React.lazy(() => import("./components/PlhManagement.jsx"));
-import { clearAdminToken, adminFetch, sesiFetch, setPenggunaSesi } from "./roomAuth";
+import { clearAdminToken, adminFetch, sesiFetch, setPenggunaSesi, simpanTokenSesi } from "./roomAuth";
+import { passkeyDidukung, dibatalkan, konfigMasuk, masukPasskey, daftarPasskey, daftarCaraMasuk, hapusPasskey, putuskanGoogle, pasangTombolGoogle } from "./lib/caraMasuk.js";
 import { JADWAL_STATUS } from "./lib/statusColors.js";
 import { peranEfektif, plhAktif, punyaPeran, jejakPlh, bolehMemutus, LABEL_PERAN } from "./lib/plh.js";
 import { acaraDekat, kunciNomor, penerimaUnik, perubahanMaterial, kanalKehadiran, perluWALapangan } from "./lib/aturanWA.js";
@@ -592,36 +593,10 @@ function saveUsers(u){
 
 // ==================== BIOMETRIC (WebAuthn) ====================
 function bioKey(username){return "jp_bio_"+username;}
-async function bioRegister(username){
-  if(!window.PublicKeyCredential)throw new Error("WebAuthn tidak didukung browser ini");
-  const challenge=crypto.getRandomValues(new Uint8Array(32));
-  const cred=await navigator.credentials.create({publicKey:{
-    challenge,
-    rp:{name:"Jadwal Pimpinan Tarakan",id:window.location.hostname},
-    user:{id:new TextEncoder().encode(username),name:username,displayName:username},
-    pubKeyCredParams:[{alg:-7,type:"public-key"},{alg:-257,type:"public-key"}],
-    authenticatorSelection:{authenticatorAttachment:"platform",userVerification:"required"},
-    timeout:60000
-  }});
-  const id=btoa(String.fromCharCode(...new Uint8Array(cred.rawId)));
-  localStorage.setItem(bioKey(username),id);
-  return id;
-}
-async function bioAuthenticate(username){
-  const stored=localStorage.getItem(bioKey(username));
-  if(!stored)throw new Error("Biometrik belum didaftarkan");
-  const rawId=Uint8Array.from(atob(stored),c=>c.charCodeAt(0));
-  const challenge=crypto.getRandomValues(new Uint8Array(32));
-  await navigator.credentials.get({publicKey:{
-    challenge,
-    allowCredentials:[{id:rawId,type:"public-key"}],
-    userVerification:"required",
-    timeout:60000
-  }});
-  return true;
-}
-function bioIsRegistered(username){return!!localStorage.getItem(bioKey(username));}
-function bioSupported(){return!!(window.PublicKeyCredential&&window.isSecureContext);}
+// Biometrik lama (WebAuthn tanpa pemeriksaan peladen) sudah diganti passkey
+// yang diverifikasi peladen — lihat src/lib/caraMasuk.js. bioKey tetap ada
+// untuk membersihkan sisa penanda lama di localStorage.
+const isNativeApp=()=>{try{return!!window.Capacitor?.isNativePlatform?.();}catch{return false;}};
 
 // ==================== SUPABASE ====================
 const SUPA_URL=import.meta.env.VITE_SUPABASE_URL||"";
@@ -2841,7 +2816,7 @@ function ProfileModal({user,onClose,showT,kata,onKataBerubah,putaran,onPutaranBe
     showT("Username diubah. Silakan login ulang.","warn");
     setTimeout(()=>{localStorage.removeItem("jp_session");window.location.reload();},1800);
   };
-  const tabs=[{k:"profile",l:"Profil"},...(bolehKata?[{k:"kata",l:"💬 Kata Hari Ini"}]:[]),{k:"password",l:"Ganti Password"},{k:"username",l:"Ganti Username"},{k:"biometric",l:"Biometrik"},{k:"notif",l:"🔔 Notifikasi"},{k:"ai",l:"🤖 AI"}];
+  const tabs=[{k:"profile",l:"Profil"},...(bolehKata?[{k:"kata",l:"💬 Kata Hari Ini"}]:[]),{k:"password",l:"Ganti Password"},{k:"username",l:"Ganti Username"},{k:"biometric",l:"🔐 Cara Masuk"},{k:"notif",l:"🔔 Notifikasi"},{k:"ai",l:"🤖 AI"}];
   return <div style={{position:"fixed",inset:0,zIndex:8200,background:"rgba(0,0,0,0.55)",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
     <div style={{background:"white",borderRadius:16,width:"100%",maxWidth:480,maxHeight:"90vh",display:"flex",flexDirection:"column"}}>
       <div style={{padding:"16px 20px 0",borderBottom:"1px solid #f1f5f9",flexShrink:0}}>
@@ -2858,7 +2833,7 @@ function ProfileModal({user,onClose,showT,kata,onKataBerubah,putaran,onPutaranBe
         {tabP==="profile"&&<><div style={{marginBottom:12}}><label style={{display:"block",fontSize:12,color:"#64748b",fontWeight:600,marginBottom:4}}>Nama Lengkap</label><input value={form.nama} onChange={e=>setForm(p=>({...p,nama:e.target.value}))} style={inp}/></div><div style={{marginBottom:12}}><label style={{display:"block",fontSize:12,color:"#64748b",fontWeight:600,marginBottom:4}}>Jabatan</label><input value={form.jabatan} onChange={e=>setForm(p=>({...p,jabatan:e.target.value}))} style={inp}/></div><div style={{marginBottom:12}}><label style={{display:"block",fontSize:12,color:"#64748b",fontWeight:600,marginBottom:4}}>No. WhatsApp</label><input value={form.noWA} onChange={e=>setForm(p=>({...p,noWA:e.target.value}))} placeholder="08123456789" style={inp}/><div style={{fontSize:13,color:"#94a3b8",marginTop:3}}>📱 Saluran utama OTP reset password</div></div><div style={{marginBottom:16}}><label style={{display:"block",fontSize:12,color:"#64748b",fontWeight:600,marginBottom:4}}>Email</label><input value={form.email} onChange={e=>setForm(p=>({...p,email:e.target.value}))} placeholder="nama@tarakankota.go.id" type="email" style={inp}/><div style={{fontSize:13,color:"#94a3b8",marginTop:3}}>✉️ Saluran cadangan OTP (dipakai bila WhatsApp tidak tersedia)</div></div><button onClick={saveProfile} style={{width:"100%",padding:"12px",borderRadius:10,border:"none",background:NAVY,color:"white",cursor:"pointer",fontSize:14,fontWeight:700}}>Simpan Profil</button></>}
         {tabP==="password"&&<><div style={{marginBottom:12}}><label style={{display:"block",fontSize:12,color:"#64748b",fontWeight:600,marginBottom:4}}>Password Lama</label><input type="password" value={pw.old} onChange={e=>setPw(p=>({...p,old:e.target.value}))} style={inp}/></div><div style={{marginBottom:12}}><label style={{display:"block",fontSize:12,color:"#64748b",fontWeight:600,marginBottom:4}}>Password Baru (min. 6 karakter)</label><input type="password" value={pw.next} onChange={e=>setPw(p=>({...p,next:e.target.value}))} style={inp}/><PasswordStrengthBar password={pw.next}/></div><div style={{marginBottom:16}}><label style={{display:"block",fontSize:12,color:"#64748b",fontWeight:600,marginBottom:4}}>Konfirmasi Password Baru</label><input type="password" value={pw.confirm} onChange={e=>setPw(p=>({...p,confirm:e.target.value}))} style={inp}/></div><button onClick={changePassword} style={{width:"100%",padding:"12px",borderRadius:10,border:"none",background:GREEN,color:"white",cursor:"pointer",fontSize:14,fontWeight:700}}>Ubah Password</button></>}
         {tabP==="username"&&<><div style={{background:"#fef3c7",borderRadius:9,padding:"9px 12px",marginBottom:14,fontSize:13,color:"#92400e",border:"1px solid #fde68a"}}>Setelah ubah username, Anda akan diminta login ulang.</div><div style={{marginBottom:12}}><label style={{display:"block",fontSize:12,color:"#64748b",fontWeight:600,marginBottom:4}}>Username Baru</label><input value={uname.newUsername} onChange={e=>setUname(p=>({...p,newUsername:e.target.value}))} autoCapitalize="none" style={inp}/></div><div style={{marginBottom:16}}><label style={{display:"block",fontSize:12,color:"#64748b",fontWeight:600,marginBottom:4}}>Konfirmasi dengan Password Anda</label><input type="password" value={uname.pwConfirm} onChange={e=>setUname(p=>({...p,pwConfirm:e.target.value}))} style={inp}/></div><button onClick={changeUsername} style={{width:"100%",padding:"12px",borderRadius:10,border:"none",background:"#d97706",color:"white",cursor:"pointer",fontSize:14,fontWeight:700}}>Ubah Username</button></>}
-        {tabP==="biometric"&&<BiometricTab user={user} showT={showT}/>}
+        {tabP==="biometric"&&<CaraMasukTab user={user} showT={showT}/>}
         {tabP==="notif"&&<NotifTab user={user} showT={showT}/>}
         {tabP==="kata"&&bolehKata&&<div>
           <div style={{fontSize:13,color:"#475569",lineHeight:1.6,marginBottom:10}}>
@@ -2900,61 +2875,105 @@ function ProfileModal({user,onClose,showT,kata,onKataBerubah,putaran,onPutaranBe
   </div>;
 }
 
-function BiometricTab({user,showT}){
-  const[supported,setSupported]=useState(null);
-  const[registered,setRegistered]=useState(false);
-  const[loading,setLoading]=useState(false);
-  const[msg,setMsg]=useState("");
-
-  useEffect(()=>{
-    (async()=>{
-      try{
-        const{isNative}=await import('./lib/capacitor-native');
-        if(isNative()){
-          const{BiometricAuth}=await import('@aparajita/capacitor-biometric-auth');
-          const check=await BiometricAuth.checkBiometry();
-          setSupported(check.isAvailable);
-          setRegistered(check.isAvailable);
-        } else {
-          setSupported(bioSupported());
-          setRegistered(bioIsRegistered(user.username));
-        }
-      }catch{setSupported(bioSupported());setRegistered(bioIsRegistered(user.username));}
-    })();
-  },[]);
-
-  const doTest=async()=>{
-    setLoading(true);setMsg("");
-    try{
-      const{isNative,nativeBiometricAuth}=await import('./lib/capacitor-native');
-      if(isNative()){
-        await nativeBiometricAuth();
-        showT("Biometrik native berhasil diverifikasi ✓");
-      } else {
-        await bioRegister(user.username);
-        setRegistered(true);
-        showT("Biometrik berhasil didaftarkan ✓");
-      }
-    }catch(e){setMsg("Gagal: "+e.message);}
-    setLoading(false);
-  };
-
-  const doRemove=()=>{localStorage.removeItem(bioKey(user.username));setRegistered(false);showT("Biometrik dihapus","warn");};
-
-  if(supported===null)return <div style={{textAlign:"center",padding:20,color:"#94a3b8",fontSize:13}}>Memeriksa dukungan biometrik...</div>;
-
-  if(!supported)return <div style={{background:"#fef3c7",borderRadius:10,padding:"14px 16px",fontSize:13,color:"#92400e",border:"1px solid #fde68a"}}>Biometrik tidak tersedia di perangkat ini.</div>;
-
-  return <div>
-    <div style={{background:"#f0f9ff",borderRadius:10,padding:"12px 14px",marginBottom:16,fontSize:13,color:"#0284c7",border:"1px solid #bae6fd",lineHeight:1.7}}>
-      Biometrik menggunakan sidik jari atau Face ID perangkat untuk login tanpa password. Data biometrik tidak pernah meninggalkan perangkat Anda.
+// ── Profil → Cara Masuk: passkey (sidik jari/Face ID) dan akun Google ──
+// Hanya pegawai yang sedang masuk yang dapat menautkan cara masuk tambahan;
+// tidak ada pendaftaran akun lewat jalur ini (lihat api/_masuk.mjs).
+// Tombol masuk tanpa sandi di layar login. Tampil hanya bila didukung:
+// passkey (peramban mendukung + domain sah), Google (GOOGLE_CLIENT_ID diisi).
+function CaraMasukLain({native,sibuk,onPasskey,onNative,onGoogle,onGalat,onProses}){
+  const[k,setK]=useState(null);
+  useEffect(()=>{let hidup=true;konfigMasuk().then(x=>{if(hidup)setK(x);});return()=>{hidup=false;};},[]);
+  const pk=!native&&passkeyDidukung()&&!!k?.passkey;
+  if(!native&&!pk&&!k?.google)return null;
+  const gaya={width:"100%",height:44,borderRadius:12,fontSize:13.5,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",gap:8,marginBottom:8};
+  return <>
+    <div style={{display:"flex",alignItems:"center",gap:10,margin:"6px 0 10px",color:"hsla(215,20%,70%,0.7)",fontSize:12}}>
+      <div style={{flex:1,height:1,background:"hsla(215,20%,60%,0.25)"}}/>atau masuk tanpa sandi<div style={{flex:1,height:1,background:"hsla(215,20%,60%,0.25)"}}/>
     </div>
-    <div style={{background:"#d1fae5",borderRadius:10,padding:"12px 14px",marginBottom:14,fontSize:13,color:GREEN,fontWeight:700,border:"1px solid #a7f3d0"}}>✅ Biometrik tersedia dan siap digunakan</div>
-    <button onClick={doTest} disabled={loading} style={{width:"100%",padding:"12px",borderRadius:10,border:"none",background:loading?"#e2e8f0":NAVY,color:loading?"#94a3b8":"white",cursor:loading?"default":"pointer",fontSize:14,fontWeight:700,marginBottom:8}}>
-      {loading?"Memproses...":"🔐 Test Biometrik"}
-    </button>
-    <button onClick={doRemove} style={{width:"100%",padding:"12px",borderRadius:10,border:"1.5px solid #fca5a5",background:"white",color:"#ef4444",cursor:"pointer",fontSize:14,fontWeight:700}}>Hapus / Nonaktifkan Biometrik</button>
-    {msg&&<div style={{marginTop:10,background:"#fee2e2",borderRadius:8,padding:"9px 12px",fontSize:13,color:"#991b1b"}}>{msg}</div>}
+    {native&&<button className="login-btn-outline" onClick={onNative} disabled={sibuk} style={gaya}><span style={{fontSize:18}}>🔐</span>{sibuk?"Memproses...":"Biometrik Perangkat"}</button>}
+    {pk&&<button className="login-btn-outline" onClick={onPasskey} disabled={sibuk} style={gaya}><span style={{fontSize:18}}>👆</span>{sibuk?"Memproses...":"Sidik Jari / Face ID"}</button>}
+    {k?.google&&!native&&<TombolGoogle mode="masuk" onHasil={onGoogle} onGalat={onGalat} onProses={onProses}/>}
+  </>;
+}
+
+function TombolGoogle({mode,onHasil,onGalat,onProses}){
+  const ref=useRef(null);const[galat,setGalat]=useState("");
+  const cb=useRef({});cb.current={onHasil,onGalat,onProses};
+  useEffect(()=>{
+    let hidup=true;const el=ref.current;
+    pasangTombolGoogle(el,{mode,lebar:el?.offsetWidth||300,
+      onHasil:d=>hidup&&cb.current.onHasil&&cb.current.onHasil(d),
+      onGalat:e=>hidup&&cb.current.onGalat&&cb.current.onGalat(e),
+      onProses:p=>hidup&&cb.current.onProses&&cb.current.onProses(p)})
+      .catch(e=>{if(hidup)setGalat(e.message||"Layanan Google tidak dapat dihubungi");});
+    return()=>{hidup=false;};
+  },[mode]);
+  return <div style={{marginBottom:8}}>
+    <div ref={ref} data-uji="tombol-google" style={{display:"flex",justifyContent:"center",minHeight:44}}/>
+    {galat&&<div style={{fontSize:12,color:"#94a3b8",textAlign:"center",marginTop:4}}>{galat}</div>}
+  </div>;
+}
+
+function CaraMasukTab({user,showT}){
+  const[data,setData]=useState(null);const[galat,setGalat]=useState("");const[sibuk,setSibuk]=useState("");
+  const muat=useCallback(()=>{setGalat("");daftarCaraMasuk().then(setData).catch(e=>setGalat(e.message));},[]);
+  useEffect(()=>{muat();},[muat]);
+  const tgl=t=>t?new Date(t).toLocaleString("id-ID",{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"}):"belum pernah";
+  const google=(data?.tautan||[]).find(t=>t.penyedia==="google");
+  const tambah=async()=>{
+    setSibuk("passkey");setGalat("");
+    try{const d=await daftarPasskey();showT("Passkey "+d.nama_perangkat+" terdaftar ✓");muat();}
+    catch(e){if(!dibatalkan(e))setGalat(/excluded|InvalidStateError/i.test(e.name+e.message)?"Perangkat ini sudah terdaftar.":e.message);}
+    setSibuk("");
+  };
+  const hapus=async(k)=>{
+    if(!window.confirm("Hapus passkey "+(k.nama_perangkat||"perangkat ini")+"? Perangkat tersebut tidak bisa lagi dipakai untuk masuk."))return;
+    setSibuk(k.id);try{await hapusPasskey(k.id);showT("Passkey dihapus","warn");muat();}catch(e){setGalat(e.message);}setSibuk("");
+  };
+  const putus=async()=>{
+    if(!window.confirm("Putuskan akun Google "+(google?.email||"")+" dari akun Prokopim Anda?"))return;
+    setSibuk("google");try{await putuskanGoogle();showT("Akun Google diputuskan","warn");muat();}catch(e){setGalat(e.message);}setSibuk("");
+  };
+  const kotak={background:"white",border:"1px solid #e2e8f0",borderRadius:12,padding:"14px 16px",marginBottom:12};
+  const judul={fontSize:14,fontWeight:800,color:NAVY,marginBottom:4};
+  const ket={fontSize:12.5,color:"#64748b",lineHeight:1.6,marginBottom:10};
+  const tbl=(warna,isi)=>({width:"100%",padding:"11px",borderRadius:10,border:isi?"none":"1.5px solid "+warna,background:isi?warna:"white",color:isi?"white":warna,cursor:"pointer",fontSize:13.5,fontWeight:700});
+  if(isNativeApp())return <div style={{...kotak,fontSize:13,color:"#475569"}}>Di aplikasi terpasang (APK), masuk biometrik memakai fitur bawaan perangkat dari layar login.</div>;
+  return <div>
+    {galat&&<div style={{background:"#fee2e2",borderRadius:8,padding:"9px 12px",marginBottom:12,fontSize:13,color:"#991b1b"}}>{galat}</div>}
+    {!data&&!galat&&<div style={{textAlign:"center",padding:20,color:"#94a3b8",fontSize:13}}>Memuat…</div>}
+    {data&&<>
+      <div style={kotak}>
+        <div style={judul}>👆 Sidik Jari / Face ID (passkey)</div>
+        <div style={ket}>Masuk tanpa sandi memakai kunci layar perangkat. Data sidik jari dan wajah tidak pernah keluar dari perangkat; peladen hanya menyimpan kunci publik.</div>
+        {data.passkey.length===0&&<div style={{fontSize:13,color:"#94a3b8",marginBottom:10}}>Belum ada perangkat terdaftar.</div>}
+        {data.passkey.map(k=><div key={k.id} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 0",borderTop:"1px solid #f1f5f9"}}>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontSize:13.5,fontWeight:700,color:"#1e293b"}}>{k.nama_perangkat||"Perangkat"}{k.dicadangkan?" ☁️":""}</div>
+            <div style={{fontSize:12,color:"#94a3b8"}}>Didaftarkan {tgl(k.dibuat_pada)} · terakhir dipakai {tgl(k.terakhir_dipakai)}</div>
+          </div>
+          <button onClick={()=>hapus(k)} disabled={!!sibuk} style={{border:"1.5px solid #fca5a5",background:"white",color:"#dc2626",borderRadius:8,padding:"6px 10px",cursor:"pointer",fontSize:12,fontWeight:700}}>Hapus</button>
+        </div>)}
+        {passkeyDidukung()
+          ?<button onClick={tambah} disabled={!!sibuk} style={{...tbl(NAVY,true),marginTop:8}}>{sibuk==="passkey"?"Menunggu sidik jari / Face ID…":"+ Daftarkan perangkat ini"}</button>
+          :<div style={{fontSize:12.5,color:"#92400e",background:"#fef3c7",borderRadius:8,padding:"8px 10px",marginTop:8}}>Peramban ini belum mendukung passkey.</div>}
+      </div>
+      <div style={kotak}>
+        <div style={judul}>🟢 Akun Google</div>
+        {google
+          ?<><div style={ket}>Terhubung dengan <b>{google.email||"akun Google"}</b> sejak {tgl(google.dibuat_pada)}. Terakhir dipakai masuk: {tgl(google.terakhir_dipakai)}.</div>
+            <button onClick={putus} disabled={!!sibuk} style={tbl("#dc2626",false)}>Putuskan akun Google</button></>
+          :data.google
+            ?<><div style={ket}>Hubungkan akun Google pribadi Anda supaya bisa masuk dengan satu ketukan. Akun Google yang belum dihubungkan ke akun pegawai selalu ditolak.</div>
+              <TombolGoogle mode="hubungkan" onHasil={d=>{showT("Akun Google "+(d.email||"")+" terhubung ✓");muat();}} onGalat={e=>setGalat(e.message)}/></>
+            :<div style={ket}>Masuk dengan Google belum diaktifkan oleh Administrator.</div>}
+      </div>
+      <div style={{...kotak,background:"#f8fafc"}}>
+        <div style={judul}>Akun Apple</div>
+        <div style={{...ket,marginBottom:0}}>Menyusul. Pengguna iPhone sudah dapat memakai Face ID lewat passkey di atas.</div>
+      </div>
+      <div style={{fontSize:12,color:"#94a3b8",lineHeight:1.6}}>Sandi tetap berlaku sebagai cadangan. Bila HP hilang, hapus perangkatnya di sini dari perangkat lain, atau minta Administrator mencabut semua cara masuk tambahan Anda.</div>
+    </>}
   </div>;
 }
 
@@ -7944,30 +7963,43 @@ export default function App(){
     try{localStorage.setItem("jp_session",JSON.stringify({username:candidate.username,session_version:candidate.session_version||0}));}catch{}
     registerPush(candidate.username,candidate.role);
   };
- const doBioLogin=async()=>{
+ // Halaman awal sesudah masuk, menurut peran.
+  const tabAwal=r=>["ajudan_walikota","ajudan_wakilwalikota"].includes(r)?"ajudan":["kabag","kasubbag_protokol"].includes(r)?"dashboard":r==="admin_rk"?"pantau":r==="admin_undangan"?"undangan":r==="mitra_kerja"?"mitra":"tayang";
+  // Masuk lewat passkey/Google: peladen sudah memverifikasi dan menerbitkan
+  // token sesi; di sini tinggal memasang pengguna seperti masuk dengan sandi.
+  const masukDariPeladen=async(d,fase)=>{
+    const u=loadUsers().find(x=>x.username===d.username);
+    if(!u){setBioErr("Data akun belum termuat di perangkat ini. Muat ulang halaman, lalu coba lagi.");return;}
+    if(u.disabled){setBioErr("Akun Anda dinonaktifkan oleh Administrator.");return;}
+    simpanTokenSesi(d.username,d.token,d.ttl_ms);
+    touchActivity();
+    setLoginLoading(true);setLoginPhase(fase);
+    await new Promise(r=>setTimeout(r,500));
+    setLoginPhase("Memuat data jadwal...");
+    await new Promise(r=>setTimeout(r,500));
+    setLoginLoading(false);
+    setUser(u);setTab(tabAwal(u.role));
+    try{const seen=JSON.parse(localStorage.getItem("jp_seen_onboarding")||"{}");if(!seen[u.username]){setShowOnboarding(true);}}catch{}
+    try{localStorage.setItem("jp_session",JSON.stringify({username:u.username,session_version:u.session_version||0}));}catch{}
+    registerPush(u.username,u.role);
+  };
+  const doPasskeyLogin=async()=>{
+    setBioLoading(true);setBioErr("");setLE("");
+    try{const d=await masukPasskey();await masukDariPeladen(d,"Memverifikasi sidik jari / Face ID...");}
+    catch(e){if(!dibatalkan(e))setBioErr(e.message||"Masuk dengan sidik jari / Face ID gagal. Gunakan sandi.");}
+    setBioLoading(false);
+  };
+  // Aplikasi terpasang (APK Capacitor): biometrik bawaan perangkat seperti sebelumnya.
+  const doBioLogin=async()=>{
     const un=loginForm.username.toLowerCase().trim();if(!un){setLE("Silakan isi username terlebih dahulu.");return;}
     const u=loadUsers().find(u=>u.username===un);if(!u){setLE("Username tidak ditemukan.");return;}
     setBioLoading(true);setBioErr("");
     try{
-      // Coba native Capacitor biometrik dulu (di dalam APK)
-      const{isNative,nativeBiometricAuth}=await import('./lib/capacitor-native');
-      if(isNative()){
-        await nativeBiometricAuth();
-      } else {
-        // Fallback WebAuthn untuk browser biasa
-        if(!bioIsRegistered(un)){setBioErr("Biometrik belum didaftarkan untuk akun ini. Login dengan password terlebih dahulu, lalu daftarkan biometrik di Pengaturan Akun.");setBioLoading(false);return;}
-        await bioAuthenticate(un);
-      }
+      const{nativeBiometricAuth}=await import('./lib/capacitor-native');
+      await nativeBiometricAuth();
       touchActivity();
-      setLoginLoading(true);setLoginPhase("Memverifikasi biometrik...");
-      await new Promise(r=>setTimeout(r,600));
-      setLoginPhase("Memuat data jadwal...");
-      await new Promise(r=>setTimeout(r,700));
-      setLoginPhase("Menyiapkan dashboard...");
-      await new Promise(r=>setTimeout(r,500));
-      setLoginLoading(false);
-      if(u.disabled){setBioErr("Akun Anda dinonaktifkan oleh Administrator.");setLoginLoading(false);setBioLoading(false);return;}
-      setUser(u);setTab("jadwal");try{localStorage.setItem("jp_session",JSON.stringify({username:un,session_version:u.session_version||0}));}catch{}registerPush(un,u.role);}
+      if(u.disabled){setBioErr("Akun Anda dinonaktifkan oleh Administrator.");setBioLoading(false);return;}
+      setUser(u);setTab(tabAwal(u.role));try{localStorage.setItem("jp_session",JSON.stringify({username:un,session_version:u.session_version||0}));}catch{}registerPush(un,u.role);}
     catch(e){setBioErr("Verifikasi biometrik gagal. Silakan coba lagi atau gunakan password.");}
     setBioLoading(false);
   };
@@ -8952,23 +8984,16 @@ const TH={
             {loginErr}
             {lockSeconds>0&&<div style={{marginTop:6,fontSize:13,opacity:0.8}}>⏳ Coba lagi dalam {Math.floor(lockSeconds/60)}:{String(lockSeconds%60).padStart(2,"0")}</div>}
           </div>}
-          {(bioErr||bioLoading)&&<div style={{background:"hsla(210,80%,55%,0.12)",borderRadius:9,padding:"10px 13px",marginBottom:12,fontSize:13,color:"hsl(210,80%,75%)",fontWeight:600,border:"1px solid hsla(210,80%,55%,0.25)"}}>{bioLoading?"Memverifikasi biometrik...":bioErr}</div>}
+          {(bioErr||bioLoading)&&<div style={{background:"hsla(210,80%,55%,0.12)",borderRadius:9,padding:"10px 13px",marginBottom:12,fontSize:13,color:"hsl(210,80%,75%)",fontWeight:600,border:"1px solid hsla(210,80%,55%,0.25)"}}>{bioLoading?"Memverifikasi…":bioErr}</div>}
 
           <button className="login-btn-primary" onClick={doLogin} disabled={lockSeconds>0} style={{width:"100%",height:48,borderRadius:12,fontSize:15,fontWeight:800,marginBottom:10,animation:lockSeconds>0?"none":"pulseGlow 3s ease infinite"}}>{lockSeconds>0?"Dikunci Sementara":"Masuk"}</button>
+          <CaraMasukLain native={isNativeApp()} sibuk={bioLoading} onPasskey={doPasskeyLogin} onNative={doBioLogin}
+            onGoogle={d=>masukDariPeladen(d,"Memverifikasi akun Google...")} onGalat={e=>setBioErr(e.message)} onProses={setBioLoading}/>
           <button className="login-btn-outline" onClick={()=>setShowForgot(true)} style={{width:"100%",height:44,borderRadius:12,fontSize:13,fontWeight:600,marginBottom:8}}>🔑 Lupa Password?</button>
           <button onClick={()=>setShowRegister(true)} style={{width:"100%",height:42,borderRadius:12,border:"1.5px dashed rgba(201,168,76,0.5)",background:"transparent",color:GOLD2,cursor:"pointer",fontSize:13,fontWeight:600,marginBottom:8,display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
               <span>📝</span> Belum punya akun? Daftar di sini
             </button>
 
-          {bioSupported()&&<>
-            <button className="login-btn-outline" onClick={doBioLogin} disabled={bioLoading} style={{width:"100%",height:44,borderRadius:12,fontSize:13,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",gap:8,marginBottom:8}}>
-              <span style={{fontSize:18}}>🔐</span>{bioLoading?"Memproses...":"Login Biometrik / PIN"}
-            </button>
-            {loginForm.username&&!bioIsRegistered(loginForm.username.toLowerCase().trim())&&
-              <div style={{background:"hsla(42,78%,55%,0.1)",borderRadius:8,padding:"8px 11px",fontSize:12,color:GOLD2,display:"flex",gap:6,alignItems:"flex-start",marginBottom:8,border:"1px solid hsla(42,78%,55%,0.2)"}}>
-                <span>⚠️</span><span>Biometrik belum aktif. Login dulu lalu aktifkan di <strong>Pengaturan Akun</strong>.</span>
-              </div>}
-          </>}
 
           <div style={{marginTop:"auto",paddingTop:24,textAlign:"center",color:MUTED,fontSize:12,letterSpacing:1.5,opacity:0.5}}>v{import.meta.env.VITE_APP_VERSION || "1.0.0"} (Build {import.meta.env.VITE_BUILD_TIME}) · Prokopim Tarakan</div>
         </div>
@@ -9052,23 +9077,16 @@ const TH={
             {loginErr}
             {lockSeconds>0&&<div style={{marginTop:6,fontSize:13,opacity:0.8}}>⏳ Coba lagi dalam {Math.floor(lockSeconds/60)}:{String(lockSeconds%60).padStart(2,"0")}</div>}
           </div>}
-          {(bioErr||bioLoading)&&<div style={{background:"hsla(210,80%,55%,0.12)",borderRadius:9,padding:"9px 13px",marginBottom:12,fontSize:13,color:"hsl(210,80%,75%)",fontWeight:600,border:"1px solid hsla(210,80%,55%,0.25)"}}>{bioLoading?"Memverifikasi biometrik perangkat...":bioErr}</div>}
+          {(bioErr||bioLoading)&&<div style={{background:"hsla(210,80%,55%,0.12)",borderRadius:9,padding:"9px 13px",marginBottom:12,fontSize:13,color:"hsl(210,80%,75%)",fontWeight:600,border:"1px solid hsla(210,80%,55%,0.25)"}}>{bioLoading?"Memverifikasi…":bioErr}</div>}
 
           <button className="login-btn-primary" onClick={doLogin} disabled={lockSeconds>0} style={{width:"100%",height:48,borderRadius:12,fontSize:15,fontWeight:800,marginBottom:10}}>{lockSeconds>0?"Dikunci Sementara":"Masuk"}</button>
+          <CaraMasukLain native={isNativeApp()} sibuk={bioLoading} onPasskey={doPasskeyLogin} onNative={doBioLogin}
+            onGoogle={d=>masukDariPeladen(d,"Memverifikasi akun Google...")} onGalat={e=>setBioErr(e.message)} onProses={setBioLoading}/>
           <button className="login-btn-outline" onClick={()=>setShowForgot(true)} style={{width:"100%",height:42,borderRadius:12,fontSize:13,fontWeight:600,marginBottom:8}}>🔑 Lupa Password?</button>
           <button onClick={()=>setShowRegister(true)} style={{width:"100%",height:42,borderRadius:12,border:"1.5px dashed rgba(201,168,76,0.5)",background:"transparent",color:GOLD2,cursor:"pointer",fontSize:13,fontWeight:600,marginBottom:8,display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
               <span>📝</span> Belum punya akun? Daftar di sini
             </button>
 
-          {bioSupported()&&<>
-            <button className="login-btn-outline" onClick={doBioLogin} disabled={bioLoading} style={{width:"100%",height:42,borderRadius:12,fontSize:13,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",gap:8,marginBottom:8}}>
-              <span style={{fontSize:16}}>🔐</span>{bioLoading?"Memproses...":"Login dengan Biometrik / PIN"}
-            </button>
-            {loginForm.username&&!bioIsRegistered(loginForm.username.toLowerCase().trim())&&
-              <div style={{background:"hsla(42,78%,55%,0.1)",borderRadius:8,padding:"7px 11px",fontSize:13,color:GOLD2,display:"flex",gap:6,alignItems:"flex-start",border:"1px solid hsla(42,78%,55%,0.2)"}}>
-                <span>⚠️</span><span>Biometrik belum aktif. Login dulu, lalu aktifkan di <strong>Pengaturan Akun</strong>.</span>
-              </div>}
-          </>}
 
 
         </div>

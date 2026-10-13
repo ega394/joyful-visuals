@@ -18,6 +18,20 @@ export function clearAdminToken() {
 }
 
 /**
+ * Simpan token sesi yang diterbitkan peladen lewat cara masuk tambahan
+ * (passkey / Google, lihat src/lib/caraMasuk.js). Sesudah ini getAdminToken
+ * memakai token tersebut sampai kedaluwarsa, sama seperti hasil op=auth.
+ */
+export function simpanTokenSesi(username, token, ttl_ms) {
+  if (!username || !token) return;
+  try {
+    localStorage.setItem(KEY, JSON.stringify({
+      username, token, exp: Date.now() + (ttl_ms || 12 * 3600 * 1000),
+    }));
+  } catch { /* ignore */ }
+}
+
+/**
  * Mengembalikan token admin yang valid untuk `user`. Memakai cache bila
  * masih berlaku & milik user yang sama; jika tidak, minta token baru.
  * @throws Error jika kredensial tidak valid / bukan pengelola.

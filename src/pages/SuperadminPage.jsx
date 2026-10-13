@@ -14,6 +14,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import JSZip from "jszip";
 import PlhManagement from "../components/PlhManagement.jsx";
+import { adminFetch } from "../roomAuth";
 
 const SUPA_URL = import.meta.env.VITE_SUPABASE_URL || "";
 const SUPA_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
@@ -433,6 +434,21 @@ function UsersTab({ user, T }) {
     } catch (e) { T(e.message, "error"); }
   };
 
+  // Cabut passkey dan tautan Google milik seseorang (mis. HP hilang). Lewat
+  // peladen, karena tabelnya tertutup untuk kunci publik. Sandi tidak berubah.
+  const onCabutCaraMasuk = async (u) => {
+    if (!confirm("Cabut semua cara masuk tanpa sandi (sidik jari/Face ID dan akun Google) milik " + u.username + "? Sandinya tetap berlaku.")) return;
+    try {
+      const r = await adminFetch(user, "/api/room-booking?op=masuk_cabut", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: u.username }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.error || "Gagal mencabut (HTTP " + r.status + ")");
+      T("Cara masuk tanpa sandi milik " + u.username + " dicabut");
+    } catch (e) { T(e.message, "error"); }
+  };
+
   const onResetPassword = async (u) => {
     const newPw = prompt("Password baru untuk " + u.username + " (min 6 karakter):", "");
     if (!newPw) return;
@@ -507,6 +523,7 @@ function UsersTab({ user, T }) {
                       <button style={{ ...btn("ghost"), padding: "5px 9px", fontSize: 12 }} onClick={() => setEditing(u)}>Edit</button>
                       <button style={{ ...btn("warn"),  padding: "5px 9px", fontSize: 12 }} onClick={() => onResetPassword(u)}>Reset PW</button>
                       <button style={{ ...btn("warn"),  padding: "5px 9px", fontSize: 12 }} onClick={() => onForceLogout(u)}>Force Logout</button>
+                      <button style={{ ...btn("warn"),  padding: "5px 9px", fontSize: 12 }} title="Cabut sidik jari/Face ID dan akun Google" onClick={() => onCabutCaraMasuk(u)}>Cabut Passkey/Google</button>
                       <button style={{ ...btn("ghost"), padding: "5px 9px", fontSize: 12 }} onClick={() => onDisable(u)}>{u.disabled ? "Aktifkan" : "Nonaktifkan"}</button>
                       <button style={{ ...btn("danger"),padding: "5px 9px", fontSize: 12 }} onClick={() => onDelete(u)}>Hapus</button>
                     </div>
