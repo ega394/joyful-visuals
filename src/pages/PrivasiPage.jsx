@@ -94,7 +94,8 @@ export default function PrivasiPage() {
           <P>Data disimpan pada layanan basis data dan peladen awan yang dipakai aplikasi, dengan pusat data di Singapura. Untuk menjalankan fungsinya, aplikasi memakai penyedia layanan berikut sebagai pemroses: Supabase (basis data), Vercel (peladen aplikasi), penyedia gerbang WhatsApp (pengiriman pemberitahuan), dan Google (masuk dengan akun Google serta penyimpanan berkas kedinasan). Seluruh pengiriman data melalui sambungan terenkripsi (HTTPS), dan akses di dalam aplikasi dibatasi menurut peran dan kewenangan.</P>
 
           <H3>5. Masa simpan</H3>
-          <P>Data disimpan selama diperlukan untuk pelaksanaan tugas dan sesuai ketentuan kearsipan yang berlaku. Passkey dan tautan akun Google dapat dihapus sendiri oleh pegawai kapan saja, dan dicabut oleh Administrator bila akun dinonaktifkan.</P>
+          <P>Salinan pesan WhatsApp yang dikirim aplikasi (penerima, nomor, isi pesan, dan status pengiriman) disimpan agar petugas dapat memastikan pemberitahuan benar-benar sampai. Salinan ini hanya dapat dilihat pejabat yang berwenang, isi kode OTP tidak pernah disimpan, dan nomor, nama, serta isi pesan dihapus otomatis sesudah 90 hari.</P>
+          <P>Data lainnya disimpan selama diperlukan untuk pelaksanaan tugas dan sesuai ketentuan kearsipan yang berlaku. Passkey dan tautan akun Google dapat dihapus sendiri oleh pegawai kapan saja, dan dicabut oleh Administrator bila akun dinonaktifkan.</P>
 
           <H3>6. Hak pemilik data</H3>
           <P>Sesuai Undang-Undang Nomor 27 Tahun 2022 tentang Pelindungan Data Pribadi, pemilik data dapat meminta akses, perbaikan, atau penghapusan data pribadinya, sepanjang tidak bertentangan dengan kewajiban kearsipan dan peraturan perundang-undangan. Permintaan disampaikan melalui narahubung di bawah.</P>

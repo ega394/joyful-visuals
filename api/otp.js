@@ -270,14 +270,14 @@ async function sendOTPviaWA(noWA, otp, nama) {
 
     if (d.status === false || d.status === "false") {
       console.error("[OTP] Fonnte gagal:", d.reason || d.message || JSON.stringify(d));
-      await catatWA({ jenis: "otp", sumber: "otp", berhasil: false, catatan: String(d.reason || d.message || "fonnte_error") });
+      await catatWA({ jenis: "otp", sumber: "otp", berhasil: false, catatan: String(d.reason || d.message || "fonnte_error"), nomor, nama, detail: d });
       return { ok: false, reason: d.reason || d.message || "fonnte_error", detail: d };
     }
-    await catatWA({ jenis: "otp", sumber: "otp", berhasil: true });
+    await catatWA({ jenis: "otp", sumber: "otp", berhasil: true, nomor, nama, detail: d });
     return { ok: true };
   } catch (e) {
     console.error("[OTP] Fetch ke Fonnte error:", e.message);
-    await catatWA({ jenis: "otp", sumber: "otp", berhasil: false, catatan: e.message });
+    await catatWA({ jenis: "otp", sumber: "otp", berhasil: false, catatan: e.message, nomor, nama });
     return { ok: false, reason: "fetch_error", message: e.message };
   }
 }

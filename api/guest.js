@@ -341,7 +341,8 @@ async function actionSyncAgenda(body) {
 
 // WA dari modul tamu kini hanya untuk PEMOHON (pihak luar tanpa aplikasi).
 // Koordinasi internal antarpegawai memakai push (lihat pushPemegang).
-async function sendWA(to, message, jenis) {
+async function sendWA(to, message, jenis, arsip) {
+  arsip = arsip || {};
   if (!FONNTE || !to) return false;
   try {
     var r = await fetch("https://api.fonnte.com/send", {
@@ -350,11 +351,11 @@ async function sendWA(to, message, jenis) {
       body: JSON.stringify({ target: to, message: message, countryCode: "62" }),
     });
     var h = await hasilFonnte(r);
-    await catatWA({ jenis: jenis || "tamu", sumber: "tamu", peran: "pemohon", berhasil: h.ok });
+    await catatWA(Object.assign({ jenis: jenis || "tamu", sumber: "tamu", peran: "pemohon", berhasil: h.ok, nomor: to, isi: message, detail: h.detail }, arsip));
     return h.ok;
   } catch (e) {
     console.warn("[WA guest]", e.message);
-    await catatWA({ jenis: jenis || "tamu", sumber: "tamu", peran: "pemohon", berhasil: false, catatan: e.message });
+    await catatWA(Object.assign({ jenis: jenis || "tamu", sumber: "tamu", peran: "pemohon", berhasil: false, catatan: e.message, nomor: to, isi: message }, arsip));
     return false;
   }
 }
@@ -443,9 +444,9 @@ async function waPegawai(daftar, pesan, jenis, peran) {
         body: JSON.stringify({ target: u.noWA, message: pesan, countryCode: "62" }),
       });
       var h = await hasilFonnte(r);
-      await catatWA({ jenis: jenis, sumber: "tamu", peran: peran || u.role, berhasil: h.ok });
+      await catatWA({ jenis: jenis, sumber: "tamu", peran: peran || u.role, berhasil: h.ok, nomor: u.noWA, nama: u.nama, username: u.username, isi: pesan, detail: h.detail });
     } catch (e) {
-      await catatWA({ jenis: jenis, sumber: "tamu", peran: peran || u.role, berhasil: false, catatan: e.message });
+      await catatWA({ jenis: jenis, sumber: "tamu", peran: peran || u.role, berhasil: false, catatan: e.message, nomor: u.noWA, nama: u.nama, username: u.username, isi: pesan });
     }
   }
 }
@@ -649,7 +650,7 @@ async function actionCheckin(body) {
   var pesanWA = body.sumber === "publik"
     ? pesanDiterima(nama, tujuan)
     : "✅ *Tamu Terdaftar*\n\nYth. *" + nama + "*,\nPermohonan Anda telah diterima dan sedang diperiksa oleh *Admin RK*." + WA_FOOTER;
-  await sendWA(no_wa, pesanWA, "tamu_tanda_terima");
+  await sendWA(no_wa, pesanWA, "tamu_tanda_terima", { nama: nama, rujukan: created && created[0] && created[0].id ? "tamu:" + created[0].id : null });
   if (created && created[0] && created[0].id) await kabarTahap(created[0].id, "pending_rk", null);
 
   return { ok: true, id: created[0]?.id, nama: nama, tujuan_pejabat: tujuan };
@@ -866,7 +867,7 @@ async function actionUpdateJadwal(body) {
         (body.scheduled_date ? "🗓️ " + fmtTanggalWA(body.scheduled_date) + (body.scheduled_time ? ", pukul " + String(body.scheduled_time).slice(0,5) + " WITA" : "") : "") +
         (body.tempat ? "\n📍 Tempat: " + body.tempat : "") +
         "\n\nMohon menyesuaikan. Terima kasih." + WA_FOOTER;
-      await sendWA(g.no_wa, msg, "tamu_jadwal_diubah");
+      await sendWA(g.no_wa, msg, "tamu_jadwal_diubah", { nama: g.nama, rujukan: "tamu:" + body.id });
     }
   } catch (e) {}
 
@@ -905,7 +906,7 @@ async function actionRespond(body) {
       jadwal_tanggal: updateData.jadwal_tanggal, jadwal_jam: updateData.jadwal_jam,
       tempat: body.tempat, alasan_tolak: updateData.alasan_tolak, disposisi_ke: updateData.disposisi_ke,
     });
-    if (msg) await sendWA(guest.no_wa, msg, "tamu_keputusan_" + body.response);
+    if (msg) await sendWA(guest.no_wa, msg, "tamu_keputusan_" + body.response, { nama: guest.nama, rujukan: "tamu:" + body.id });
   }
 
   await kabarKeputusan(body.id, body.response, body.responded_by || "", updateData.jadwal_tanggal);
@@ -1016,16 +1017,19 @@ async function actionKirimUlangWA(body) {
   try { tolakBilaTertahan(await riwayatKirimUlang(tanda)); }
   catch (e) { await lepasKunci(kunci); throw e; }
 
-  var ok = false;
+  var ok = false, detailKirim = null;
   try {
     var r = await fetch("https://api.fonnte.com/send", {
       method: "POST",
       headers: { "Authorization": FONNTE, "Content-Type": "application/json" },
       body: JSON.stringify({ target: g.no_wa, message: pesan, countryCode: "62" }),
     });
-    ok = (await hasilFonnte(r)).ok;
+    var hk = await hasilFonnte(r);
+    ok = hk.ok; detailKirim = hk.detail;
   } catch (e) { ok = false; }
-  if (FONNTE) await catatWA({ jenis: "tamu_kirim_ulang", sumber: "tamu", peran: "pemohon", berhasil: ok, catatan: tanda });
+  // catatan = tanda permohonan: dipakai pemeriksaan jeda & kuota harian di atas.
+  if (FONNTE) await catatWA({ jenis: "tamu_kirim_ulang", sumber: "tamu", peran: "pemohon", berhasil: ok, catatan: tanda,
+    nomor: g.no_wa, nama: g.nama, isi: pesan, rujukan: "tamu:" + g.id, detail: detailKirim });
   // Kunci dilepas setelah tercatat; jeda 30 menit selanjutnya dijaga wa_log.
   await lepasKunci(kunci);
   if (!ok) throw new Error("WA gagal terkirim. Periksa sambungan perangkat Fonnte, lalu coba lagi.");
