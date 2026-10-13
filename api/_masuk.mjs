@@ -9,8 +9,7 @@
  *  - Masuk lewat passkey/Google hanya untuk akun yang tertaut DAN aktif;
  *    akun yang dinonaktifkan langsung tertolak.
  *  - Google dicocokkan lewat `sub` (nomor akun tetap), bukan email.
- *  - Setiap tantangan passkey sekali pakai, 5 menit. Token Google diperiksa
- *    ke Google (tokeninfo) dan harus diterbitkan untuk GOOGLE_CLIENT_ID ini.
+ *  - Setiap tantangan (passkey) dan nonce (Google) sekali pakai, 5 menit.
  *  - Batas percobaan per alamat IP; setiap masuk/tautkan/lepas tercatat di
  *    audit_log.
  *
@@ -23,14 +22,13 @@ import {
   generateAuthenticationOptions, verifyAuthenticationResponse,
   generateRegistrationOptions, verifyRegistrationResponse,
 } from "@simplewebauthn/server";
+import { createRemoteJWKSet, jwtVerify } from "jose";
 // CommonJS (lihat kepala _middleware.js) — impor bawaan, lalu ambil fungsinya.
 import mw from "./_middleware.js";
 const { rateLimit, getIP } = mw;
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
-// Token akses dari jendela masuk Google diperiksa ke Google sendiri: sah,
-// belum kedaluwarsa, dan diterbitkan untuk aplikasi INI (aud = client ID).
-const GOOGLE_TOKENINFO = "https://oauth2.googleapis.com/tokeninfo?access_token=";
+const GOOGLE_JWKS_URL = "https://www.googleapis.com/oauth2/v3/certs";
 const UMUR_TANTANGAN_MS = 5 * 60 * 1000;
 const MAKS_PASSKEY = 10;
 
@@ -46,6 +44,8 @@ const HOST_SAH = [
     .map((h) => new RegExp("^" + h.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "$", "i")),
 ];
 
+let _jwks = null;
+const jwksGoogle = () => (_jwks ||= createRemoteJWKSet(new URL(GOOGLE_JWKS_URL)));
 
 function asalPermintaan(req) {
   const hostPenuh = String(req.headers["x-forwarded-host"] || req.headers.host || "").split(",")[0].trim();
@@ -117,18 +117,15 @@ export async function tanganiMasuk(req, res, alat) {
     return u && !u.disabled ? u : null;
   };
 
-  const verifikasiGoogle = async (tokenAkses) => {
+  const verifikasiGoogle = async (credential, nonce) => {
     if (!GOOGLE_CLIENT_ID) throw Object.assign(new Error("Masuk dengan Google belum diaktifkan."), { status: 503 });
-    const tok = String(tokenAkses || "");
-    if (!/^[A-Za-z0-9._~+/=-]{20,4096}$/.test(tok)) throw new Error("Token Google tidak sah.");
-    const r = await fetch(GOOGLE_TOKENINFO + encodeURIComponent(tok));
-    if (!r.ok) throw new Error("Token Google tidak sah atau kedaluwarsa.");
-    const info = await r.json();
-    // Token milik aplikasi lain tidak boleh dipakai di sini, walau sah.
-    if (info.aud !== GOOGLE_CLIENT_ID) throw new Error("Token Google bukan untuk aplikasi ini.");
-    if (!info.sub) throw new Error("Token Google tidak memuat identitas akun.");
-    if (!(Number(info.expires_in) > 0)) throw new Error("Token Google kedaluwarsa.");
-    return { sub: String(info.sub), email: info.email || null };
+    const { payload } = await jwtVerify(String(credential || ""), jwksGoogle(), {
+      issuer: ["https://accounts.google.com", "accounts.google.com"],
+      audience: GOOGLE_CLIENT_ID,
+    });
+    if (!payload.sub) throw new Error("Token Google tidak memuat identitas akun.");
+    if (payload.nonce !== nonce) throw new Error("Token Google tidak cocok dengan permintaan ini.");
+    return payload;
   };
 
   const batasPublik = () => {
@@ -194,11 +191,21 @@ export async function tanganiMasuk(req, res, alat) {
       return res.status(200).json({ ok: true, cara: "passkey", ...sesi });
     }
 
-    // ── GOOGLE: masuk ─────────────────────────────────────────
+    // ── GOOGLE: nonce (publik) dan masuk ───────────────────────
+    if (op === "masuk_google_mulai" && method === "POST") {
+      if (!batasPublik()) return;
+      if (!GOOGLE_CLIENT_ID) return gagal(503, "Masuk dengan Google belum diaktifkan.");
+      const nonce = idAcak(24);
+      const id = await simpanTantangan("google", nonce);
+      return res.status(200).json({ id, nonce, clientId: GOOGLE_CLIENT_ID });
+    }
+
     if (op === "masuk_google_selesai" && method === "POST") {
       if (!batasPublik()) return;
+      const t = await pakaiTantangan(body.id, "google");
+      if (!t) return gagal(400, "Permintaan kedaluwarsa. Silakan ulangi.");
       let p;
-      try { p = await verifikasiGoogle(body.access_token); }
+      try { p = await verifikasiGoogle(body.credential, t.tantangan); }
       catch (e) {
         if (e.status) return gagal(e.status, e.message);
         await audit("-", null, "login.google_gagal", null, { alasan: e.message.slice(0, 120) });
@@ -289,8 +296,10 @@ export async function tanganiMasuk(req, res, alat) {
     }
 
     if (op === "masuk_google_hubungkan" && method === "POST") {
+      const t = await pakaiTantangan(body.id, "google");
+      if (!t) return gagal(400, "Permintaan kedaluwarsa. Silakan ulangi.");
       let p;
-      try { p = await verifikasiGoogle(body.access_token); }
+      try { p = await verifikasiGoogle(body.credential, t.tantangan); }
       catch (e) { return gagal(e.status || 400, e.status ? e.message : "Verifikasi akun Google gagal. Silakan coba lagi."); }
       const lain = (await sbGet(`tautan_login?penyedia=eq.google&sub=eq.${encodeURIComponent(p.sub)}&select=username`))?.[0];
       if (lain && lain.username !== un)

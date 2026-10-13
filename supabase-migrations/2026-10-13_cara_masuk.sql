@@ -34,11 +34,11 @@ CREATE TABLE IF NOT EXISTS tautan_login (
   UNIQUE (penyedia, username)
 );
 
--- 3. Tantangan passkey sekali pakai (berlaku 5 menit).
+-- 3. Tantangan sekali pakai (berlaku 5 menit) untuk passkey dan nonce Google.
 CREATE TABLE IF NOT EXISTS tantangan_masuk (
   id           TEXT PRIMARY KEY,
   tantangan    TEXT NOT NULL,
-  jenis        TEXT NOT NULL,                -- passkey_masuk | passkey_daftar
+  jenis        TEXT NOT NULL,                -- passkey_masuk | passkey_daftar | google
   username     TEXT,
   kedaluwarsa  TIMESTAMPTZ NOT NULL
 );

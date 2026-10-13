@@ -69,19 +69,15 @@ export const hapusPasskey = (id) => kirim("masuk_passkey_hapus", { id }, true);
 export const putuskanGoogle = () => kirim("masuk_google_putus", {}, true);
 
 // ── Google Identity Services ─────────────────────────────────
-// Tombol dibuat sendiri (tampilan mengikuti aplikasi); jendela masuknya tetap
-// jendela resmi Google. Hasilnya token akses yang diperiksa peladen ke Google
-// (tokeninfo) — harus sah, belum kedaluwarsa, dan diterbitkan untuk aplikasi ini.
 let _gis = null;
-/** Muat pustaka Google lebih awal, supaya jendela masuk terbuka langsung saat tombol diketuk. */
-export function muatGIS() {
-  if (typeof window !== "undefined" && window.google?.accounts?.oauth2) return Promise.resolve(window.google);
+function muatGIS() {
+  if (typeof window !== "undefined" && window.google?.accounts?.id) return Promise.resolve(window.google);
   if (!_gis) {
     _gis = new Promise((ok, gagal) => {
       const s = document.createElement("script");
       s.src = "https://accounts.google.com/gsi/client";
       s.async = true;
-      s.onload = () => (window.google?.accounts?.oauth2 ? ok(window.google) : gagal(new Error("Layanan Google tidak termuat")));
+      s.onload = () => (window.google?.accounts?.id ? ok(window.google) : gagal(new Error("Layanan Google tidak termuat")));
       s.onerror = () => { _gis = null; gagal(new Error("Layanan Google tidak dapat dihubungi")); };
       document.head.appendChild(s);
     });
@@ -89,22 +85,45 @@ export function muatGIS() {
   return _gis;
 }
 
-/** Buka jendela masuk Google dan kembalikan token aksesnya. Panggil dari ketukan tombol. */
-export async function mintaTokenGoogle(clientId) {
-  const google = await muatGIS();
-  return new Promise((ok, gagal) => {
-    const klien = google.accounts.oauth2.initTokenClient({
-      client_id: clientId,
-      scope: "openid email profile",
-      prompt: "select_account",
-      callback: (r) => (r && r.access_token ? ok(r.access_token) : gagal(new Error(r?.error_description || "Masuk dengan Google gagal"))),
-      error_callback: (e) => gagal(Object.assign(
-        new Error(e?.type === "popup_failed_to_open" ? "Jendela Google diblokir peramban. Izinkan pop-up lalu coba lagi." : "Masuk dengan Google dibatalkan"),
-        { name: e?.type === "popup_closed" ? "AbortError" : "Error" })),
-    });
-    klien.requestAccessToken();
+/**
+ * Pasang tombol resmi Google pada elemen `el`.
+ *   mode "masuk"     → hasil: data sesi (pengguna belum masuk)
+ *   mode "hubungkan" → hasil: { email } (pengguna sedang masuk)
+ * Setiap tombol memakai nonce sekali pakai dari peladen; setelah dipakai
+ * (berhasil atau gagal) tombol dipasang ulang dengan nonce baru.
+ */
+export async function pasangTombolGoogle(el, { mode = "masuk", onHasil, onGalat, onProses, lebar = 300 } = {}) {
+  const [{ id, nonce, clientId }, google] = await Promise.all([
+    kirim("masuk_google_mulai", {}),
+    muatGIS(),
+  ]);
+  google.accounts.id.initialize({
+    client_id: clientId,
+    nonce,
+    ux_mode: "popup",
+    auto_select: false,
+    cancel_on_tap_outside: true,
+    itp_support: true,
+    callback: async (resp) => {
+      onProses && onProses(true);
+      try {
+        const op = mode === "hubungkan" ? "masuk_google_hubungkan" : "masuk_google_selesai";
+        const hasil = await kirim(op, { id, credential: resp.credential }, mode === "hubungkan");
+        onHasil && onHasil(hasil);
+      } catch (e) {
+        onGalat && onGalat(e);
+        // Nonce sudah terpakai — siapkan tombol baru untuk percobaan berikutnya.
+        pasangTombolGoogle(el, { mode, onHasil, onGalat, onProses, lebar }).catch(() => {});
+      } finally {
+        onProses && onProses(false);
+      }
+    },
+  });
+  if (!el || !el.isConnected) return;
+  el.innerHTML = "";
+  google.accounts.id.renderButton(el, {
+    type: "standard", theme: "outline", size: "large", shape: "pill",
+    text: mode === "hubungkan" ? "continue_with" : "signin_with",
+    locale: "id", width: Math.max(200, Math.min(400, Math.round(lebar))),
   });
 }
-
-export const masukGoogle = (access_token) => kirim("masuk_google_selesai", { access_token });
-export const hubungkanGoogle = (access_token) => kirim("masuk_google_hubungkan", { access_token }, true);

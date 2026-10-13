@@ -129,8 +129,3 @@ All colors MUST be HSL.
     font-family: inherit;
   }
 }
-
-/* Tombol "Masuk dengan Google" (lihat TombolGoogle di ProkopimApp.jsx) */
-.tombol-google.tg-terang:hover:not(:disabled) { background: #F2F2F2 !important; }
-.tombol-google.tg-gelap:hover:not(:disabled)  { background: #1F1F20 !important; }
-.tombol-google:focus-visible { outline: 2px solid #4285F4; outline-offset: 2px; }
