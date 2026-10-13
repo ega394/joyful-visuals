@@ -8996,6 +8996,7 @@ const TH={
 
 
           <div style={{marginTop:"auto",paddingTop:24,textAlign:"center",color:MUTED,fontSize:12,letterSpacing:1.5,opacity:0.5}}>v{import.meta.env.VITE_APP_VERSION || "1.0.0"} (Build {import.meta.env.VITE_BUILD_TIME}) · Prokopim Tarakan</div>
+          <div style={{textAlign:"center",fontSize:12,marginTop:8}}><a href="/privasi" style={{color:MUTED,opacity:.75,textDecoration:"underline"}}>Kebijakan Privasi</a><span style={{color:MUTED,opacity:.5}}> · </span><a href="/ketentuan" style={{color:MUTED,opacity:.75,textDecoration:"underline"}}>Ketentuan Penggunaan</a></div>
         </div>
       </>}
 
@@ -9052,6 +9053,7 @@ const TH={
             </div>
           </div>
           <div style={{color:MUTED,fontSize:12,letterSpacing:1.5,opacity:0.5,marginTop:20}}>v{import.meta.env.VITE_APP_VERSION || "1.0.0"} (Build {import.meta.env.VITE_BUILD_TIME}) &middot; Prokopim Tarakan</div>
+          <div style={{textAlign:"center",fontSize:12,marginTop:8}}><a href="/privasi" style={{color:MUTED,opacity:.75,textDecoration:"underline"}}>Kebijakan Privasi</a><span style={{color:MUTED,opacity:.5}}> · </span><a href="/ketentuan" style={{color:MUTED,opacity:.75,textDecoration:"underline"}}>Ketentuan Penggunaan</a></div>
         </div>
 
         {/* Right panel login */}
