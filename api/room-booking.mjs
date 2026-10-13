@@ -46,6 +46,7 @@
 // pendapat tentang penetapan yang sah.
 import { periksaPenetapan, plhAktif } from "../src/lib/plh.js";
 import { sinkronSatu } from "./_kalender.mjs";
+import { tanganiMasuk } from "./_masuk.mjs";
 // CommonJS (lihat kepala _walog.js) — impor bawaan, lalu ambil fungsinya.
 import walog from "./_walog.js";
 const { catatWA, hasilFonnte } = walog;
@@ -312,6 +313,51 @@ async function verifySession(req) {
   return u;
 }
 
+// ── Penerbitan token sesi ─────────────────────────────────────
+// Dipakai op=auth (sandi) dan cara masuk tambahan (passkey/Google, _masuk.mjs).
+const TTL_SESI_MS = 12 * 3600 * 1000;
+async function terbitkanSesi(u) {
+  const TTL_MS = TTL_SESI_MS;
+  const token = genToken();
+  // Satu akun boleh punya beberapa sesi (HP dan laptop, atau beberapa
+  // permintaan yang meminta token bersamaan). Dulu semua sesi lama
+  // dihapus di sini, sehingga dua perangkat — bahkan dua permintaan
+  // paralel — saling mencabut token dan notifikasi WA gagal diam-diam.
+  // Kini hanya yang kedaluwarsa dibuang, dan yang berlaku dibatasi
+  // MAKS_SESI terbaru supaya barisnya tidak menumpuk.
+  const MAKS_SESI = 5;
+  try {
+    const ada = await sbGet(
+      `sesi?username=eq.${encodeURIComponent(u.username)}` +
+      `&select=token,kedaluwarsa&order=kedaluwarsa.desc`
+    );
+    const kini = Date.now();
+    const buang = (ada || [])
+      .filter((x, i) => i >= MAKS_SESI - 1 || !x.kedaluwarsa || new Date(x.kedaluwarsa).getTime() < kini)
+      .map((x) => x.token)
+      .filter((t) => /^[A-Za-z0-9_-]+$/.test(String(t || "")));
+    if (buang.length) await sbDelete(`sesi?token=in.(${buang.join(",")})`);
+    await sbPost("sesi", {
+      token,
+      username: u.username,
+      kedaluwarsa: new Date(Date.now() + TTL_MS).toISOString(),
+    });
+  } catch (e) {
+    if (!tabelBelumAda(e)) throw e;
+    // Migrasi belum dijalankan — terbitkan pada kolom lama seperti
+    // sebelumnya. Sekali migrasi berjalan, cabang ini tidak terpakai lagi.
+    await sbPatch(`users?username=eq.${encodeURIComponent(u.username)}`, {
+      session_token: token,
+      session_expires: new Date(Date.now() + TTL_MS).toISOString(),
+    });
+  }
+  return {
+    token, ttl_ms: TTL_MS,
+    username: u.username, nama: u.nama, role: u.role,
+    can_manage_rooms: !!u.can_manage_rooms,
+  };
+}
+
 // verifyAdmin → khusus peninjau permohonan (Kabag / pengelola ruangan).
 async function verifyAdmin(req) {
   const u = await verifySession(req);
@@ -338,6 +384,13 @@ export default async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
 
   const { method, query, body } = req;
+
+  // ?op=masuk_* → passkey dan Masuk dengan Google (lihat _masuk.mjs).
+  if (String(query.op || "").startsWith("masuk_")) {
+    return tanganiMasuk(req, res, {
+      sbGet, sbPost, sbPatch, sbDelete, verifySession, terbitkanSesi, tabelBelumAda, SUPA_URL, H,
+    });
+  }
 
   try {
     // ?op=kalender → samakan Google Calendar bersama dengan satu jadwal.
@@ -562,45 +615,7 @@ export default async function handler(req, res) {
         // Token diterbitkan untuk semua pemegang akun aktif — dipakai juga oleh
         // kalender ruangan internal agar bisa melihat kontak PIC. Kewenangan
         // meninjau permohonan tetap diperiksa terpisah lewat verifyAdmin().
-        const TTL_MS = 12 * 3600 * 1000;
-        const token = genToken();
-        // Satu akun boleh punya beberapa sesi (HP dan laptop, atau beberapa
-        // permintaan yang meminta token bersamaan). Dulu semua sesi lama
-        // dihapus di sini, sehingga dua perangkat — bahkan dua permintaan
-        // paralel — saling mencabut token dan notifikasi WA gagal diam-diam.
-        // Kini hanya yang kedaluwarsa dibuang, dan yang berlaku dibatasi
-        // MAKS_SESI terbaru supaya barisnya tidak menumpuk.
-        const MAKS_SESI = 5;
-        try {
-          const ada = await sbGet(
-            `sesi?username=eq.${encodeURIComponent(u.username)}` +
-            `&select=token,kedaluwarsa&order=kedaluwarsa.desc`
-          );
-          const kini = Date.now();
-          const buang = (ada || [])
-            .filter((x, i) => i >= MAKS_SESI - 1 || !x.kedaluwarsa || new Date(x.kedaluwarsa).getTime() < kini)
-            .map((x) => x.token)
-            .filter((t) => /^[A-Za-z0-9_-]+$/.test(String(t || "")));
-          if (buang.length) await sbDelete(`sesi?token=in.(${buang.join(",")})`);
-          await sbPost("sesi", {
-            token,
-            username: u.username,
-            kedaluwarsa: new Date(Date.now() + TTL_MS).toISOString(),
-          });
-        } catch (e) {
-          if (!tabelBelumAda(e)) throw e;
-          // Migrasi belum dijalankan — terbitkan pada kolom lama seperti
-          // sebelumnya. Sekali migrasi berjalan, cabang ini tidak terpakai lagi.
-          await sbPatch(`users?username=eq.${encodeURIComponent(u.username)}`, {
-            session_token: token,
-            session_expires: new Date(Date.now() + TTL_MS).toISOString(),
-          });
-        }
-        return res.status(200).json({
-          ok: true, token, ttl_ms: TTL_MS,
-          username: u.username, nama: u.nama, role: u.role,
-          can_manage_rooms: !!u.can_manage_rooms,
-        });
+        return res.status(200).json({ ok: true, ...(await terbitkanSesi(u)) });
       }
 
       const {
