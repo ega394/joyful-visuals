@@ -2892,22 +2892,22 @@ function CaraMasukLain({native,sibuk,onPasskey,onNative,onGoogle,onGalat,onProse
     </div>
     {native&&<button className="login-btn-outline" onClick={onNative} disabled={sibuk} style={gaya}><span style={{fontSize:18}}>🔐</span>{sibuk?"Memproses...":"Biometrik Perangkat"}</button>}
     {pk&&<button className="login-btn-outline" onClick={onPasskey} disabled={sibuk} style={gaya}><span style={{fontSize:18}}>👆</span>{sibuk?"Memproses...":"Sidik Jari / Face ID"}</button>}
-    {k?.google&&!native&&<TombolGoogle mode="masuk" onHasil={onGoogle} onGalat={onGalat} onProses={onProses}/>}
+    {k?.google&&!native&&<TombolGoogle mode="masuk" tema="filled_black" onHasil={onGoogle} onGalat={onGalat} onProses={onProses}/>}
   </>;
 }
 
-function TombolGoogle({mode,onHasil,onGalat,onProses}){
+function TombolGoogle({mode,tema="outline",onHasil,onGalat,onProses}){
   const ref=useRef(null);const[galat,setGalat]=useState("");
   const cb=useRef({});cb.current={onHasil,onGalat,onProses};
   useEffect(()=>{
     let hidup=true;const el=ref.current;
-    pasangTombolGoogle(el,{mode,lebar:el?.offsetWidth||300,
+    pasangTombolGoogle(el,{mode,tema,lebar:el?.offsetWidth||300,
       onHasil:d=>hidup&&cb.current.onHasil&&cb.current.onHasil(d),
       onGalat:e=>hidup&&cb.current.onGalat&&cb.current.onGalat(e),
       onProses:p=>hidup&&cb.current.onProses&&cb.current.onProses(p)})
       .catch(e=>{if(hidup)setGalat(e.message||"Layanan Google tidak dapat dihubungi");});
     return()=>{hidup=false;};
-  },[mode]);
+  },[mode,tema]);
   return <div style={{marginBottom:8}}>
     <div ref={ref} data-uji="tombol-google" style={{display:"flex",justifyContent:"center",minHeight:44}}/>
     {galat&&<div style={{fontSize:12,color:"#94a3b8",textAlign:"center",marginTop:4}}>{galat}</div>}

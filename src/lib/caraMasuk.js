@@ -92,7 +92,7 @@ function muatGIS() {
  * Setiap tombol memakai nonce sekali pakai dari peladen; setelah dipakai
  * (berhasil atau gagal) tombol dipasang ulang dengan nonce baru.
  */
-export async function pasangTombolGoogle(el, { mode = "masuk", onHasil, onGalat, onProses, lebar = 300 } = {}) {
+export async function pasangTombolGoogle(el, { mode = "masuk", onHasil, onGalat, onProses, lebar = 300, tema = "outline" } = {}) {
   const [{ id, nonce, clientId }, google] = await Promise.all([
     kirim("masuk_google_mulai", {}),
     muatGIS(),
@@ -113,7 +113,7 @@ export async function pasangTombolGoogle(el, { mode = "masuk", onHasil, onGalat,
       } catch (e) {
         onGalat && onGalat(e);
         // Nonce sudah terpakai — siapkan tombol baru untuk percobaan berikutnya.
-        pasangTombolGoogle(el, { mode, onHasil, onGalat, onProses, lebar }).catch(() => {});
+        pasangTombolGoogle(el, { mode, onHasil, onGalat, onProses, lebar, tema }).catch(() => {});
       } finally {
         onProses && onProses(false);
       }
@@ -122,7 +122,8 @@ export async function pasangTombolGoogle(el, { mode = "masuk", onHasil, onGalat,
   if (!el || !el.isConnected) return;
   el.innerHTML = "";
   google.accounts.id.renderButton(el, {
-    type: "standard", theme: "outline", size: "large", shape: "pill",
+    // Tema resmi Google: "filled_black" untuk latar gelap, "outline" untuk latar terang.
+    type: "standard", theme: tema, size: "large", shape: "pill",
     text: mode === "hubungkan" ? "continue_with" : "signin_with",
     locale: "id", width: Math.max(200, Math.min(400, Math.round(lebar))),
   });
