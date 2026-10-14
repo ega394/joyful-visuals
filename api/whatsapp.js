@@ -6,6 +6,7 @@
 
 import { wajibSesi, penggunaNomor, normalNomor } from "./_sesi.js";
 import { catatWA, hasilFonnte } from "./_walog.js";
+import { tanganiMonitor } from "./_monitorwa.js";
 
 // Pesan bebas (event "broadcast") hanya untuk pejabat yang memang mengirim
 // pengumuman/pemberitahuan dari aplikasi: Kabag (Kirim Pengumuman) dan
@@ -21,6 +22,9 @@ const EVENT_DIKENAL = [
 ];
 
 export default async function handler(req, res) {
+  // ?op=monitor_wa | wa_status | wa_perangkat → Monitor WA dan webhook Fonnte
+  // (api/_monitorwa.js). Menumpang di sini karena kuota fungsi Vercel penuh.
+  if (req.query && req.query.op) return tanganiMonitor(req, res);
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
@@ -432,11 +436,13 @@ export default async function handler(req, res) {
       hasil = await hasilFonnte(r);
     } catch (err) {
       console.error("Fetch ke Fonnte gagal:", err.message);
-      await catatWA({ jenis: jenisLog, sumber: "aplikasi", peran: penerima.role, berhasil: false, catatan: err.message });
+      await catatWA({ jenis: jenisLog, sumber: "aplikasi", peran: penerima.role, berhasil: false, catatan: err.message,
+                      nomor, nama: penerima.nama, username: penerima.username, isi: teks });
       return res.status(500).json({ error: err.message });
     }
     await catatWA({ jenis: jenisLog, sumber: "aplikasi", peran: penerima.role, berhasil: hasil.ok,
-                    catatan: hasil.ok ? null : JSON.stringify(hasil.detail || {}).slice(0, 200) });
+                    catatan: hasil.ok ? null : JSON.stringify(hasil.detail || {}).slice(0, 200),
+                    nomor, nama: penerima.nama, username: penerima.username, isi: teks, detail: hasil.detail });
     if (!hasil.ok) {
       console.error("Fonnte error:", hasil.detail);
       return res.status(500).json({ error: "Gagal kirim WA", detail: hasil.detail });

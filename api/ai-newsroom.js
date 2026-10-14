@@ -18,6 +18,7 @@
  */
 
 import { wajibSesi } from "./_sesi.js";
+import { catatWA, hasilFonnte } from "./_walog.js";
 
 const SUPA_URL   = process.env.SUPABASE_URL  || process.env.VITE_SUPABASE_URL;
 const SUPA_KEY   = process.env.SUPABASE_KEY  || process.env.VITE_SUPABASE_ANON_KEY;
@@ -55,17 +56,22 @@ async function sbPatch(table, filter, body) {
 }
 
 // ── WhatsApp Notifikasi ──────────────────────────────────────
-async function sendWA(to, message) {
+// `arsip` (jenis, peran, nama, username) untuk wa_log / Monitor WA.
+async function sendWA(to, message, arsip = {}) {
   if (!FONNTE || !to) return { ok: false, reason: "no_token_or_target" };
+  const dasar = { jenis: "newsroom", sumber: "newsroom", nomor: to, isi: message, ...arsip };
   try {
     const r = await fetch("https://api.fonnte.com/send", {
       method: "POST",
       headers: { "Authorization": FONNTE, "Content-Type": "application/json" },
       body: JSON.stringify({ target: to, message, countryCode: "62" }),
     });
-    return { ok: r.ok };
+    const h = await hasilFonnte(r);
+    await catatWA({ ...dasar, berhasil: h.ok, detail: h.detail });
+    return { ok: h.ok };
   } catch (err) {
     console.error("[WA]", err.message);
+    await catatWA({ ...dasar, berhasil: false, catatan: err.message });
     return { ok: false };
   }
 }
@@ -351,7 +357,7 @@ async function actionSubmit(body) {
 
   // Ambil semua Kasubbag Komdokpim untuk kirim WA
   const editors = await sbGet(
-    `users?role=eq.kasubbag_komdokpim&select=nama,noWA`
+    `users?role=eq.kasubbag_komdokpim&select=username,nama,role,noWA`
   );
   const draft = await sbGet(`news_drafts?id=eq.${draftId}&select=agenda_name`);
   const agendaName = draft[0]?.agenda_name || "Kegiatan";
@@ -363,7 +369,8 @@ async function actionSubmit(body) {
       `Kegiatan: *${agendaName}*\n` +
       `Dikirim oleh: ${authorUsername}\n\n` +
       `Silakan buka aplikasi Prokopim → menu AI Newsroom untuk mereview dan menyetujui draft berita ini.\n\n` +
-      `_Prokopim Kota Tarakan_`
+      `_Prokopim Kota Tarakan_`,
+      { jenis: "newsroom_review", peran: editor.role, nama: editor.nama, username: editor.username, rujukan: "berita:" + draftId }
     );
   }
 
@@ -411,7 +418,8 @@ async function actionRevise(body) {
         `✏️ *Draft Berita Perlu Revisi*\n\n` +
         `Kegiatan: *${draft[0].agenda_name}*\n` +
         `Catatan Kasubbag: ${revisionNote}\n\n` +
-        `Silakan buka aplikasi Prokopim untuk merevisi draft.\n_Prokopim Kota Tarakan_`
+        `Silakan buka aplikasi Prokopim untuk merevisi draft.\n_Prokopim Kota Tarakan_`,
+        { jenis: "newsroom_revisi", username: draft[0].author_username }
       );
     }
   }

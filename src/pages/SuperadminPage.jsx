@@ -15,6 +15,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import JSZip from "jszip";
 import PlhManagement from "../components/PlhManagement.jsx";
 import { adminFetch } from "../roomAuth";
+const MonitorWA = React.lazy(() => import("../components/MonitorWA.jsx"));
 
 const SUPA_URL = import.meta.env.VITE_SUPABASE_URL || "";
 const SUPA_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
@@ -352,7 +353,7 @@ export default function SuperadminPage() {
         {/* Jalur kedua penetapan PLH: dipakai bila Kabag mendadak berhalangan
             dan belum sempat menunjuk pengampu sebelum cuti. */}
         {tab === "plh"    && <PlhManagement user={user} isMobile={false} />}
-        {tab === "notif"  && <NotifTab />}
+        {tab === "notif"  && <NotifTab user={user} />}
         {tab === "system" && <SystemTab user={user} T={T} />}
       </div>
 
@@ -1188,24 +1189,21 @@ async function ambilJson(path) {
   return r.json();
 }
 
-function NotifTab() {
+function NotifTab({ user }) {
   const [wa, setWa] = useState(null);       // { baris } | { galat }
   const [orang, setOrang] = useState(null); // { users, subs } | { galat }
   const [hari, setHari] = useState(30);
 
   useEffect(() => {
     setWa(null);
-    const sejak = new Date(Date.now() - hari * 86400000).toISOString();
     (async () => {
       try {
-        const baris = [];
-        for (let off = 0; off < 20000; off += 1000) {
-          const page = await ambilJson("wa_log?select=waktu,jenis,sumber,peran,berhasil&waktu=gte." +
-            encodeURIComponent(sejak) + "&order=waktu.asc&limit=1000&offset=" + off);
-          baris.push(...page);
-          if (page.length < 1000) break;
-        }
-        setWa({ baris });
+        // wa_log kini tertutup untuk kunci publik (memuat arsip penerima & isi
+        // pesan), jadi rekapnya diambil lewat peladen dengan sesi superadmin.
+        const r = await adminFetch(user, "/api/whatsapp?op=monitor_wa&mentah=1&hari=" + hari);
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(d.error || "HTTP " + r.status);
+        setWa({ baris: d.baris || [] });
       } catch (e) { setWa({ galat: e.message }); }
     })();
   }, [hari]);
@@ -1263,6 +1261,11 @@ function NotifTab() {
   return (
     <div>
       <h2 style={{ marginTop: 0, fontSize: 18 }}>Notifikasi & WhatsApp</h2>
+      <div style={{ background: "white", borderRadius: 10, border: "1px solid " + C.border, marginBottom: 14 }}>
+        <React.Suspense fallback={<div style={{ padding: 16, color: C.muted }}>Memuat Monitor WA…</div>}>
+          <MonitorWA ambil={(url, o) => adminFetch(user, url, o)} />
+        </React.Suspense>
+      </div>
 
       <div style={{ background: "white", borderRadius: 10, border: "1px solid " + C.border, padding: 20, marginBottom: 14 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>

@@ -202,7 +202,7 @@ async function isDuplicate(type) {
 
 // ── Helper: kirim WA via Fonnte ──────────────────────────────
 // `jenis` dan `peran` hanya untuk wa_log (tanpa nomor/isi pesan).
-async function sendWA(to, message, jenis = "cron", peran = "") {
+async function sendWA(to, message, jenis = "cron", peran = "", arsip = {}) {
   if (!FONNTE || !to) return false;
   try {
     const r = await fetch("https://api.fonnte.com/send", {
@@ -215,11 +215,12 @@ async function sendWA(to, message, jenis = "cron", peran = "") {
     });
     const h = await hasilFonnte(r);
     await catatWA({ jenis, sumber: "cron", peran, berhasil: h.ok,
-                    catatan: h.ok ? null : JSON.stringify(h.detail || {}).slice(0, 200) });
+                    catatan: h.ok ? null : JSON.stringify(h.detail || {}).slice(0, 200),
+                    nomor: to, isi: message, detail: h.detail, ...arsip });
     return h.ok;
   } catch (err) {
     console.error(`[WA] Gagal kirim (${jenis}):`, err?.message || err);
-    await catatWA({ jenis, sumber: "cron", peran, berhasil: false, catatan: err?.message });
+    await catatWA({ jenis, sumber: "cron", peran, berhasil: false, catatan: err?.message, nomor: to, isi: message, ...arsip });
     return false;
   }
 }
@@ -413,7 +414,7 @@ async function notifPagi(jadwal, users, tamu = []) {
       daftar +
       `\n\n_Prokopim Kota Tarakan_`;
     for (const u of unikNomor(users.filter(u => u.role === a.role && u.noWA))) {
-      await sendWA(u.noWA, msg, "rekap_pagi_ajudan", a.role);
+      await sendWA(u.noWA, msg, "rekap_pagi_ajudan", a.role, { nama: u.nama, username: u.username });
       console.log(`[PAGI] Terkirim → ${u.nama} (${a.role})`);
     }
   }
@@ -498,7 +499,7 @@ async function notifAjudan(jadwal, users, tamu = []) {
       `\n_Prokopim Kota Tarakan_`;
 
     for (const u of unikNomor(users.filter(u => u.role === a.role && u.noWA))) {
-      await sendWA(u.noWA, msg, "rekap_ajudan_besok", a.role);
+      await sendWA(u.noWA, msg, "rekap_ajudan_besok", a.role, { nama: u.nama, username: u.username });
       console.log(`[AJUDAN] Terkirim → ${u.nama}`);
     }
   }
@@ -598,7 +599,7 @@ async function notifPimpinan(jadwal, users, tamu = []) {
     }
 
     for (const u of orang) {
-      await sendWA(u.noWA, msg, "briefing_pimpinan", p.role);
+      await sendWA(u.noWA, msg, "briefing_pimpinan", p.role, { nama: u.nama, username: u.username });
       console.log(`[PIMPINAN] Terkirim → ${u.nama} (${p.role})`);
     }
   }
@@ -712,7 +713,7 @@ async function notifPendingApproval(users, jadwal, tamu = []) {
       `${fmtTgl(localDateWITA(0))}\n\n` +
       isiPesan +
       `\n\nMohon ditindaklanjuti melalui aplikasi Prokopim.\n_Prokopim Kota Tarakan_`;
-    await sendWA(u.noWA, msg, "ringkasan_sore", peran.join("+"));
+    await sendWA(u.noWA, msg, "ringkasan_sore", peran.join("+"), { nama: u.nama, username: u.username });
     console.log(`[RINGKASAN] Terkirim → ${u.nama} (${peran.join("+")}: ${bagian.map(b => b.kunci).join(",")})`);
   }
 

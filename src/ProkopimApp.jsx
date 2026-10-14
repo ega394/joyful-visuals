@@ -7,6 +7,7 @@ const TamuPage       = React.lazy(() => import("./TamuPage.jsx"));
 const GuestDashboard = React.lazy(() => import("./GuestDashboard.jsx"));
 const RoomCalendarView = React.lazy(() => import("./components/RoomCalendarView.jsx"));
 const DaftarHadirAdmin = React.lazy(() => import("./components/DaftarHadirAdmin.jsx"));
+const MonitorWA = React.lazy(() => import("./components/MonitorWA.jsx"));
 const _LazyFallback  = () => (
   <div style={{ padding: 24, textAlign: "center", color: "#64748b" }}>Memuat…</div>
 );
@@ -7905,6 +7906,11 @@ export default function App(){
   // Pengaturan tampil di Google Calendar bersama: Kabag dan Kasubbag Komdokpim
   // (termasuk PLH-nya).
   const bolehAturKalender=punyaPeran(user,"kabag")||punyaPeran(user,"kasubbag_komdokpim");
+  // Monitor WA (meteran + arsip WA keluar): Admin RK, Kasubbag Protokol, Kabag,
+  // termasuk PLH-nya. Lingkup isi ditentukan peladen (api/_monitorwa.js).
+  const bolehMonitorWA=["kabag","kasubbag_protokol","admin_rk"].some(r=>punyaPeran(user,r));
+  // Notifikasi peringatan Monitor WA membuka /?tab=monitor_wa.
+  useEffect(()=>{try{const q=new URLSearchParams(window.location.search);if(q.get("tab")==="monitor_wa"&&bolehMonitorWA){setTab("monitor_wa");window.history.replaceState(null,"",window.location.pathname);}}catch{}},[bolehMonitorWA]);
 
   // Eskalasi ke atas: Kabag berwenang atas kewenangan bawahannya, jadi boleh
   // memutus di tahap Kasubbag. Dimatikan secara bawaan supaya antrian harian
@@ -9226,6 +9232,7 @@ const TH={
     ...(["kabag","kasubbag_protokol",...PERAN_PETUGAS,"admin_rk"].includes(role)?[{key:"action:undangan",icon:"📋",label:"Generator Undangan"}]:[]),
     ...(bolehKalenderRuangan?[{key:"kalender_ruangan",icon:"🏛️",label:"Kalender Ruangan"}]:[]),
     ...(DAFTAR_HADIR_ROLES.includes(role)?[{key:"daftar_hadir",icon:"✍️",label:"Daftar Hadir Digital"}]:[]),
+    ...(bolehMonitorWA?[{key:"monitor_wa",icon:"📊",label:"Monitor WA"}]:[]),
     ...(bolehAturKalender?[{key:"kalender_bersama",icon:"📆",label:"Tampilan Kalender Bersama"}]:[]),
     ...(role==="kabag"?[{key:"plh",icon:"🛡️",label:"Pelaksana Harian"}]:[]),
   ]},
@@ -9418,6 +9425,7 @@ const TH={
               ...(REKAP_SAYA_ROLES.includes(role)?[{icon:"🏅",label:"Rekap Kinerja Saya",action:()=>{setTab("rekap_saya");setMobMenu(false);}}]:[]),
               ...(bolehKalenderRuangan?[{icon:"🏛️",label:"Kalender Ruangan",action:()=>{setTab("kalender_ruangan");setMobMenu(false);}}]:[]),
               ...(DAFTAR_HADIR_ROLES.includes(role)?[{icon:"✍️",label:"Daftar Hadir",action:()=>{setTab("daftar_hadir");setMobMenu(false);}}]:[]),
+              ...(bolehMonitorWA?[{icon:"📊",label:"Monitor WA",action:()=>{setTab("monitor_wa");setMobMenu(false);}}]:[]),
               ...(bolehAturKalender?[{icon:"📆",label:"Kalender Bersama",action:()=>{setTab("kalender_bersama");setMobMenu(false);}}]:[]),
               ...(role==="kabag"?[{icon:"🛡️",label:"Pelaksana Harian",action:()=>{setTab("plh");setMobMenu(false);}}]:[]),
               {icon:"👤",label:"Profil",action:()=>{setShowProfile(true);setMobMenu(false);}},
@@ -12316,7 +12324,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
 
 
   // ==================== MAIN CONTENT ====================
-  const pageTitle=tab==="kalender_bersama"?"Kalender Bersama":tab==="ekinerja"?"Generator E-Kinerja":tab==="tayang"?"Agenda Kegiatan Pimpinan":tab==="pantau"?"Input & Pantau Jadwal":tab==="undangan"?"Generator Undangan Resmi":tab==="form"?"Input Jadwal Baru":tab==="semua"?"Semua Jadwal":tab==="penugasan"?"Penugasan Saya":tab==="audit"?"Riwayat Alur Jadwal":tab==="jadwal"?KASUBBAG_ROLES.includes(role)||role==="kabag"?"Antrian Approval":"Jadwal":"Jadwal";
+  const pageTitle=tab==="monitor_wa"?"Monitor WA":tab==="kalender_bersama"?"Kalender Bersama":tab==="ekinerja"?"Generator E-Kinerja":tab==="tayang"?"Agenda Kegiatan Pimpinan":tab==="pantau"?"Input & Pantau Jadwal":tab==="undangan"?"Generator Undangan Resmi":tab==="form"?"Input Jadwal Baru":tab==="semua"?"Semua Jadwal":tab==="penugasan"?"Penugasan Saya":tab==="audit"?"Riwayat Alur Jadwal":tab==="jadwal"?KASUBBAG_ROLES.includes(role)||role==="kabag"?"Antrian Approval":"Jadwal":"Jadwal";
 
   // ═══════════════════════════════════════════════════════════════
   // FITUR 1: SAPAAN CERDAS + RINGKASAN PAGI
@@ -12710,6 +12718,8 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
       {/* 1. Penugasan (semua role yang punya tab ini) */}
       {tab==="daftar_hadir"&&DAFTAR_HADIR_ROLES.includes(role)
         ?<React.Suspense fallback={<_LazyFallback />}><DaftarHadirAdmin user={user} isMobile={isMobile} showT={showT}/></React.Suspense>
+      :tab==="monitor_wa"&&bolehMonitorWA
+        ?<React.Suspense fallback={<_LazyFallback />}><MonitorWA ambil={sesiFetch} isMobile={isMobile} showT={showT}/></React.Suspense>
       :tab==="kalender_ruangan"&&bolehKalenderRuangan
         ?<React.Suspense fallback={<_LazyFallback />}><RoomCalendarView isMobile={isMobile} user={user}/></React.Suspense>
       :tab==="rekap_saya"&&REKAP_SAYA_ROLES.includes(role)

@@ -106,7 +106,7 @@ const tabelBelumAda = (e) => /PGRST205|Could not find the table/i.test(e?.messag
 
 // ── WA helper ─────────────────────────────────────────────────
 // `jenis` dan `peran` hanya untuk wa_log (tanpa nomor/isi pesan).
-async function sendWA(to, message, jenis = "ruangan", peran = "") {
+async function sendWA(to, message, jenis = "ruangan", peran = "", arsip = {}) {
   if (!FONNTE || !to) return false;
   try {
     const r = await fetch("https://api.fonnte.com/send", {
@@ -115,10 +115,10 @@ async function sendWA(to, message, jenis = "ruangan", peran = "") {
       body: JSON.stringify({ target: String(to).replace(/\D/g, ""), message }),
     });
     const h = await hasilFonnte(r);
-    await catatWA({ jenis, sumber: "ruangan", peran, berhasil: h.ok });
+    await catatWA({ jenis, sumber: "ruangan", peran, berhasil: h.ok, nomor: to, isi: message, detail: h.detail, ...arsip });
     return h.ok;
   } catch (e) {
-    await catatWA({ jenis, sumber: "ruangan", peran, berhasil: false, catatan: e?.message });
+    await catatWA({ jenis, sumber: "ruangan", peran, berhasil: false, catatan: e?.message, nomor: to, isi: message, ...arsip });
     return false;
   }
 }
@@ -129,8 +129,8 @@ async function sendWA(to, message, jenis = "ruangan", peran = "") {
 async function peninjauRuangan(kabag = "selalu") {
   const aktif = "&disabled=not.is.true";
   const [managers, kabagList] = await Promise.all([
-    sbGet("users?can_manage_rooms=eq.true&select=nama,noWA,role" + aktif).catch(() => []),
-    sbGet("users?role=eq.kabag&select=nama,noWA,role" + aktif).catch(() => []),
+    sbGet("users?can_manage_rooms=eq.true&select=username,nama,noWA,role" + aktif).catch(() => []),
+    sbGet("users?role=eq.kabag&select=username,nama,noWA,role" + aktif).catch(() => []),
   ]);
   const pengelola = (managers || []).filter(u => u.noWA);
   const ikutKabag = kabag === "selalu" || pengelola.length === 0;
@@ -519,7 +519,7 @@ export default async function handler(req, res) {
             `*[PERMINTAAN PEMBATALAN RUANGAN]*\nKode *${code}* — ${head.event_name}\n` +
             `Instansi: ${head.instansi} · PIC: ${head.pic_name}\n` +
             `Alasan: ${String(reason).trim()}\n\nMohon ditinjau di dashboard peminjaman ruangan.`;
-          for (const u of targets) await sendWA(u.noWA, msg, "ruangan_minta_batal", u.role);
+          for (const u of targets) await sendWA(u.noWA, msg, "ruangan_minta_batal", u.role, { nama: u.nama, username: u.username, rujukan: `ruangan:${code}` });
           await sendPushToManagers({
             title: `🗑️ Permintaan Pembatalan Ruangan — ${code}`,
             body: `${head.event_name} (${head.instansi}): ${String(reason).trim().slice(0, 100)}`,
@@ -740,7 +740,7 @@ export default async function handler(req, res) {
         `Jadwal (${slots.length} slot):\n${slotLines}\n` +
         (srikandi_ref ? `Srikandi: ${srikandi_ref}\n` : "") +
         `\nSilakan validasi di dashboard Peninjau Permohonan.`;
-      for (const u of targets) await sendWA(u.noWA, adminMsg, "ruangan_pengajuan_baru", u.role);
+      for (const u of targets) await sendWA(u.noWA, adminMsg, "ruangan_pengajuan_baru", u.role, { nama: u.nama, username: u.username, rujukan: `ruangan:${booking_code}` });
 
       await sendPushToManagers({
         title: `🏛️ Pengajuan Ruangan Baru — ${room.name}`,
@@ -755,7 +755,7 @@ export default async function handler(req, res) {
         `Ruangan: ${room.name}\nJadwal (${slots.length} slot):\n${slotLines}\n\n` +
         `Cek status: prokopim.tarakankota.go.id/pinjamruangan?cek=${booking_code}\n` +
         `Status saat ini: *Menunggu Konfirmasi*`,
-        "ruangan_tanda_terima", "pemohon"
+        "ruangan_tanda_terima", "pemohon", { nama: pic_name, rujukan: `ruangan:${booking_code}` }
       );
 
       return res.status(201).json({
@@ -974,7 +974,7 @@ export default async function handler(req, res) {
         delete msgs.Approved;
       }
       if (msgs[status] && head.pic_wa)
-        await sendWA(head.pic_wa, msgs[status], tolakPembatalan ? "ruangan_batal_ditolak" : "ruangan_keputusan_" + status.toLowerCase(), "pemohon");
+        await sendWA(head.pic_wa, msgs[status], tolakPembatalan ? "ruangan_batal_ditolak" : "ruangan_keputusan_" + status.toLowerCase(), "pemohon", { nama: head.pic_name, rujukan: `ruangan:${head.booking_code}` });
 
       return res.status(200).json({ ok: true, count: group.length, booking_code: head.booking_code });
     }
