@@ -53,6 +53,10 @@ describe("perubahanMaterial", () => {
     expect(perubahanMaterial(lama, { ...lama, lokasi: "Kantor Wali Kota" })).toBe(true);
     expect(perubahanMaterial(lama, { ...lama, jamSelesai: "12:00" })).toBe(true);
   });
+  it("zona waktu; kosong sama dengan WITA", () => {
+    expect(perubahanMaterial(lama, { ...lama, zona: "WIB" })).toBe(true);
+    expect(perubahanMaterial(lama, { ...lama, zona: "WITA" })).toBe(false);
+  });
   it("nama acara atau kontak saja bukan perubahan material", () => {
     expect(perubahanMaterial(lama, { ...lama, namaAcara: "Rapat Koordinasi" })).toBe(false);
     expect(perubahanMaterial(lama, { namaAcara: "x" })).toBe(false);

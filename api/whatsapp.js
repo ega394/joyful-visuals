@@ -7,6 +7,7 @@
 import { wajibSesi, penggunaNomor, normalNomor } from "./_sesi.js";
 import { catatWA, hasilFonnte } from "./_walog.js";
 import { tanganiMonitor } from "./_monitorwa.js";
+import { fmtJamDuaZona } from "./_zona.js";
 
 // Pesan bebas (event "broadcast") hanya untuk pejabat yang memang mengirim
 // pengumuman/pemberitahuan dari aplikasi: Kabag (Kirim Pengumuman) dan
@@ -46,6 +47,7 @@ export default async function handler(req, res) {
     tanggal,
     jam,
     jamSelesai,         // opsional — hanya dikirim bila jam berakhir diketahui
+    zona,               // opsional — WIB/WITA/WIT; kosong = WITA
     penyelenggara,
     lokasi,
     event,
@@ -133,14 +135,12 @@ export default async function handler(req, res) {
   // ── Blok info jadwal ──────────────────────────────────────
   // Jam selesai opsional; ditampilkan sebagai rentang hanya bila diketahui dan
   // lebih besar dari jam mulai. Jadwal lama tidak punya field ini sama sekali.
-  const _mnt = (t) => { const [h, m] = String(t || "").split(":").map(Number); return (h * 60 + m) || 0; };
-  const rentangJam = (jam && jamSelesai && _mnt(jamSelesai) > _mnt(jam))
-    ? `${jam} – ${jamSelesai}`
-    : (jam || "-");
+  // Acara di zona lain: "09:00 WIB (10:00 WITA)" — penerima bisa di mana saja.
+  const rentangJam = fmtJamDuaZona({ jam, jamSelesai, zona }) || "- WITA";
 
   const infoJadwal = [
     `📋 *${namaAcara || "-"}*`,
-    `📅 ${fmtTgl(tanggal)}, pukul ${rentangJam} WITA`,
+    `📅 ${fmtTgl(tanggal)}, pukul ${rentangJam}`,
     penyelenggara ? `🏢 ${penyelenggara}` : null,
     lokasi        ? `📍 ${lokasi}`        : null,
   ].filter(Boolean).join("\n");

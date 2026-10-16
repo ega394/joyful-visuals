@@ -26,6 +26,7 @@ import { peranEfektif, plhAktif, punyaPeran, jejakPlh, bolehMemutus, LABEL_PERAN
 import { acaraDekat, kunciNomor, penerimaUnik, perubahanMaterial, kanalKehadiran, perluWALapangan } from "./lib/aturanWA.js";
 import { bolehSantai, barisNuansa, KUTIPAN, TEKS_MEMUAT, TEKS_KOSONG, BAITUL_ARSIP, KEJUTAN } from "./lib/nuansa.js";
 import { umurUsulan, bandingUsulan } from "./lib/usulan.js";
+import { DAFTAR_ZONA, zonaAcara, zonaPerangkat, jamMenurut, fmtJamZona, fmtJamDuaZona, epochMulai, epochSelesai, urutAcara, waktuBertumpuk, tebakZonaLokasi } from "./lib/zona.js";
 
 // ═══════════════════════════════════════════════════════
 // PENDAFTARAN AKUN (Register → Menunggu Persetujuan Kabag)
@@ -856,29 +857,45 @@ const monthEnd=()=>{const _d=new Date();return localDateStr(new Date(_d.getFullY
 // Agenda menyimpan `jam` (wajib) dan `jamSelesai` (opsional, boleh kosong bila
 // penyelenggara belum memberi informasi). Agenda lama tidak punya `jamSelesai`
 // sama sekali, jadi semua helper di bawah harus aman terhadap nilai kosong.
-const DURASI_DEFAULT=120; // menit — dipakai bila jam selesai tidak diketahui
+// Jam ditulis menurut waktu setempat acara; zonanya di `zona` (WIB/WITA/WIT,
+// kosong = WITA). Konversi, urutan, dan benturan ada di lib/zona.js.
 
 // Jam selesai dianggap sah hanya bila lebih besar dari jam mulai (acara yang
 // melewati tengah malam ditolak di validasi form, jadi tak perlu ditangani).
 const jamSelesaiValid=ev=>!!(ev&&ev.jam&&ev.jamSelesai&&toMin(ev.jamSelesai)>toMin(ev.jam));
 
 // "09:00 – 11:00" bila jam selesai diketahui, selain itu "09:00".
-const fmtJam=ev=>{if(!ev)return "";const mulai=ev.jam||"";return jamSelesaiValid(ev)?mulai+" – "+ev.jamSelesai:mulai;};
-// Versi dengan sufiks WITA: "09:00 – 11:00 WITA".
-const fmtJamWita=ev=>{const t=fmtJam(ev);return t?t+" WITA":"";};
-// Menit selesai untuk perhitungan — pakai jam selesai asli bila ada.
-const menitSelesai=ev=>jamSelesaiValid(ev)?toMin(ev.jamSelesai):toMin(ev&&ev.jam)+DURASI_DEFAULT;
+// Rentang jam untuk layar, menurut zona perangkat: "09:00 – 11:00". Acara di
+// zona lain diberi jam setempatnya: "10:00 WITA (09:00 WIB setempat)".
+const fmtJam=ev=>{if(!ev||!ev.jam)return "";const ke=zonaPerangkat();return zonaAcara(ev)===ke?jamMenurut(ev,ke).teks:fmtJamZona(ev,ke);};
+// Jam mulai saja, untuk tempat sempit: "10:00", atau "10:00 (09:00 WIB)".
+const jamLayar=ev=>{if(!ev||!ev.jam)return "";const ke=zonaPerangkat(),z=zonaAcara(ev),m=jamMenurut(ev,ke).mulai;return z===ke?m:m+" ("+ev.jam+" "+z+")";};
+// Keterangan zona di bawah jam pada cetakan: jam setempat + padanan WITA.
+const zonaCetak=ev=>{const z=zonaAcara(ev);return z==="WITA"?"WITA":z+" (= "+jamMenurut(ev,"WITA").teks+" WITA)";};
+// Versi berzona untuk layar: menurut zona perangkat pengguna, ditambah jam
+// setempat bila acaranya di zona lain — "10:00 WITA (09:00 WIB setempat)".
+// Untuk pesan yang dikirim ke orang lain pakai fmtJamDuaZona (lib/zona.js).
+const fmtJamWita=ev=>fmtJamZona(ev,zonaPerangkat());
+// Saat mulai acara sebagai Date, memperhitungkan zona acara (bukan jam HP).
+// `jamCadangan` dipakai bila jam kosong, mengikuti perilaku lama tiap layar.
+const tglAcara=(ev,jamCadangan)=>new Date(epochMulai(ev&&!ev.jam&&jamCadangan?{...ev,jam:jamCadangan}:ev));
 // Untuk kolom sempit (kalender, timeline, tabel): jam mulai di baris atas dan
 // jam selesai di baris kecil di bawahnya, agar rentang tidak memaksa kolom
 // melebar. Bila jam selesai kosong, tampilannya persis seperti sebelumnya.
-const JamRingkas=({ev})=>jamSelesaiValid(ev)
-  ? <>{ev.jam}<span style={{display:"block",fontSize:10,fontWeight:600,opacity:0.75,whiteSpace:"nowrap"}}>{"s.d. "+ev.jamSelesai}</span></>
-  : <>{ev.jam}</>;
+// Jam ditampilkan menurut zona perangkat; acara di zona lain diberi baris
+// kecil berisi jam setempatnya ("09:00 WIB").
+const JamRingkas=({ev})=>{
+  const ke=zonaPerangkat(),z=zonaAcara(ev),j=jamMenurut(ev,ke);
+  const kecil={display:"block",fontSize:10,fontWeight:600,opacity:0.75,whiteSpace:"nowrap"};
+  return <>{j.mulai}{j.selesai&&<span style={kecil}>{"s.d. "+j.selesai}</span>}{z!==ke&&ev&&ev.jam&&<span style={kecil} title={"Waktu setempat "+z}>{ev.jam+" "+z}</span>}</>;
+};
 
 // `untukPimpinan` dibungkus `||[]` karena sejak daftar periksa Kabag fungsi ini
 // dipanggil saat render, bukan hanya saat submit: satu jadwal lama tanpa kolom
 // itu cukup untuk melempar galat dan memblankan layar persetujuan.
-const hasConflict=(events,ev)=>{const s=toMin(ev.jam),e2=menitSelesai(ev);return (events||[]).some(e=>e.id!==ev.id&&e.alur==="disetujui"&&e.tanggal===ev.tanggal&&(e.untukPimpinan||[]).some(p=>(ev.untukPimpinan||[]).includes(p))&&(()=>{const es=toMin(e.jam),ee=menitSelesai(e);return s<ee&&e2>es;})());};
+// Waktu dibandingkan dalam waktu nyata, jadi 09.00 WIB tidak dianggap
+// berbenturan dengan 09.00 WITA (keduanya terpaut satu jam).
+const hasConflict=(events,ev)=>(events||[]).some(e=>e.id!==ev.id&&e.alur==="disetujui"&&(e.untukPimpinan||[]).some(p=>(ev.untukPimpinan||[]).includes(p))&&waktuBertumpuk(e,ev));
 
 // ==================== USULAN PERUBAHAN JADWAL TERBIT ====================
 // Jadwal yang sudah terbit tidak boleh langsung diubah. Admin RK mengajukan
@@ -900,6 +917,7 @@ const FIELD_USULAN=[
   {k:"tanggal",        l:"Tanggal"},
   {k:"jam",            l:"Jam Mulai"},
   {k:"jamSelesai",     l:"Jam Selesai"},
+  {k:"zona",           l:"Zona Waktu"},
   {k:"namaAcara",      l:"Nama Acara"},
   {k:"penyelenggara",  l:"Penyelenggara"},
   {k:"kontak",         l:"Narahubung"},
@@ -914,9 +932,11 @@ const FIELD_USULAN=[
   {k:"undanganNama",   l:"Berkas Undangan", cmp:"undanganFile"},
 ];
 
-// Perubahan tanggal atau jam membatalkan kesediaan hadir yang sudah dikonfirmasi,
-// karena kesediaan itu terikat pada waktu acara.
-const FIELD_RESET_KEHADIRAN=["tanggal","jam"];
+// Perubahan tanggal, jam, atau zona membatalkan kesediaan hadir yang sudah
+// dikonfirmasi, karena kesediaan itu terikat pada waktu acara.
+const FIELD_RESET_KEHADIRAN=["tanggal","jam","zona"];
+// Jadwal lama tidak punya `zona` — kosong dan "WITA" bernilai sama.
+const nilaiField=(obj,k)=>k==="zona"?zonaAcara(obj):(obj||{})[k];
 
 const _labelNilai=(k,v)=>{
   if(k==="untukPimpinan"){
@@ -925,6 +945,7 @@ const _labelNilai=(k,v)=>{
     return arr.length?arr.map(x=>nama[x]||x).join(", "):"—";
   }
   if(k==="besertaIstriWK"||k==="besertaIstriWWK")return v?"Ya":"Tidak";
+  if(k==="zona")return v||"WITA";
   const s=String(v==null?"":v).trim();
   return s||"—";
 };
@@ -941,9 +962,9 @@ function hitungDiffUsulan(ev,usulan){
     .map(({k,l,cmp})=>({
       key:k,
       label:l,
-      berubah:String((cmp?ev[cmp]:ev[k])||"")!==String((cmp?usulan[cmp]:usulan[k])||""),
-      dari:_labelNilai(k,ev[k]),
-      ke:_labelNilai(k,usulan[k]),
+      berubah:String((cmp?ev[cmp]:nilaiField(ev,k))||"")!==String((cmp?usulan[cmp]:nilaiField(usulan,k))||""),
+      dari:_labelNilai(k,nilaiField(ev,k)),
+      ke:_labelNilai(k,nilaiField(usulan,k)),
     }))
     .filter(d=>d.berubah||d.dari!==d.ke)
     .map(({key,label,dari,ke})=>({key,label,dari,ke}));
@@ -1018,7 +1039,7 @@ function UsulanPantau({ev,labelTahap}){
 // Kartu perbandingan "nilai lama → nilai baru" untuk peninjau.
 function DiffUsulan({ev,rapat}){
   const diff=hitungDiffUsulan(ev,ev&&ev.usulanEdit);
-  const ubahWaktu=FIELD_RESET_KEHADIRAN.some(k=>_labelNilai(k,ev[k])!==_labelNilai(k,(ev.usulanEdit||{})[k]));
+  const ubahWaktu=FIELD_RESET_KEHADIRAN.some(k=>_labelNilai(k,nilaiField(ev,k))!==_labelNilai(k,nilaiField(ev.usulanEdit||{},k)));
   const sudahKonfirmasi=!!(ev.statusWK||ev.statusWWK);
   return <div style={{borderRadius:9,border:"1.5px solid #BFDBFE",overflow:"hidden",background:"white"}}>
     <div style={{background:"#EFF6FF",padding:"8px 12px",fontSize:12,fontWeight:800,color:"#1D4ED8"}}>
@@ -1231,7 +1252,7 @@ function fmtTimelineAt(iso) {
     const d = new Date(iso);
     const tgl = d.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
     const jam = d.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", hour12: false });
-    return tgl + " · " + jam + " WITA";
+    return tgl + " · " + jam + " " + zonaPerangkat();
   } catch { return iso; }
 }
 
@@ -1308,7 +1329,7 @@ const seed=[
   mkEv({id:3,tanggal:TMR,jam:"10:00",namaAcara:"Audiensi DPRD - Pembahasan APBD",penyelenggara:"Sekretariat DPRD",kontak:"Ahmad 0811-2222-3333",buktiUndangan:"No.110/DPRD/2025",pakaian:"PSH",lokasi:"Gedung DPRD Kota Tarakan",jenisKegiatan:"Pengarahan",catatan:"Bawa dokumen APBD",untukPimpinan:["walikota","wakilwalikota"],alur:"menunggu_kasubbag"}),
   mkEv({id:4,tanggal:TMR,jam:"08:00",namaAcara:"Apel Pagi Gabungan",penyelenggara:"Sekretariat Daerah",kontak:"Hendra 0815-1111-2222",buktiUndangan:"Memo No.5/2025",pakaian:"PDH",lokasi:"Halaman Kantor Wali Kota Tarakan",jenisKegiatan:"Menghadiri",catatan:"",untukPimpinan:["walikota"],alur:"menunggu_kabag"}),
 ];
-const emptyForm={tanggal:"",jam:"",jamSelesai:"",namaAcara:"",penyelenggara:"",kontak:"",buktiUndangan:"",pakaian:"PDH",jenisKegiatan:"Menghadiri",catatan:"",lokasi:"",untukPimpinan:["walikota"],besertaIstriWK:false,besertaIstriWWK:false,undanganFile:null,undanganNama:"",personil:[],catatanPenugasan:""};
+const emptyForm={tanggal:"",jam:"",jamSelesai:"",zona:"WITA",namaAcara:"",penyelenggara:"",kontak:"",buktiUndangan:"",pakaian:"PDH",jenisKegiatan:"Menghadiri",catatan:"",lokasi:"",untukPimpinan:["walikota"],besertaIstriWK:false,besertaIstriWWK:false,undanganFile:null,undanganNama:"",personil:[],catatanPenugasan:""};
 
 // ==================== SMALL COMPONENTS ====================
 const StatusPill=({alur,hapus,usulan})=>{
@@ -1605,6 +1626,7 @@ function SambutanBlock({ev,canUpload,onUploadDocx,onUploadPdf,onRemove,onCommit,
 }
 // ==================== AI MODAL ====================
 function AIModal({onFill,onClose}){
+  const[zonaAsal,setZonaAsal]=useState("");
   const ref=useRef();const undanganRef=useRef();const[drag,setDrag]=useState(false);const[loading,setLoading]=useState(false);const[result,setResult]=useState(null);const[edited,setEdited]=useState(null);const[err,setErr]=useState("");const[undanganFile,setUndanganFile]=useState(null);const[undanganNama,setUndanganNama]=useState("");const[validErr,setValidErr]=useState("");
   const REQUIRED_FIELDS=["namaAcara","tanggal","jam","penyelenggara","kontak","buktiUndangan","pakaian","jenisKegiatan","lokasi"];
   // Kompres gambar ke maks 1024px & kualitas 0.75 sebelum kirim ke API
@@ -1648,7 +1670,7 @@ function AIModal({onFill,onClose}){
         b64=await compressImage(f);
         mimeType="image/jpeg";
       }
-      const PROMPT='Balas HANYA JSON ini tanpa penjelasan. Tanggal: YYYY-MM-DD, Jam: HH:MM. Isi "jamSelesai" HANYA bila undangan menyebut jam berakhir/selesai secara eksplisit, selain itu kosongkan: {"namaAcara":"","tanggal":"","jam":"","jamSelesai":"","penyelenggara":"","kontak":"","pakaian":"","jenisKegiatan":"","catatan":"","buktiUndangan":"","lokasi":"","untukPimpinan":["walikota"]}';
+      const PROMPT='Balas HANYA JSON ini tanpa penjelasan. Tanggal: YYYY-MM-DD, Jam: HH:MM. Isi "jamSelesai" HANYA bila undangan menyebut jam berakhir/selesai secara eksplisit, selain itu kosongkan. Tulis jam PERSIS seperti di undangan, jangan dikonversi; isi "zona" dengan WIB, WITA, atau WIT HANYA bila zona itu tertulis di undangan, selain itu kosongkan: {"namaAcara":"","tanggal":"","jam":"","jamSelesai":"","zona":"","penyelenggara":"","kontak":"","pakaian":"","jenisKegiatan":"","catatan":"","buktiUndangan":"","lokasi":"","untukPimpinan":["walikota"]}';
       const bodyContent=isPdf
         ?[{type:"document",source:{type:"base64",media_type:mimeType,data:b64}},{type:"text",text:PROMPT}]
         :[{type:"image",source:{type:"base64",media_type:mimeType,data:b64}},{type:"text",text:PROMPT}];
@@ -1675,6 +1697,13 @@ function AIModal({onFill,onClose}){
       const m=cleaned.match(/{[\s\S]*}/);
       if(!m)throw new Error("AI tidak mengembalikan JSON. Respons: "+cleaned.slice(0,120));
       const parsed=JSON.parse(m[0]);
+      // Zona: yang tertulis di undangan, lalu tebakan dari kota di lokasi,
+      // terakhir WITA. Selain yang tertulis, Admin RK diminta memastikan.
+      const zAI=String(parsed.zona||"").toUpperCase().trim();
+      const zTertulis=DAFTAR_ZONA.includes(zAI)?zAI:null;
+      const zLokasi=tebakZonaLokasi(parsed.lokasi);
+      parsed.zona=zTertulis||zLokasi||"WITA";
+      setZonaAsal(zTertulis?"undangan":zLokasi&&zLokasi!=="WITA"?"lokasi":"bawaan");
       setResult(parsed);
       setEdited({...emptyForm,...parsed});
     }catch(e){
@@ -1712,7 +1741,12 @@ function AIModal({onFill,onClose}){
         </div>}
         {edited&&<>
           <div style={{background:"#d1fae5",borderRadius:9,padding:"9px 12px",marginBottom:14,fontSize:13,color:GREEN,fontWeight:700}}>Analisa selesai. Periksa dan edit sebelum digunakan.</div>
-          {[{k:"namaAcara",l:"Nama Acara *"},{k:"tanggal",l:"Tanggal *",t:"date"},{k:"jam",l:"Jam *",t:"time"},{k:"jamSelesai",l:"Jam Selesai (opsional)",t:"time"},{k:"penyelenggara",l:"Penyelenggara *"},{k:"kontak",l:"Kontak *"},{k:"buktiUndangan",l:"No. Surat *"},{k:"lokasi",l:"Lokasi *"},{k:"catatan",l:"Catatan"}].map(f=><div key={f.k} style={{marginBottom:9}}><label style={{display:"block",fontSize:12,color:"#64748b",fontWeight:600,marginBottom:3}}>{f.l}</label><input type={f.t||"text"} value={edited[f.k]||""} onChange={e=>setEdited(p=>({...p,[f.k]:e.target.value}))} style={inp}/></div>)}
+          {[{k:"namaAcara",l:"Nama Acara *"},{k:"tanggal",l:"Tanggal *",t:"date"},{k:"jam",l:"Jam *",t:"time"},{k:"jamSelesai",l:"Jam Selesai (opsional)",t:"time"},{k:"penyelenggara",l:"Penyelenggara *"},{k:"kontak",l:"Kontak *"},{k:"buktiUndangan",l:"No. Surat *"},{k:"lokasi",l:"Lokasi *"},{k:"catatan",l:"Catatan"}].map(f=><React.Fragment key={f.k}><div style={{marginBottom:9}}><label style={{display:"block",fontSize:12,color:"#64748b",fontWeight:600,marginBottom:3}}>{f.l}</label><input type={f.t||"text"} value={edited[f.k]||""} onChange={e=>setEdited(p=>({...p,[f.k]:e.target.value}))} style={inp}/></div>
+          {f.k==="jamSelesai"&&<div data-zona-ai style={{marginBottom:9}}><label style={{display:"block",fontSize:12,color:"#64748b",fontWeight:600,marginBottom:3}}>Zona Waktu *</label>
+            <div style={{display:"flex",gap:6}}>{DAFTAR_ZONA.map(z=><button key={z} type="button" onClick={()=>{setEdited(p=>({...p,zona:z}));setZonaAsal("undangan");}} style={{flex:1,padding:"7px 0",borderRadius:7,cursor:"pointer",fontSize:13,fontWeight:800,border:"1.5px solid "+((edited.zona||"WITA")===z?NAVY:"#e2e8f0"),background:(edited.zona||"WITA")===z?NAVY:"white",color:(edited.zona||"WITA")===z?"white":"#64748b"}}>{z}</button>)}</div>
+            {zonaAsal==="lokasi"&&<div style={{fontSize:12,color:"#92400E",marginTop:4}}>⚠ Undangan tidak menyebut zona; {edited.zona} ditebak dari lokasi. Mohon dipastikan.</div>}
+            {zonaAsal==="undangan"&&(edited.zona||"WITA")!=="WITA"&&edited.jam&&<div style={{fontSize:12,color:"#0B2545",fontWeight:700,marginTop:4}}>🕐 {fmtJamDuaZona(edited)}</div>}
+          </div>}</React.Fragment>)}
           <div style={{marginBottom:9}}><label style={{display:"block",fontSize:12,color:"#64748b",fontWeight:600,marginBottom:3}}>Pakaian *</label><select value={edited.pakaian||"PDH"} onChange={e=>setEdited(p=>({...p,pakaian:e.target.value}))} style={{...inp,WebkitAppearance:"none"}}>{PAKAIAN.map(x=><option key={x}>{x}</option>)}</select></div>
           <div style={{marginBottom:9}}><label style={{display:"block",fontSize:12,color:"#64748b",fontWeight:600,marginBottom:3}}>Jenis Kegiatan *</label><div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{JENIS.map(j=><button key={j} type="button" onClick={()=>setEdited(p=>({...p,jenisKegiatan:j}))} style={{padding:"6px 12px",borderRadius:8,border:"1.5px solid "+(edited.jenisKegiatan===j?NAVY:"#e2e8f0"),background:edited.jenisKegiatan===j?NAVY:"white",color:edited.jenisKegiatan===j?"white":"#64748b",cursor:"pointer",fontSize:12,fontWeight:700}}>{j}</button>)}</div></div>
           <div style={{marginBottom:9}}><label style={{display:"block",fontSize:12,color:"#64748b",fontWeight:600,marginBottom:3}}>Berkas Undangan</label>
@@ -1792,7 +1826,7 @@ function KalenderBersamaView({events,upd,showT,isMobile}){
     .filter(e=>e.alur==="disetujui"&&e.tanggal>=hariIni)
     .filter(e=>saring==="semua"||(saring==="sembunyi"?e.sembunyiKalender:!e.sembunyiKalender))
     .filter(e=>!q.trim()||((e.namaAcara||"")+" "+(e.lokasi||"")+" "+(e.penyelenggara||"")).toLowerCase().includes(q.trim().toLowerCase()))
-    .sort((a,b)=>(a.tanggal+(a.jam||"")).localeCompare(b.tanggal+(b.jam||"")));
+    .sort((a,b)=>urutAcara(a,b));
   const jumlahSembunyi=events.filter(e=>e.alur==="disetujui"&&e.tanggal>=hariIni&&e.sembunyiKalender).length;
   const alih=(ev)=>{
     const jadi=!ev.sembunyiKalender;
@@ -1826,7 +1860,7 @@ function KalenderBersamaView({events,upd,showT,isMobile}){
         {judulTgl&&<div style={{fontSize:12,fontWeight:800,color:"#64748B",textTransform:"uppercase",letterSpacing:.6,margin:"14px 2px 6px"}}>{judulTgl}</div>}
         <div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:11,marginBottom:7,
           background:sembunyi?"#F8FAFC":"white",border:"1.5px solid "+(sembunyi?"#CBD5E1":"#E2E8F0"),opacity:sembunyi?.8:1}}>
-          <div style={{minWidth:46,fontSize:13,fontWeight:800,color:NAVY}}>{ev.jam||"—"}</div>
+          <div style={{minWidth:46,fontSize:13,fontWeight:800,color:NAVY}}>{jamLayar(ev)||"—"}</div>
           <div style={{flex:1,minWidth:0}}>
             <div style={{fontSize:13,fontWeight:700,color:"#0F172A",textDecoration:sembunyi?"line-through":"none"}}>{ev.namaAcara}</div>
             <div style={{fontSize:12,color:"#64748B",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ev.lokasi||ev.penyelenggara||""}</div>
@@ -1852,7 +1886,7 @@ function SummaryModal({events,onToggleHide,onClose}){
     if(mode==="tomorrow")return e.tanggal===tomorrowStr();
     if(mode==="range")return e.tanggal>=from&&e.tanggal<=to;
     return false;
-  }).sort((a,b)=>(a.tanggal+a.jam).localeCompare(b.tanggal+b.jam));
+  }).sort((a,b)=>urutAcara(a,b));
   const pub=filtered.filter(e=>!e.tersembunyi);
   const modeLabel=mode==="today"?getHari(todayStr())+", "+fmt(todayStr()):mode==="tomorrow"?getHari(tomorrowStr())+", "+fmt(tomorrowStr()):fmt(from)+" s/d "+fmt(to);
   const NL="\n";
@@ -1862,7 +1896,7 @@ function SummaryModal({events,onToggleHide,onClose}){
     // Baris jam · lokasi (gabung satu baris untuk ringkas)
     const tglPrefix = mode==="range" ? (getHari(ev.tanggal)||"")+", "+(fmt(ev.tanggal)||"")+" · " : "";
     const lokasiSuffix = ev.lokasi ? " · "+ev.lokasi : "";
-    shareLines.push(tglPrefix + fmtJamWita(ev) + lokasiSuffix);
+    shareLines.push(tglPrefix + fmtJamDuaZona(ev) + lokasiSuffix);
     if(ev.penyelenggara)shareLines.push("Penyelenggara: "+ev.penyelenggara);
     // Baris kehadiran — kumpulkan yang konfirm hadir vs yang belum konfirmasi
     const forWK=(ev.untukPimpinan||[]).includes("walikota");
@@ -1916,7 +1950,7 @@ function SummaryModal({events,onToggleHide,onClose}){
         return (iG===0?"<tr class='ds'>":"<tr>")
           +"<td class='c'>"+_nomor+"</td>"
           +"<td class='nw'><b>"+getHari(tgl)+"</b><br><span class='sub'>"+fmtShort(tgl)+"</span></td>"
-          +"<td class='c'><b>"+(ev.jam||"")+"</b>"+(jamSelesaiValid(ev)?"<br><span class='sub'>s.d. "+ev.jamSelesai+"</span>":"")+"<br><span class='sub'>WITA</span></td>"
+          +"<td class='c'><b>"+(ev.jam||"")+"</b>"+(jamSelesaiValid(ev)?"<br><span class='sub'>s.d. "+ev.jamSelesai+"</span>":"")+"<br><span class='sub'>"+zonaCetak(ev)+"</span></td>"
           +"<td><b class='acara'>"+ev.namaAcara+"</b><br><span class='sub'>"+(ev.penyelenggara||"")+"</span></td>"
           +"<td class='c "+jC+"'>"+ev.jenisKegiatan+"</td>"
           +"<td>"+(ev.lokasi||"<em class='nil'>-</em>")+"</td>"
@@ -2213,7 +2247,7 @@ function ReportingModal({events,onClose,kabagNama,cetakOleh}){
     if(mode==="today")return e.tanggal===todayStr();if(mode==="tomorrow")return e.tanggal===tomorrowStr();
     if(mode==="week")return e.tanggal>=weekStart()&&e.tanggal<=weekEnd();if(mode==="month")return e.tanggal>=monthStart()&&e.tanggal<=monthEnd();
     if(mode==="range")return e.tanggal>=from&&e.tanggal<=to;return true;
-  }).filter(e=>e.alur==="disetujui").sort((a,b)=>(a.tanggal+a.jam).localeCompare(b.tanggal+b.jam));
+  }).filter(e=>e.alur==="disetujui").sort((a,b)=>urutAcara(a,b));
   const rangeLabel=()=>{if(mode==="today")return fmt(todayStr());if(mode==="tomorrow")return fmt(tomorrowStr());if(mode==="week")return fmt(weekStart())+" s.d. "+fmt(weekEnd());if(mode==="month"){const d=new Date();return d.toLocaleDateString("id-ID",{month:"long",year:"numeric"});}if(mode==="range"&&from&&to)return fmt(from)+" s.d. "+fmt(to);return "-";};
   const printPDF=()=>{
     const w=window.open("","_blank");
@@ -2231,7 +2265,7 @@ function ReportingModal({events,onClose,kabagNama,cetakOleh}){
         return (iInGroup===0?"<tr class=\'ds\'>":"<tr>")
           +"<td class=\'c\'>"+nomor+"</td>"
           +"<td class=\'nw\'><b>"+getHari(tgl)+"</b><br><span class=\'sub\'>"+fmtShort(tgl)+"</span></td>"
-          +"<td class=\'c\'><b>"+(ev.jam||"")+"</b>"+(jamSelesaiValid(ev)?"<br><span class=\'sub\'>s.d. "+ev.jamSelesai+"</span>":"")+"<br><span class=\'sub\'>WITA</span></td>"
+          +"<td class=\'c\'><b>"+(ev.jam||"")+"</b>"+(jamSelesaiValid(ev)?"<br><span class=\'sub\'>s.d. "+ev.jamSelesai+"</span>":"")+"<br><span class=\'sub\'>"+zonaCetak(ev)+"</span></td>"
           +"<td><b class=\'acara\'>"+ev.namaAcara+"</b><br><span class=\'sub\'>"+(ev.penyelenggara||"")+"</span></td>"
           +"<td class=\'c "+(ev.jenisKegiatan==="Sambutan"?"u":ev.jenisKegiatan==="Pengarahan"?"b":"g")+"\'>"+ev.jenisKegiatan+"</td>"
           +"<td>"+(ev.lokasi||"<em class=\'nil\'>-</em>")+"</td>"
@@ -2249,7 +2283,7 @@ const printF4L=()=>{
     const _now=new Date();
     const printDate=_now.toLocaleDateString("id-ID",{day:"numeric",month:"long",year:"numeric"});
     const printTime=_now.toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"});
-    const printDateTime=printDate+" pukul "+printTime+" WITA";
+    const printDateTime=printDate+" pukul "+printTime+" "+zonaPerangkat();
     const byTgl={};
     filtered.forEach((ev,i)=>{if(!byTgl[ev.tanggal])byTgl[ev.tanggal]=[];byTgl[ev.tanggal].push({...ev,_idx:i});});
     let nomor=0;
@@ -2261,7 +2295,7 @@ const printF4L=()=>{
         return (iG===0?"<tr class='ds'>":"<tr>")
           +"<td class='c'>"+nomor+"</td>"
           +"<td class='nw'><b>"+getHari(tgl)+"</b><br><span class='sub'>"+fmtShort(tgl)+"</span></td>"
-          +"<td class='c'><b>"+(ev.jam||"")+"</b>"+(jamSelesaiValid(ev)?"<br><span class='sub'>s.d. "+ev.jamSelesai+"</span>":"")+"<br><span class='sub'>WITA</span></td>"
+          +"<td class='c'><b>"+(ev.jam||"")+"</b>"+(jamSelesaiValid(ev)?"<br><span class='sub'>s.d. "+ev.jamSelesai+"</span>":"")+"<br><span class='sub'>"+zonaCetak(ev)+"</span></td>"
           +"<td><b class='acara'>"+ev.namaAcara+"</b><br><span class='sub'>"+(ev.penyelenggara||"")+"</span></td>"
           +"<td class='c "+(ev.jenisKegiatan==="Sambutan"?"u":ev.jenisKegiatan==="Pengarahan"?"b":"g")+"'>"+ev.jenisKegiatan+"</td>"
           +"<td>"+(ev.lokasi||"<em class='nil'>-</em>")+"</td>"
@@ -2389,7 +2423,7 @@ function LaporanModal({events,onClose,kabagNama,cetakOleh}){
     const ym=selYear+"-"+String(selMonth+1).padStart(2,"0");const ms=ym+"-01";const me=localDateStr(new Date(selYear,selMonth+1,0));return{from:ms,to:me,label:"Bulan "+months[selMonth]+" "+selYear};
   };
   const range=getRange();
-  const filtered=events.filter(e=>e.alur==="disetujui"&&e.tanggal>=range.from&&e.tanggal<=range.to).sort((a,b)=>(a.tanggal+a.jam).localeCompare(b.tanggal+b.jam));
+  const filtered=events.filter(e=>e.alur==="disetujui"&&e.tanggal>=range.from&&e.tanggal<=range.to).sort((a,b)=>urutAcara(a,b));
   const byDay=filtered.reduce((acc,ev)=>{(acc[ev.tanggal]=acc[ev.tanggal]||[]).push(ev);return acc;},{});
   const stats={total:filtered.length,wk:filtered.filter(e=>e.untukPimpinan.includes("walikota")).length,wwk:filtered.filter(e=>e.untukPimpinan.includes("wakilwalikota")||e.delegasiKeWWK).length,sambutan:filtered.filter(e=>e.jenisKegiatan==="Sambutan").length,pengarahan:filtered.filter(e=>e.jenisKegiatan==="Pengarahan").length,menghadiri:filtered.filter(e=>e.jenisKegiatan==="Menghadiri").length};
   const printPDF=()=>{
@@ -2397,9 +2431,9 @@ function LaporanModal({events,onClose,kabagNama,cetakOleh}){
     const _now=new Date();
     const printDate=_now.toLocaleDateString("id-ID",{day:"numeric",month:"long",year:"numeric"});
     const printTime=_now.toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit",second:"2-digit"});
-    const printDateTime=printDate+" pukul "+printTime+" WITA";
+    const printDateTime=printDate+" pukul "+printTime+" "+zonaPerangkat();
     const kabag=kabagNama||"Kabag Protokol & Komunikasi Pimpinan";
-    const rows=Object.keys(byDay).sort().flatMap(tgl=>byDay[tgl].map((ev,i)=>(i===0?"<tr class='ds'>":"<tr>")+(i===0?"<td class='c' rowspan='"+byDay[tgl].length+"' style='background:#EBF0FA;font-weight:700;color:#0B2545'>"+getHari(tgl)+"<br><span style='font-size:7pt'>"+fmtShort(tgl)+"</span></td>":"")+"<td class='c'><strong>"+(ev.jam||"")+"</strong>"+(jamSelesaiValid(ev)?"<br><strong>s.d. "+ev.jamSelesai+"</strong>":"")+"<br><span style='font-size:7pt;color:#64748b'>WITA</span></td><td><strong>"+ev.namaAcara+"</strong><br><span style='font-size:7.5pt;color:#64748b'>"+ev.penyelenggara+"</span></td><td class='c "+(ev.jenisKegiatan==="Sambutan"?"u":ev.jenisKegiatan==="Pengarahan"?"b":"g")+"'>"+ev.jenisKegiatan+"</td><td>"+(ev.lokasi||"<em style='color:#cbd5e1'>-</em>")+"</td><td class='c' style='font-size:7pt'>"+ev.pakaian+"</td><td class='c'>"+(function(e){var l=[];var wk=(e.untukPimpinan||[]).includes("walikota");var wwk=(e.untukPimpinan||[]).includes("wakilwalikota")||e.delegasiKeWWK;if(wk&&!e.delegasiKeWWK){if(e.statusWK==="hadir")l.push("Wali Kota"+(e.besertaIstriWK?" (beserta Istri)":""));else if(e.statusWK==="diwakilkan"&&e.perwakilanWK)l.push(e.perwakilanWK);else if(e.statusWK==="diwakilkan")l.push("Perwakilan WK");}if(wwk){if(e.statusWWK==="hadir")l.push("Wakil Wali Kota"+(e.besertaIstriWWK?" (beserta Istri)":""));else if(e.statusWWK==="diwakilkan"&&e.perwakilanWWK)l.push(e.perwakilanWWK);else if(e.statusWWK==="diwakilkan")l.push("Perwakilan WWK");}return l.join(", ");})(ev)+"</td></tr>")).join("");
+    const rows=Object.keys(byDay).sort().flatMap(tgl=>byDay[tgl].map((ev,i)=>(i===0?"<tr class='ds'>":"<tr>")+(i===0?"<td class='c' rowspan='"+byDay[tgl].length+"' style='background:#EBF0FA;font-weight:700;color:#0B2545'>"+getHari(tgl)+"<br><span style='font-size:7pt'>"+fmtShort(tgl)+"</span></td>":"")+"<td class='c'><strong>"+(ev.jam||"")+"</strong>"+(jamSelesaiValid(ev)?"<br><strong>s.d. "+ev.jamSelesai+"</strong>":"")+"<br><span style='font-size:7pt;color:#64748b'>"+zonaCetak(ev)+"</span></td><td><strong>"+ev.namaAcara+"</strong><br><span style='font-size:7.5pt;color:#64748b'>"+ev.penyelenggara+"</span></td><td class='c "+(ev.jenisKegiatan==="Sambutan"?"u":ev.jenisKegiatan==="Pengarahan"?"b":"g")+"'>"+ev.jenisKegiatan+"</td><td>"+(ev.lokasi||"<em style='color:#cbd5e1'>-</em>")+"</td><td class='c' style='font-size:7pt'>"+ev.pakaian+"</td><td class='c'>"+(function(e){var l=[];var wk=(e.untukPimpinan||[]).includes("walikota");var wwk=(e.untukPimpinan||[]).includes("wakilwalikota")||e.delegasiKeWWK;if(wk&&!e.delegasiKeWWK){if(e.statusWK==="hadir")l.push("Wali Kota"+(e.besertaIstriWK?" (beserta Istri)":""));else if(e.statusWK==="diwakilkan"&&e.perwakilanWK)l.push(e.perwakilanWK);else if(e.statusWK==="diwakilkan")l.push("Perwakilan WK");}if(wwk){if(e.statusWWK==="hadir")l.push("Wakil Wali Kota"+(e.besertaIstriWWK?" (beserta Istri)":""));else if(e.statusWWK==="diwakilkan"&&e.perwakilanWWK)l.push(e.perwakilanWWK);else if(e.statusWWK==="diwakilkan")l.push("Perwakilan WWK");}return l.join(", ");})(ev)+"</td></tr>")).join("");
     const statRow="<div style='display:flex;gap:10px;margin:8px 0;flex-wrap:wrap'>"+[["Total",stats.total,"#0B2545"],["Wali Kota",stats.wk,"#1B4080"],["Wakil WK",stats.wwk,"#065f46"],["Sambutan",stats.sambutan,"#7c3aed"],["Pengarahan",stats.pengarahan,"#2563eb"],["Menghadiri",stats.menghadiri,"#16a34a"]].map(([l,v,c])=>"<div style='background:"+c+";color:white;border-radius:8px;padding:6px 12px;font-size:10pt;font-weight:700;text-align:center'><div style='font-size:8pt;font-weight:400;opacity:0.8'>"+l+"</div>"+v+"</div>").join("")+"</div>";
     w.document.write("<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Laporan Kegiatan</title><style>@page{size:A4 landscape;margin:1.5cm 1.8cm}*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}body{font-family:Arial,sans-serif;font-size:8.5pt;color:#1a1a1a}.kop{display:flex;align-items:center;gap:14px;border-bottom:3px solid #0B2545;padding-bottom:10px;margin-bottom:8px}.kop-logo{width:58px;height:58px;object-fit:contain;flex-shrink:0}.kop-logo-app{width:52px;height:52px;object-fit:contain;flex-shrink:0;border-radius:10px}.kop-teks{flex:1}.kop h1{font-size:12pt;font-weight:900;color:#0B2545;margin:0 0 1px}.kop h2{font-size:9pt;font-weight:700;color:#0B2545;margin:0 0 2px}.kop p{font-size:7.5pt;color:#475569;margin:0}.jdl{text-align:center;margin:8px 0}.jdl h3{font-size:12pt;font-weight:900;color:#0B2545;margin:0;text-transform:uppercase;letter-spacing:1px}.jdl p{font-size:8.5pt;color:#475569;margin:3px 0 0}table{width:100%;border-collapse:collapse;font-size:8pt}thead th{background:#0B2545;color:#FFFFFF;padding:7px 6px;text-align:left;font-size:7.5pt;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact}thead th.c{text-align:center}tbody td{padding:6px;border:1px solid #dde4ef;vertical-align:middle;line-height:1.4}tbody tr:nth-child(even) td:not(.nw){background:#f8fafc}.c{text-align:center}.ds td{border-top:2.5px solid #0B2545!important}.cat{min-width:80px}.u{color:#7c3aed;font-weight:700}.b{color:#2563eb;font-weight:700}.g{color:#065f46;font-weight:700}.ttd{margin-top:22px;display:flex;justify-content:space-between;align-items:flex-end}.ttd-info{font-size:7.5pt;color:#64748b;line-height:1.8}.ttd-info b{color:#1a1a1a;font-size:8pt}.ttd-box{text-align:center;min-width:240px}.ttd-box .loc-date{font-size:8pt;color:#334155;margin:0 0 4px}.ttd-box .jab{font-size:8.5pt;font-weight:700;color:#0B2545;margin:0 0 56px;line-height:1.4}.ttd-box p{margin:0;border:none;padding:0}.ttd-box .nm{font-size:9pt;font-weight:900;color:#0B2545;margin:0 0 2px;letter-spacing:-0.2px;border:none}.ttd-box .nip{font-size:7.5pt;color:#64748b;display:flex;align-items:center;justify-content:center;gap:4px}.ttd-box .nip-line{display:inline-block;border-bottom:1px solid #94a3b8;width:160px;height:12px}.foot{margin-top:8px;font-size:7pt;color:#94a3b8;text-align:center;border-top:1px solid #e2e8f0;padding-top:5px}</style></head><body><div class='kop'><img src='/logo_tarakan.png' class='kop-logo' alt='Logo Pemkot Tarakan' onerror=\"this.style.display='none'\"/><div class='kop-teks'><h1>PEMERINTAH KOTA TARAKAN</h1><h2>BAGIAN PROTOKOL DAN KOMUNIKASI PIMPINAN</h2><p>Sekretariat Daerah Kota Tarakan</p></div><img src='/icon-192x192.png' class='kop-logo-app' alt='Prokopim Hibot' onerror=\"this.style.display='none'\"/></div><div class='jdl'><h3>LAPORAN KEGIATAN PIMPINAN</h3><p>"+range.label+" &bull; Dicetak: "+printDateTime+"</p></div>"+statRow+"<table><thead><tr><th style='width:80px'>Hari/Tgl</th><th class='c' style='width:52px'>Pukul<br>(WITA)</th><th style='width:200px'>Nama Acara</th><th class='c' style='width:62px'>Jenis</th><th style='width:130px'>Tempat/Lokasi</th><th class='c' style='width:78px'>Pakaian</th><th style='width:110px'>Dihadiri Oleh</th></tr></thead><tbody>"+rows+"</tbody></table><div class='ttd'><div class='ttd-info'><b>Dicetak oleh:</b> "+cetakOleh+"<br><b>Sistem:</b> Bagian Protokol dan Komunikasi Pimpinan Setda Kota Tarakan</div><div class='ttd-box'><p class='loc-date'>Tarakan, "+printDate+"</p><p class='jab'>Kepala Bagian Protokol dan Komunikasi Pimpinan</p><p class='nm'>Anugrah Yega Pranatha, M.Si.</p><p class='nip'>NIP. 198811032007011003</p></div></div><p class='foot'>Sistem Terpadu Jadwal dan Agenda Kegiatan Pimpinan #TarakanHibot</p></body></html>");
     w.document.close();w.focus();setTimeout(()=>w.print(),500);
@@ -2409,9 +2443,9 @@ const printF4L_lap=()=>{
     const _now=new Date();
     const printDate=_now.toLocaleDateString("id-ID",{day:"numeric",month:"long",year:"numeric"});
     const printTime=_now.toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit",second:"2-digit"});
-    const printDateTime=printDate+" pukul "+printTime+" WITA";
+    const printDateTime=printDate+" pukul "+printTime+" "+zonaPerangkat();
     const kabag=kabagNama||"Kabag Protokol & Komunikasi Pimpinan";
-    const rows=Object.keys(byDay).sort().flatMap(tgl=>byDay[tgl].map((ev,i)=>(i===0?"<tr class='ds'>":"<tr>")+(i===0?"<td class='c' rowspan='"+byDay[tgl].length+"' style='background:#EBF0FA;font-weight:700;color:#0B2545'>"+getHari(tgl)+"<br><span style='font-size:7pt'>"+fmtShort(tgl)+"</span></td>":"")+"<td class='c'><strong>"+(ev.jam||"")+"</strong>"+(jamSelesaiValid(ev)?"<br><strong>s.d. "+ev.jamSelesai+"</strong>":"")+"<br><span style='font-size:7pt;color:#64748b'>WITA</span></td><td><strong>"+ev.namaAcara+"</strong><br><span style='font-size:7.5pt;color:#64748b'>"+ev.penyelenggara+"</span></td><td class='c "+(ev.jenisKegiatan==="Sambutan"?"u":ev.jenisKegiatan==="Pengarahan"?"b":"g")+"'>"+ev.jenisKegiatan+"</td><td>"+(ev.lokasi||"<em style='color:#cbd5e1'>-</em>")+"</td><td class='c' style='font-size:7pt'>"+ev.pakaian+"</td><td class='c'>"+(function(e){var l=[];var wk=(e.untukPimpinan||[]).includes("walikota");var wwk=(e.untukPimpinan||[]).includes("wakilwalikota")||e.delegasiKeWWK;if(wk&&!e.delegasiKeWWK){if(e.statusWK==="hadir")l.push("Wali Kota"+(e.besertaIstriWK?" (beserta Istri)":""));else if(e.statusWK==="diwakilkan"&&e.perwakilanWK)l.push(e.perwakilanWK);}if(wwk){if(e.statusWWK==="hadir")l.push("Wakil Wali Kota"+(e.besertaIstriWWK?" (beserta Istri)":""));else if(e.statusWWK==="diwakilkan"&&e.perwakilanWWK)l.push(e.perwakilanWWK);}return l.join(", ");})(ev)+"</td><td class='cat'></td></tr>")).join("");
+    const rows=Object.keys(byDay).sort().flatMap(tgl=>byDay[tgl].map((ev,i)=>(i===0?"<tr class='ds'>":"<tr>")+(i===0?"<td class='c' rowspan='"+byDay[tgl].length+"' style='background:#EBF0FA;font-weight:700;color:#0B2545'>"+getHari(tgl)+"<br><span style='font-size:7pt'>"+fmtShort(tgl)+"</span></td>":"")+"<td class='c'><strong>"+(ev.jam||"")+"</strong>"+(jamSelesaiValid(ev)?"<br><strong>s.d. "+ev.jamSelesai+"</strong>":"")+"<br><span style='font-size:7pt;color:#64748b'>"+zonaCetak(ev)+"</span></td><td><strong>"+ev.namaAcara+"</strong><br><span style='font-size:7.5pt;color:#64748b'>"+ev.penyelenggara+"</span></td><td class='c "+(ev.jenisKegiatan==="Sambutan"?"u":ev.jenisKegiatan==="Pengarahan"?"b":"g")+"'>"+ev.jenisKegiatan+"</td><td>"+(ev.lokasi||"<em style='color:#cbd5e1'>-</em>")+"</td><td class='c' style='font-size:7pt'>"+ev.pakaian+"</td><td class='c'>"+(function(e){var l=[];var wk=(e.untukPimpinan||[]).includes("walikota");var wwk=(e.untukPimpinan||[]).includes("wakilwalikota")||e.delegasiKeWWK;if(wk&&!e.delegasiKeWWK){if(e.statusWK==="hadir")l.push("Wali Kota"+(e.besertaIstriWK?" (beserta Istri)":""));else if(e.statusWK==="diwakilkan"&&e.perwakilanWK)l.push(e.perwakilanWK);}if(wwk){if(e.statusWWK==="hadir")l.push("Wakil Wali Kota"+(e.besertaIstriWWK?" (beserta Istri)":""));else if(e.statusWWK==="diwakilkan"&&e.perwakilanWWK)l.push(e.perwakilanWWK);}return l.join(", ");})(ev)+"</td><td class='cat'></td></tr>")).join("");
     const statRow="<div style='display:flex;gap:10px;margin:8px 0;flex-wrap:wrap'>"+[["Total",stats.total,"#0B2545"],["Wali Kota",stats.wk,"#1B4080"],["Wakil WK",stats.wwk,"#065f46"],["Sambutan",stats.sambutan,"#7c3aed"],["Pengarahan",stats.pengarahan,"#2563eb"],["Menghadiri",stats.menghadiri,"#16a34a"]].map(([l,v,c])=>"<div style='background:"+c+";color:white;border-radius:8px;padding:6px 12px;font-size:10pt;font-weight:700;text-align:center'><div style='font-size:8pt;font-weight:400;opacity:0.8'>"+l+"</div>"+v+"</div>").join("")+"</div>";
     w.document.write("<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Laporan Kegiatan</title><style>@page{size:330mm 210mm;margin:1.5cm 1.8cm}*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}body{font-family:Arial,sans-serif;font-size:8.5pt;color:#1a1a1a}.kop{display:flex;align-items:center;gap:14px;border-bottom:3px solid #0B2545;padding-bottom:10px;margin-bottom:8px}.kop-logo{width:58px;height:58px;object-fit:contain;flex-shrink:0}.kop-logo-app{width:52px;height:52px;object-fit:contain;flex-shrink:0;border-radius:10px}.kop-teks{flex:1}.kop h1{font-size:12pt;font-weight:900;color:#0B2545;margin:0 0 1px}.kop h2{font-size:9pt;font-weight:700;color:#0B2545;margin:0 0 2px}.kop p{font-size:7.5pt;color:#475569;margin:0}.jdl{text-align:center;margin:8px 0}.jdl h3{font-size:12pt;font-weight:900;color:#0B2545;margin:0;text-transform:uppercase;letter-spacing:1px}.jdl p{font-size:8.5pt;color:#475569;margin:3px 0 0}table{width:100%;border-collapse:collapse;font-size:8pt}thead th{background:#0B2545;color:#FFFFFF;padding:7px 6px;text-align:left;font-size:7.5pt;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact}thead th.c{text-align:center}tbody td{padding:6px;border:1px solid #dde4ef;vertical-align:middle;line-height:1.4}tbody tr:nth-child(even) td:not(.nw){background:#f8fafc}.c{text-align:center}.ds td{border-top:2.5px solid #0B2545!important}.cat{min-width:80px}.u{color:#7c3aed;font-weight:700}.b{color:#2563eb;font-weight:700}.g{color:#065f46;font-weight:700}.ttd{margin-top:22px;display:flex;justify-content:space-between;align-items:flex-end}.ttd-info{font-size:7.5pt;color:#64748b;line-height:1.8}.ttd-info b{color:#1a1a1a;font-size:8pt}.ttd-box{text-align:center;min-width:240px}.ttd-box .loc-date{font-size:8pt;color:#334155;margin:0 0 4px}.ttd-box .jab{font-size:8.5pt;font-weight:700;color:#0B2545;margin:0 0 56px;line-height:1.4}.ttd-box p{margin:0;border:none;padding:0}.ttd-box .nm{font-size:9pt;font-weight:900;color:#0B2545;margin:0 0 2px;letter-spacing:-0.2px;border:none}.ttd-box .nip{font-size:7.5pt;color:#64748b;display:flex;align-items:center;justify-content:center;gap:4px}.ttd-box .nip-line{display:inline-block;border-bottom:1px solid #94a3b8;width:160px;height:12px}.foot{margin-top:8px;font-size:7pt;color:#94a3b8;text-align:center;border-top:1px solid #e2e8f0;padding-top:5px}</style></head><body><div class='kop'><img src='/logo_tarakan.png' class='kop-logo' alt='Logo Pemkot Tarakan' onerror=\"this.style.display='none'\"/><div class='kop-teks'><h1>PEMERINTAH KOTA TARAKAN</h1><h2>BAGIAN PROTOKOL DAN KOMUNIKASI PIMPINAN</h2><p>Sekretariat Daerah Kota Tarakan</p></div><img src='/icon-192x192.png' class='kop-logo-app' alt='Prokopim Hibot' onerror=\"this.style.display='none'\"/></div><div class='jdl'><h3>LAPORAN KEGIATAN PIMPINAN</h3><p>"+range.label+" &bull; Dicetak: "+printDateTime+"</p></div>"+statRow+"<table><thead><tr><th style='width:80px'>Hari/Tgl</th><th class='c' style='width:52px'>Pukul<br>(WITA)</th><th style='width:200px'>Nama Acara</th><th class='c' style='width:62px'>Jenis</th><th style='width:130px'>Tempat/Lokasi</th><th class='c' style='width:78px'>Pakaian</th><th style='width:110px'>Dihadiri Oleh</th><th style='width:80px'>Catatan<br>Kepala Daerah</th></tr></thead><tbody>"+rows+"</tbody></table><div class='ttd'><div class='ttd-info'><b>Dicetak oleh:</b> "+cetakOleh+"<br><b>Sistem:</b> Bagian Protokol dan Komunikasi Pimpinan Setda Kota Tarakan</div><div class='ttd-box'><p class='loc-date'>Tarakan, "+printDate+"</p><p class='jab'>Kepala Bagian Protokol dan Komunikasi Pimpinan</p><p class='nm'>Anugrah Yega Pranatha, M.Si.</p><p class='nip'>NIP. 198811032007011003</p></div></div><p class='foot'>Sistem Terpadu Jadwal dan Agenda Kegiatan Pimpinan #TarakanHibot</p></body></html>");
     w.document.close();w.focus();setTimeout(()=>w.print(),500);
@@ -3180,9 +3214,9 @@ function DraftProgressView({events,user,upd,showT,askConfirm,setTab,isMobile,set
   if(sendingId===ev.id)return;setSendingId(ev.id);
   upd(ev.id,{alur:"menunggu_kasubbag"});
   showT("Dikirim ke Kasubbag — menunggu verifikasi","ok");
-  loadUsers().filter(u=>(u.role==="kasubbag_protokol")&&u.noWA).forEach(u=>sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"submit",submittedBy:user?.nama}));
-  sendPush({targetRole:"kasubbag_protokol",title:"📋 Jadwal Baru Masuk",body:ev.namaAcara+" — "+fmtJamWita(ev),url:"/",tag:"submit-"+ev.id});
-  sendPush({targetRole:"kasubbag_komdokpim",title:"📋 Jadwal Baru Masuk",body:ev.namaAcara+" — "+fmtJamWita(ev),url:"/",tag:"submit-"+ev.id});
+  loadUsers().filter(u=>(u.role==="kasubbag_protokol")&&u.noWA).forEach(u=>sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,zona:ev.zona,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"submit",submittedBy:user?.nama}));
+  sendPush({targetRole:"kasubbag_protokol",title:"📋 Jadwal Baru Masuk",body:ev.namaAcara+" — "+fmtJamDuaZona(ev),url:"/",tag:"submit-"+ev.id});
+  sendPush({targetRole:"kasubbag_komdokpim",title:"📋 Jadwal Baru Masuk",body:ev.namaAcara+" — "+fmtJamDuaZona(ev),url:"/",tag:"submit-"+ev.id});
   setTimeout(()=>setSendingId(null),1500);
 }} style={{padding:"7px 14px",borderRadius:8,border:"none",background:sendingId===ev.id?"#94A3B8":NAVY,color:"white",cursor:sendingId===ev.id?"default":"pointer",fontSize:12,fontWeight:700,opacity:sendingId===ev.id?0.7:1}}>{sendingId===ev.id?"Mengirim…":"Kirim ke Kasubbag →"}</button>}
             </div>
@@ -3612,7 +3646,7 @@ function ApprovalQueueView({events,role,user,upd,showT,askConfirm,deleteAndSync,
             onBerubah={v=>setP(ev.id,v)}/>
           <LocalTextarea evId={ev.id} placeholder="Catatan (wajib diisi bila mengembalikan ke staf)..." rows={2} onCommit={(id,v)=>setRT(p=>({...p,[id]:v}))}/>
           <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-            <button onClick={()=>askConfirm("Kembalikan untuk Diperbaiki?","Jadwal dikembalikan ke Admin RK dengan catatan di atas. Admin RK dapat mengedit ulang dan mengajukan kembali — tidak perlu input dari awal.",()=>{upd(ev.id,{alur:"ditolak",catatanTolak:rejectTexts[ev.id]||"Perlu perbaikan",_requiresEdit:true});showT("Dikembalikan ke Admin RK untuk diperbaiki","warn");const _ur=loadUsers().find(u=>u.username===ev.submittedBy);if(_ur?.noWA)sendWA({to:_ur.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,penyelenggara:ev.penyelenggara,event:"rejected",catatanTolak:rejectTexts[ev.id]||"",submittedBy:getNamaByUsername(ev.submittedBy)});sendPush({targetUser:ev.submittedBy,title:"↩ Jadwal Perlu Diperbaiki",body:ev.namaAcara+": "+(rejectTexts[ev.id]||"Perlu diperbaiki"),url:"/",tag:"rejected-"+ev.id});},"Ya, Kembalikan","#92400E")}
+            <button onClick={()=>askConfirm("Kembalikan untuk Diperbaiki?","Jadwal dikembalikan ke Admin RK dengan catatan di atas. Admin RK dapat mengedit ulang dan mengajukan kembali — tidak perlu input dari awal.",()=>{upd(ev.id,{alur:"ditolak",catatanTolak:rejectTexts[ev.id]||"Perlu perbaikan",_requiresEdit:true});showT("Dikembalikan ke Admin RK untuk diperbaiki","warn");const _ur=loadUsers().find(u=>u.username===ev.submittedBy);if(_ur?.noWA)sendWA({to:_ur.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,zona:ev.zona,penyelenggara:ev.penyelenggara,event:"rejected",catatanTolak:rejectTexts[ev.id]||"",submittedBy:getNamaByUsername(ev.submittedBy)});sendPush({targetUser:ev.submittedBy,title:"↩ Jadwal Perlu Diperbaiki",body:ev.namaAcara+": "+(rejectTexts[ev.id]||"Perlu diperbaiki"),url:"/",tag:"rejected-"+ev.id});},"Ya, Kembalikan","#92400E")}
               style={{flex:1,padding:"10px 14px",borderRadius:10,border:"1.5px solid #D97706",background:"#FFFBEB",color:"#92400E",cursor:"pointer",fontSize:12,fontWeight:700}}>
               ↩ Kembalikan untuk Diperbaiki
             </button>
@@ -3622,8 +3656,8 @@ function ApprovalQueueView({events,role,user,upd,showT,askConfirm,deleteAndSync,
               ()=>{
                 if(busyId===ev.id)return;setBusy(ev.id);
                 upd(ev.id,{alur:"menunggu_kabag",_kabagRecall:false,_periksa:periksa[ev.id]?.ringkasan});showT("Diteruskan ke Kabag ✓","ok");
-                loadUsers().filter(u=>u.role==="kabag"&&u.noWA).forEach(u=>sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"kasubbag_approve"}));
-                sendPush({targetRole:"kabag",title:"✅ Menunggu Persetujuan Anda",body:ev.namaAcara+" — "+fmtJamWita(ev),url:"/",tag:"approve-"+ev.id});
+                loadUsers().filter(u=>u.role==="kabag"&&u.noWA).forEach(u=>sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,zona:ev.zona,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"kasubbag_approve"}));
+                sendPush({targetRole:"kabag",title:"✅ Menunggu Persetujuan Anda",body:ev.namaAcara+" — "+fmtJamDuaZona(ev),url:"/",tag:"approve-"+ev.id});
                 setTimeout(()=>setBusy(null),1500);
               },
               "Ya, Teruskan","#0A1628"
@@ -3820,7 +3854,7 @@ function MitraKerjaView({events,isMobile}){
       return true;
     })
     .filter(e=>!search||e.namaAcara?.toLowerCase().includes(search.toLowerCase())||e.penyelenggara?.toLowerCase().includes(search.toLowerCase()))
-    .sort((a,b)=>(a.tanggal+a.jam).localeCompare(b.tanggal+b.jam));
+    .sort((a,b)=>urutAcara(a,b));
 
   const hadir=(ev)=>{
     const list=[];
@@ -4499,19 +4533,19 @@ function PenugasanModal({ev, onClose, onSave, currentUser, allUsers, allEvents})
 
   // Cek konflik jadwal untuk satu personil (dalam 2 jam)
   function getConflicts(username){
-    const evDate=new Date(ev.tanggal+"T"+ev.jam);
+    const evDate=tglAcara(ev);
     return allEvents.filter(e=>
       e.id!==ev.id &&
       e.alur==="disetujui" &&
       (e.personil||[]).includes(username)
     ).filter(e=>{
-      const d=new Date(e.tanggal+"T"+e.jam);
+      const d=tglAcara(e);
       return Math.abs(d-evDate)<90*60*1000; // dalam 90 menit
     });
   }
 
   // Cek deadline 12 jam
-  const evDateTime=new Date(ev.tanggal+"T"+ev.jam);
+  const evDateTime=tglAcara(ev);
   const now=new Date();
   const hoursLeft=(evDateTime-now)/(1000*60*60);
   const past12h=hoursLeft<12;
@@ -4655,6 +4689,22 @@ const fld=(k,l,type="text",full=false)=>(
   // Jam selesai opsional, tapi bila diisi harus lebih besar dari jam mulai.
   const jamSelesaiSalah = !!(form.jam && form.jamSelesai && toMin(form.jamSelesai)<=toMin(form.jam));
   const step1Valid = form.tanggal && form.jam && form.namaAcara && form.untukPimpinan.length>0 && !jamSelesaiSalah;
+  // Zona waktu acara. Jadwal lama tanpa `zona` = WITA. Bila lokasi menyebut
+  // kota di zona lain, sarankan menggantinya — insiden Oktober 2026: acara
+  // di Jakarta (WIB) terinput dan tampil sebagai WITA.
+  const zonaForm=zonaAcara(form);
+  const saranZona=tebakZonaLokasi(form.lokasi);
+  const blokSaranZona=saranZona&&saranZona!==zonaForm?(
+    <div data-saran-zona style={{marginTop:6,padding:"8px 10px",borderRadius:9,background:"#FFFBEB",border:"1px solid #FCD34D",fontSize:12.5,color:"#92400E",display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+      <span style={{flex:1,minWidth:180}}>⚠ Lokasi tampaknya di zona <b>{saranZona}</b>, sedangkan jam diisi dalam <b>{zonaForm}</b>. Pastikan sesuai undangan.</span>
+      <button type="button" onClick={()=>setForm(p=>({...p,zona:saranZona}))} style={{padding:"5px 10px",borderRadius:7,border:"none",background:"#92400E",color:"white",fontWeight:700,fontSize:12,cursor:"pointer"}}>Pakai {saranZona}</button>
+    </div>
+  ):null;
+  // Di bawah kolom lokasi: saran di atas, atau — bila zonanya bukan WITA —
+  // pengingat jam setempat dan padanannya, karena kolom jam ada di langkah lain.
+  const blokZonaLokasi=blokSaranZona||(zonaForm!=="WITA"&&form.jam?(
+    <div data-zona-lokasi style={{marginTop:6,fontSize:12.5,color:"#0B2545",fontWeight:700}}>🕐 {fmtJamDuaZona(form)}</div>
+  ):null);
 
   const StepDot = ({n, label}) => (
     <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
@@ -4735,7 +4785,14 @@ const fld=(k,l,type="text",full=false)=>(
         <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:"0 20px"}}>
           {fld("tanggal","Tanggal *","date")}
           <div style={{marginBottom:12}}>
-            <label style={{display:"block",fontSize:12,color:"#475569",fontWeight:600,marginBottom:4}}>Jam * <span style={{fontSize:12,fontWeight:400,color:"#94a3b8"}}>(WITA)</span></label>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,marginBottom:4}}>
+              <label style={{fontSize:12,color:"#475569",fontWeight:600}}>Jam * <span style={{fontSize:12,fontWeight:400,color:"#94a3b8"}}>(waktu setempat, sesuai undangan)</span></label>
+              <div role="radiogroup" aria-label="Zona waktu" style={{display:"flex",background:"#F1F5F9",borderRadius:8,padding:2,flexShrink:0}}>
+                {DAFTAR_ZONA.map(z=><button key={z} type="button" role="radio" aria-checked={zonaForm===z} onClick={()=>setForm(p=>({...p,zona:z}))}
+                  style={{padding:"4px 9px",borderRadius:6,border:"none",cursor:"pointer",fontSize:12,fontWeight:800,
+                    background:zonaForm===z?NAVY2:"transparent",color:zonaForm===z?"white":"#64748B"}}>{z}</button>)}
+              </div>
+            </div>
             <div style={{display:"flex",alignItems:"center",gap:8}}>
               <input type="time" value={form.jam||""} onChange={e=>setForm(p=>({...p,jam:e.target.value}))}
                 style={{flex:1,minWidth:0,padding:"10px 12px",borderRadius:9,border:"1.5px solid #e2e8f0",
@@ -4749,6 +4806,10 @@ const fld=(k,l,type="text",full=false)=>(
             <div style={{fontSize:12,color:jamSelesaiSalah?"#DC2626":"#94a3b8",marginTop:4,fontWeight:jamSelesaiSalah?600:400}}>
               {jamSelesaiSalah?"⚠ Jam selesai harus lebih besar dari jam mulai (acara lintas hari belum didukung)":"Jam selesai opsional — isi bila informasinya sudah ada"}
             </div>
+            {zonaForm!=="WITA"&&form.jam&&<div data-padanan-wita style={{fontSize:12.5,color:"#0B2545",marginTop:4,fontWeight:700}}>
+              🕐 {fmtJamDuaZona(form)}
+            </div>}
+            {blokSaranZona}
             <div style={{display:"flex",gap:4,marginTop:6,flexWrap:"wrap"}}>
               {QUICK_TIMES.map(t=>(
                 <button key={t} type="button" onClick={()=>setForm(p=>({...p,jam:t}))}
@@ -4859,6 +4920,7 @@ const fld=(k,l,type="text",full=false)=>(
               style={{padding:"10px 14px",borderRadius:9,background:"#1a73e8",color:"white",
                 textDecoration:"none",fontSize:13,fontWeight:700,display:"flex",alignItems:"center",flexShrink:0}}>Maps</a>}
           </div>
+          {blokZonaLokasi}
         </div>
         {/* Catatan */}
         <div style={{marginBottom:12}}>
@@ -4918,6 +4980,7 @@ const fld=(k,l,type="text",full=false)=>(
             {form.lokasi&&<a href={"https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(form.lokasi)} target="_blank" rel="noopener noreferrer"
               style={{padding:"10px 14px",borderRadius:9,background:"#1a73e8",color:"white",textDecoration:"none",fontSize:13,fontWeight:700,display:"flex",alignItems:"center",flexShrink:0}}>Maps</a>}
           </div>
+          {blokZonaLokasi}
         </div>
         <div style={{marginBottom:12}}>
           <label style={{display:"block",fontSize:12,color:"#475569",fontWeight:600,marginBottom:4}}>Catatan</label>
@@ -5228,7 +5291,7 @@ async function sendPush({targetRole,targetUser,title,body,url,tag}){
 // Prinsipnya: push aplikasi (gratis) untuk kabar biasa; WA hanya bila
 // penerima harus bertindak dan acaranya sudah dekat (hari ini/besok WITA),
 // atau penerimanya tidak punya kanal lain. Aturannya di src/lib/aturanWA.js.
-const infoWA=ev=>({namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi});
+const infoWA=ev=>({namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,zona:ev.zona,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi});
 /** WA ke beberapa pengguna: akun nonaktif dilewati, satu nomor sekali kirim. */
 function kirimWAUnik(daftar,params){
   penerimaUnik(daftar).forEach(u=>sendWA({...params,to:u.noWA,namaPenerima:u.nama||undefined}));
@@ -5250,7 +5313,7 @@ function kabarKehadiran(ev,pim,status,statusLama,oleh){
   const kanal=ev?kanalKehadiran(status,statusLama,ev.tanggal):"tidak";
   if(kanal==="tidak")return;
   const label=pim==="WK"?"Wali Kota":"Wakil Wali Kota";
-  const body=ev.namaAcara+" · "+(ev.tanggal||"")+" "+fmtJamWita(ev)+": "+label+" "+(LABEL_HADIR[status]||status);
+  const body=ev.namaAcara+" · "+(ev.tanggal||"")+" "+fmtJamDuaZona(ev)+": "+label+" "+(LABEL_HADIR[status]||status);
   ["kabag","kasubbag_protokol","kasubbag_komdokpim"].forEach(r=>sendPush({targetRole:r,
     title:(status==="hadir"?"✅ ":"⚠️ ")+"Kehadiran "+label,body,url:"/",tag:"status-"+pim.toLowerCase()+"-"+ev.id}));
   if(kanal==="wa")kirimWAUnik(pemegangJabatan("kasubbag_protokol"),{...infoWA(ev),event:"konfirmasi_kehadiran",
@@ -5276,7 +5339,7 @@ function kabarLapangan(ev,jenis,opts={}){
   const keWWK=pim(ev).includes("wakilwalikota")||pim(lama).includes("wakilwalikota")||!!ev.delegasiKeWWK||!!lama?.delegasiKeWWK;
   const personil=[...new Set([...(ev.personil||[]),...(lama?.personil||[])])];
   const judul=JUDUL_LAPANGAN[jenis]||"🔔 Jadwal";
-  const body=ev.namaAcara+" · "+(ev.tanggal||"")+" "+fmtJamWita(ev)+(opts.ringkasEdit?" · berubah: "+opts.ringkasEdit:"")+(opts.alasan?" · "+opts.alasan:"");
+  const body=ev.namaAcara+" · "+(ev.tanggal||"")+" "+fmtJamDuaZona(ev)+(opts.ringkasEdit?" · berubah: "+opts.ringkasEdit:"")+(opts.alasan?" · "+opts.alasan:"");
   const tag="lapangan-"+jenis+"-"+ev.id;
   if(keWK)sendPush({targetRole:"ajudan_walikota",title:judul,body,url:"/",tag});
   if(keWWK)sendPush({targetRole:"ajudan_wakilwalikota",title:judul,body,url:"/",tag});
@@ -5307,7 +5370,7 @@ function kabarDitarik(ev,alasan){
 }
 /** Disposisi WK → WWK: Ajudan WWK harus segera bertindak, jadi push + WA. */
 function kabarDelegasiWWK(ev){
-  sendPush({targetRole:"ajudan_wakilwalikota",title:"↩ Disposisi dari Wali Kota",body:ev.namaAcara+" — "+fmtJamWita(ev)+": mohon konfirmasi kehadiran",url:"/",tag:"delegasi-wwk-"+ev.id});
+  sendPush({targetRole:"ajudan_wakilwalikota",title:"↩ Disposisi dari Wali Kota",body:ev.namaAcara+" — "+fmtJamDuaZona(ev)+": mohon konfirmasi kehadiran",url:"/",tag:"delegasi-wwk-"+ev.id});
   kirimWAUnik(loadUsers().filter(u=>u.role==="ajudan_wakilwalikota"),{...infoWA(ev),event:"delegasi_wwk"});
 }
 
@@ -5354,7 +5417,7 @@ function PersonilBanner({ev,role,user,setPenugasanEv,setEvaluasiEv,onCabutPerson
   const all=loadUsers();
   const pLabels=(ev.personil||[]).map(un=>{const u=all.find(x=>x.username===un);return{un,nm:u?.nama||un,isMe:un===user.username};});
   const isAssigned=(ev.personil||[]).includes(user.username);
-  const evTime=new Date(ev.tanggal+"T"+ev.jam);
+  const evTime=tglAcara(ev);
   const hoursLeft=(evTime-new Date())/(1000*60*60);
   const urgent=hoursLeft>0&&hoursLeft<=12&&(!ev.personil||ev.personil.length===0);
   const showNames=pLabels.length>0;
@@ -5391,7 +5454,7 @@ function PersonilBanner({ev,role,user,setPenugasanEv,setEvaluasiEv,onCabutPerson
 // ── Helper: cek apakah konfirmasi kehadiran sudah terkunci (> 3 jam setelah jadwal) ──
 function isKehadiranLocked(ev){
   try{
-    const evDt=new Date(ev.tanggal+"T"+(ev.jam||"00:00"));
+    const evDt=tglAcara(ev,"00:00");
     return (Date.now()-evDt.getTime())>(3*60*60*1000);
   }catch{return false;}
 }
@@ -5608,7 +5671,7 @@ function EventCard({ev}){
   const isDraft=ev.alur==="draft"||ev.alur==="ditolak";
   // Status waktu
   const nowDt=new Date();
-  const evDt=new Date(ev.tanggal+"T"+(ev.jam||"00:00"));
+  const evDt=tglAcara(ev,"00:00");
   const isPast=ev.alur==="disetujui"&&evDt<nowDt;
   const isUpcoming=ev.alur==="disetujui"&&evDt>=nowDt;
   const borderColor=isPending?"#F59E0B":isDraft?"#94A3B8":ev.alur==="ditolak"?"#EF4444":isToday&&isUpcoming?NAVY:"transparent";
@@ -6061,7 +6124,7 @@ function KartuSorotanHariIni({ events, filterForRole, filterPimpinan, isMobile, 
   const agendaHariIni = events.filter(ev => {
     if (ev.alur !== "disetujui") return false;
     if (ev.tanggal !== todayISO) return false;
-    const evTime = new Date(ev.tanggal + "T" + (ev.jam || "23:59") + ":00+08:00");
+    const evTime = tglAcara(ev,"23:59");
     // showUnconfirmed: tampilkan semua (lewat & belum), supaya pimpinan lihat gambaran penuh
     if (!showUnconfirmed && evTime < now) return false;
     // Filter khusus pimpinan jika diminta
@@ -6072,7 +6135,7 @@ function KartuSorotanHariIni({ events, filterForRole, filterPimpinan, isMobile, 
         ev.perwakilanWK === "Wakil Wali Kota";
     }
     return true;
-  }).sort((a,b) => a.jam.localeCompare(b.jam));
+  }).sort((a,b) => urutAcara(a,b));
 
   // Cek apakah suatu event belum dikonfirmasi kehadirannya
   const isUnconfirmed = (ev) => {
@@ -6407,7 +6470,7 @@ async function generateAndShareAgendaCard(ev) {
       // Rentang jam ("09:00 – 11:00 WITA") lebih panjang — kecilkan sedikit
       // fontnya supaya tetap muat di kolom kartu.
       ctx.fillStyle="rgba(255,255,255,0.9)";setFont(ctx,jamSelesaiValid(ev)?26:30,"700");
-      ctx.fillText((fmtJamWita(ev)||"-"),COL_X,cy);
+      ctx.fillText((fmtJamDuaZona(ev)||"-"),COL_X,cy);
     }else if(row.type==="lokasi"){
       ctx.fillStyle="rgba(255,255,255,0.85)";setFont(ctx,26,"600");
       const ll=wrapText(ctx,ev.lokasi||"",COL_MAX);
@@ -6454,7 +6517,7 @@ async function generateAndShareAgendaCard(ev) {
   ctx.fillText("Protokol & Komunikasi Pimpinan · Setda Kota Tarakan",P,footerY+62);
 
   const now3=new Date();
-  const jamNow=`${String(now3.getHours()).padStart(2,"0")}.${String(now3.getMinutes()).padStart(2,"0")} WITA`;
+  const jamNow=`${String(now3.getHours()).padStart(2,"0")}.${String(now3.getMinutes()).padStart(2,"0")} ${zonaPerangkat()}`;
   ctx.textAlign="right";ctx.fillStyle="rgba(255,255,255,0.2)";setFont(ctx,17,"400");
   ctx.fillText("Dibagikan",W-P,footerY+38);ctx.fillText(jamNow,W-P,footerY+60);ctx.textAlign="left";
 
@@ -6585,7 +6648,7 @@ function UsulanEditKasubbag({ev,upd,showT,askConfirm,rejectTexts,setRT,user}){
             buangBerkasUsulan((ev.usulanEdit||{}).undanganFile,ev.undanganFile);
             upd(ev.id,{alurEdit:null,usulanEdit:null,alasanEdit:"",catatanEditKasubbag:catatan,catatanEditKabag:""});
             const _pengusul=loadUsers().find(u=>u.username===(ev.usulanEditOleh||ev.submittedBy));
-            if(_pengusul?.noWA)sendWA({to:_pengusul.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,
+            if(_pengusul?.noWA)sendWA({to:_pengusul.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,zona:ev.zona,
               penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"edit_ditolak",catatanTolak:catatan,submittedBy:user?.nama});
             sendPush({targetUser:(ev.usulanEditOleh||ev.submittedBy),title:"❌ Usulan Perubahan Ditolak",body:ev.namaAcara+": "+catatan,url:"/",tag:"usulan-tolak-"+ev.id});
             showT("Usulan ditolak — jadwal tetap apa adanya","warn");
@@ -6621,7 +6684,7 @@ function UsulanEditKabag({ev,upd,showT,askConfirm,rejectTexts,setRT,user}){
           const usulan=ev.usulanEdit||{};
           // Kesediaan hadir terikat pada waktu acara. Bila tanggal atau jam
           // bergeser, konfirmasi lama dibatalkan agar ditegaskan ulang.
-          const waktuBerubah=FIELD_RESET_KEHADIRAN.some(k=>String(ev[k]||"")!==String(usulan[k]||""));
+          const waktuBerubah=FIELD_RESET_KEHADIRAN.some(k=>String(nilaiField(ev,k)||"")!==String(nilaiField(usulan,k)||""));
           askConfirm("Setujui Perubahan Jadwal?",
             waktuBerubah
               ?"Data jadwal akan diperbarui dan konfirmasi kehadiran pimpinan direset — ajudan akan diminta menegaskan ulang."
@@ -6659,7 +6722,7 @@ function UsulanEditKabag({ev,upd,showT,askConfirm,rejectTexts,setRT,user}){
             buangBerkasUsulan((ev.usulanEdit||{}).undanganFile,ev.undanganFile);
             upd(ev.id,{alurEdit:null,usulanEdit:null,alasanEdit:"",catatanEditKabag:alasan,catatanEditKasubbag:""});
             const _pengusul=loadUsers().find(u=>u.username===(ev.usulanEditOleh||ev.submittedBy));
-            if(_pengusul?.noWA)sendWA({to:_pengusul.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,
+            if(_pengusul?.noWA)sendWA({to:_pengusul.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,zona:ev.zona,
               penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"edit_ditolak",catatanTolak:alasan,submittedBy:user?.nama});
             sendPush({targetUser:(ev.usulanEditOleh||ev.submittedBy),title:"❌ Usulan Perubahan Ditolak Kabag",body:ev.namaAcara+": "+alasan,url:"/",tag:"usulan-tolak-"+ev.id});
             sendPush({targetRole:"kasubbag_protokol",title:"❌ Usulan Perubahan Ditolak",body:ev.namaAcara,url:"/",tag:"usulan-tolak-ks-"+ev.id});
@@ -6856,9 +6919,9 @@ function ExpandedDetail({ev,hariEv}){
           const kasubbags=loadUsers().filter(u=>u.role==="kasubbag_protokol");
           const namaKasubbag=kasubbags.map(u=>u.nama).filter(Boolean).join(" & ")||"Kasubbag Protokol";
           showT("📤 Terkirim ke "+namaKasubbag,"ok");
-          kasubbags.filter(u=>u.noWA).forEach(u=>sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"submit",submittedBy:user?.nama}));
-          sendPush({targetRole:"kasubbag_protokol",title:"📋 Jadwal Baru Masuk",body:ev.namaAcara+" — "+fmtJamWita(ev),url:"/",tag:"submit-"+ev.id});
-          sendPush({targetRole:"kasubbag_komdokpim",title:"📋 Jadwal Baru Masuk",body:ev.namaAcara+" — "+fmtJamWita(ev),url:"/",tag:"submit-"+ev.id});
+          kasubbags.filter(u=>u.noWA).forEach(u=>sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,zona:ev.zona,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"submit",submittedBy:user?.nama}));
+          sendPush({targetRole:"kasubbag_protokol",title:"📋 Jadwal Baru Masuk",body:ev.namaAcara+" — "+fmtJamDuaZona(ev),url:"/",tag:"submit-"+ev.id});
+          sendPush({targetRole:"kasubbag_komdokpim",title:"📋 Jadwal Baru Masuk",body:ev.namaAcara+" — "+fmtJamDuaZona(ev),url:"/",tag:"submit-"+ev.id});
         }}
           style={{width:"100%",padding:"12px",borderRadius:10,border:"none",background:NAVY,color:"white",cursor:"pointer",fontSize:13,fontWeight:800,boxShadow:"0 4px 12px rgba(10,22,40,0.25)"}}>
           📤 Kirim ke Kasubbag
@@ -6974,7 +7037,7 @@ function ExpandedDetail({ev,hariEv}){
                 kirimWAUnik(pemegangJabatan("kasubbag_protokol"),{...infoWA(ev),
                   event:"ajukan_batal",alasanHapus:alasan,submittedBy:user?.nama});
                 sendPush({targetRole:"kasubbag_protokol",title:"⚠️ Permintaan Pembatalan Jadwal",
-                  body:ev.namaAcara+" — "+fmtJamWita(ev),url:"/",tag:"batal-"+ev.id});
+                  body:ev.namaAcara+" — "+fmtJamDuaZona(ev),url:"/",tag:"batal-"+ev.id});
                 showT("Permintaan pembatalan dikirim ke Kasubbag","warn");
               },
               "Ajukan","#991B1B"
@@ -7032,8 +7095,8 @@ function ExpandedDetail({ev,hariEv}){
           "Jadwal '"+ev.namaAcara+"' akan diteruskan ke Kabag Prokopim untuk persetujuan akhir. Pastikan dokumen undangan, lokasi, dan pakaian sudah benar.",
           ()=>{
             upd(ev.id,{alur:"menunggu_kabag",_periksa:periksa.ringkasan});showT("Diteruskan ke Kabag ✓","ok");
-            loadUsers().filter(u=>u.role==="kabag"&&u.noWA).forEach(u=>sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"kasubbag_approve"}));
-            sendPush({targetRole:"kabag",title:"✅ Menunggu Persetujuan Anda",body:ev.namaAcara+" — "+fmtJamWita(ev),url:"/",tag:"approve-"+ev.id});
+            loadUsers().filter(u=>u.role==="kabag"&&u.noWA).forEach(u=>sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,zona:ev.zona,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"kasubbag_approve"}));
+            sendPush({targetRole:"kabag",title:"✅ Menunggu Persetujuan Anda",body:ev.namaAcara+" — "+fmtJamDuaZona(ev),url:"/",tag:"approve-"+ev.id});
           },
           "Ya, Teruskan","#10B981"
         )}
@@ -7051,7 +7114,7 @@ function ExpandedDetail({ev,hariEv}){
             <span>⚠️</span> Wajib diisi — jelaskan alasannya agar Admin RK tahu apa yang perlu diperbaiki
           </div>
           <textarea placeholder="Contoh: Lokasi belum lengkap, jam mulai perlu dikonfirmasi ulang ke penyelenggara..." value={rejectTexts[ev.id]||""} onChange={e=>setRT(p=>({...p,[ev.id]:e.target.value}))} rows={3} style={{width:"100%",padding:"9px 11px",border:"none",resize:"none",color:"#334155",background:"#FFF5F5",fontSize:13,boxSizing:"border-box"}}/>
-          <button onClick={()=>{if(!(rejectTexts[ev.id]||"").trim()){showT("Tulis alasan perbaikan dulu","warn");return;}askConfirm("Kembalikan untuk Diperbaiki?","Jadwal '"+ev.namaAcara+"' dikembalikan ke Admin RK dengan catatan di atas. Admin RK dapat mengedit dan mengajukan kembali — tidak perlu input dari awal.",()=>{upd(ev.id,{alur:"ditolak",catatanTolak:rejectTexts[ev.id]||"Perlu perbaikan",_requiresEdit:true});showT("Dikembalikan ke Admin RK untuk diperbaiki","warn");{const _ur=loadUsers().find(u=>u.username===ev.submittedBy);if(_ur?.noWA)sendWA({to:_ur.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,penyelenggara:ev.penyelenggara,event:"rejected",catatanTolak:rejectTexts[ev.id]||"",submittedBy:getNamaByUsername(ev.submittedBy)});}sendPush({targetUser:ev.submittedBy,title:"↩ Jadwal Perlu Diperbaiki",body:ev.namaAcara+": "+(rejectTexts[ev.id]||"Perlu diperbaiki"),url:"/",tag:"rejected-"+ev.id});},"Ya, Kembalikan","#92400E");}}
+          <button onClick={()=>{if(!(rejectTexts[ev.id]||"").trim()){showT("Tulis alasan perbaikan dulu","warn");return;}askConfirm("Kembalikan untuk Diperbaiki?","Jadwal '"+ev.namaAcara+"' dikembalikan ke Admin RK dengan catatan di atas. Admin RK dapat mengedit dan mengajukan kembali — tidak perlu input dari awal.",()=>{upd(ev.id,{alur:"ditolak",catatanTolak:rejectTexts[ev.id]||"Perlu perbaikan",_requiresEdit:true});showT("Dikembalikan ke Admin RK untuk diperbaiki","warn");{const _ur=loadUsers().find(u=>u.username===ev.submittedBy);if(_ur?.noWA)sendWA({to:_ur.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,zona:ev.zona,penyelenggara:ev.penyelenggara,event:"rejected",catatanTolak:rejectTexts[ev.id]||"",submittedBy:getNamaByUsername(ev.submittedBy)});}sendPush({targetUser:ev.submittedBy,title:"↩ Jadwal Perlu Diperbaiki",body:ev.namaAcara+": "+(rejectTexts[ev.id]||"Perlu diperbaiki"),url:"/",tag:"rejected-"+ev.id});},"Ya, Kembalikan","#92400E");}}
             style={{width:"100%",padding:"12px",border:"none",background:"#D97706",color:"white",cursor:"pointer",fontSize:13,fontWeight:800}}>
             ↩ Kembalikan untuk Diperbaiki
           </button>
@@ -7063,7 +7126,7 @@ function ExpandedDetail({ev,hariEv}){
         deleteAndSync={deleteAndSync} rejectTexts={rejectTexts} setRT={setRT} user={user} onSelesai={()=>setExp(null)}/>
       {ev.alur==="disetujui"&&["kasubbag_protokol","kasubbag_komdokpim","kabag"].includes(role)&&(
         <div style={{marginTop:8}}>
-          {(!ev.personil||ev.personil.length===0)&&new Date(ev.tanggal+"T"+ev.jam)>=new Date()
+          {(!ev.personil||ev.personil.length===0)&&tglAcara(ev)>=new Date()
             ?<div style={{background:"#FFFBEB",borderRadius:10,padding:"10px 14px",border:"1.5px solid #FDE68A",marginBottom:8}}>
               <div style={{fontSize:13,fontWeight:800,color:"#92400E",marginBottom:2}}>⚠️ Belum ada personil yang ditugaskan</div>
               <div style={{fontSize:12,color:"#B45309"}}>Agenda ini belum memiliki personil bertugas. Segera tugaskan agar tidak kosong saat hari H.</div>
@@ -7104,7 +7167,7 @@ function ExpandedDetail({ev,hariEv}){
             <span>⚠️</span> Wajib diisi — jelaskan alasannya agar Admin RK tahu apa yang perlu diperbaiki
           </div>
           <textarea placeholder="Contoh: Data penyelenggara perlu dilengkapi, lokasi tidak sesuai..." value={rejectTexts[ev.id]||""} onChange={e=>setRT(p=>({...p,[ev.id]:e.target.value}))} rows={3} style={{width:"100%",padding:"9px 11px",border:"none",resize:"none",color:"#334155",background:"#FFF5F5",fontSize:13,boxSizing:"border-box"}}/>
-          <button onClick={()=>{if(!(rejectTexts[ev.id]||"").trim()){showT("Tulis alasan penolakan dulu","warn");return;}askConfirm("Tolak Jadwal?","Jadwal '"+ev.namaAcara+"' akan DITOLAK dan dikembalikan ke Admin RK dengan alasan di atas. Admin RK dapat memperbaiki dan mengajukan ulang.",()=>{upd(ev.id,{alur:"ditolak",catatanTolak:rejectTexts[ev.id]||"Perlu perbaikan",_requiresEdit:true});showT("Jadwal ditolak — dikembalikan ke Admin RK","warn");{const _ur=loadUsers().find(u=>u.username===ev.submittedBy);if(_ur?.noWA)sendWA({to:_ur.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,penyelenggara:ev.penyelenggara,event:"rejected",catatanTolak:rejectTexts[ev.id]||"",submittedBy:getNamaByUsername(ev.submittedBy)});}sendPush({targetUser:ev.submittedBy,title:"❌ Jadwal Ditolak Kabag",body:ev.namaAcara+": "+(rejectTexts[ev.id]||"Perlu diperbaiki"),url:"/",tag:"rejected-"+ev.id});},"Ya, Tolak","#991B1B");}}
+          <button onClick={()=>{if(!(rejectTexts[ev.id]||"").trim()){showT("Tulis alasan penolakan dulu","warn");return;}askConfirm("Tolak Jadwal?","Jadwal '"+ev.namaAcara+"' akan DITOLAK dan dikembalikan ke Admin RK dengan alasan di atas. Admin RK dapat memperbaiki dan mengajukan ulang.",()=>{upd(ev.id,{alur:"ditolak",catatanTolak:rejectTexts[ev.id]||"Perlu perbaikan",_requiresEdit:true});showT("Jadwal ditolak — dikembalikan ke Admin RK","warn");{const _ur=loadUsers().find(u=>u.username===ev.submittedBy);if(_ur?.noWA)sendWA({to:_ur.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,zona:ev.zona,penyelenggara:ev.penyelenggara,event:"rejected",catatanTolak:rejectTexts[ev.id]||"",submittedBy:getNamaByUsername(ev.submittedBy)});}sendPush({targetUser:ev.submittedBy,title:"❌ Jadwal Ditolak Kabag",body:ev.namaAcara+": "+(rejectTexts[ev.id]||"Perlu diperbaiki"),url:"/",tag:"rejected-"+ev.id});},"Ya, Tolak","#991B1B");}}
             style={{width:"100%",padding:"12px",border:"none",background:"#DC2626",color:"white",cursor:"pointer",fontSize:13,fontWeight:800}}>
             ❌ Tolak Jadwal
           </button>
@@ -7153,16 +7216,16 @@ function ExpandedDetail({ev,hariEv}){
 function TimelineView({evList}){
   const {expandedId,setExp,getHari,todayStr}=React.useContext(AppCtx);
   const [showPast,setShowPast]=React.useState(false);
-  const now=new Date();
-  const nowStr=now.toISOString().slice(0,16).replace("T"," ");
-  const toMin=t=>{const[h,m]=(t||"00:00").split(":");return parseInt(h)*60+parseInt(m);};
-  const nowMin=now.getHours()*60+now.getMinutes();
+  // Waktu nyata (epoch), supaya acara di zona lain dan perangkat di zona
+  // mana pun terbandingkan dengan benar.
+  const nowMs=Date.now();
+  const sudahMulai=e=>{const t=epochMulai(e);return !Number.isNaN(t)&&t<nowMs;};
 
   // Pisah upcoming (termasuk sekarang) dan past, sort masing-masing
-  const upcoming=[...evList.filter(e=>(e.tanggal+" "+e.jam)>=nowStr)]
-    .sort((a,b)=>(a.tanggal+a.jam).localeCompare(b.tanggal+b.jam));
-  const past=[...evList.filter(e=>(e.tanggal+" "+e.jam)<nowStr)]
-    .sort((a,b)=>(b.tanggal+b.jam).localeCompare(a.tanggal+a.jam)); // terbaru di atas
+  const upcoming=[...evList.filter(e=>!sudahMulai(e))]
+    .sort((a,b)=>urutAcara(a,b));
+  const past=[...evList.filter(e=>sudahMulai(e))]
+    .sort((a,b)=>urutAcara(b,a)); // terbaru di atas
 
   const fmtTgl=t=>{
     const d=new Date(t+"T00:00:00");
@@ -7174,13 +7237,13 @@ function TimelineView({evList}){
   };
 
   const renderCard=(ev,i,arr)=>{
-    const evMin=toMin(ev.jam);
-    const isPast=(ev.tanggal+" "+ev.jam)<nowStr;
+    const evMs=epochMulai(ev);
+    const isPast=sudahMulai(ev);
     // Bila jam selesai diketahui, "sedang berlangsung" dihitung dari rentang
     // sebenarnya. Agenda lama tanpa jam selesai tetap memakai aturan ±60 menit.
-    const isNow=ev.tanggal===todayStr()&&(jamSelesaiValid(ev)
-      ? nowMin>=evMin&&nowMin<=toMin(ev.jamSelesai)
-      : Math.abs(evMin-nowMin)<60);
+    const isNow=!Number.isNaN(evMs)&&(jamSelesaiValid(ev)
+      ? nowMs>=evMs&&nowMs<=epochSelesai(ev)
+      : Math.abs(evMs-nowMs)<3600000);
     const isFuture=!isPast&&!isNow;
     const isToday=ev.tanggal===todayStr();
     // Tampilkan pemisah tanggal jika berbeda dari item sebelumnya
@@ -7223,7 +7286,7 @@ function TimelineView({evList}){
             <div style={{background:isNow?"linear-gradient(135deg,#0A1628,#1E3254)":isPast?"#F8FAFC":"#F0F4FF",
               borderRadius:9,padding:"5px 8px",textAlign:"center",minWidth:44,flexShrink:0}}>
               <div style={{fontSize:13,fontWeight:900,color:isNow?"#C9A84C":isPast?"#94A3B8":"#0A1628",lineHeight:1}}><JamRingkas ev={ev}/></div>
-              <div style={{fontSize:8,color:isNow?"rgba(201,168,76,0.7)":isPast?"#CBD5E1":"#94A3B8",fontWeight:700,marginTop:1}}>WITA</div>
+              <div style={{fontSize:8,color:isNow?"rgba(201,168,76,0.7)":isPast?"#CBD5E1":"#94A3B8",fontWeight:700,marginTop:1}}>{zonaPerangkat()}</div>
             </div>
             <div style={{flex:1,minWidth:0}}>
               <div style={{fontSize:13,fontWeight:700,color:isPast?"#94A3B8":"#0F172A",lineHeight:1.3,
@@ -7515,7 +7578,7 @@ function ReportingTamuModal({ user, onClose, cetakOleh, showT }) {
     <div class="ttd">
       <div class="ttd-info">
         Dicetak oleh: ${cetakOleh || "Sistem"}<br>
-        Waktu cetak: ${printDate} pukul ${printTime} WITA<br>
+        Waktu cetak: ${printDate} pukul ${printTime} ${zonaPerangkat()}<br>
         Dokumen ini dicetak melalui Sistem Prokopim Hibot
       </div>
       <div class="ttd-box">
@@ -7658,13 +7721,13 @@ function ArsipModal({events, onClose, user}){
     events.filter(e=>e.tanggal&&e.tanggal.startsWith(bulanStr)).forEach(ev=>{
       if((filter==="semua"||filter==="undangan")&&ev.undanganFile&&ev.undanganNama){
         const isUrl=ev.undanganFile.startsWith("http");
-        result.push({evId:ev.id,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,
+        result.push({evId:ev.id,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,zona:ev.zona,
           tipe:"undangan",label:"Undangan",icon:"📄",
           url:ev.undanganFile,nama:ev.undanganNama,isUrl});
       }
       if((filter==="semua"||filter==="sambutan")&&ev.sambutanFile&&ev.sambutanNama){
         const isUrl=ev.sambutanFile.startsWith("http");
-        result.push({evId:ev.id,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,
+        result.push({evId:ev.id,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,zona:ev.zona,
           tipe:"sambutan",label:"Sambutan",icon:"🎤",
           url:ev.sambutanFile,nama:ev.sambutanNama,isUrl});
       }
@@ -8417,7 +8480,7 @@ export default function App(){
     const now=new Date();
     const unassigned=events.filter(ev=>{
       if(ev.alur!=="disetujui")return false;
-      const evTime=new Date(ev.tanggal+"T"+ev.jam);
+      const evTime=tglAcara(ev);
       const hoursLeft=(evTime-now)/(1000*60*60);
       return hoursLeft>0&&hoursLeft<=12&&(!ev.personil||ev.personil.length===0);
     });
@@ -8458,7 +8521,7 @@ export default function App(){
         if(filterDate==="week")return e.tanggal>=ws&&e.tanggal<=we;
         if(filterDate)return e.tanggal===filterDate;
         return true;
-      }).sort((a,b)=>(a.tanggal+a.jam).localeCompare(b.tanggal+b.jam));
+      }).sort((a,b)=>urutAcara(a,b));
     }
     let base=events;
     // Staf: lihat semua jadwal disetujui sebagai konteks agenda mendatang
@@ -8466,14 +8529,14 @@ export default function App(){
     if(PERAN_PETUGAS.includes(role)){
       const base=events.filter(e=>e.alur==="disetujui");
       const filtered=filterDate?base.filter(e=>e.tanggal===filterDate):base;
-      return filtered.sort((a,b)=>(a.tanggal+a.jam).localeCompare(b.tanggal+b.jam));
+      return filtered.sort((a,b)=>urutAcara(a,b));
     }
     if(role==="admin_rk"){
       // tab tayang = hanya disetujui (sama seperti role lain)
       // tab pantau = ditangani DraftProgressView terpisah
       const base=events.filter(e=>e.alur==="disetujui");
       const filtered=filterDate?base.filter(e=>e.tanggal===filterDate):base;
-      return filtered.sort((a,b)=>(a.tanggal+a.jam).localeCompare(b.tanggal+b.jam));
+      return filtered.sort((a,b)=>urutAcara(a,b));
     }
     if(role==="walikota")base=events.filter(e=>e.untukPimpinan.includes("walikota")&&e.alur==="disetujui");
     else if(role==="wakilwalikota")base=events.filter(e=>e.alur==="disetujui"&&(e.untukPimpinan.includes("wakilwalikota")||e.delegasiKeWWK));
@@ -8499,16 +8562,16 @@ export default function App(){
     }
     // Urutkan: yang belum lewat (mulai besok s/d mendatang) duluan, lalu lampau di bawah
     const nowStr=new Date().toISOString().slice(0,16).replace("T"," ");
-    const upcoming2=base.filter(e=>(e.tanggal+" "+e.jam)>=nowStr).sort((a,b)=>(a.tanggal+a.jam).localeCompare(b.tanggal+b.jam));
-    const past2=base.filter(e=>(e.tanggal+" "+e.jam)<nowStr).sort((a,b)=>(b.tanggal+b.jam).localeCompare(a.tanggal+a.jam));
+    const upcoming2=base.filter(e=>(e.tanggal+" "+e.jam)>=nowStr).sort((a,b)=>urutAcara(a,b));
+    const past2=base.filter(e=>(e.tanggal+" "+e.jam)<nowStr).sort((a,b)=>urutAcara(b,a));
     return [...upcoming2,...past2];
   };
   const pendingList=events.filter(e=>{
     if(role==="kasubbag_komdokpim")return e.captionStatus==="menunggu"; // caption menunggu review
     if(role==="kasubbag_protokol")return e.alur==="menunggu_kasubbag"||(e.alurHapus==="menunggu_kasubbag")||(e.alurEdit==="menunggu_kasubbag");if(role==="kabag")return e.alur==="menunggu_kabag"||(e.alurHapus==="menunggu_kabag")||(e.alurEdit==="menunggu_kabag");
     if(role==="timkom")return e.alur==="disetujui"&&!e.sambutanFile&&e.jenisKegiatan==="Sambutan";
-    if(role==="walikota"){const evTime=new Date(e.tanggal+"T"+(e.jam||"08:00"));return e.untukPimpinan.includes("walikota")&&e.alur==="disetujui"&&!e.statusWK&&evTime>=new Date();}
-    if(role==="wakilwalikota"){const evTime=new Date(e.tanggal+"T"+(e.jam||"08:00"));return e.alur==="disetujui"&&(e.untukPimpinan.includes("wakilwalikota")||e.delegasiKeWWK)&&!e.statusWWK&&evTime>=new Date();}
+    if(role==="walikota"){const evTime=tglAcara(e,"08:00");return e.untukPimpinan.includes("walikota")&&e.alur==="disetujui"&&!e.statusWK&&evTime>=new Date();}
+    if(role==="wakilwalikota"){const evTime=tglAcara(e,"08:00");return e.alur==="disetujui"&&(e.untukPimpinan.includes("wakilwalikota")||e.delegasiKeWWK)&&!e.statusWWK&&evTime>=new Date();}
     return false;
   });
   const [pendingExpandTarget,setPendingExpandTarget]=React.useState(null);
@@ -8637,7 +8700,7 @@ const submit = async () => {
       if(evSebelum?.alur==="ditolak"){
         upd(editId,{alur:"menunggu_kasubbag",catatanTolak:"",_requiresEdit:false});
         showT("Jadwal diperbaiki & dikirim ulang ke Kasubbag","ok");
-        loadUsers().filter(u=>(u.role==="kasubbag_protokol")&&u.noWA).forEach(u=>sendWA({to:u.noWA,namaAcara:form.namaAcara,tanggal:form.tanggal,jam:form.jam,jamSelesai:form.jamSelesai,penyelenggara:form.penyelenggara,lokasi:form.lokasi,event:"submit",submittedBy:user?.nama}));
+        loadUsers().filter(u=>(u.role==="kasubbag_protokol")&&u.noWA).forEach(u=>sendWA({to:u.noWA,namaAcara:form.namaAcara,tanggal:form.tanggal,jam:form.jam,jamSelesai:form.jamSelesai,zona:form.zona,penyelenggara:form.penyelenggara,lokasi:form.lokasi,event:"submit",submittedBy:user?.nama}));
         sendPush({targetRole:"kasubbag_protokol",title:"📋 Jadwal Dikirim Ulang",body:form.namaAcara,url:"/",tag:"resubmit-"+editId});
         sendPush({targetRole:"kasubbag_komdokpim",title:"📋 Jadwal Dikirim Ulang",body:form.namaAcara,url:"/",tag:"resubmit-"+editId});
       } else {
@@ -9577,18 +9640,18 @@ function AIModalRK({onFill,onClose}){
 function PenugasanSayaView({events, user, onOpenEvaluasi, isMobile}){
   const NAVY="#0A1628",GOLD="#C9A84C";
   const canSeeAll=["kabag","ajudan_walikota","ajudan_wakilwalikota","kasubbag_protokol","kasubbag_komdokpim"].includes(user.role);
-  const approved=events.filter(e=>e.alur==="disetujui").sort((a,b)=>(a.tanggal+a.jam).localeCompare(b.tanggal+b.jam));
+  const approved=events.filter(e=>e.alur==="disetujui").sort((a,b)=>urutAcara(a,b));
   // Untuk kabag/ajudan/kasubbag: semua jadwal disetujui; untuk staf: hanya yang ditugaskan ke mereka
   const myEvents=canSeeAll?approved:approved.filter(e=>(e.personil||[]).includes(user.username));
   const allApproved=approved;
 
   const now=new Date();
   const fmt=t=>{const d=new Date(t);return d.toLocaleDateString("id-ID",{weekday:"short",day:"numeric",month:"short",year:"numeric"});};
-  const upcoming=myEvents.filter(e=>new Date(e.tanggal+"T"+e.jam)>=now);
-  const past=myEvents.filter(e=>new Date(e.tanggal+"T"+e.jam)<now);
+  const upcoming=myEvents.filter(e=>tglAcara(e)>=now);
+  const past=myEvents.filter(e=>tglAcara(e)<now);
 
   const PenCard=({ev,isMyTask})=>{
-    const evDt=new Date(ev.tanggal+"T"+ev.jam);
+    const evDt=tglAcara(ev);
     const isPast=evDt<now;
     const hoursLeft=(evDt-now)/(1000*60*60);
     const isUrgent=hoursLeft>0&&hoursLeft<=24;
@@ -9622,7 +9685,7 @@ function PenugasanSayaView({events, user, onOpenEvaluasi, isMobile}){
     <div style={{padding:isMobile?"12px 14px":"24px 32px",overflowY:"auto"}}>
       {/* SUMMARY BAR */}
       <div style={{display:"flex",gap:10,marginBottom:18,flexWrap:"wrap"}}>
-        {[{n:upcoming.length,l:"Akan Datang",c:NAVY,ic:"📅"},{n:past.length,l:"Selesai",c:"#059669",ic:"✅"},{n:myEvents.filter(e=>!(e.evaluasi||{})[user.username]?.submitted&&new Date(e.tanggal+"T"+e.jam)<now).length,l:"Belum Dievaluasi",c:"#7c3aed",ic:"📝"}].map(it=>(
+        {[{n:upcoming.length,l:"Akan Datang",c:NAVY,ic:"📅"},{n:past.length,l:"Selesai",c:"#059669",ic:"✅"},{n:myEvents.filter(e=>!(e.evaluasi||{})[user.username]?.submitted&&tglAcara(e)<now).length,l:"Belum Dievaluasi",c:"#7c3aed",ic:"📝"}].map(it=>(
           <div key={it.l} style={{flex:1,minWidth:90,background:"white",borderRadius:12,padding:"12px",boxShadow:"0 1px 8px rgba(0,0,0,0.06)",border:"1.5px solid #E8EDF4",textAlign:"center"}}>
             <div style={{fontSize:22,fontWeight:900,color:it.c}}>{it.n}</div>
             <div style={{fontSize:12,color:"#94A3B8",fontWeight:600,marginTop:2}}>{it.ic} {it.l}</div>
@@ -9718,7 +9781,7 @@ function AjudanDashboard({events, user, upd, showT, setDelegTarget, isMobile}){
   const tmrwS = toStr(tmrw);
   const fmt = t => new Date(t).toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long"});
 
-  const approved = events.filter(e=>e.alur==="disetujui").sort((a,b)=>(a.tanggal+a.jam).localeCompare(b.tanggal+b.jam));
+  const approved = events.filter(e=>e.alur==="disetujui").sort((a,b)=>urutAcara(a,b));
   const isAjWK = role==="ajudan_walikota";
   const isAjWWK = role==="ajudan_wakilwalikota";
 
@@ -9753,14 +9816,14 @@ function AjudanDashboard({events, user, upd, showT, setDelegTarget, isMobile}){
     const forWWK = isAjWWK && (ev.untukPimpinan.includes("wakilwalikota")||ev.delegasiKeWWK);
     const needWK  = forWK  && !ev.statusWK && !ev.delegasiKeWWK;
     const needWWK = forWWK && !ev.statusWWK;
-    const urgent  = (new Date(ev.tanggal+"T"+ev.jam)-now)<3*3600*1000 && new Date(ev.tanggal+"T"+ev.jam)>now;
+    const urgent  = (tglAcara(ev)-now)<3*3600*1000 && tglAcara(ev)>now;
     return (
       <div style={{background:"white",borderRadius:16,marginBottom:10,overflow:"hidden",
         border:"1.5px solid "+(urgent?"#FCA5A5":needWK||needWWK?"#FDE68A":"#DBEAFE"),
         boxShadow:"0 2px 12px rgba(10,22,40,0.07)"}}>
         {/* Strip urgent */}
         {urgent&&<div style={{background:"#FEF2F2",padding:"4px 14px",fontSize:12,fontWeight:800,color:"#DC2626",letterSpacing:1}}>
-          ⚠️ SEGERA — {Math.round((new Date(ev.tanggal+"T"+ev.jam)-now)/3600000)} JAM LAGI
+          ⚠️ SEGERA — {Math.round((tglAcara(ev)-now)/3600000)} JAM LAGI
         </div>}
         {(needWK||needWWK)&&!urgent&&<div style={{background:"#FFFBEB",padding:"4px 14px",fontSize:12,fontWeight:800,color:"#B45309",letterSpacing:1}}>
           📋 BELUM DIKONFIRMASI
@@ -10052,7 +10115,7 @@ function NotifCenter({events, user, onClose, isMobile}){
 
     // Semua role: jadwal hari ini
     const todayEvs=approved.filter(e=>e.tanggal===todayS&&(e.untukPimpinan?.length>0));
-    todayEvs.forEach(e=>list.push({id:"today-"+e.id,icon:"📅",type:"info",title:"Jadwal Hari Ini",body:e.namaAcara+" · "+e.jam+" WITA",ev:e}));
+    todayEvs.forEach(e=>list.push({id:"today-"+e.id,icon:"📅",type:"info",title:"Jadwal Hari Ini",body:e.namaAcara+" · "+fmtJamWita(e),ev:e}));
 
     // Staf & admin_rk: draft lama (>3 hari)
     if([...PERAN_PETUGAS,"admin_rk"].includes(role)){
@@ -10078,7 +10141,7 @@ function NotifCenter({events, user, onClose, isMobile}){
       }
       // H-12 belum ditugaskan
       const unassigned=approved.filter(e=>{
-        const h=(new Date(e.tanggal+"T"+e.jam)-now)/3600000;
+        const h=(tglAcara(e)-now)/3600000;
         return h>0&&h<=12&&(!e.personil||e.personil.length===0);
       });
       if(unassigned.length>0)list.push({id:"unassigned-kasub",icon:"⚠️",type:"error",title:unassigned.length+" Jadwal Tanpa Personil (H-12)",body:unassigned.map(e=>e.namaAcara).join(", ")});
@@ -10110,7 +10173,7 @@ function NotifCenter({events, user, onClose, isMobile}){
           id:"sahkan-"+e.id, icon:"🎤",
           type: genting?"error":"info",
           title: genting?"Segera Sahkan Naskah Sambutan":"Naskah Menunggu Pengesahan Anda",
-          body: e.namaAcara+" · "+fmt(e.tanggal)+" "+e.jam+" WITA"+(genting?" — acara sudah dekat":""),
+          body: e.namaAcara+" · "+fmt(e.tanggal)+" "+fmtJamWita(e)+(genting?" — acara sudah dekat":""),
           ev:e,
         });
       });
@@ -10164,7 +10227,7 @@ function NotifCenter({events, user, onClose, isMobile}){
           icon:"🎤",
           type:belum?"warn":"info",
           title:belum?"Tugas: Susun Naskah Sambutan":"Naskah Menunggu Pengesahan Kabag",
-          body:e.namaAcara+" · "+fmt(e.tanggal)+" "+e.jam+" WITA"+
+          body:e.namaAcara+" · "+fmt(e.tanggal)+" "+fmtJamWita(e)+
                (belum?" — naskah belum diunggah":" — sudah diunggah, menunggu Kabag"),
           ev:e,
         });
@@ -10174,10 +10237,10 @@ function NotifCenter({events, user, onClose, isMobile}){
     // Timkom: penugasan baru H-12
     if(role==="timkom"){
       const myNew=approved.filter(e=>{
-        const h=(new Date(e.tanggal+"T"+e.jam)-now)/3600000;
+        const h=(tglAcara(e)-now)/3600000;
         return h>0&&h<=24&&(e.personil||[]).includes(user.username);
       });
-      if(myNew.length>0)list.push({id:"tugas-timkom",icon:"🎯",type:"info",title:"Penugasan Mendatang (24 Jam)",body:myNew.map(e=>e.namaAcara+" ("+e.jam+")").join(", ")});
+      if(myNew.length>0)list.push({id:"tugas-timkom",icon:"🎯",type:"info",title:"Penugasan Mendatang (24 Jam)",body:myNew.map(e=>e.namaAcara+" ("+jamLayar(e)+")").join(", ")});
     }
 
     if(list.length===0)list.push({id:"kosong",icon:"✅",type:"ok",title:"Tidak Ada Notifikasi",body:"Semua jadwal berjalan normal"});
@@ -10565,14 +10628,14 @@ function KabagDashboard({events, user, upd, showT, askConfirm, deleteAndSync, is
   const fmtShort=t=>new Date(t).toLocaleDateString("id-ID",{day:"numeric",month:"short"});
   const getNamaByUsername=un=>loadUsers().find(u=>u.username===un)?.nama||un;
 
-  const antrian=events.filter(e=>e.alur==="menunggu_kabag"&&!e.alurHapus).sort((a,b)=>(a.tanggal+a.jam).localeCompare(b.tanggal+b.jam));
+  const antrian=events.filter(e=>e.alur==="menunggu_kabag"&&!e.alurHapus).sort((a,b)=>urutAcara(a,b));
   const permintaanBatal=events.filter(e=>e.alurHapus==="menunggu_kabag");
   const usulanPerubahan=events.filter(e=>e.alurEdit==="menunggu_kabag").sort(bandingUsulan);
   // Usulan yang belum sampai ke meja Kabag — ditampilkan untuk DIPANTAU saja.
   // Tanpa ini, usulan yang masih di Kasubbag tidak meninggalkan jejak apa pun
   // di layar Kabag: jadwalnya tampak biasa saja, bertanda "disetujui".
   const usulanDiKasubbag=events.filter(e=>e.alurEdit==="menunggu_kasubbag").sort(bandingUsulan);
-  const approved=events.filter(e=>e.alur==="disetujui").sort((a,b)=>(a.tanggal+a.jam).localeCompare(b.tanggal+b.jam));
+  const approved=events.filter(e=>e.alur==="disetujui").sort((a,b)=>urutAcara(a,b));
 
   // Pisah: mendatang (belum berlangsung) vs riwayat (sudah berlangsung)
   const upcoming=approved.filter(e=>(e.tanggal+" "+e.jam)>=nowStr);
@@ -10678,7 +10741,7 @@ function KabagDashboard({events, user, upd, showT, askConfirm, deleteAndSync, is
               <RejectTextarea evId={ev.id} placeholder="Catatan penolakan..." rows={2}
                 style={{width:"100%",padding:"9px 11px",border:"none",resize:"none",color:"#334155",background:"white",fontSize:12,boxSizing:"border-box"}}
                 onCommit={(id,v)=>setRT(p=>({...p,[id]:v}))}/>
-              <button onClick={()=>{if(!(rejectTexts[ev.id]||"").trim()){showT("Tulis alasan penolakan dulu","warn");return;}askConfirm("Tolak Jadwal?","Jadwal '"+ev.namaAcara+"' akan ditolak dan dikembalikan ke Admin RK dengan alasan di atas. Admin RK dapat memperbaiki dan mengajukan ulang.",()=>{const catatan=rejectTexts[ev.id]||"Perlu diperbaiki";upd(ev.id,{alur:"ditolak",catatanTolak:catatan,_requiresEdit:true});showT("Jadwal ditolak — dikembalikan ke Admin RK","warn");const u=loadUsers().find(x=>x.username===ev.submittedBy);if(u?.noWA)sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,penyelenggara:ev.penyelenggara,event:"rejected",catatanTolak:catatan,submittedBy:getNamaByUsername(ev.submittedBy)});sendPush({targetUser:ev.submittedBy,title:"❌ Jadwal Ditolak Kabag",body:ev.namaAcara+": "+catatan,url:"/",tag:"rejected-"+ev.id});setExpanded(null);},"Ya, Tolak","#991B1B")}}
+              <button onClick={()=>{if(!(rejectTexts[ev.id]||"").trim()){showT("Tulis alasan penolakan dulu","warn");return;}askConfirm("Tolak Jadwal?","Jadwal '"+ev.namaAcara+"' akan ditolak dan dikembalikan ke Admin RK dengan alasan di atas. Admin RK dapat memperbaiki dan mengajukan ulang.",()=>{const catatan=rejectTexts[ev.id]||"Perlu diperbaiki";upd(ev.id,{alur:"ditolak",catatanTolak:catatan,_requiresEdit:true});showT("Jadwal ditolak — dikembalikan ke Admin RK","warn");const u=loadUsers().find(x=>x.username===ev.submittedBy);if(u?.noWA)sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,zona:ev.zona,penyelenggara:ev.penyelenggara,event:"rejected",catatanTolak:catatan,submittedBy:getNamaByUsername(ev.submittedBy)});sendPush({targetUser:ev.submittedBy,title:"❌ Jadwal Ditolak Kabag",body:ev.namaAcara+": "+catatan,url:"/",tag:"rejected-"+ev.id});setExpanded(null);},"Ya, Tolak","#991B1B")}}
                 style={{width:"100%",padding:"10px",border:"none",background:"#FEE2E2",color:"#991B1B",cursor:"pointer",fontSize:12,fontWeight:700}}>
                 ❌ Tolak Jadwal
               </button>
@@ -10807,9 +10870,9 @@ function KabagDashboard({events, user, upd, showT, askConfirm, deleteAndSync, is
                   <div style={{fontSize:12,fontWeight:700,color:"#991B1B",marginBottom:5}}>{_pr.length} pasang agenda berdekatan</div>
                   {_pr.map((p,i)=>(
                     <div key={i} style={{background:"white",borderRadius:7,padding:"6px 9px",marginBottom:4,border:"1px solid #FECACA",fontSize:13,color:"#374151"}}>
-                      <span style={{fontWeight:800,color:"#991B1B"}}>{p.a.jam}</span> {p.a.namaAcara}
+                      <span style={{fontWeight:800,color:"#991B1B"}}>{jamLayar(p.a)}</span> {p.a.namaAcara}
                       <span style={{color:"#9CA3AF",margin:"0 5px"}}>↔</span>
-                      <span style={{fontWeight:800,color:"#991B1B"}}>{p.b.jam}</span> {p.b.namaAcara}
+                      <span style={{fontWeight:800,color:"#991B1B"}}>{jamLayar(p.b)}</span> {p.b.namaAcara}
                       <span style={{color:"#9CA3AF",marginLeft:6,fontSize:12}}>({p.diff} mnt)</span>
                     </div>
                   ))}
@@ -11029,10 +11092,10 @@ function KasubbagDashboard({events, user, upd, showT, askConfirm, isMobile, onPe
     return allUsers.filter(u=>u.role==="timkom");
   },[role]);
 
-  const antrian=events.filter(e=>e.alur==="menunggu_kasubbag"&&!e.alurHapus).sort((a,b)=>(a.tanggal+a.jam).localeCompare(b.tanggal+b.jam));
+  const antrian=events.filter(e=>e.alur==="menunggu_kasubbag"&&!e.alurHapus).sort((a,b)=>urutAcara(a,b));
   // Usulan perubahan jadwal terbit — hanya ditinjau Kasubbag Protokol
   const usulanUbah=isProto?events.filter(e=>e.alurEdit==="menunggu_kasubbag").sort(bandingUsulan):[];
-  const approved=events.filter(e=>e.alur==="disetujui").sort((a,b)=>(a.tanggal+a.jam).localeCompare(b.tanggal+b.jam));
+  const approved=events.filter(e=>e.alur==="disetujui").sort((a,b)=>urutAcara(a,b));
 
   // Penugasan per staf
   const penugasanPerStaf=React.useMemo(()=>{
@@ -11110,8 +11173,8 @@ function KasubbagDashboard({events, user, upd, showT, askConfirm, isMobile, onPe
               "Jadwal '"+ev.namaAcara+"' akan diteruskan ke Kabag Prokopim untuk persetujuan akhir. Pastikan dokumen undangan, lokasi, dan pakaian sudah benar.",
               ()=>{
                 upd(ev.id,{alur:"menunggu_kabag",_kabagRecall:false,_periksa:periksa.ringkasan});showT("Diteruskan ke Kabag ✓","ok");
-                loadUsers().filter(u=>u.role==="kabag"&&u.noWA).forEach(u=>sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"kasubbag_approve"}));
-                sendPush({targetRole:"kabag",title:"✅ Menunggu Persetujuan Anda",body:ev.namaAcara+" — "+fmtJamWita(ev),url:"/",tag:"approve-"+ev.id});
+                loadUsers().filter(u=>u.role==="kabag"&&u.noWA).forEach(u=>sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,zona:ev.zona,penyelenggara:ev.penyelenggara,lokasi:ev.lokasi,event:"kasubbag_approve"}));
+                sendPush({targetRole:"kabag",title:"✅ Menunggu Persetujuan Anda",body:ev.namaAcara+" — "+fmtJamDuaZona(ev),url:"/",tag:"approve-"+ev.id});
                 setExpanded(null);
               },
               "Ya, Teruskan",GREEN
@@ -11121,7 +11184,7 @@ function KasubbagDashboard({events, user, upd, showT, askConfirm, isMobile, onPe
             </button>
             <div style={{borderRadius:10,overflow:"hidden",border:"1.5px solid #FECACA"}}>
               <LocalRejectTA evId={ev.id} onCommit={(id,v)=>setRT(p=>({...p,[id]:v}))}/>
-              <button onClick={()=>askConfirm("Kembalikan untuk Diperbaiki?","Jadwal '"+ev.namaAcara+"' dikembalikan ke Admin RK dengan catatan di atas. Admin RK dapat mengedit dan mengajukan kembali — tidak perlu input dari awal.",()=>{upd(ev.id,{alur:"ditolak",catatanTolak:rejectTexts[ev.id]||"",_requiresEdit:true});showT("Dikembalikan ke Admin RK untuk diperbaiki","warn");const u=loadUsers().find(x=>x.username===ev.submittedBy);if(u?.noWA)sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,penyelenggara:ev.penyelenggara,event:"rejected",catatanTolak:rejectTexts[ev.id]||"",submittedBy:getNamaByUsername(ev.submittedBy)});sendPush({targetUser:ev.submittedBy,title:"↩ Jadwal Perlu Diperbaiki",body:ev.namaAcara+": "+(rejectTexts[ev.id]||"Perlu perbaikan"),url:"/",tag:"rejected-"+ev.id});setExpanded(null);},"Ya, Kembalikan","#92400E")}
+              <button onClick={()=>askConfirm("Kembalikan untuk Diperbaiki?","Jadwal '"+ev.namaAcara+"' dikembalikan ke Admin RK dengan catatan di atas. Admin RK dapat mengedit dan mengajukan kembali — tidak perlu input dari awal.",()=>{upd(ev.id,{alur:"ditolak",catatanTolak:rejectTexts[ev.id]||"",_requiresEdit:true});showT("Dikembalikan ke Admin RK untuk diperbaiki","warn");const u=loadUsers().find(x=>x.username===ev.submittedBy);if(u?.noWA)sendWA({to:u.noWA,namaAcara:ev.namaAcara,tanggal:ev.tanggal,jam:ev.jam,jamSelesai:ev.jamSelesai,zona:ev.zona,penyelenggara:ev.penyelenggara,event:"rejected",catatanTolak:rejectTexts[ev.id]||"",submittedBy:getNamaByUsername(ev.submittedBy)});sendPush({targetUser:ev.submittedBy,title:"↩ Jadwal Perlu Diperbaiki",body:ev.namaAcara+": "+(rejectTexts[ev.id]||"Perlu perbaikan"),url:"/",tag:"rejected-"+ev.id});setExpanded(null);},"Ya, Kembalikan","#92400E")}
                 style={{width:"100%",padding:"10px",border:"none",background:"#FFFBEB",color:"#92400E",borderTop:"1.5px solid #FDE68A",cursor:"pointer",fontSize:12,fontWeight:700}}>
                 ↩ Kembalikan untuk Diperbaiki
               </button>
@@ -11257,7 +11320,7 @@ function KasubbagDashboard({events, user, upd, showT, askConfirm, isMobile, onPe
           {/* ── Summary bar: agenda belum ada personil ── */}
           {(()=>{
             const now=new Date();
-            const belumAda=approved.filter(e=>(!e.personil||e.personil.length===0)&&new Date(e.tanggal+"T"+e.jam)>=now);
+            const belumAda=approved.filter(e=>(!e.personil||e.personil.length===0)&&tglAcara(e)>=now);
             if(belumAda.length===0)return(
               <div style={{background:"#F0FDF4",borderRadius:12,padding:"11px 14px",marginBottom:14,border:"1px solid #86EFAC",display:"flex",alignItems:"center",gap:8}}>
                 <span style={{fontSize:16}}>✅</span>
@@ -11353,7 +11416,7 @@ function KasubbagDashboard({events, user, upd, showT, askConfirm, isMobile, onPe
             // mengirim WA, sementara jalur cabut cepat tidak mengirim apa pun —
             // dua perilaku berbeda untuk tindakan yang sama.
             sendPush({targetUser:cabutTarget.un,title:"❌ Penugasan Dicabut",
-              body:(ev.namaAcara||"Kegiatan")+" · "+(ev.tanggal||"")+" "+fmtJamWita(ev)+
+              body:(ev.namaAcara||"Kegiatan")+" · "+(ev.tanggal||"")+" "+fmtJamDuaZona(ev)+
                    (alasanCabut.trim()?" · "+alasanCabut.trim():""),
               url:"/",tag:"cabut-"+ev.id+"-"+cabutTarget.un});
             // WA hanya bila kegiatannya hari ini/besok (supaya tidak terlanjur
@@ -11393,8 +11456,7 @@ function getOverlappingPairs(evList){
                    (a.delegasiKeWWK&&b.untukPimpinan.includes("wakilwalikota"))||
                    (b.delegasiKeWWK&&a.untukPimpinan.includes("wakilwalikota"));
       if(!shared)continue;
-      const aMin=toMin(a.jam),bMin=toMin(b.jam);
-      const diff=Math.abs(aMin-bMin);
+      const diff=Math.abs(epochMulai(a)-epochMulai(b))/60000;
       if(diff>0&&diff<90)pairs.push({a,b,diff});
     }
   }
@@ -11523,7 +11585,7 @@ function EKinerjaGenerator({ events, role, user, isMobile }) {
           return (ev.personil||[]).includes(user?.username);
         }
         return true;
-      }).sort((a,b) => (a.tanggal+a.jam).localeCompare(b.tanggal+b.jam));
+      }).sort((a,b) => urutAcara(a,b));
 
       if (filtered.length === 0) {
         setOutput("// Tidak ada agenda dalam rentang tanggal ini.");
@@ -11700,9 +11762,9 @@ function SorotanKhususWWK({ events, upd, showT, setDelegTarget, setExpandedId })
     const untukWWK = (ev.untukPimpinan||[]).includes("wakilwalikota");
     const delegasiWWK = !!ev.delegasiKeWWK;
     return untukWWK || delegasiWWK;
-  }).sort((a,b) => (a.tanggal+a.jam).localeCompare(b.tanggal+b.jam));
+  }).sort((a,b) => urutAcara(a,b));
 
-  const upcoming = myEvs.filter(ev => new Date(ev.tanggal+"T"+(ev.jam||"23:59")+":00+08:00") >= now);
+  const upcoming = myEvs.filter(ev => tglAcara(ev,"23:59") >= now);
   const hariIni  = upcoming.filter(ev => ev.tanggal === todayISO);
   const belumKonfirmasi = upcoming.filter(ev => !ev.statusWWK);
 
@@ -11718,7 +11780,7 @@ function SorotanKhususWWK({ events, upd, showT, setDelegTarget, setExpandedId })
             { v: upcoming.length,          l: "Akan Datang", c: "white" },
             { v: hariIni.length,           l: "Hari Ini",    c: GOLD },
             { v: belumKonfirmasi.length,   l: "Belum Konfirmasi", c: belumKonfirmasi.length > 0 ? "#FCA5A5" : "#86EFAC" },
-            { v: myEvs.filter(ev => new Date(ev.tanggal+"T"+(ev.jam||"23:59")) < now).length, l: "Selesai", c: "#86EFAC" },
+            { v: myEvs.filter(ev => tglAcara(ev,"23:59") < now).length, l: "Selesai", c: "#86EFAC" },
           ].map(s => (
             <div key={s.l} style={{ background:"rgba(255,255,255,0.08)", borderRadius:9, padding:"9px 10px" }}>
               <div style={{ fontSize:20, fontWeight:900, color:s.c }}>{s.v}</div>
@@ -11819,16 +11881,16 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
       ?events.filter(e=>e.alur==="disetujui")
     // staf, admin_rk, timkom — jadwal disetujui + yang ditugaskan ke mereka
     :events.filter(e=>e.alur==="disetujui")
-  ).sort((a,b)=>(a.tanggal+a.jam).localeCompare(b.tanggal+b.jam));
+  ).sort((a,b)=>urutAcara(a,b));
 
   // Mulai dari besok ke atas, lalu hari ini, lalu lampau di bawah
   const tomorrow = tomorrowStr();
   const today = todayStr();
   // Untuk kasubbag_protokol/kabag: pisahkan antrian vs disetujui
   const isPending = e => e.alur==="menunggu_kasubbag"||e.alur==="menunggu_kabag";
-  const upcoming = myEvs.filter(e=>!isPending(e)&&new Date(e.tanggal+"T"+e.jam)>=now);
+  const upcoming = myEvs.filter(e=>!isPending(e)&&tglAcara(e)>=now);
   const pendingApproval = myEvs.filter(e=>isPending(e));
-  const past = myEvs.filter(e=>!isPending(e)&&new Date(e.tanggal+"T"+e.jam)<now).reverse();
+  const past = myEvs.filter(e=>!isPending(e)&&tglAcara(e)<now).reverse();
 
   const [expandedId, setExpanded] = React.useState(null);
   useHoldRefresh(expandedId!=null);
@@ -11920,7 +11982,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
   const EventBlock = ({ev}) => {
     const isToday = ev.tanggal===today;
     const isTomorrow = ev.tanggal===tomorrow;
-    const evDt = new Date(ev.tanggal+"T"+ev.jam);
+    const evDt = tglAcara(ev);
     const hoursLeft = (evDt-now)/(1000*60*60);
     const isExpanded = expandedId===ev.id;
     const isUrgent = hoursLeft>0&&hoursLeft<=3;
@@ -12008,7 +12070,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
 
           {/* ── Panel Caption Instagram — muncul setelah acara selesai & caption disetujui ── */}
           {(()=>{
-            const sudahSelesai = new Date(ev.tanggal+"T"+(ev.jam||"23:59")) < new Date();
+            const sudahSelesai = tglAcara(ev,"23:59") < new Date();
             const captionAda   = ev.captionStatus==="disetujui";
             if (!sudahSelesai||!captionAda) return null;
             const myCaption = role==="walikota" ? ev.captionWK : ev.captionWWK||ev.captionWK;
@@ -12219,8 +12281,8 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
           const thisMonth=todayS.slice(0,7);
           const acaraHariIni=myEvs.filter(e=>e.tanggal===todayS&&e.alur==="disetujui").length;
           const menungguPersetujuan=myEvs.filter(e=>e.alur==="menunggu_kabag").length;
-          const selesaiBulanIni=myEvs.filter(e=>e.alur==="disetujui"&&e.tanggal.startsWith(thisMonth)&&new Date(e.tanggal+"T"+e.jam)<now2).length;
-          const belumKonfirmasi=myEvs.filter(e=>e.alur==="disetujui"&&new Date(e.tanggal+"T"+e.jam)>=now2&&(e.untukPimpinan||[]).some(p=>p==="walikota"?!e.statusWK:!e.statusWWK)).length;
+          const selesaiBulanIni=myEvs.filter(e=>e.alur==="disetujui"&&e.tanggal.startsWith(thisMonth)&&tglAcara(e)<now2).length;
+          const belumKonfirmasi=myEvs.filter(e=>e.alur==="disetujui"&&tglAcara(e)>=now2&&(e.untukPimpinan||[]).some(p=>p==="walikota"?!e.statusWK:!e.statusWWK)).length;
           const stats=[
             {label:"Hari Ini",value:acaraHariIni,icon:"📅",color:"#1D4ED8",bg:"#EFF6FF",border:"#BFDBFE"},
             {label:"Menunggu Persetujuan",value:menungguPersetujuan,icon:"⏳",color:menungguPersetujuan>0?"#92400E":"#065F46",bg:menungguPersetujuan>0?"#FEF3C7":"#F0FDF4",border:menungguPersetujuan>0?"#FDE68A":"#86EFAC"},
@@ -12240,12 +12302,12 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
           );
         })()}
         {/* Evaluasi reminder untuk staf/timkom */}
-        {myEvs.filter(e=>(e.personil||[]).includes(user.username)&&new Date(e.tanggal+"T"+e.jam)<now&&!(e.evaluasi||{})[user.username]?.submitted&&e.alur==="disetujui").length>0&&(
+        {myEvs.filter(e=>(e.personil||[]).includes(user.username)&&tglAcara(e)<now&&!(e.evaluasi||{})[user.username]?.submitted&&e.alur==="disetujui").length>0&&(
             <div style={{background:"#FEF3C7",border:"1.5px solid #F59E0B",borderRadius:12,padding:"12px 16px",marginBottom:14,display:"flex",gap:10,alignItems:"center",cursor:"pointer"}}
               onClick={()=>showT("Buka kartu kegiatan → tombol 📝 Isi Evaluasi","info")}>
               <span style={{fontSize:20,flexShrink:0}}>📝</span>
               <div style={{flex:1}}>
-                <div style={{fontSize:13,fontWeight:700,color:"#92400E"}}>{myEvs.filter(e=>(e.personil||[]).includes(user.username)&&new Date(e.tanggal+"T"+e.jam)<now&&!(e.evaluasi||{})[user.username]?.submitted&&e.alur==="disetujui").length} kegiatan belum dievaluasi</div>
+                <div style={{fontSize:13,fontWeight:700,color:"#92400E"}}>{myEvs.filter(e=>(e.personil||[]).includes(user.username)&&tglAcara(e)<now&&!(e.evaluasi||{})[user.username]?.submitted&&e.alur==="disetujui").length} kegiatan belum dievaluasi</div>
                 <div style={{fontSize:12,color:"#B45309",marginTop:2}}>Buka kartu kegiatan yang sudah selesai → tombol "Isi Evaluasi"</div>
               </div>
               <span style={{fontSize:18,color:"#B45309"}}>→</span>
@@ -12253,7 +12315,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
         )}
 
         {/* Peringatan acara berdekatan — hanya untuk agenda hari ini atau mendatang */}
-        {(()=>{const _now=new Date();const _futureEvs=myEvs.filter(e=>new Date(e.tanggal+"T"+(e.jam||"00:00"))>=_now);const _pairs=getOverlappingPairs(_futureEvs);if(_pairs.length===0)return null;return(
+        {(()=>{const _now=new Date();const _futureEvs=myEvs.filter(e=>tglAcara(e,"00:00")>=_now);const _pairs=getOverlappingPairs(_futureEvs);if(_pairs.length===0)return null;return(
             <div style={{background:"#FEF2F2",border:"1.5px solid #FECACA",borderRadius:12,padding:"12px 16px",marginBottom:14,cursor:"default"}}>
               <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
                 <span style={{fontSize:20,flexShrink:0}}>⚡</span>
@@ -12264,9 +12326,9 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
                   {_pairs.map((p,i)=>(
                     <div key={i} style={{background:"white",borderRadius:8,padding:"7px 10px",marginBottom:i<_pairs.length-1?5:0,border:"1px solid #FECACA"}}>
                       <div style={{fontSize:13,color:"#374151",fontWeight:600,lineHeight:1.4}}>
-                        <span style={{color:"#991B1B",fontWeight:800}}>{p.a.jam}</span> {p.a.namaAcara}
+                        <span style={{color:"#991B1B",fontWeight:800}}>{jamLayar(p.a)}</span> {p.a.namaAcara}
                         <span style={{color:"#9CA3AF",margin:"0 6px"}}>vs</span>
-                        <span style={{color:"#991B1B",fontWeight:800}}>{p.b.jam}</span> {p.b.namaAcara}
+                        <span style={{color:"#991B1B",fontWeight:800}}>{jamLayar(p.b)}</span> {p.b.namaAcara}
                       </div>
                       <div style={{fontSize:12,color:"#9CA3AF",marginTop:3}}>
                         Selisih {p.diff} menit · {new Date(p.a.tanggal).toLocaleDateString("id-ID",{weekday:"short",day:"numeric",month:"short"})}
@@ -12331,7 +12393,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
   // ═══════════════════════════════════════════════════════════════
   const nowHr=new Date().getHours();
   const isMorningWindow=nowHr>=5&&nowHr<10;
-  const todayEvents=events.filter(e=>e.alur==="disetujui"&&e.tanggal===todayStr()).sort((a,b)=>a.jam.localeCompare(b.jam));
+  const todayEvents=events.filter(e=>e.alur==="disetujui"&&e.tanggal===todayStr()).sort((a,b)=>urutAcara(a,b));
   const tmrwEvents=events.filter(e=>e.alur==="disetujui"&&e.tanggal===tomorrowStr());
   // Usulan perubahan dan permintaan pembatalan sama-sama menunggu tindakan,
   // meski `alur`-nya sudah "disetujui". Menghitung `alur` saja membuat sapaan
@@ -12350,13 +12412,13 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
     return false;
   });
   const myAssigned=events.filter(e=>e.alur==="disetujui"&&(e.personil||[]).includes(user?.username));
-  const nextEvent=todayEvents.find(e=>{const evTime=new Date(e.tanggal+"T"+e.jam);return evTime>new Date();});
+  const nextEvent=todayEvents.find(e=>{const evTime=tglAcara(e);return evTime>new Date();});
 
   const smartGreetText=(()=>{
     const nm=user?.nama||"";
     const greetW=nowHr<11?"Pagi":nowHr<15?"Siang":nowHr<18?"Sore":"Malam";
     if(pendingMyAction.length>0)return`${greetW}, ${nm} — ${pendingMyAction.length} hal menunggu tindakan Anda`;
-    if(nextEvent)return`${greetW}, ${nm} — acara berikutnya: ${nextEvent.namaAcara} pukul ${nextEvent.jam}`;
+    if(nextEvent)return`${greetW}, ${nm} — acara berikutnya: ${nextEvent.namaAcara} pukul ${jamLayar(nextEvent)}`;
     if(todayEvents.length>0)return`${greetW}, ${nm} — ${todayEvents.length} jadwal hari ini`;
     if(tmrwEvents.length>0)return`${greetW}, ${nm} — besok ada ${tmrwEvents.length} jadwal`;
     return`${greetW}, ${nm} — tidak ada jadwal mendekati, semua terkendali`;
@@ -12385,7 +12447,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
           <div style={{fontSize:12,color:"rgba(255,255,255,0.6)",fontWeight:600}}>Ditugaskan ke Anda</div>
         </div>}
         {nextEvent&&<div style={{width:"100%",background:"rgba(255,255,255,0.08)",borderRadius:10,padding:"10px 12px",display:"flex",alignItems:"center",gap:10,marginTop:2}}>
-          <div style={{background:"#C9A84C",color:"#0A1628",borderRadius:8,padding:"4px 8px",fontSize:13,fontWeight:900,flexShrink:0}}>{nextEvent.jam}</div>
+          <div style={{background:"#C9A84C",color:"#0A1628",borderRadius:8,padding:"4px 8px",fontSize:13,fontWeight:900,flexShrink:0}}>{jamLayar(nextEvent)}</div>
           <div style={{flex:1,minWidth:0}}>
             <div style={{fontSize:12,fontWeight:700,color:"white",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{nextEvent.namaAcara}</div>
             <div style={{fontSize:12,color:"rgba(255,255,255,0.5)"}}>{nextEvent.penyelenggara} · {nextEvent.lokasi||"-"}</div>
@@ -12586,7 +12648,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
       {/* ── Summary bar penugasan — kasubbag protokol & komdokpim di tab tayang ── */}
       {tab==="tayang"&&["kasubbag_protokol","kasubbag_komdokpim"].includes(role)&&(()=>{
         const now=new Date();
-        const belumAda=listEvents.filter(e=>(!e.personil||e.personil.length===0)&&new Date(e.tanggal+"T"+e.jam)>=now);
+        const belumAda=listEvents.filter(e=>(!e.personil||e.personil.length===0)&&tglAcara(e)>=now);
         if(belumAda.length===0)return(
           <div style={{background:"#F0FDF4",borderRadius:12,padding:"11px 14px",marginBottom:14,border:"1px solid #86EFAC",display:"flex",alignItems:"center",gap:8}}>
             <span style={{fontSize:16}}>✅</span>

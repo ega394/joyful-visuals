@@ -25,6 +25,7 @@
  */
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { epochMulai, urutAcara, tglAcara, jamMulaiLayar, zonaPerangkat, keteranganSetempat } from "./lib/zona.js";
 
 // ── Design Tokens ────────────────────────────────────────────
 const T = {
@@ -71,8 +72,9 @@ function fmtTgl(str) {
   const d = new Date(str + "T00:00:00");
   return `${HARI[d.getDay()]}, ${d.getDate()} ${BULAN[d.getMonth()]}`;
 }
-function timeLeft(tanggal, jam) {
-  const diff = new Date(`${tanggal}T${jam}`) - new Date();
+// Memperhitungkan zona acara, bukan jam HP.
+function timeLeft(ev) {
+  const diff = epochMulai(ev) - Date.now();
   if (diff <= 0) return { text: "Sedang berlangsung", urgent: false, imminent: true };
   const h = Math.floor(diff / 3600000);
   const m = Math.ceil((diff % 3600000) / 60000);
@@ -424,9 +426,9 @@ function ExecutiveView({ events, role, user, upd, showT, isMobile, setDelegTarge
     return approved; // mitra_kerja: semua
   }, [events, role]);
 
-  const sorted   = [...myEvs].sort((a,b) => (a.tanggal+a.jam).localeCompare(b.tanggal+b.jam));
-  const upcoming = sorted.filter(e => new Date(`${e.tanggal}T${e.jam}`) >= now);
-  const past     = sorted.filter(e => new Date(`${e.tanggal}T${e.jam}`) <  now).reverse().slice(0,3);
+  const sorted   = [...myEvs].sort((a,b) => urutAcara(a, b));
+  const upcoming = sorted.filter(e => tglAcara(e) >= now);
+  const past     = sorted.filter(e => tglAcara(e) <  now).reverse().slice(0,3);
   const next     = upcoming[0] || null;
   const rest     = upcoming.slice(1);
 
@@ -504,10 +506,10 @@ function ExecutiveView({ events, role, user, upd, showT, isMobile, setDelegTarge
 // Kartu hero besar untuk Executive
 function ExecutiveHeroCard({ ev, role, isVIP, isMobile, upd, showT, setDelegTarget }) {
   const now      = new Date();
-  const evTime   = new Date(`${ev.tanggal}T${ev.jam}`);
+  const evTime   = tglAcara(ev);
   const diffMs   = evTime - now;
   const isToday  = ev.tanggal === localDateStr();
-  const { text: etaText, urgent, imminent } = timeLeft(ev.tanggal, ev.jam);
+  const { text: etaText, urgent, imminent } = timeLeft(ev);
 
   const stripColor = imminent
     ? "linear-gradient(90deg,#DC2626,#B91C1C)"
@@ -546,12 +548,13 @@ function ExecutiveHeroCard({ ev, role, isVIP, isMobile, upd, showT, setDelegTarg
         <div style={{ marginBottom:6 }}>
           <span style={{ fontSize: isMobile ? 56 : 68, fontWeight:900,
             color:T.navy, letterSpacing:-3, lineHeight:1 }}>
-            {ev.jam?.slice(0,5)}
+            {jamMulaiLayar(ev)}
           </span>
           <span style={{ fontSize:14, color:T.slate, fontWeight:600,
             marginLeft:8, verticalAlign:"bottom", paddingBottom:8, display:"inline-block" }}>
-            WITA
+            {zonaPerangkat()}
           </span>
+          {keteranganSetempat(ev) && <div style={{ fontSize:13, fontWeight:700, color:T.slate, marginTop:2 }}>{keteranganSetempat(ev)}</div>}
         </div>
 
         {/* Nama acara */}
@@ -734,7 +737,7 @@ function KehadiranSection({ ev, role, statusKey, byKey, st, upd, showT, setDeleg
 // Kartu mini untuk "agenda selanjutnya"
 function ExecutiveMiniCard({ ev, role, now, isPast }) {
   const isToday = ev.tanggal === localDateStr();
-  const { urgent } = timeLeft(ev.tanggal, ev.jam);
+  const { urgent } = timeLeft(ev);
   const st = role === "walikota" ? ev.statusWK : ev.statusWWK;
   const stColor = st==="hadir"?T.green:st==="tidak_hadir"?T.red:T.amber;
   const stBg    = st==="hadir"?T.greenBg:st==="tidak_hadir"?T.redBg:T.amberBg;
@@ -757,7 +760,7 @@ function ExecutiveMiniCard({ ev, role, now, isPast }) {
       }}>
         <div style={{ fontSize:14, fontWeight:900,
           color: isToday && !isPast ? T.gold : "#334155", lineHeight:1 }}>
-          {ev.jam?.slice(0,5)}
+          {jamMulaiLayar(ev)}
         </div>
         {!isToday && (
           <div style={{ fontSize:9, color:"#94A3B8", marginTop:2 }}>
@@ -813,7 +816,7 @@ function OperationalView({ events, role, user, upd, showT, isMobile }) {
     return approved.filter(e => (e.personil||[]).includes(user?.username));
   }, [events, role, user]);
 
-  const sorted   = [...myEvs].sort((a,b) => (a.tanggal+a.jam).localeCompare(b.tanggal+b.jam));
+  const sorted   = [...myEvs].sort((a,b) => urutAcara(a, b));
   const todayEvs = sorted.filter(e => e.tanggal === today);
   const tmrwEvs  = sorted.filter(e => e.tanggal === tomorrow);
   const moreEvs  = sorted.filter(e => e.tanggal > tomorrow).slice(0,5);
@@ -821,7 +824,7 @@ function OperationalView({ events, role, user, upd, showT, isMobile }) {
   const unconfirmed = isAjudan
     ? myEvs.filter(e => {
         const st = isWK ? e.statusWK : e.statusWWK;
-        return !st && new Date(`${e.tanggal}T${e.jam}`) > now;
+        return !st && tglAcara(e) > now;
       })
     : [];
 
@@ -950,7 +953,7 @@ function OpSection({ label, events, role, isAjudan, isWK, pimLabel, upd, showT, 
 
 function OperationalCard({ ev, role, isAjudan, isWK, pimLabel, upd, showT, now, compact }) {
   const [expanded, setExpanded] = useState(false);
-  const { text: etaText, urgent, imminent } = timeLeft(ev.tanggal, ev.jam);
+  const { text: etaText, urgent, imminent } = timeLeft(ev);
   const isToday = ev.tanggal === localDateStr();
   const statusKey = isWK ? "statusWK" : "statusWWK";
   const byKey     = isWK ? "statusWK_by" : "statusWWK_by";
@@ -1003,7 +1006,7 @@ function OperationalCard({ ev, role, isAjudan, isWK, pimLabel, upd, showT, now, 
         }}>
           <div style={{ fontSize:14, fontWeight:900,
             color: isToday ? T.gold : "#334155", lineHeight:1 }}>
-            {ev.jam?.slice(0,5)}
+            {jamMulaiLayar(ev)}
           </div>
           {!isToday && (
             <div style={{ fontSize:9, color:"#94A3B8", marginTop:2 }}>
@@ -1217,7 +1220,7 @@ function ManagementView({ events, role, user, upd, showT, isMobile, setTab }) {
         e.lokasi?.toLowerCase().includes(q)
       );
     }
-    return [...base].sort((a,b) => (a.tanggal+a.jam).localeCompare(b.tanggal+b.jam));
+    return [...base].sort((a,b) => urutAcara(a, b));
   }, [events, filterDate, filterStatus, search]);
 
   const hour = now.getHours();
@@ -1366,7 +1369,7 @@ function ManagementView({ events, role, user, upd, showT, isMobile, setTab }) {
 function ManagementCard({ ev, role, upd, showT, now, isMobile }) {
   const [expanded, setExpanded] = useState(false);
   const isToday  = ev.tanggal === localDateStr();
-  const evTime   = new Date(`${ev.tanggal}T${ev.jam}`);
+  const evTime   = tglAcara(ev);
   const isPast   = evTime < now;
 
   const STATUS_COLORS = {
@@ -1423,7 +1426,7 @@ function ManagementCard({ ev, role, upd, showT, now, isMobile }) {
             {ev.tanggal.slice(8)}
           </div>
           <div style={{ fontSize:10, color: isToday ? "rgba(255,255,255,0.6)" : "#94A3B8" }}>
-            {ev.jam?.slice(0,5)}
+            {jamMulaiLayar(ev)}
           </div>
         </div>
 

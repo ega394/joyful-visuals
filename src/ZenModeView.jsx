@@ -18,12 +18,12 @@
 // ============================================================
 
 import React, { useState, useEffect } from "react";
+import { epochMulai, urutAcara, jamMulaiLayar, zonaPerangkat, keteranganSetempat } from "./lib/zona.js";
 
 // ── Helper: hitung menit sampai acara ──────────────────────
-function menitLagi(tanggal, jam) {
-  const now = new Date();
-  const target = new Date(tanggal + "T" + jam + ":00");
-  return Math.round((target - now) / 60000);
+// Memperhitungkan zona acara, bukan jam HP.
+function menitLagi(ev) {
+  return Math.round((epochMulai(ev) - Date.now()) / 60000);
 }
 
 // ── Helper: warna dinamis berdasarkan jarak waktu ──────────
@@ -102,7 +102,7 @@ function EmptyState({ role }) {
 
 // ── Kartu Utama (agenda berikutnya — 1 kartu besar) ────────
 function HeroCard({ ev, role }) {
-  const menit = menitLagi(ev.tanggal, ev.jam);
+  const menit = menitLagi(ev);
   const color = getTimeColor(menit);
   const isWK  = role === "walikota";
 
@@ -144,8 +144,9 @@ function HeroCard({ ev, role }) {
 
       {/* Jam — besar */}
       <div style={{ fontSize: 48, fontWeight: 900, color: "#0A1628", lineHeight: 1, marginBottom: 8, fontVariantNumeric: "tabular-nums" }}>
-        {ev.jam} <span style={{ fontSize: 16, fontWeight: 600, color: "#94A3B8" }}>WITA</span>
+        {jamMulaiLayar(ev)} <span style={{ fontSize: 16, fontWeight: 600, color: "#94A3B8" }}>{zonaPerangkat()}</span>
       </div>
+      {keteranganSetempat(ev) && <div style={{ fontSize: 13, fontWeight: 700, color: "#64748B", marginTop: -4, marginBottom: 8 }}>{keteranganSetempat(ev)}</div>}
 
       {/* Nama acara */}
       <div style={{ fontSize: 18, fontWeight: 800, color: "#0F172A", marginBottom: 10, lineHeight: 1.4 }}>
@@ -195,7 +196,7 @@ function HeroCard({ ev, role }) {
 
 // ── Kartu Mini (agenda lainnya — diperkecil) ───────────────
 function MiniCard({ ev, role }) {
-  const menit = menitLagi(ev.tanggal, ev.jam);
+  const menit = menitLagi(ev);
   const color = getTimeColor(menit);
   return (
     <div style={{
@@ -211,7 +212,7 @@ function MiniCard({ ev, role }) {
       opacity: menit < 0 ? 0.5 : 1,
     }}>
       <div style={{ fontSize: 15, fontWeight: 900, color: "#0A1628", minWidth: 50, fontVariantNumeric: "tabular-nums" }}>
-        {ev.jam}
+        {jamMulaiLayar(ev)}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -249,11 +250,11 @@ export default function ZenModeView({ events, role, user }) {
       if (role === "wakilwalikota") return e.untukPimpinan?.includes("wakilwalikota") || e.delegasiKeWWK;
       return false;
     })
-    .sort((a, b) => (a.tanggal + a.jam).localeCompare(b.tanggal + b.jam));
+    .sort((a, b) => urutAcara(a, b));
 
   // Pisahkan: akan datang vs lampau
-  const upcoming = myEvs.filter(e => menitLagi(e.tanggal, e.jam) >= -30);
-  const past     = myEvs.filter(e => menitLagi(e.tanggal, e.jam) < -30);
+  const upcoming = myEvs.filter(e => menitLagi(e) >= -30);
+  const past     = myEvs.filter(e => menitLagi(e) < -30);
 
   // Agenda utama = yang paling dekat waktunya
   const hero   = upcoming[0] || null;
