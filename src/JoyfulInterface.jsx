@@ -25,6 +25,7 @@
 // ============================================================
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
+import { urutAcara, tglAcara, jamMulaiLayar, jamSelesaiLayar, zonaPerangkat, keteranganSetempat, fmtJamZona } from "./lib/zona.js";
 
 // ── Warna tema ───────────────────────────────────────────────
 const NAVY    = "#0A1628";
@@ -212,11 +213,11 @@ export function ZenModeView({ events, role, user, upd, showT, isMobile, setDeleg
     const base = role === "walikota"
       ? events.filter(e => e.alur === "disetujui" && (e.untukPimpinan||[]).includes("walikota"))
       : events.filter(e => e.alur === "disetujui" && ((e.untukPimpinan||[]).includes("wakilwalikota") || e.delegasiKeWWK));
-    return base.sort((a, b) => (a.tanggal + a.jam).localeCompare(b.tanggal + b.jam));
+    return base.sort((a, b) => urutAcara(a, b));
   }, [events, role]);
 
-  const upcoming = myEvs.filter(e => new Date(e.tanggal + "T" + e.jam) >= now);
-  const past     = myEvs.filter(e => new Date(e.tanggal + "T" + e.jam) <  now).reverse().slice(0, 3);
+  const upcoming = myEvs.filter(e => tglAcara(e) >= now);
+  const past     = myEvs.filter(e => tglAcara(e) <  now).reverse().slice(0, 3);
   const next     = upcoming[0] || null;
   const rest     = upcoming.slice(1);
 
@@ -308,7 +309,7 @@ export function ZenModeView({ events, role, user, upd, showT, isMobile, setDeleg
 function ZenHeroCard({ ev, role, upd, showT, setDelegTarget }) {
   const theme    = useDynamicTheme(ev.tanggal, ev.jam);
   const now      = new Date();
-  const evTime   = new Date(ev.tanggal + "T" + ev.jam);
+  const evTime   = tglAcara(ev);
   const diffMs   = evTime - now;
   const diffH    = diffMs / (1000 * 60 * 60);
   const diffMin  = Math.ceil(diffMs / (1000 * 60));
@@ -354,14 +355,15 @@ function ZenHeroCard({ ev, role, upd, showT, setDelegTarget }) {
           fontSize: 52, fontWeight: 900, color: NAVY,
           letterSpacing: -2, lineHeight: 1, marginBottom: 4,
         }}>
-          {fmtJam(ev.jam)}
-          <span style={{ fontSize: 16, fontWeight: 600, color: "#94A3B8", marginLeft: 6 }}>WITA</span>
+          {fmtJam(jamMulaiLayar(ev))}
+          <span style={{ fontSize: 16, fontWeight: 600, color: "#94A3B8", marginLeft: 6 }}>{zonaPerangkat()}</span>
           {punyaJamSelesai(ev) && (
             <span style={{ fontSize: 16, fontWeight: 700, color: "#64748B", marginLeft: 8, letterSpacing: 0 }}>
-              {"s.d. " + ev.jamSelesai}
+              {"s.d. " + jamSelesaiLayar(ev)}
             </span>
           )}
         </div>
+        {keteranganSetempat(ev) && <div style={{ fontSize: 13, fontWeight: 700, color: "#64748B", marginBottom: 4 }}>{keteranganSetempat(ev)}</div>}
 
         {/* Nama acara */}
         <div style={{ fontSize: 18, fontWeight: 800, color: "#0F172A", lineHeight: 1.3, marginBottom: 10 }}>
@@ -444,7 +446,7 @@ function ZenKehadiran({ ev, role, upd, showT, setDelegTarget }) {
   const statusKey = isWK ? "statusWK" : "statusWWK";
 
   // Kunci jika sudah lewat 2 hari
-  const evTime  = new Date(ev.tanggal + "T" + ev.jam);
+  const evTime  = tglAcara(ev);
   const locked  = (new Date() - evTime) > 2 * 24 * 60 * 60 * 1000;
 
   if (locked) return null;
@@ -527,8 +529,8 @@ function ZenMiniCard({ ev, role, isPast }) {
         borderRadius: 10, padding: "6px 4px", flexShrink: 0,
       }}>
         <div style={{ fontSize: 11, fontWeight: 800, color: isPast ? "#94A3B8" : GOLD, lineHeight: 1 }}>
-          {ev.jam?.slice(0,5)}
-          {punyaJamSelesai(ev) && <div style={{ fontSize: 9, fontWeight: 700, opacity: 0.8, marginTop: 1, whiteSpace: "nowrap" }}>{"s.d. " + ev.jamSelesai.slice(0,5)}</div>}
+          {jamMulaiLayar(ev)}
+          {punyaJamSelesai(ev) && <div style={{ fontSize: 9, fontWeight: 700, opacity: 0.8, marginTop: 1, whiteSpace: "nowrap" }}>{"s.d. " + jamSelesaiLayar(ev)}</div>}
         </div>
         <div style={{ fontSize: 9, color: isPast ? "#CBD5E1" : "rgba(255,255,255,0.6)", marginTop: 2 }}>{fmtTgl(ev.tanggal).split(",")[0]}</div>
       </div>
@@ -577,7 +579,7 @@ export function AjudanView({ events, role, user, upd, showT, isMobile }) {
         if (isWK) return (e.untukPimpinan||[]).includes("walikota");
         return (e.untukPimpinan||[]).includes("wakilwalikota") || e.delegasiKeWWK;
       })
-      .sort((a, b) => (a.tanggal + a.jam).localeCompare(b.tanggal + b.jam));
+      .sort((a, b) => urutAcara(a, b));
   }, [events, role]);
 
   const todayEvs    = myEvs.filter(e => e.tanggal === today);
@@ -585,7 +587,7 @@ export function AjudanView({ events, role, user, upd, showT, isMobile }) {
   const upcoming    = myEvs.filter(e => e.tanggal > tomorrow);
   const unconfirmed = myEvs.filter(e => {
     const st = isWK ? e.statusWK : e.statusWWK;
-    return !st && new Date(e.tanggal + "T" + e.jam) > now;
+    return !st && tglAcara(e) > now;
   });
 
   const hour     = now.getHours();
@@ -690,7 +692,7 @@ function AjudanSection({ label, events, isWK, pimLabel, upd, showT, now, compact
 function AjudanCard({ ev, isWK, pimLabel, upd, showT, now, compact }) {
   const [expanded, setExpanded] = useState(false);
   const theme   = useDynamicTheme(ev.tanggal, ev.jam);
-  const evTime  = new Date(ev.tanggal + "T" + ev.jam);
+  const evTime  = tglAcara(ev);
   const diffMs  = evTime - now;
   const diffH   = diffMs / (1000 * 60 * 60);
   const isToday = ev.tanggal === localDateStr();
@@ -739,8 +741,8 @@ function AjudanCard({ ev, isWK, pimLabel, upd, showT, now, compact }) {
           borderRadius: 10, padding: "7px 4px",
         }}>
           <div style={{ fontSize: 14, fontWeight: 900, color: isToday ? GOLD : "#334155", lineHeight: 1 }}>
-            {ev.jam?.slice(0, 5)}
-            {punyaJamSelesai(ev) && <div style={{ fontSize: 9, fontWeight: 700, opacity: 0.75, marginTop: 2, whiteSpace: "nowrap" }}>{"s.d. " + ev.jamSelesai.slice(0,5)}</div>}
+            {jamMulaiLayar(ev)}
+            {punyaJamSelesai(ev) && <div style={{ fontSize: 9, fontWeight: 700, opacity: 0.75, marginTop: 2, whiteSpace: "nowrap" }}>{"s.d. " + jamSelesaiLayar(ev)}</div>}
           </div>
           {!isToday && (
             <div style={{ fontSize: 9, color: "#94A3B8", marginTop: 2 }}>
@@ -913,7 +915,7 @@ export function StafView({ events, role, user, isMobile }) {
 
   // Semua agenda yang disetujui & bisa dilihat sesuai role
   const allApproved = events.filter(e => e.alur === "disetujui")
-    .sort((a,b) => (a.tanggal+a.jam).localeCompare(b.tanggal+b.jam));
+    .sort((a,b) => urutAcara(a, b));
 
   // Penugasan milik user ini
   const myAssignments = allApproved.filter(e =>
@@ -923,7 +925,7 @@ export function StafView({ events, role, user, isMobile }) {
   const myToday    = myAssignments.filter(e => e.tanggal === today);
   const myTomorrow = myAssignments.filter(e => e.tanggal === tomorrow);
   const myUpcoming = myAssignments.filter(e =>
-    new Date(e.tanggal + "T" + e.jam) >= now && e.tanggal > today
+    tglAcara(e) >= now && e.tanggal > today
   );
 
   // Untuk timkom: agenda yang butuh naskah sambutan
@@ -931,7 +933,7 @@ export function StafView({ events, role, user, isMobile }) {
     ? allApproved.filter(e =>
         !e.sambutanFile &&
         (e.jenisKegiatan === "Sambutan" || e.jenisKegiatan === "Sambutan membuka acara") &&
-        new Date(e.tanggal + "T" + e.jam) > now
+        tglAcara(e) > now
       )
     : [];
 
@@ -965,7 +967,7 @@ export function StafView({ events, role, user, isMobile }) {
           {[
             { v: myToday.length,    l: "Tugas Hari Ini",    c: GOLD },
             { v: myTomorrow.length, l: "Tugas Besok",        c: "#6EE7B7" },
-            { v: myAssignments.filter(e => new Date(e.tanggal+"T"+e.jam) >= now).length, l: "Total Mendatang", c: "#93C5FD" },
+            { v: myAssignments.filter(e => tglAcara(e) >= now).length, l: "Total Mendatang", c: "#93C5FD" },
             ...(needsSambutan.length > 0 ? [{ v: needsSambutan.length, l: "Sambutan Pending", c: "#FCA5A5" }] : []),
             ...(myDrafts.length > 0 ? [{ v: myDrafts.length, l: "Draft/Dikembalikan", c: "#FCA5A5" }] : []),
           ].map(({ v, l, c }) => (
@@ -984,7 +986,7 @@ export function StafView({ events, role, user, isMobile }) {
 
         {/* ── Alert Sambutan Mendesak (Timkom) ── */}
         {needsSambutan.filter(e => {
-          const h = (new Date(e.tanggal+"T"+e.jam) - now) / 3600000;
+          const h = (tglAcara(e) - now) / 3600000;
           return h <= 24;
         }).length > 0 && (
           <div style={{
@@ -998,7 +1000,7 @@ export function StafView({ events, role, user, isMobile }) {
                 Naskah sambutan belum diupload!
               </div>
               <div style={{ fontSize: 12, color: "#B91C1C", marginTop: 2 }}>
-                {needsSambutan.filter(e => (new Date(e.tanggal+"T"+e.jam)-now)/3600000 <= 24).length} kegiatan sambutan dalam 24 jam ke depan tanpa naskah.
+                {needsSambutan.filter(e => (tglAcara(e)-now)/3600000 <= 24).length} kegiatan sambutan dalam 24 jam ke depan tanpa naskah.
               </div>
             </div>
           </div>
@@ -1075,7 +1077,7 @@ export function StafView({ events, role, user, isMobile }) {
                   minWidth: 46, textAlign: "center",
                   background: "#7C3AED", borderRadius: 9, padding: "6px 4px",
                 }}>
-                  <div style={{ fontSize: 12, fontWeight: 900, color: "white", lineHeight: 1 }}>{ev.jam?.slice(0,5)}</div>
+                  <div style={{ fontSize: 12, fontWeight: 900, color: "white", lineHeight: 1 }}>{jamMulaiLayar(ev)}</div>
                   <div style={{ fontSize: 9, color: "rgba(255,255,255,0.7)", marginTop: 2 }}>{fmtTgl(ev.tanggal).split(",")[0]}</div>
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -1125,7 +1127,7 @@ function StafCard({ ev, now, accentColor, compact }) {
   const [expanded, setExpanded] = useState(false);
   const theme   = useDynamicTheme(ev.tanggal, ev.jam);
   const isToday = ev.tanggal === localDateStr();
-  const evTime  = new Date(ev.tanggal + "T" + ev.jam);
+  const evTime  = tglAcara(ev);
   const diffH   = (evTime - now) / 3600000;
 
   const mapsUrl = ev.lokasi
@@ -1159,7 +1161,7 @@ function StafCard({ ev, now, accentColor, compact }) {
           borderRadius: 10, padding: "7px 4px",
         }}>
           <div style={{ fontSize: 14, fontWeight: 900, color: isToday ? GOLD : "#334155", lineHeight: 1 }}>
-            {ev.jam?.slice(0,5)}
+            {jamMulaiLayar(ev)}
           </div>
           {!isToday && <div style={{ fontSize: 9, color: "#94A3B8", marginTop: 2 }}>{fmtTgl(ev.tanggal).split(",")[0]}</div>}
         </div>
@@ -1249,12 +1251,12 @@ export function MitraView({ events, isMobile }) {
 
   const approved = events
     .filter(e => e.alur === "disetujui")
-    .sort((a,b) => (a.tanggal+a.jam).localeCompare(b.tanggal+b.jam));
+    .sort((a,b) => urutAcara(a, b));
 
   const filtered = filter === "today"
     ? approved.filter(e => e.tanggal === today)
     : filter === "upcoming"
-      ? approved.filter(e => new Date(e.tanggal+"T"+e.jam) >= now)
+      ? approved.filter(e => tglAcara(e) >= now)
       : approved;
 
   return (
@@ -1321,7 +1323,7 @@ export function MitraView({ events, isMobile }) {
 function MitraCard({ ev, now, expanded, onToggle }) {
   const theme   = useDynamicTheme(ev.tanggal, ev.jam);
   const isToday = ev.tanggal === localDateStr();
-  const evTime  = new Date(ev.tanggal + "T" + ev.jam);
+  const evTime  = tglAcara(ev);
   const mapsUrl = ev.lokasi
     ? "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(ev.lokasi + " Tarakan")
     : null;
@@ -1371,7 +1373,7 @@ function MitraCard({ ev, now, expanded, onToggle }) {
           <span style={{ fontSize: 10, fontWeight: 800, color: theme.stripText, letterSpacing: 1, textTransform: "uppercase" }}>
             {theme.icon} {theme.label || "Hari Ini"}
           </span>
-          <span style={{ fontSize: 10, color: theme.stripText, opacity: 0.8 }}>{ev.jam} WITA</span>
+          <span style={{ fontSize: 10, color: theme.stripText, opacity: 0.8 }}>{fmtJamZona(ev)}</span>
         </div>
       )}
 
@@ -1387,7 +1389,7 @@ function MitraCard({ ev, now, expanded, onToggle }) {
           <div style={{ fontSize: 20, fontWeight: 900, color: isToday ? "white" : "#0F172A", lineHeight: 1.1 }}>
             {ev.tanggal.slice(8)}
           </div>
-          <div style={{ fontSize: 10, color: isToday ? "rgba(255,255,255,0.6)" : "#94A3B8", fontWeight: 600 }}>{ev.jam?.slice(0,5)}</div>
+          <div style={{ fontSize: 10, color: isToday ? "rgba(255,255,255,0.6)" : "#94A3B8", fontWeight: 600 }}>{jamMulaiLayar(ev)}</div>
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 15, fontWeight: 800, color: "#0F172A", lineHeight: 1.3, marginBottom: 5 }}>

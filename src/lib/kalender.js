@@ -24,7 +24,9 @@
  * Google ada di api/_kalender.mjs.
  */
 
-export const ZONA = "Asia/Makassar";
+import { tzZona, zonaAcara, ubahJam } from "./zona.js";
+
+export const ZONA = "Asia/Makassar"; // zona bawaan (WITA); acara di zona lain memakai zonanya sendiri
 export const DURASI_BAWAAN = 120; // menit — sama dengan DURASI_DEFAULT di aplikasi
 export const PENANDA = "prokopim";  // extendedProperties.private — hanya acara bertanda ini yang disentuh
 
@@ -72,10 +74,16 @@ export function normJudul(s) {
     .replace(/[^a-z0-9]+/g, " ").trim();
 }
 
-/** Kunci pembanding satu jadwal: "YYYY-MM-DDTHH:MM|nama acara". */
+/**
+ * Kunci pembanding satu jadwal: "YYYY-MM-DDTHH:MM|nama acara", dengan jam
+ * mulai dalam WITA — sama dengan kunciAcaraGoogle, sehingga acara WIB/WIT
+ * tetap dikenali sebagai pasangannya.
+ */
 export function kunciAgenda(ev) {
   const a = isiAcara(ev);
-  return a.start.dateTime.slice(0, 16) + "|" + normJudul(a.summary);
+  const [tgl, jam] = a.start.dateTime.slice(0, 16).split("T");
+  const w = ubahJam(jam, zonaAcara(ev), "WITA");
+  return waktu(tgl, w.hari * 1440 + menit(w.jam)).slice(0, 16) + "|" + normJudul(a.summary);
 }
 
 /**
@@ -145,8 +153,8 @@ export function isiAcara(ev) {
     summary: ev.namaAcara || "Kegiatan Pimpinan",
     location: ev.lokasi || "",
     description: keterangan,
-    start: { dateTime: waktu(ev.tanggal, mulai), timeZone: ZONA },
-    end: { dateTime: waktu(ev.tanggal, selesai), timeZone: ZONA },
+    start: { dateTime: waktu(ev.tanggal, mulai), timeZone: tzZona(ev.zona) },
+    end: { dateTime: waktu(ev.tanggal, selesai), timeZone: tzZona(ev.zona) },
   };
   return {
     ...inti,

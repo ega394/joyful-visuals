@@ -75,6 +75,21 @@ describe("aturan isi kalender", () => {
     expect(kunciAcaraGoogle({ summary: "Rapat Koordinasi", start: { dateTime: "2026-09-28T09:00:00" } })).toBeNull();
   });
 
+  it("acara di zona lain: Google menerima zonanya, kunci ganda tetap dalam WITA", () => {
+    const wib = jadwal({ zona: "WIB", jamSelesai: "11:00" });
+    const a = isiAcara(wib);
+    expect(a.start).toEqual({ dateTime: "2026-09-28T09:00:00", timeZone: "Asia/Jakarta" });
+    expect(a.end).toEqual({ dateTime: "2026-09-28T11:00:00", timeZone: "Asia/Jakarta" });
+    const k = kunciAgenda(wib);
+    expect(k).toBe("2026-09-28T10:00|rapat koordinasi");
+    // Google mengembalikan 09.00 WIB sebagai 09:00+07:00.
+    expect(kunciAcaraGoogle({ summary: "Rapat Koordinasi", start: { dateTime: "2026-09-28T09:00:00+07:00" } })).toBe(k);
+    // Lewat tengah malam: 23.30 WIB = 00.30 WITA keesokan harinya.
+    expect(kunciAgenda(jadwal({ zona: "WIB", jam: "23:30" }))).toBe("2026-09-29T00:30|rapat koordinasi");
+    // Jadwal lama tanpa zona tidak berubah sidiknya.
+    expect(isiAcara(jadwal()).extendedProperties.private.sidik).toBe(isiAcara(jadwal({ zona: "WITA" })).extendedProperties.private.sidik);
+  });
+
   it("jadwal kembar: hanya yang paling awal diinput yang dikirim", () => {
     const hasil = pilihUnik([jadwal({ id: 30 }), jadwal({ id: 4, namaAcara: "rapat koordinasi" }), jadwal({ id: 5, jam: "10:00" })]);
     expect(hasil.map((e: any) => e.id).sort()).toEqual([4, 5]);

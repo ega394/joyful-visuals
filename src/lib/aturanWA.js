@@ -42,9 +42,11 @@ export function penerimaUnik(daftar) {
 /** Tanggal, jam, atau lokasi berubah — perubahan yang mengubah tugas lapangan. */
 export function perubahanMaterial(lama, baru) {
   if (!lama || !baru) return false;
-  return ["tanggal", "jam", "jamSelesai", "lokasi"].some(
+  const berubah = ["tanggal", "jam", "jamSelesai", "lokasi"].some(
     (k) => k in baru && String(lama[k] || "").trim() !== String(baru[k] || "").trim()
   );
+  // Zona kosong pada jadwal lama sama dengan WITA.
+  return berubah || ("zona" in baru && (lama.zona || "WITA") !== (baru.zona || "WITA"));
 }
 
 /**

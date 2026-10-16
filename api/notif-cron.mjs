@@ -37,6 +37,7 @@
 import webpush from "web-push";
 // Satu sumber aturan PLH untuk peramban maupun peladen.
 import { plhAktif, hariIniWita } from "../src/lib/plh.js";
+import { fmtJamDuaZona, urutAcara } from "../src/lib/zona.js";
 import { kalenderAktif, rekonsiliasi } from "./_kalender.mjs";
 // CommonJS (lihat kepala _walog.js) — impor bawaan, lalu ambil fungsinya.
 import walog from "./_walog.js";
@@ -243,7 +244,8 @@ function unikNomor(list) {
 
 // Urut jam tanpa galat bila ada agenda tanpa jam (dulu melempar TypeError,
 // dan rekap hari itu gagal diam-diam setelah kunci dedup tertulis).
-const urutJam = (a, b) => ((a.tanggal || "") + (a.jam || "")).localeCompare((b.tanggal || "") + (b.jam || ""));
+// Urut menurut waktu nyata: 09.00 WIB (= 10.00 WITA) sesudah 09.30 WITA.
+const urutJam = urutAcara;
 
 // ── Formatter tanggal ────────────────────────────────────────
 const HARI  = ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
@@ -266,15 +268,10 @@ function localDateWITA(offsetDays = 0) {
 // ── Waktu agenda ─────────────────────────────────────────────
 // `jamSelesai` bersifat opsional dan tidak dimiliki agenda lama, jadi rentang
 // hanya ditampilkan bila terisi dan lebih besar dari jam mulai.
-function _mnt(t) {
-  const [h, m] = String(t || "").split(":").map(Number);
-  return (h * 60 + m) || 0;
-}
+// Acara di zona lain ditulis dengan padanan WITA: "09:00 WIB (10:00 WITA)".
+// Acara WITA tetap tanpa akhiran, seperti sebelumnya.
 function fmtRentangJam(e) {
-  const mulai = (e && e.jam ? e.jam : "").slice(0, 5);
-  if (!mulai) return "";
-  const selesai = (e && e.jamSelesai ? e.jamSelesai : "").slice(0, 5);
-  return selesai && _mnt(selesai) > _mnt(mulai) ? `${mulai} – ${selesai}` : mulai;
+  return fmtJamDuaZona(e, { wita: false });
 }
 
 // ── Load data dari Supabase ──────────────────────────────────
@@ -514,7 +511,7 @@ async function notifPimpinan(jadwal, users, tamu = []) {
   const today    = localDateWITA(0);
   const todayEvs = jadwal
     .filter(e => e.tanggal === today)
-    .sort((a, b) => (a.jam || "").localeCompare(b.jam || ""));
+    .sort(urutJam);
 
   const FOOTER =
     `\n━━━━━━━━━━━━━━\n` +
