@@ -3,7 +3,7 @@
 // dari kartu angka (data proposal 24 September 2026).
 //
 // Membangun:  npm install pptxgenjs (di folder kerja), lalu
-//   NODE_PATH=<node_modules> APPLY_THEME=<apply_theme.js> node docs/lomba/build/paparan/buat.js <keluaran.pptx>
+//   NODE_PATH=<node_modules> APPLY_THEME=<apply_theme.js> node docs/lomba/build/paparan/buat.cjs <keluaran.pptx>
 const pptxgen = require("pptxgenjs");
 // Menulis warna tema ke dalam berkas; jalurnya diberikan lewat APPLY_THEME
 // (skrip apply_theme.js dari skill pptx). Tanpa itu warna tema bawaan Office.
@@ -360,20 +360,20 @@ bagian("Diseminasi inovasi");
   teks(s, "“Yang dibutuhkan daerah lain hanya peramban, kuota gratis, dan 11 SOP yang siap diadaptasi.”", M, 6.05, 2 * cw + 0.25, 0.7, { fontSize: 14, italic: true, color: C.text2 });
   // Peta jalan
   const X = M + 2 * cw + 0.75, Wr = W - M - X;
-  teks(s, "Peta jalan penyebarluasan", X, 1.8, Wr, 0.4, { fontSize: 18, bold: true, color: C.text2 });
+  teks(s, "Pelembagaan dan rencana", X, 1.8, Wr, 0.4, { fontSize: 18, bold: true, color: C.text2 });
   const jalan = [
+    ["Maret 2026", "Mulai digunakan; Surat Sekda 12 Maret 2026 memohon subdomain resmi prokopim.tarakankota.go.id"],
     ["Okt–Des 2026", "Pengesahan 11 SOP oleh Sekretaris Daerah"],
     ["Jan–Jun 2027", "Pendampingan pengelola kedua; dokumentasi teknis"],
-    ["Jul–Des 2027", "Paket replikasi: Pemprov Kaltara, Bulungan, Malinau, Nunukan, Tana Tidung, Sekretariat DPRD"],
   ];
   s.addShape(pres.shapes.LINE, { x: X + 0.21, y: 2.6, w: 0, h: 3.6, line: { color: C.accent6, width: 2 } });
   jalan.forEach(([t, k], i) => {
     const y = 2.45 + i * 1.35;
-    bulat(s, X, y, 0.42, i === 2 ? C.accent1 : C.text2, String(i + 1), i === 2 ? C.text2 : C.background1);
+    bulat(s, X, y, 0.42, i === 0 ? C.accent1 : C.text2, String(i + 1), i === 0 ? C.text2 : C.background1);
     teks(s, t, X + 0.65, y - 0.02, Wr - 0.65, 0.4, { fontSize: 15, bold: true, color: C.text2 });
     teks(s, k, X + 0.65, y + 0.38, Wr - 0.65, 0.85, { fontSize: 14, color: C.text1 });
   });
-  s.addNotes("Penyebarluasan: 21 akun di luar Bagian, kanal publik dipakai 66 dan 53 instansi, Tim Koordinasi lintas perangkat daerah. Paket replikasi untuk daerah di Kalimantan Utara Juli–Desember 2027; yang disesuaikan hanya nama jabatan, pengguna, dan tata naskah. (±30 detik)");
+  s.addNotes("Penyebarluasan: 21 akun di luar Bagian, kanal publik dipakai 66 dan 53 instansi, Tim Koordinasi lintas perangkat daerah. Bila daerah lain ingin memakai, yang disesuaikan hanya nama jabatan, pengguna, dan tata naskah. (±30 detik)");
 }
 
 // ══ 11. Kompatibilitas ═════════════════════════════════════════════
