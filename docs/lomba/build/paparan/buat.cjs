@@ -363,7 +363,7 @@ bagian("Diseminasi inovasi");
   teks(s, "Pelembagaan dan rencana", X, 1.8, Wr, 0.4, { fontSize: 18, bold: true, color: C.text2 });
   const jalan = [
     ["Maret 2026", "Mulai digunakan; Surat Sekda 12 Maret 2026 memohon subdomain resmi prokopim.tarakankota.go.id"],
-    ["Nov 2026–Feb 2027", "Revisi dan pengesahan 11 SOP mengikuti nomenklatur baru"],
+    ["Okt–Des 2026", "Pengesahan 11 SOP oleh Sekretaris Daerah, disesuaikan dengan nomenklatur baru"],
     ["Jan–Jun 2027", "Pendampingan pengelola kedua; dokumentasi teknis"],
   ];
   s.addShape(pres.shapes.LINE, { x: X + 0.21, y: 2.6, w: 0, h: 3.6, line: { color: C.accent6, width: 2 } });
@@ -373,7 +373,7 @@ bagian("Diseminasi inovasi");
     teks(s, t, X + 0.65, y - 0.02, Wr - 0.65, 0.4, { fontSize: 15, bold: true, color: C.text2 });
     teks(s, k, X + 0.65, y + 0.38, Wr - 0.65, 0.85, { fontSize: 14, color: C.text1 });
   });
-  s.addNotes("Penyebarluasan: 21 akun di luar Bagian, kanal publik dipakai 66 dan 53 instansi, Tim Koordinasi lintas perangkat daerah. Inovasi ini siap direplikasi sesuai kebutuhan: yang disesuaikan hanya nama jabatan, pengguna, dan tata naskah. SOP direvisi dan disahkan November 2026–Februari 2027 mengikuti nomenklatur baru. (±30 detik)");
+  s.addNotes("Penyebarluasan: 21 akun di luar Bagian, kanal publik dipakai 66 dan 53 instansi, Tim Koordinasi lintas perangkat daerah. Inovasi ini siap direplikasi sesuai kebutuhan: yang disesuaikan hanya nama jabatan, pengguna, dan tata naskah. Sebelas SOP disahkan Sekretaris Daerah pada Oktober–Desember 2026, disesuaikan dengan nomenklatur baru. (±30 detik)");
 }
 
 // ══ 11. Kompatibilitas ═════════════════════════════════════════════
