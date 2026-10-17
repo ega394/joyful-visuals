@@ -1,0 +1,183 @@
+1
+00:00:00,400 --> 00:00:01,900
+Januari 2026.
+
+2
+00:00:01,950 --> 00:00:06,660
+Tiga lembar disposisi agenda diturunkan.
+
+3
+00:00:06,710 --> 00:00:11,550
+Yang sampai ke Bagian Prokopim hanya dua.
+
+4
+00:00:11,600 --> 00:00:19,650
+Tidak ada yang lalai, tetapi tidak ada pula yang bisa mengetahuinya.
+
+5
+00:00:20,400 --> 00:00:27,920
+Rencana kegiatan disusun di spreadsheet lalu dicetak.
+
+6
+00:00:27,970 --> 00:00:36,790
+Penelaahan hanya sempat sekitar 30 menit menjelang jam pulang.
+
+7
+00:00:36,840 --> 00:00:46,220
+Disposisi beredar sebagai foto, penugasan bergantung pada ingatan.
+
+8
+00:00:46,270 --> 00:00:54,650
+Dari pengajuan sampai tayang diperkirakan 18 sampai 24 jam.
+
+9
+00:00:55,400 --> 00:01:01,040
+Ide ini tidak lahir dari survei, tetapi dari pekerjaan sehari-hari.
+
+10
+00:01:01,090 --> 00:01:03,850
+Undangan masuk dari banyak pintu.
+
+11
+00:01:03,900 --> 00:01:06,060
+Sesudah peristiwa Januari,
+
+12
+00:01:06,110 --> 00:01:12,170
+seluruh Bagian menelaah alur kerja bersama dan menemukan pola yang sama:
+
+13
+00:01:12,220 --> 00:01:18,380
+penugasan tersimpan dalam ingatan, ruangan hanya tercatat di papan tulis,
+
+14
+00:01:18,430 --> 00:01:19,650
+arsip tersebar.
+
+15
+00:01:20,400 --> 00:01:21,830
+Ada empat pilihan.
+
+16
+00:01:21,880 --> 00:01:25,850
+Menambah pengawasan tidak menyentuh akar masalah.
+
+17
+00:01:25,900 --> 00:01:30,120
+Merapikan spreadsheet tetap menyisakan banyak versi.
+
+18
+00:01:30,170 --> 00:01:36,360
+Membeli aplikasi jadi butuh anggaran, padahal alur keprotokolan sangat khas.
+
+19
+00:01:36,410 --> 00:01:42,600
+Kami memilih membangun sendiri: satu sumber data, setiap keputusan tercatat,
+
+20
+00:01:42,650 --> 00:01:44,650
+tanpa anggaran pengadaan.
+
+21
+00:01:45,400 --> 00:01:52,900
+Lahirlah Prokopim Hibot: satu alur digital terverifikasi untuk agenda
+
+22
+00:01:52,950 --> 00:01:54,650
+Pimpinan Daerah.
+
+23
+00:01:55,400 --> 00:02:09,650
+Admin Rencana Kegiatan memasukkan undangan, cukup dengan memindainya.
+
+24
+00:02:10,400 --> 00:02:15,910
+Kepala Sub Bagian menelaah dari mana saja.
+
+25
+00:02:15,960 --> 00:02:24,650
+Tombol persetujuan baru aktif setelah butir pemeriksaan dicentang.
+
+26
+00:02:25,400 --> 00:02:29,800
+Kepala Bagian memutus.
+
+27
+00:02:29,850 --> 00:02:34,650
+Median waktunya 8 menit.
+
+28
+00:02:35,400 --> 00:02:42,670
+Begitu tayang, agenda langsung ada di telepon Pimpinan.
+
+29
+00:02:42,720 --> 00:02:46,800
+Ajudan mengonfirmasi kehadiran,
+
+30
+00:02:46,850 --> 00:02:54,650
+dan Wali Kota dapat mendisposisikan kepada Wakil Wali Kota.
+
+31
+00:02:55,400 --> 00:03:03,050
+Petugas ditugaskan dan diberi tahu, daftar hadir cukup dengan kode QR,
+
+32
+00:03:03,100 --> 00:03:09,650
+dan setiap langkah tercatat: siapa, kapan, apa keputusannya.
+
+33
+00:03:10,400 --> 00:03:22,760
+Masyarakat dan instansi mengajukan audiensi atau meminjam ruangan secara
+
+34
+00:03:22,810 --> 00:03:29,650
+daring, lalu memantau sendiri statusnya.
+
+35
+00:03:30,400 --> 00:03:36,590
+Per 24 September 2026: 589 kegiatan terkelola.
+
+36
+00:03:36,640 --> 00:03:43,370
+Waktu sampai tayang turun menjadi median 1,99 jam,
+
+37
+00:03:43,420 --> 00:03:48,250
+dan 99,3% tayang kurang dari sehari.
+
+38
+00:03:48,300 --> 00:03:51,500
+3.072 keputusan terekam.
+
+39
+00:03:51,550 --> 00:04:00,310
+66 instansi meminjam ruangan dan 53 instansi mengajukan audiensi.
+
+40
+00:04:00,360 --> 00:04:04,650
+Belanja pengadaannya nol rupiah.
+
+41
+00:04:20,400 --> 00:04:25,770
+Sebelas SOP dan Pelaksana Harian menjaga alur tetap berjalan,
+
+42
+00:04:25,820 --> 00:04:28,790
+bahkan ketika pejabat berhalangan.
+
+43
+00:04:28,840 --> 00:04:34,650
+Sejak proposal, aplikasi terus dikembangkan dari kendala pengguna.
+
+44
+00:04:35,400 --> 00:04:37,370
+Satu alur.
+
+45
+00:04:37,420 --> 00:04:39,390
+Satu data.
+
+46
+00:04:39,440 --> 00:04:44,650
+Setiap keputusan tercatat.
