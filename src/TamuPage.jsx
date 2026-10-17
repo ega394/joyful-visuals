@@ -516,7 +516,7 @@ function FormView({ form, setF, errors, touched, onBlur, onSubmit, loading, form
             id="tamu-website" name="website" type="text"
             tabIndex={-1} autoComplete="off"
             value={form.website || ""}
-            onChange={function(e) { setForm(function(p) { return Object.assign({}, p, { website: e.target.value }); }); }}
+            onChange={function(e) { setF("website", e.target.value); }}
           />
         </div>
 
