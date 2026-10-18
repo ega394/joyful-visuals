@@ -6,7 +6,7 @@ Narasi dubber (opsional) dibaca dari narasi/adegan-NN.(wav|m4a|mp3) bila ada.
 import json, os, re, subprocess, sys
 
 D = os.path.dirname(os.path.abspath(__file__)) + "/"
-LAYAR = {"laptop": (352, 128, 1216, 760), "hp": (420, 128, 351, 760)}
+LAYAR = {"laptop": (240, 112, 1440, 790), "hp": (230, 96, 406, 880)}
 
 # (nomor, durasi, sumber). Sumber grafis: ("g", id). Aplikasi: ("a", latar, jenis, [(klip, durasi_bagian, potong_s|None)]).
 ADEGAN = [
@@ -19,7 +19,7 @@ ADEGAN = [
     ("07", 15, ("a", [("b07", "hp", "a07_kasubbag", 15, None)])),
     ("08", 10, ("a", [("b08", "laptop", "a08_kabag", 10, None)])),
     ("09", 20, ("a", [("b09", "hp", "a09_walikota", 10, None), ("b09b", "hp", "a09b_ajudan", 10, None)])),
-    ("10", 15, ("a", [("b10", "laptop", "a10_penugasan", 15, 12.6)])),
+    ("10", 15, ("a", [("b10", "laptop", "a10_penugasan", 15, 17.5)])),
     ("11", 20, ("a", [("b11", "hp", "a11a_tamu", 10, None), ("b11", "hp", "a11b_ruangan", 10, None)])),
     ("12", 35, ("g", "s12")),
     ("13", 15, ("g", "s13")),
@@ -95,6 +95,12 @@ def ts(s):
     return f"{h}:{m:02d}:{d:05.2f}"
 
 
+# Adegan ponsel: bingkai HP besar di kiri, jadi takarir digeser ke ruang kanan.
+PONSEL = {"07", "09", "11"}
+ML = lambda no: 720 if no in PONSEL else 0
+MR = lambda no: 60 if no in PONSEL else 0
+
+
 def buat_ass(mulai, jalur):
     head = """[Script Info]
 ScriptType: v4.00+
@@ -110,16 +116,31 @@ Style: Takarir,Plus Jakarta Sans,46,&H00FFFFFF,&H00FFFFFF,&H00281A0A,&H96281A0A,
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 """
     ev = []
+    waktu = {}
+    if os.path.exists(D + "narasi/waktu.json"):
+        waktu = json.load(open(D + "narasi/waktu.json"))
     for no, dur, _ in ADEGAN:
-        k = potong_kalimat(TAKARIR.get(no, ""))
-        if not k:
+        kal = [k for k in re.split(r"(?<=[.!?])\s+", TAKARIR.get(no, "").strip()) if k]
+        if not kal:
             continue
+        if no in waktu and len(waktu[no]["awal"]) == len(kal):
+            # selaras suara: tiap kalimat tampil sebesar rentang ucapannya
+            w = waktu[no]; base = mulai[no] + 0.3
+            for i, k in enumerate(kal):
+                a0 = base + w["awal"][i]
+                a1 = base + (w["awal"][i + 1] - 0.05 if i + 1 < len(kal) else w["panjang"] + 0.15)
+                pot = potong_kalimat(k); tot = sum(len(x) for x in pot); t = a0
+                for x in pot:
+                    t2 = t + (a1 - a0) * len(x) / tot
+                    ev.append(f"Dialogue: 0,{ts(t)},{ts(t2 - 0.03)},Takarir,,{ML(no)},{MR(no)},46,,{x}"); t = t2
+            continue
+        k = potong_kalimat(TAKARIR.get(no, ""))
         a0, a1 = mulai[no] + 0.4, mulai[no] + dur - 0.3
         tot = sum(len(x) for x in k)
         t = a0
         for x in k:
             t2 = t + (a1 - a0) * len(x) / tot
-            ev.append(f"Dialogue: 0,{ts(t)},{ts(t2 - 0.05)},Takarir,,0,0,0,,{x}")
+            ev.append(f"Dialogue: 0,{ts(t)},{ts(t2 - 0.05)},Takarir,,{ML(no)},{MR(no)},46,,{x}")
             t = t2
     with open(jalur, "w") as f:
         f.write(head + "\n".join(ev) + "\n")

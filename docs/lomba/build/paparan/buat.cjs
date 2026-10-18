@@ -410,6 +410,35 @@ bagian("Penutup");
   s.addNotes("Penutup: 'Satu alur. Satu data. Setiap keputusan tercatat.' Terima kasih. Tawarkan akun juri baca-saja bila juri ingin mencoba.");
 }
 
+// ══ 13. Cadangan penjelasan: yang berubah sejak proposal ════════════
+bagian("Cadangan penjelasan");
+{
+  const s = isi("CADANGAN PENJELASAN  ·  JIKA DITANYA", "Sejak proposal, inovasi ini terus disempurnakan");
+  teks(s, "Proposal memuat keadaan per 24 September 2026. Pembaruan Oktober 2026 berikut berangkat dari pemakaian dan masukan pengguna.", M, 1.5, W - 2 * M, 0.4, { fontSize: 13, color: C.accent5 });
+  const unsur = [
+    ["Pengingat dirampingkan", "Proposal: lima kali sehari. Kini tiga waktu (06.30, 07.30, 16.00) ditambah kabar seketika, berdasarkan data pemakaian agar pesan tidak berulang."],
+    ["WhatsApp hanya yang perlu", "Pesan WhatsApp hanya untuk acara hari ini atau besok; selebihnya lewat notifikasi aplikasi, sehingga tidak ada pesan penting yang tenggelam."],
+    ["Pemberitahuan tamu berjenjang", "Pimpinan menerima ringkasan pagi, bukan kabar per permohonan, dengan jam tenang 21.00–06.00. Admin dapat mengirim ulang pemberitahuan ke tamu dengan jeda anti-spam."],
+    ["Monitor WA", "Meteran dan arsip pesan keluar dengan status terkirim atau dibaca, peringatan dini bila gagal beruntun. Isi pesan dihapus setelah 90 hari; OTP tidak disimpan."],
+    ["Masuk lebih mudah dan aman", "Sidik jari atau wajah (passkey) dan akun Google, tetap hanya untuk akun yang didaftarkan Admin. Kebijakan privasi dan ketentuan mengikuti UU 27/2022."],
+    ["Jam acara mengikuti zona", "Acara di zona WIB, WITA, atau WIT ditulis menurut undangan dan ditampilkan menurut tempat pengguna, sehingga jam tidak lagi tertukar."],
+  ];
+  const gw = (W - 2 * M - 2 * 0.25) / 3, gh = 2.0, top = 1.95;
+  unsur.forEach(([j, k], i) => {
+    const x = M + (i % 3) * (gw + 0.25), y = top + Math.floor(i / 3) * (gh + 0.2);
+    kartu(s, x, y, gw, gh, { isi: C.background2, nama: "baru" + (i + 1) });
+    bulat(s, x + 0.2, y + 0.18, 0.4, C.text2, String(i + 1), C.accent1);
+    teks(s, j, x + 0.75, y + 0.18, gw - 0.95, 0.4, { fontSize: 15, bold: true, color: C.text2, valign: "middle" });
+    teks(s, k, x + 0.2, y + 0.68, gw - 0.4, gh - 0.75, { fontSize: 12, color: C.text1 });
+  });
+  kartu(s, M, 6.2, W - 2 * M, 0.7, { isi: C.text2, nama: "nilaitambah" });
+  teks(s, [
+    { text: "Nilai tambah  ", options: { bold: true, color: C.accent1 } },
+    { text: "Setiap pembaruan berangkat dari kendala pengguna, dikerjakan tim sendiri tanpa belanja pengadaan, dan dicatat dalam riwayat perubahan aplikasi.", options: { color: C.background1 } },
+  ], M + 0.3, 6.2, W - 2 * M - 0.6, 0.7, { fontSize: 13, valign: "middle" });
+  s.addNotes("Gunakan hanya bila juri menanyakan perbedaan dengan proposal. Jujur dan ringkas: pengingat lima kali sehari dirampingkan menjadi tiga waktu berdasarkan data pemakaian; WhatsApp hanya untuk acara hari ini atau besok; notifikasi tamu berjenjang; Monitor WA; masuk dengan sidik jari dan Google; jam acara berzona. Semua pembaruan berangkat dari kendala pengguna dan tanpa belanja pengadaan.");
+}
+
 (async () => {
   await pres.writeFile({ fileName: KELUAR });
   await applyTheme(KELUAR, THEME);

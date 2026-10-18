@@ -1,9 +1,10 @@
 // Rekaman adegan aplikasi 6–11 dan 14. Jalankan: node adegan.mjs [a06 a07 ...]
 import { M, mulai, konteks, rekam, klik, ketik, jeda, keadaan, ACARA } from "./rekam.mjs";
-const DESK = { width: 1280, height: 800 }, HP = { width: 390, height: 844 };
+// Jendela rekaman dibuat kecil dan bingkainya besar, sehingga isi aplikasi tampil ±1,3× lebih besar di video.
+const DESK = { width: 1040, height: 570 }, HP = { width: 360, height: 780 };
 const pilih = process.argv.slice(2);
 const b = await mulai();
-const DESKO = { deviceScaleFactor: 1.5 };
+const DESKO = { deviceScaleFactor: 1.9 };
 
 const AI = { namaAcara: ACARA.namaAcara, tanggal: ACARA.tanggal, jam: "09:00", jamSelesai: "11:00", zona: "WITA", penyelenggara: ACARA.penyelenggara, kontak: ACARA.kontak, pakaian: "PDH", jenisKegiatan: "Pengarahan", catatan: "", buktiUndangan: ACARA.buktiUndangan, lokasi: ACARA.lokasi, untukPimpinan: ["walikota"] };
 
@@ -101,12 +102,16 @@ const ADEGAN = {
       await jeda(p, 500);
       await klik(p, p.getByRole("button", { name: /🗓️ Jadwal/ }), { ms: 900 });
       const kartu = p.locator("div").filter({ has: p.getByText(ACARA.namaAcara, { exact: true }) }).filter({ has: p.getByRole("button", { name: /Tugaskan!/ }) }).last();
-      await kartu.evaluate((el) => el.scrollIntoView({ block: "center", behavior: "smooth" })); await jeda(p, 900);
-      await klik(p, kartu.getByRole("button", { name: /Tugaskan!/ }), { ms: 900 });
+      await kartu.waitFor({ state: "attached" }); await kartu.evaluate((el) => el.scrollIntoView({ block: "center", behavior: "smooth" })); await jeda(p, 1100);
+      const tombolT = kartu.getByRole("button", { name: /Tugaskan!/ }).first(); await tombolT.waitFor({ state: "visible" });
+      await klik(p, tombolT, { ms: 900 });
       for (const n of ["Rina Amelia", "Fajar Ramadhan"]) await klik(p, p.getByText(n, { exact: true }).last(), { ms: 400 });
       await klik(p, p.getByRole("button", { name: /Simpan Penugasan/ }), { ms: 1400 });
       await klik(p, p.getByRole("button", { name: /Riwayat Alur/ }).last(), { ms: 900 });
-      await klik(p, p.getByText(ACARA.namaAcara).first(), { ms: 1800 });
+      const kartuR = p.getByText(ACARA.namaAcara).first();
+      await kartuR.evaluate((el) => el.scrollIntoView({ block: "center", behavior: "smooth" })); await jeda(p, 1200);
+      await p.mouse.move(640, 300, { steps: 12 }); await p.mouse.click(640, 300).catch(() => {}); await jeda(p, 400);
+      await kartuR.click({ timeout: 4000, force: true }).catch(() => {}); await jeda(p, 1800);
     });
     await ctx.close();
   },

@@ -1,0 +1,186 @@
+{
+ "01": {
+  "awal": [
+   0.0,
+   3.0,
+   7.04,
+   11.04
+  ],
+  "kalimat": [
+   "Januari 2026.",
+   "Tiga lembar disposisi agenda diturunkan.",
+   "Yang sampai ke Bagian Prokopim hanya dua.",
+   "Tidak ada yang lalai, tetapi tidak ada pula yang bisa mengetahuinya."
+  ],
+  "panjang": 16.71,
+  "laju": 135
+ },
+ "02": {
+  "awal": [
+   0.0,
+   5.02,
+   11.21,
+   17.18
+  ],
+  "kalimat": [
+   "Rencana kegiatan disusun di spreadsheet lalu dicetak.",
+   "Penelaahan hanya sempat sekitar tiga puluh menit menjelang jam pulang.",
+   "Disposisi beredar sebagai foto, penugasan bergantung pada ingatan.",
+   "Dari pengajuan sampai tayang diperkirakan delapan belas sampai dua puluh empat jam."
+  ],
+  "panjang": 24.05,
+  "laju": 135
+ },
+ "03": {
+  "awal": [
+   0.0,
+   5.69,
+   8.68
+  ],
+  "kalimat": [
+   "Ide ini tidak lahir dari survei, tetapi dari pekerjaan sehari-hari.",
+   "Undangan masuk dari banyak pintu.",
+   "Sesudah peristiwa Januari, seluruh Bagian menelaah alur kerja bersama dan menemukan pola yang sama: penugasan tersimpan dalam ingatan, ruangan hanya tercatat di papan tulis, arsip tersebar."
+  ],
+  "panjang": 23.1,
+  "laju": 147
+ },
+ "04": {
+  "awal": [
+   0.0,
+   1.89,
+   5.63,
+   9.69,
+   15.49
+  ],
+  "kalimat": [
+   "Ada empat pilihan.",
+   "Menambah pengawasan tidak menyentuh akar masalah.",
+   "Merapikan spreadsheet tetap menyisakan banyak versi.",
+   "Membeli aplikasi jadi butuh anggaran, padahal alur keprotokolan sangat khas.",
+   "Kami memilih membangun sendiri: satu sumber data, setiap keputusan tercatat, tanpa anggaran pengadaan."
+  ],
+  "panjang": 22.97,
+  "laju": 159
+ },
+ "05": {
+  "awal": [
+   0.0
+  ],
+  "kalimat": [
+   "Lahirlah Prokopim Hibot: satu alur digital terverifikasi untuk agenda Pimpinan Daerah."
+  ],
+  "panjang": 7.36,
+  "laju": 135
+ },
+ "06": {
+  "awal": [
+   0.0
+  ],
+  "kalimat": [
+   "Admin Rencana Kegiatan memasukkan undangan, cukup dengan memindainya."
+  ],
+  "panjang": 5.77,
+  "laju": 135
+ },
+ "07": {
+  "awal": [
+   0.0,
+   4.11
+  ],
+  "kalimat": [
+   "Kepala Sub Bagian menelaah dari mana saja.",
+   "Tombol persetujuan baru aktif setelah butir pemeriksaan dicentang."
+  ],
+  "panjang": 9.81,
+  "laju": 135
+ },
+ "08": {
+  "awal": [
+   0.0,
+   2.53
+  ],
+  "kalimat": [
+   "Kepala Bagian memutus.",
+   "Median waktunya delapan menit."
+  ],
+  "panjang": 5.21,
+  "laju": 135
+ },
+ "09": {
+  "awal": [
+   0.0,
+   5.11
+  ],
+  "kalimat": [
+   "Begitu tayang, agenda langsung ada di telepon Pimpinan.",
+   "Ajudan mengonfirmasi kehadiran, dan Wali Kota dapat mendisposisikan kepada Wakil Wali Kota."
+  ],
+  "panjang": 12.96,
+  "laju": 135
+ },
+ "10": {
+  "awal": [
+   0.0
+  ],
+  "kalimat": [
+   "Petugas ditugaskan dan diberi tahu, daftar hadir cukup dengan kode QR, dan setiap langkah tercatat: siapa, kapan, apa keputusannya."
+  ],
+  "panjang": 12.04,
+  "laju": 135
+ },
+ "11": {
+  "awal": [
+   0.0
+  ],
+  "kalimat": [
+   "Masyarakat dan instansi mengajukan audiensi atau meminjam ruangan secara daring, lalu memantau sendiri statusnya."
+  ],
+  "panjang": 8.8,
+  "laju": 135
+ },
+ "12": {
+  "awal": [
+   0.0,
+   8.44,
+   20.11,
+   23.96,
+   30.68
+  ],
+  "kalimat": [
+   "Per dua puluh empat September dua ribu dua puluh enam: lima ratus delapan puluh sembilan kegiatan terkelola.",
+   "Waktu sampai tayang turun menjadi median satu koma sembilan puluh sembilan jam, dan sembilan puluh sembilan koma tiga persen tayang kurang dari sehari.",
+   "Tiga ribu tujuh puluh dua keputusan terekam.",
+   "Enam puluh enam instansi meminjam ruangan dan lima puluh tiga instansi mengajukan audiensi.",
+   "Belanja pengadaannya nol rupiah."
+  ],
+  "panjang": 33.04,
+  "laju": 153
+ },
+ "14": {
+  "awal": [
+   0.0,
+   7.87
+  ],
+  "kalimat": [
+   "Sebelas SOP dan Pelaksana Harian menjaga alur tetap berjalan, bahkan ketika pejabat berhalangan.",
+   "Sejak proposal, aplikasi terus dikembangkan dari kendala pengguna."
+  ],
+  "panjang": 13.21,
+  "laju": 147
+ },
+ "15": {
+  "awal": [
+   0.0,
+   1.66,
+   3.33
+  ],
+  "kalimat": [
+   "Satu alur.",
+   "Satu data.",
+   "Setiap keputusan tercatat."
+  ],
+  "panjang": 5.81,
+  "laju": 135
+ }
+}

@@ -37,8 +37,8 @@ export const jeda = (p, ms) => p.waitForTimeout(ms);
 export async function klik(p, loc, o = {}) {
   const l = loc.first ? loc.first() : loc;
   await l.scrollIntoViewIfNeeded().catch(() => {});
-  const b = await l.boundingBox();
-  if (!b) throw new Error("tak terlihat: " + loc);
+  const b = await l.boundingBox({ timeout: 8000 }).catch(() => null);
+  if (!b) throw new Error("tak terlihat: " + String(l));
   const x = b.x + b.width / 2, y = b.y + b.height / 2;
   await p.mouse.move(x, y, { steps: o.langkah ?? 18 });
   await jeda(p, 180);

@@ -169,7 +169,7 @@ const LATAR = {
   b14: ["5 · DAMPAK", "Terus dikembangkan: Monitor WA", "laptop"],
 };
 // Kotak layar dalam koordinat panggung (dipakai ffmpeg untuk overlay).
-window.LAYAR = { laptop: { x: 352, y: 128, w: 1216, h: 760 }, hp: { x: 420, y: 128, w: 351, h: 760 } };
+window.LAYAR = { laptop: { x: 240, y: 112, w: 1440, h: 790 }, hp: { x: 230, y: 96, w: 406, h: 880 } };
 function bangunLatar(id) {
   const [label, judul, jenis, poin] = LATAR[id];
   bingkai(label, judul);
@@ -179,8 +179,8 @@ function bangunLatar(id) {
     tambah(`<div class="abs" style="left:${L.x - 120}px;top:${L.y + L.h + 18}px;width:${L.w + 240}px;height:22px;border-radius:0 0 30px 30px;background:linear-gradient(#3A4A66,#1C2738)"></div>`);
   } else {
     tambah(`<div class="abs" style="left:${L.x - 16}px;top:${L.y - 16}px;width:${L.w + 32}px;height:${L.h + 32}px;border-radius:44px;background:#0F1622;border:2px solid #3A4A66;box-shadow:0 30px 80px rgba(0,0,0,.5)"></div>`);
-    const pn = tambah(`<div class="abs" style="left:900px;top:220px;width:900px"></div>`);
-    pn.innerHTML = (poin || []).map((x) => `<div style="display:flex;gap:22px;margin-bottom:46px"><div style="width:18px;height:18px;border-radius:9px;background:var(--emas);margin-top:18px;flex:none"></div><div style="font-size:44px;font-weight:700;line-height:1.3">${x}</div></div>`).join("");
+    const pn = tambah(`<div class="abs" style="left:740px;top:240px;width:1080px"></div>`);
+    pn.innerHTML = (poin || []).map((x) => `<div style="display:flex;gap:22px;margin-bottom:46px"><div style="width:18px;height:18px;border-radius:9px;background:var(--emas);margin-top:18px;flex:none"></div><div style="font-size:50px;font-weight:700;line-height:1.3">${x}</div></div>`).join("");
   }
 }
 
