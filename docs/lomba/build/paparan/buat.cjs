@@ -243,8 +243,7 @@ bagian("Manfaat inovasi");
     ["Kabag", "Setujui dan tayangkan"],
     ["HP Wali Kota", "Agenda tiba → Hadir / disposisi ke Wawali"],
     ["Admin RK", "Tugaskan petugas → Riwayat Alur"],
-    ["Kanal publik", "Ajukan audiensi → kode penelusuran"],
-    ["Kabag", "Monitor WA → tanda terima terkirim"],
+    ["Kabag", "Monitor WA → pesan penugasan terkirim"],
   ];
   const kw = (W - 2 * M - 3 * 0.3) / 4;
   langkah.forEach(([j, k], i) => {
@@ -255,39 +254,52 @@ bagian("Manfaat inovasi");
     teks(s, j, x + 0.88, y + 0.22, kw - 1.05, 0.5, { fontSize: 17, bold: true, color: C.background1, valign: "middle" });
     teks(s, k, x + 0.22, y + 0.95, kw - 0.44, 0.9, { fontSize: 14, color: C.accent6 });
   });
-  const x = M + 3 * (kw + 0.3);
-  teks(s, "Langkah 1–4: satu alur sampai ke Pimpinan.\nLangkah 5–7: setiap keputusan dan pesan tercatat.", x, 4.3, kw, 1.6, { fontSize: 14, italic: true, color: C.accent1, paraSpaceAfter: 6 });
-  s.addNotes("DEMO 3 menit 30 detik (menit 2:50–6:20 paparan). Admin RK memegang laptop, Kasubbag dan Kabag memegang HP; Kabag memandu. Semua memakai instans demo berdata contoh. Cadangan: video demo luring 3:30 di laptop dan diska lepas. Admin RK memberi isyarat pada 6:20.");
+  const x = M + 2 * (kw + 0.3);
+  teks(s, "Langkah 1–4: satu alur sampai ke Pimpinan.\nLangkah 5–6: setiap keputusan dan pesan tercatat.", x, 4.3, 2 * kw + 0.3, 1.6, { fontSize: 16, italic: true, color: C.accent1, paraSpaceAfter: 6 });
+  s.addNotes("DEMO 3 menit (menit 2:50–5:50 paparan). Admin RK memegang laptop, Kasubbag dan Kabag memegang HP; Kabag memandu. Semua memakai instans demo berdata contoh. Kanal publik tidak didemokan di sini; ia fitur terpisah (slide 9). Cadangan: video demo luring di laptop dan diska lepas. Admin RK memberi isyarat pada 5:50.");
 }
 {
-  const s = isi("MANFAAT INOVASI  ·  25%", "Lebih cepat, terlacak, dan tanpa belanja pengadaan");
-  // Pembanding utama
-  kartu(s, M, 1.8, 5.0, 4.75, { isi: C.text2, nama: "pembanding" });
-  teks(s, "DARI PENGAJUAN SAMPAI TAYANG", M + 0.35, 2.05, 4.3, 0.3, { fontSize: 12, bold: true, color: C.accent1, charSpacing: 1 });
-  teks(s, "1,99 jam", M + 0.35, 2.45, 4.4, 1.15, { fontSize: 66, bold: true, color: C.background1 });
-  teks(s, "median sesudah Prokopim Hibot", M + 0.35, 3.6, 4.3, 0.35, { fontSize: 15, color: C.accent6 });
-  s.addShape(pres.shapes.LINE, { x: M + 0.35, y: 4.2, w: 4.3, h: 0, line: { color: "2A3B57", width: 1 } });
-  teks(s, "±18–24 jam", M + 0.35, 4.4, 4.3, 0.7, { fontSize: 34, bold: true, color: C.accent6 });
-  teks(s, "perkiraan alur lama (tidak pernah dicatat)", M + 0.35, 5.1, 4.3, 0.35, { fontSize: 14, color: C.accent6 });
-  teks(s, "99,3% tayang kurang dari 24 jam", M + 0.35, 5.7, 4.3, 0.5, { fontSize: 18, bold: true, color: C.accent1 });
-  // Angka pendukung
-  const angka = [
-    ["8 menit", "median keputusan Kepala Bagian"],
-    ["47,5%", "telaah dan persetujuan di luar jam kerja (405 dari 852)"],
-    ["3.072", "peristiwa jejak audit pada 438 kegiatan"],
-    ["92,4%", "kegiatan memiliki penugasan petugas"],
-    ["589", "kegiatan terkelola sejak Maret 2026"],
+  const s = isi("MANFAAT INOVASI  ·  25%", "Dari 18–24 jam menjadi 1,99 jam, dan setiap keputusan tercatat");
+  // Sebelum → sesudah, dibaca kiri ke kanan
+  const bw = 3.55, by = 1.85, bh = 2.85;
+  kartu(s, M, by, bw, bh, { isi: C.background2, nama: "sebelum" });
+  teks(s, "SEBELUM", M + 0.3, by + 0.22, bw - 0.6, 0.3, { fontSize: 12, bold: true, color: C.accent5, charSpacing: 2 });
+  teks(s, "±18–24 jam", M + 0.3, by + 0.65, bw - 0.6, 0.9, { fontSize: 36, bold: true, color: C.accent5 });
+  teks(s, "dari pengajuan sampai tayang; perkiraan alur lama yang tidak pernah dicatat", M + 0.3, by + 1.6, bw - 0.6, 1.0, { fontSize: 13, color: C.accent5 });
+  panah(s, M + bw + 0.1, by + bh / 2, M + bw + 0.55, by + bh / 2, C.text2);
+  const ax = M + bw + 0.65, aw = 4.0;
+  kartu(s, ax, by, aw, bh, { isi: C.text2, nama: "sesudah" });
+  teks(s, "SESUDAH", ax + 0.3, by + 0.22, aw - 0.6, 0.3, { fontSize: 12, bold: true, color: C.accent1, charSpacing: 2 });
+  teks(s, "1,99 jam", ax + 0.3, by + 0.6, aw - 0.6, 1.0, { fontSize: 50, bold: true, color: C.background1 });
+  teks(s, "median terukur dari basis data; 99,3% tayang kurang dari 24 jam", ax + 0.3, by + 1.75, aw - 0.6, 0.9, { fontSize: 13, color: C.accent6 });
+  // Bukti di sisi kanan, berurutan menurut alur: volume → keputusan → jejak → penugasan → biaya
+  const X = ax + aw + 0.4, Wr = W - M - X;
+  teks(s, "Yang menopang angka itu", X, by, Wr, 0.35, { fontSize: 15, bold: true, color: C.text2 });
+  const bukti = [
+    ["589", "kegiatan terkelola"],
+    ["8 menit", "median keputusan Kabag"],
+    ["47,5%", "telaah di luar jam kerja"],
+    ["3.072", "peristiwa jejak audit"],
+    ["92,4%", "kegiatan ada petugasnya"],
     ["Rp0", "belanja pengadaan"],
   ];
-  const X = 6.0, aw = (W - M - X - 0.25) / 2, ah = 1.4;
-  angka.forEach(([a, k], i) => {
-    const x = X + (i % 2) * (aw + 0.25), y = 1.8 + Math.floor(i / 2) * (ah + 0.27);
-    kartu(s, x, y, aw, ah, { isi: C.background2, nama: "angka" + (i + 1) });
-    teks(s, a, x + 0.25, y + 0.15, aw - 0.5, 0.65, { fontSize: 30, bold: true, color: C.text2 });
-    teks(s, k, x + 0.25, y + 0.78, aw - 0.5, 0.55, { fontSize: 13, color: C.accent5 });
+  bukti.forEach(([a, k], i) => {
+    const y = by + 0.5 + i * 0.4;
+    teks(s, a, X, y, 1.05, 0.38, { fontSize: 15, bold: true, color: C.text2, valign: "middle" });
+    teks(s, k, X + 1.1, y, Wr - 1.1, 0.38, { fontSize: 12, color: C.accent5, valign: "middle" });
+  });
+  // Alur singkat di bawah: mengapa bisa secepat itu
+  teks(s, "Mengapa lebih cepat", M, 4.95, 6, 0.35, { fontSize: 15, bold: true, color: C.text2 });
+  const sebab = [["Tanpa jendela 30 menit", "telaah dan persetujuan bisa dilakukan kapan saja, dari mana saja"], ["Satu sumber data", "tidak ada versi ganda, foto disposisi, atau grup yang harus ditelusuri"], ["Daftar periksa wajib", "kekeliruan tertahan sebelum tayang, bukan sesudahnya"]];
+  const sw = (W - 2 * M - 2 * 0.25) / 3;
+  sebab.forEach(([j, k], i) => {
+    const x = M + i * (sw + 0.25);
+    kartu(s, x, 5.35, sw, 1.2, { isi: "FFFFFF", garis: C.accent6, nama: "sebab" + (i + 1) });
+    teks(s, j, x + 0.22, 5.45, sw - 0.44, 0.4, { fontSize: 14, bold: true, color: C.text2, valign: "middle" });
+    teks(s, k, x + 0.22, 5.85, sw - 0.44, 0.65, { fontSize: 12, color: C.text1 });
   });
   teks(s, "Sumber: basis data Prokopim Hibot, 24 September 2026. Angka \"sebelum\" adalah estimasi dari alur lama.", M, 6.65, W - 2 * M, 0.3, { fontSize: 10, color: C.accent5 });
-  s.addNotes("Bacakan tiga angka saja: 1,99 jam (dari perkiraan 18–24 jam), 99,3 persen tayang kurang dari sehari, dan 47,5 persen penelaahan terjadi di luar jam kerja — artinya pekerjaan tidak lagi menunggu jendela 30 menit. (±50 detik)");
+  s.addNotes("Baca dari kiri ke kanan: sebelumnya diperkirakan 18–24 jam (tidak pernah dicatat), sekarang median 1,99 jam yang terukur, dan 99,3% tayang kurang dari sehari. Sebutkan tiga angka saja: 1,99 jam, 99,3%, dan 47,5% penelaahan di luar jam kerja (405 dari 852), artinya pekerjaan tidak lagi menunggu jendela 30 menit. Jejak audit: 3.072 peristiwa pada 438 kegiatan; penugasan petugas pada 92,4% kegiatan. (±50 detik)");
 }
 {
   const s = isi("MANFAAT INOVASI  ·  25%", "Dirasakan langsung oleh Pimpinan dan masyarakat");
@@ -300,13 +312,37 @@ bagian("Manfaat inovasi");
   teks(s, "“Perubahan jadwal yang mendadak pun tidak lagi terlewat.”", X + 0.3, 4.95, Wq - 0.6, 0.85, { fontSize: 16, italic: true, color: C.text2 });
   teks(s, "Muhammad Rizky Dinata Putra, S.Tr.IP. — Ajudan Wakil Wali Kota", X + 0.3, 5.9, Wq - 0.6, 0.7, { fontSize: 12, bold: true, color: C.accent5 });
   const XA = X + Wq + 0.3, WA = W - M - XA;
-  const angka = [["62", "kegiatan didisposisikan Wali Kota kepada Wakil langsung dari aplikasi"], ["341", "konfirmasi kehadiran oleh ajudan"], ["66", "instansi meminjam ruangan secara daring"], ["53", "instansi mengajukan audiensi secara daring"]];
+  const angka = [["62", "kegiatan didisposisikan Wali Kota kepada Wakil langsung dari aplikasi"], ["341", "konfirmasi kehadiran oleh ajudan"], ["67", "tindakan Pelaksana Harian tercatat atas nama pelakunya"], ["37", "perangkat dengan notifikasi aktif, milik 21 pengguna"]];
   angka.forEach(([a, k], i) => {
     const y = 1.75 + i * 1.29;
     teks(s, a, XA, y, WA, 0.55, { fontSize: 30, bold: true, color: C.text2 });
     teks(s, k, XA, y + 0.55, WA, 0.6, { fontSize: 12, color: C.accent5 });
   });
-  s.addNotes("Bacakan satu kutipan Wali Kota. Lalu: 62 kegiatan didisposisikan langsung dari aplikasi, 341 konfirmasi ajudan, 66 instansi meminjam ruangan dan 53 instansi mengajukan audiensi tanpa datang berulang. (±25 detik)");
+  s.addNotes("Bacakan satu kutipan Wali Kota. Lalu: 62 kegiatan didisposisikan langsung dari aplikasi, 341 konfirmasi ajudan, 67 tindakan Pelaksana Harian tercatat, dan notifikasi aktif di 37 perangkat. (±25 detik)");
+}
+
+// ══ Fitur lain: kanal publik ══════════════════════════════════════
+bagian("Fitur lain: kanal publik");
+{
+  const s = isi("FITUR LAIN  ·  MANFAAT BAGI MASYARAKAT", "Kanal publik: warga dan instansi mengurus sendiri, tanpa akun");
+  teks(s, "Terpisah dari alur agenda Pimpinan, kanal ini melayani masyarakat dan instansi lewat peramban.", M, 1.5, W - 2 * M, 0.4, { fontSize: 14, color: C.accent5 });
+  const dua = [
+    ["Peminjaman ruang rapat", "123", "pengajuan dari 66 instansi", ["98 disetujui, total 3.023 peserta kegiatan", "Kalender ketersediaan terbuka untuk umum", "Hanya keterpakaian slot; tanpa identitas atau kontak pemohon"]],
+    ["Permohonan audiensi", "55", "permohonan dari 53 instansi", ["48 telah selesai diproses", "31 di antaranya menjadi agenda Pimpinan", "Pemberitahuan berjenjang; Pimpinan tidak diganggu per permohonan"]],
+  ];
+  const cw = (W - 2 * M - 0.3) / 2;
+  dua.forEach(([j, a, k, butir], i) => {
+    const x = M + i * (cw + 0.3);
+    kartu(s, x, 2.1, cw, 3.2, { isi: i === 0 ? C.background2 : C.text2, nama: "kanal" + (i + 1) });
+    teks(s, j, x + 0.35, 2.3, cw - 0.7, 0.4, { fontSize: 17, bold: true, color: i === 0 ? C.text2 : C.accent1 });
+    teks(s, a, x + 0.35, 2.75, 1.8, 0.95, { fontSize: 54, bold: true, color: i === 0 ? C.text2 : C.background1 });
+    teks(s, k, x + 2.1, 2.95, cw - 2.4, 0.7, { fontSize: 14, color: i === 0 ? C.accent5 : C.accent6, valign: "middle" });
+    teks(s, butir.map((b, n) => ({ text: b, options: { bullet: true, breakLine: n < butir.length - 1 } })), x + 0.35, 3.85, cw - 0.7, 1.35, { fontSize: 13, color: i === 0 ? C.text1 : C.background1, paraSpaceAfter: 5 });
+  });
+  kartu(s, M, 5.55, W - 2 * M, 1.05, { isi: "FFFFFF", garis: C.accent6, nama: "kode" });
+  bulat(s, M + 0.3, 5.82, 0.5, C.accent1, "#", C.text2);
+  teks(s, [{ text: "Kode penelusuran  ", options: { bold: true, color: C.text2 } }, { text: "Pemohon memantau statusnya sendiri dengan kode, tanpa datang atau menelepon berulang. Layanan ini selaras dengan UU 25/2009 tentang Pelayanan Publik.", options: { color: C.text1 } }], M + 1.0, 5.55, W - 2 * M - 1.3, 1.05, { fontSize: 14, valign: "middle" });
+  s.addNotes("Sampaikan sebagai fitur tersendiri, bukan bagian dari alur agenda. Peminjaman ruangan: 123 pengajuan dari 66 instansi, 98 disetujui. Audiensi: 55 permohonan dari 53 instansi, 48 selesai diproses, 31 menjadi agenda Pimpinan. Pemohon memantau dengan kode penelusuran. Data per 24 September 2026. (±30 detik)");
 }
 
 // ══ 9. Pemanfaatan sumber daya ═════════════════════════════════════

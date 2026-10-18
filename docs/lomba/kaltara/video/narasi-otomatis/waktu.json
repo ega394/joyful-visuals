@@ -131,31 +131,33 @@
  },
  "11": {
   "awal": [
-   0.0
+   0.0,
+   5.9
   ],
   "kalimat": [
+   "Selain alur agenda itu, ada kanal publik, fitur tersendiri.",
    "Masyarakat dan instansi mengajukan audiensi atau meminjam ruangan secara daring, lalu memantau sendiri statusnya."
   ],
-  "panjang": 8.8,
+  "panjang": 14.7,
   "laju": 135
  },
  "12": {
   "awal": [
    0.0,
-   8.44,
-   20.11,
-   23.96,
-   30.68
+   8.76,
+   20.85,
+   24.84,
+   30.93
   ],
   "kalimat": [
    "Per dua puluh empat September dua ribu dua puluh enam: lima ratus delapan puluh sembilan kegiatan terkelola.",
    "Waktu sampai tayang turun menjadi median satu koma sembilan puluh sembilan jam, dan sembilan puluh sembilan koma tiga persen tayang kurang dari sehari.",
    "Tiga ribu tujuh puluh dua keputusan terekam.",
-   "Enam puluh enam instansi meminjam ruangan dan lima puluh tiga instansi mengajukan audiensi.",
+   "Sembilan puluh dua koma empat persen kegiatan memiliki penugasan petugas.",
    "Belanja pengadaannya nol rupiah."
   ],
-  "panjang": 33.04,
-  "laju": 153
+  "panjang": 33.38,
+  "laju": 147
  },
  "14": {
   "awal": [

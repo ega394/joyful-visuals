@@ -127,57 +127,61 @@ Petugas ditugaskan dan diberi tahu, daftar hadir cukup dengan kode QR,
 dan setiap langkah tercatat: siapa, kapan, apa keputusannya.
 
 33
-00:03:10,300 --> 00:03:16,020
-Masyarakat dan instansi mengajukan audiensi atau meminjam ruangan secara
+00:03:10,300 --> 00:03:16,120
+Selain alur agenda itu, ada kanal publik, fitur tersendiri.
 
 34
-00:03:16,050 --> 00:03:19,220
-daring, lalu memantau sendiri statusnya.
+00:03:16,200 --> 00:03:21,920
+Masyarakat dan instansi mengajukan audiensi atau meminjam ruangan secara
 
 35
-00:03:30,300 --> 00:03:38,660
-Per 24 September 2026: 589 kegiatan terkelola.
+00:03:21,950 --> 00:03:25,120
+daring, lalu memantau sendiri statusnya.
 
 36
-00:03:38,740 --> 00:03:45,470
-Waktu sampai tayang turun menjadi median 1,99 jam,
+00:03:30,300 --> 00:03:38,980
+Per 24 September 2026: 589 kegiatan terkelola.
 
 37
-00:03:45,500 --> 00:03:50,330
-dan 99,3% tayang kurang dari sehari.
+00:03:39,060 --> 00:03:46,030
+Waktu sampai tayang turun menjadi median 1,99 jam,
 
 38
-00:03:50,410 --> 00:03:54,180
-3.072 keputusan terekam.
+00:03:46,060 --> 00:03:51,070
+dan 99,3% tayang kurang dari sehari.
 
 39
-00:03:54,260 --> 00:04:00,900
-66 instansi meminjam ruangan dan 53 instansi mengajukan audiensi.
+00:03:51,150 --> 00:03:55,060
+3.072 keputusan terekam.
 
 40
-00:04:00,980 --> 00:04:03,460
-Belanja pengadaannya nol rupiah.
+00:03:55,140 --> 00:04:01,150
+92,4% kegiatan memiliki penugasan petugas.
 
 41
+00:04:01,230 --> 00:04:03,800
+Belanja pengadaannya nol rupiah.
+
+42
 00:04:20,300 --> 00:04:25,290
 Sebelas SOP dan Pelaksana Harian menjaga alur tetap berjalan,
 
-42
+43
 00:04:25,320 --> 00:04:28,090
 bahkan ketika pejabat berhalangan.
 
-43
+44
 00:04:28,170 --> 00:04:33,630
 Sejak proposal, aplikasi terus dikembangkan dari kendala pengguna.
 
-44
+45
 00:04:35,300 --> 00:04:36,880
 Satu alur.
 
-45
+46
 00:04:36,960 --> 00:04:38,550
 Satu data.
 
-46
+47
 00:04:38,630 --> 00:04:41,230
 Setiap keputusan tercatat.
