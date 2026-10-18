@@ -99,89 +99,85 @@ Kepala Sub Bagian menelaah dari mana saja.
 Tombol persetujuan baru aktif setelah butir pemeriksaan dicentang.
 
 26
-00:02:25,300 --> 00:02:27,750
-Kepala Bagian memutus.
+00:02:25,300 --> 00:02:30,190
+Kepala Bagian memeriksa dan memutus, dari mana saja.
 
 27
-00:02:27,830 --> 00:02:30,630
-Median waktunya 8 menit.
-
-28
 00:02:35,300 --> 00:02:40,330
 Begitu tayang, agenda langsung ada di telepon Pimpinan.
 
-29
+28
 00:02:40,410 --> 00:02:43,140
 Ajudan mengonfirmasi kehadiran,
 
-30
+29
 00:02:43,170 --> 00:02:48,380
 dan Wali Kota dapat mendisposisikan kepada Wakil Wali Kota.
 
-31
+30
 00:02:55,300 --> 00:03:01,830
 Petugas ditugaskan dan diberi tahu, daftar hadir cukup dengan kode QR,
 
-32
+31
 00:03:01,860 --> 00:03:07,460
 dan setiap langkah tercatat: siapa, kapan, apa keputusannya.
 
-33
+32
 00:03:10,300 --> 00:03:16,120
 Selain alur agenda itu, ada kanal publik, fitur tersendiri.
 
-34
+33
 00:03:16,200 --> 00:03:21,920
 Masyarakat dan instansi mengajukan audiensi atau meminjam ruangan secara
 
-35
+34
 00:03:21,950 --> 00:03:25,120
 daring, lalu memantau sendiri statusnya.
 
-36
+35
 00:03:30,300 --> 00:03:38,980
 Per 24 September 2026: 589 kegiatan terkelola.
 
-37
+36
 00:03:39,060 --> 00:03:46,030
 Waktu sampai tayang turun menjadi median 1,99 jam,
 
-38
+37
 00:03:46,060 --> 00:03:51,070
 dan 99,3% tayang kurang dari sehari.
 
-39
+38
 00:03:51,150 --> 00:03:55,060
 3.072 keputusan terekam.
 
-40
+39
 00:03:55,140 --> 00:04:01,150
 92,4% kegiatan memiliki penugasan petugas.
 
-41
+40
 00:04:01,230 --> 00:04:03,800
 Belanja pengadaannya nol rupiah.
 
-42
+41
 00:04:20,300 --> 00:04:25,290
 Sebelas SOP dan Pelaksana Harian menjaga alur tetap berjalan,
 
-43
+42
 00:04:25,320 --> 00:04:28,090
 bahkan ketika pejabat berhalangan.
 
-44
+43
 00:04:28,170 --> 00:04:33,630
 Sejak proposal, aplikasi terus dikembangkan dari kendala pengguna.
 
-45
+44
 00:04:35,300 --> 00:04:36,880
 Satu alur.
 
-46
+45
 00:04:36,960 --> 00:04:38,550
 Satu data.
 
-47
+46
 00:04:38,630 --> 00:04:41,230
 Setiap keputusan tercatat.

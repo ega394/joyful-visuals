@@ -188,7 +188,7 @@ bagian("Terobosan inovasi");
   const langkah = [
     ["Admin RK", "Memindai undangan; formulir terisi"],
     ["Kasubbag", "Menelaah dari mana saja; daftar periksa wajib"],
-    ["Kabag", "Memutus; median 8 menit"],
+    ["Kabag", "Memutus dan menayangkan"],
     ["HP Pimpinan", "Agenda tiba; ajudan mengonfirmasi"],
   ];
   const sw = (W - 2 * M - 3 * 0.5) / 4;
@@ -277,7 +277,6 @@ bagian("Manfaat inovasi");
   teks(s, "Yang menopang angka itu", X, by, Wr, 0.35, { fontSize: 15, bold: true, color: C.text2 });
   const bukti = [
     ["589", "kegiatan terkelola"],
-    ["8 menit", "median keputusan Kabag"],
     ["47,5%", "telaah di luar jam kerja"],
     ["3.072", "peristiwa jejak audit"],
     ["92,4%", "kegiatan ada petugasnya"],
@@ -302,7 +301,7 @@ bagian("Manfaat inovasi");
   s.addNotes("Baca dari kiri ke kanan: sebelumnya diperkirakan 18–24 jam (tidak pernah dicatat), sekarang median 1,99 jam yang terukur, dan 99,3% tayang kurang dari sehari. Sebutkan tiga angka saja: 1,99 jam, 99,3%, dan 47,5% penelaahan di luar jam kerja (405 dari 852), artinya pekerjaan tidak lagi menunggu jendela 30 menit. Jejak audit: 3.072 peristiwa pada 438 kegiatan; penugasan petugas pada 92,4% kegiatan. (±50 detik)");
 }
 {
-  const s = isi("MANFAAT INOVASI  ·  25%", "Dirasakan langsung oleh Pimpinan dan masyarakat");
+  const s = isi("MANFAAT INOVASI  ·  25%", "Dirasakan langsung oleh Pimpinan dan jajarannya");
   s.addImage({ path: A + "hp_walikota.jpg", x: M, y: 1.75, w: 2.35, h: 5.08, shadow: bayang() });
   const X = M + 2.75, Wq = 5.3;
   kartu(s, X, 1.75, Wq, 2.75, { isi: C.text2, nama: "kutipanwk" });

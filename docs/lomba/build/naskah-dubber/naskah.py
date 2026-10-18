@@ -7,7 +7,7 @@ S = [
 ("05","1:45","1:55","Pemilihan ide","Lahirlah Prokopim Hibot: satu alur digital terverifikasi untuk agenda Pimpinan Daerah.","Dibaca \"Prokopim Hibot\" (bukan dieja). Nada bangga, tenang."),
 ("06","1:55","2:10","Manfaat","Admin Rencana Kegiatan memasukkan undangan, cukup dengan memindainya.","Ceria, ringan."),
 ("07","2:10","2:25","Manfaat","Kepala Sub Bagian menelaah dari mana saja. Tombol persetujuan baru aktif setelah butir pemeriksaan dicentang.","Jelas; tekan \"baru aktif\"."),
-("08","2:25","2:35","Manfaat","Kepala Bagian memutus. Median waktunya delapan menit.","Singkat, tegas."),
+("08","2:25","2:35","Manfaat","Kepala Bagian memeriksa dan memutus, dari mana saja.","Singkat, tegas."),
 ("09","2:35","2:55","Manfaat","Begitu tayang, agenda langsung ada di telepon Pimpinan. Ajudan mengonfirmasi kehadiran, dan Wali Kota dapat mendisposisikan kepada Wakil Wali Kota.","Satu napas per kalimat."),
 ("10","2:55","3:10","Manfaat","Petugas ditugaskan dan diberi tahu, daftar hadir cukup dengan kode QR, dan setiap langkah tercatat: siapa, kapan, apa keputusannya.","\"Siapa, kapan, apa keputusannya\" dibaca dengan tiga hentakan."),
 ("11","3:10","3:30","Manfaat","Selain alur agenda itu, ada kanal publik, fitur tersendiri. Masyarakat dan instansi mengajukan audiensi atau meminjam ruangan secara daring, lalu memantau sendiri statusnya.","Hangat, lugas."),

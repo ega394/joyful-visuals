@@ -36,7 +36,7 @@ TAKARIR = {
     "05": "Lahirlah Prokopim Hibot: satu alur digital terverifikasi untuk agenda Pimpinan Daerah.",
     "06": "Admin Rencana Kegiatan memasukkan undangan, cukup dengan memindainya.",
     "07": "Kepala Sub Bagian menelaah dari mana saja. Tombol persetujuan baru aktif setelah butir pemeriksaan dicentang.",
-    "08": "Kepala Bagian memutus. Median waktunya 8 menit.",
+    "08": "Kepala Bagian memeriksa dan memutus, dari mana saja.",
     "09": "Begitu tayang, agenda langsung ada di telepon Pimpinan. Ajudan mengonfirmasi kehadiran, dan Wali Kota dapat mendisposisikan kepada Wakil Wali Kota.",
     "10": "Petugas ditugaskan dan diberi tahu, daftar hadir cukup dengan kode QR, dan setiap langkah tercatat: siapa, kapan, apa keputusannya.",
     "11": "Selain alur agenda itu, ada kanal publik, fitur tersendiri. Masyarakat dan instansi mengajukan audiensi atau meminjam ruangan secara daring, lalu memantau sendiri statusnya.",
