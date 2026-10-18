@@ -18,9 +18,9 @@
  "02": {
   "awal": [
    0.0,
-   5.02,
-   11.21,
-   17.18
+   4.81,
+   10.74,
+   16.47
   ],
   "kalimat": [
    "Rencana kegiatan disusun di spreadsheet lalu dicetak.",
@@ -28,8 +28,8 @@
    "Disposisi beredar sebagai foto, penugasan bergantung pada ingatan.",
    "Dari pengajuan sampai tayang diperkirakan delapan belas sampai dua puluh empat jam."
   ],
-  "panjang": 24.05,
-  "laju": 135
+  "panjang": 23.05,
+  "laju": 141
  },
  "03": {
   "awal": [
@@ -75,56 +75,68 @@
  },
  "06": {
   "awal": [
-   0.0
+   0.0,
+   4.35,
+   12.09
   ],
   "kalimat": [
-   "Admin Rencana Kegiatan memasukkan undangan, cukup dengan memindainya."
+   "Admin Rencana Kegiatan cukup memindai undangan.",
+   "Kecerdasan buatan mengisi nama acara, tanggal, jam, lokasi, dan zona waktunya.",
+   "Admin tinggal memeriksa, lalu mengirimkannya ke Kepala Sub Bagian."
   ],
-  "panjang": 5.77,
+  "panjang": 17.69,
   "laju": 135
  },
  "07": {
   "awal": [
    0.0,
-   4.11
+   5.94
   ],
   "kalimat": [
-   "Kepala Sub Bagian menelaah dari mana saja.",
-   "Tombol persetujuan baru aktif setelah butir pemeriksaan dicentang."
+   "Kepala Sub Bagian menelaah dari mana saja, cukup lewat telepon.",
+   "Tombol persetujuan baru aktif setelah undangan dibuka dan butir pemeriksaan dicentang."
   ],
-  "panjang": 9.81,
+  "panjang": 13.1,
   "laju": 135
  },
  "08": {
   "awal": [
-   0.0
+   0.0,
+   4.9
   ],
   "kalimat": [
-   "Kepala Bagian memeriksa dan memutus, dari mana saja."
+   "Kepala Bagian memeriksa dan memutus, dari mana saja.",
+   "Sekali disetujui, agenda langsung tayang."
   ],
-  "panjang": 4.77,
-  "laju": 135
+  "panjang": 8.44,
+  "laju": 141
  },
  "09": {
   "awal": [
    0.0,
-   5.11
+   5.11,
+   13.31
   ],
   "kalimat": [
    "Begitu tayang, agenda langsung ada di telepon Pimpinan.",
-   "Ajudan mengonfirmasi kehadiran, dan Wali Kota dapat mendisposisikan kepada Wakil Wali Kota."
+   "Ajudan mengonfirmasi kehadiran, dan Wali Kota dapat mendisposisikan kepada Wakil Wali Kota.",
+   "Tidak ada lagi foto disposisi yang berpindah dari grup ke grup."
   ],
-  "panjang": 12.96,
+  "panjang": 18.68,
   "laju": 135
  },
  "10": {
   "awal": [
-   0.0
+   0.0,
+   4.22,
+   10.34
   ],
   "kalimat": [
-   "Petugas ditugaskan dan diberi tahu, daftar hadir cukup dengan kode QR, dan setiap langkah tercatat: siapa, kapan, apa keputusannya."
+   "Petugas ditugaskan dan langsung diberi tahu.",
+   "Setiap langkah tercatat: siapa, kapan, dan apa keputusannya.",
+   "Di lokasi, tamu cukup memindai kode QR untuk mengisi daftar hadir, lengkap dengan tanda tangan."
   ],
-  "panjang": 12.04,
+  "panjang": 18.65,
   "laju": 135
  },
  "11": {
@@ -134,9 +146,9 @@
   ],
   "kalimat": [
    "Selain alur agenda itu, ada kanal publik, fitur tersendiri.",
-   "Masyarakat dan instansi mengajukan audiensi atau meminjam ruangan secara daring, lalu memantau sendiri statusnya."
+   "Masyarakat dan instansi mengajukan audiensi atau meminjam ruangan secara daring, lalu memantau sendiri statusnya, tanpa perlu datang berulang."
   ],
-  "panjang": 14.7,
+  "panjang": 17.07,
   "laju": 135
  },
  "12": {
@@ -157,6 +169,16 @@
   "panjang": 33.38,
   "laju": 147
  },
+ "13": {
+  "awal": [
+   0.0
+  ],
+  "kalimat": [
+   "Bagi Wali Kota, yang terpenting adalah kepastian: ke mana harus hadir, kapan, dan siapa yang menyiapkannya."
+  ],
+  "panjang": 8.66,
+  "laju": 147
+ },
  "14": {
   "awal": [
    0.0,
@@ -172,15 +194,17 @@
  "15": {
   "awal": [
    0.0,
-   1.66,
-   3.33
+   2.03,
+   3.69,
+   5.36
   ],
   "kalimat": [
+   "Prokopim Hibot.",
    "Satu alur.",
    "Satu data.",
    "Setiap keputusan tercatat."
   ],
-  "panjang": 5.81,
+  "panjang": 7.85,
   "laju": 135
  }
 }

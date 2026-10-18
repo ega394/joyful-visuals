@@ -9,8 +9,8 @@ from naskah import S  # lembar naskah dubber (angka dieja)
 
 D = os.path.dirname(os.path.abspath(__file__)) + "/"
 os.makedirs(D + "narasi", exist_ok=True)
-DUR = {"01":20,"02":35,"03":25,"04":25,"05":10,"06":15,"07":15,"08":10,"09":20,"10":15,"11":20,"12":35,"13":15,"14":15,"15":10}
-LEWAT = {"13"}                     # kutipan Wali Kota tampil di layar tanpa narasi
+DUR = {"01":20,"02":25,"03":25,"04":25,"05":10,"06":20,"07":15,"08":10,"09":20,"10":20,"11":20,"12":35,"13":10,"14":15,"15":10}
+LEWAT = set()                      # semua adegan bernarasi
 JEDA = 0.35                        # detik antarkalimat
 SISA = 1.0                         # sisa di ujung adegan
 

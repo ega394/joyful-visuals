@@ -39,9 +39,9 @@ const ADEGAN = {
       await p.mouse.wheel(0, 380); await jeda(p, 600);
       if (await buka.count()) { const [pop] = await Promise.all([p.waitForEvent("popup").catch(() => null), klik(p, buka, { ms: 300 })]); if (pop) await pop.close(); await jeda(p, 400); }
       const kotak = p.locator('input[type="checkbox"]');
-      for (let k = 0; k < await kotak.count(); k++) { const c = kotak.nth(k); if (await c.isVisible() && !(await c.isChecked()) && await c.isEnabled()) await klik(p, c, { ms: 300, langkah: 10 }); }
+      for (let k = 0; k < await kotak.count(); k++) { const c = kotak.nth(k); if (await c.isVisible() && !(await c.isChecked()) && await c.isEnabled()) { await c.evaluate((el) => el.scrollIntoView({ block: "center", behavior: "smooth" })); await jeda(p, 350); await klik(p, c, { ms: 300, langkah: 10 }); } }
       await jeda(p, 400);
-      await klik(p, p.getByRole("button", { name: /Verifikasi & Teruskan ke Kabag/ }), { ms: 800 });
+      { const v = p.getByRole("button", { name: /Verifikasi & Teruskan ke Kabag/ }).first(); await v.evaluate((el) => el.scrollIntoView({ block: "center", behavior: "smooth" })); await jeda(p, 500); await klik(p, v, { ms: 800 }); }
       const ya = p.getByRole("button", { name: /^Ya|Teruskan$/ });
       if (await ya.count()) await klik(p, ya.last(), { ms: 1400 });
     });
@@ -105,13 +105,40 @@ const ADEGAN = {
       await kartu.waitFor({ state: "attached" }); await kartu.evaluate((el) => el.scrollIntoView({ block: "center", behavior: "smooth" })); await jeda(p, 1100);
       const tombolT = kartu.getByRole("button", { name: /Tugaskan!/ }).first(); await tombolT.waitFor({ state: "visible" });
       await klik(p, tombolT, { ms: 900 });
-      for (const n of ["Rina Amelia", "Fajar Ramadhan"]) await klik(p, p.getByText(n, { exact: true }).last(), { ms: 400 });
-      await klik(p, p.getByRole("button", { name: /Simpan Penugasan/ }), { ms: 1400 });
-      await klik(p, p.getByRole("button", { name: /Riwayat Alur/ }).last(), { ms: 900 });
+      for (const n of ["Rina Amelia", "Fajar Ramadhan"]) { const l = p.getByText(n, { exact: true }).last(); await l.waitFor({ state: "visible" }); await klik(p, l, { ms: 400 }); }
+      await klik(p, p.getByRole("button", { name: /Simpan Penugasan/ }), { ms: 1500 });
+      await p.keyboard.press("Escape").catch(() => {}); await jeda(p, 900);
+      const tabR = p.locator("button:visible", { hasText: /Riwayat Alur/ }).first();
+      const cari = p.getByPlaceholder(/Cari nama acara/);
+      for (let u = 0; u < 3 && !(await cari.isVisible()); u++) { await klik(p, tabR, { ms: 900 }); }
+      await klik(p, cari, { ms: 200 }); await cari.pressSequentially("Hari Jadi", { delay: 70 }); await jeda(p, 800);
       const kartuR = p.getByText(ACARA.namaAcara).first();
-      await kartuR.evaluate((el) => el.scrollIntoView({ block: "center", behavior: "smooth" })); await jeda(p, 1200);
-      await p.mouse.move(640, 300, { steps: 12 }); await p.mouse.click(640, 300).catch(() => {}); await jeda(p, 400);
-      await kartuR.click({ timeout: 4000, force: true }).catch(() => {}); await jeda(p, 1800);
+      await kartuR.waitFor({ state: "visible" });
+      await klik(p, kartuR, { ms: 900 });
+      await p.mouse.wheel(0, 260); await jeda(p, 2200);
+    });
+    await ctx.close();
+  },
+  // 10b. Daftar hadir di lokasi (HP): isi nama, jabatan, tanda tangan
+  async a10b() {
+    const ctx = await konteks(b, M.buatState(), HP);
+    const p = await M.halaman(ctx, "09:05");
+    await p.goto(M.BASE + "/daftarhadir?e=RKINFRA", { waitUntil: "networkidle" }); await jeda(p, 1200);
+    await rekam(p, "a10b_hadir", async () => {
+      await jeda(p, 500);
+      const isian = p.locator("input:visible");
+      await ketik(p, isian.nth(0), "Rina Amelia", { delay: 55 });
+      await ketik(p, isian.nth(1), "Staf Protokol", { delay: 45 });
+      const kanvas = p.locator("canvas").first();
+      await kanvas.scrollIntoViewIfNeeded(); await jeda(p, 400);
+      const bx = await kanvas.boundingBox();
+      if (bx) {
+        const x0 = bx.x + bx.width * 0.2, y0 = bx.y + bx.height * 0.55;
+        await p.mouse.move(x0, y0, { steps: 8 }); await p.mouse.down();
+        for (let i = 1; i <= 24; i++) await p.mouse.move(x0 + i * bx.width * 0.025, y0 - Math.sin(i / 2.2) * bx.height * 0.18, { steps: 2 });
+        await p.mouse.up();
+      }
+      await jeda(p, 1500);
     });
     await ctx.close();
   },

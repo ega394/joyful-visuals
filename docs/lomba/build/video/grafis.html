@@ -65,21 +65,21 @@ const ADEGAN = {
     };
   } },
   // 2. Cara kerja lama
-  s02: { dur: 35, bangun() {
+  s02: { dur: 25, bangun() {
     bingkai("1 · LATAR BELAKANG", "Sebelum Maret 2026");
     const isi = [
       ["🖨️", "Rencana kegiatan", "disusun di spreadsheet, lalu dicetak", 0.5],
-      ["🕓", "Penelaahan", "±30 menit menjelang jam pulang", 8],
-      ["📷", "Disposisi", "beredar sebagai foto di grup", 15],
-      ["💭", "Penugasan", "bergantung pada ingatan", 20],
+      ["🕓", "Penelaahan", "±30 menit menjelang jam pulang", 4.5],
+      ["📷", "Disposisi", "beredar sebagai foto di grup", 10],
+      ["💭", "Penugasan", "bergantung pada ingatan", 12.5],
     ];
     const K = isi.map(([ik, j, k], i) => tambah(`<div class="kartu" style="left:${80 + i * 445}px;top:170px;width:415px;height:420px;padding:40px 34px"><div class="ikon">${ik}</div><div style="font-size:38px;font-weight:800;margin-top:34px">${j}</div><div style="font-size:28px;color:var(--abu);margin-top:16px;line-height:1.35">${k}</div></div>`));
     const jam = K[1].querySelector(".ikon");
     const hasil = tambah(`<div class="kartu" style="left:80px;top:640px;width:1760px;height:220px;display:flex;align-items:center;gap:40px;padding:0 60px;border-color:rgba(224,82,82,.6)"><div style="font-size:34px;color:var(--abu);font-weight:700">Dari pengajuan sampai tayang</div><div class="besar" style="font-size:110px;color:#E05252">±18–24 jam</div><div style="font-size:26px;color:var(--abu)">perkiraan alur lama</div></div>`);
     return (t) => {
       isi.forEach((d, i) => muncul(K[i], t, d[3], 0.7, 40));
-      jam.textContent = t < 12 ? "🕒" : "🕓";
-      muncul(hasil, t, 26, 0.9, 40);
+      jam.textContent = t < 7 ? "🕒" : "🕓";
+      muncul(hasil, t, 17.5, 0.9, 40);
     };
   } },
   // 3. Penjaringan ide
@@ -134,7 +134,7 @@ const ADEGAN = {
     };
   } },
   // 13. Testimoni Wali Kota
-  s13: { dur: 15, bangun() {
+  s13: { dur: 10, bangun() {
     bingkai("5 · DAMPAK");
     const q = tambah(`<div class="abs" style="left:200px;top:240px;width:1520px;font-size:62px;font-weight:700;line-height:1.3;font-style:italic">“Yang terpenting bagi saya adalah kepastian: ke mana saya harus hadir, kapan, dan siapa yang menyiapkannya.”</div>`);
     const s = tambah(`<div class="abs" style="left:200px;top:640px;font-size:34px;color:var(--emas);font-weight:800">dr. H. Khairul, M.Kes. — Wali Kota Tarakan</div>`);
@@ -165,6 +165,7 @@ const LATAR = {
   b09: ["4 · MANFAAT", "4. Tayang ke Pimpinan", "hp", ["Agenda langsung di HP Wali Kota", "Hadir, tidak hadir, atau disposisi ke Wakil Wali Kota"]],
   b09b: ["4 · MANFAAT", "4. Ajudan mengonfirmasi kehadiran", "hp", ["Pemberitahuan lengkap: lokasi, pakaian, narahubung", "Kesediaan hadir cukup satu ketukan"]],
   b10: ["4 · MANFAAT", "Penugasan petugas dan jejak audit", "laptop"],
+  b10b: ["4 · MANFAAT", "Daftar hadir di lokasi", "hp", ["Cukup memindai kode QR", "Nama, jabatan, dan tanda tangan langsung dari ponsel"]],
   b11: ["FITUR LAIN · KANAL PUBLIK", "Layanan terpisah untuk masyarakat dan instansi", "hp", ["Fitur tersendiri, di luar alur agenda Pimpinan", "Warga dan instansi mengajukan audiensi dan meminjam ruangan secara daring", "Status dipantau sendiri dengan kode penelusuran"]],
   b14: ["5 · DAMPAK", "Terus dikembangkan: Monitor WA", "laptop"],
 };

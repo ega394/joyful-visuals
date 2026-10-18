@@ -6,12 +6,12 @@ SUMBER = D + "bagian/_mentah.mp4"
 # (mulai di video utama, durasi, takarir)
 POTONG = [
     (2, 10, "Januari 2026: satu lembar disposisi tertinggal, dan tak ada yang tahu."),
-    (115, 6, "Kini undangan cukup dipindai."),
-    (133, 6, "Ditelaah dari mana saja, dengan daftar periksa wajib."),
-    (145, 6, "Diputus Kabag, lalu langsung tayang."),
-    (156, 7, "Agenda langsung tiba di HP Pimpinan."),
+    (107, 6, "Kini undangan cukup dipindai."),
+    (128, 6, "Ditelaah dari mana saja, dengan daftar periksa wajib."),
+    (141, 6, "Diputus Kabag, lalu langsung tayang."),
+    (151, 7, "Agenda langsung tiba di HP Pimpinan."),
     (212, 15, "589 kegiatan · median 1,99 jam sampai tayang · 99,3% tayang kurang dari sehari."),
-    (275, 10, "Satu alur. Satu data. Setiap keputusan tercatat."),
+    (270, 10, "Satu alur. Satu data. Setiap keputusan tercatat."),
 ]
 
 

@@ -11,18 +11,18 @@ LAYAR = {"laptop": (240, 112, 1440, 790), "hp": (230, 96, 406, 880)}
 # (nomor, durasi, sumber). Sumber grafis: ("g", id). Aplikasi: ("a", latar, jenis, [(klip, durasi_bagian, potong_s|None)]).
 ADEGAN = [
     ("01", 20, ("g", "s01")),
-    ("02", 35, ("g", "s02")),
+    ("02", 25, ("g", "s02")),
     ("03", 25, ("g", "s03")),
     ("04", 25, ("g", "s04")),
     ("05", 10, ("g", "s05")),
-    ("06", 15, ("a", [("b06", "laptop", "a06_admin", 15, None)])),
+    ("06", 20, ("a", [("b06", "laptop", "a06_admin", 20, None)])),
     ("07", 15, ("a", [("b07", "hp", "a07_kasubbag", 15, None)])),
     ("08", 10, ("a", [("b08", "laptop", "a08_kabag", 10, None)])),
     ("09", 20, ("a", [("b09", "hp", "a09_walikota", 10, None), ("b09b", "hp", "a09b_ajudan", 10, None)])),
-    ("10", 15, ("a", [("b10", "laptop", "a10_penugasan", 15, 17.5)])),
+    ("10", 20, ("a", [("b10", "laptop", "a10_penugasan", 13, None), ("b10b", "hp", "a10b_hadir", 7, None)])),
     ("11", 20, ("a", [("b11", "hp", "a11a_tamu", 10, None), ("b11", "hp", "a11b_ruangan", 10, None)])),
     ("12", 35, ("g", "s12")),
-    ("13", 15, ("g", "s13")),
+    ("13", 10, ("g", "s13")),
     ("14", 15, ("c", [("g", "s14a", 7), ("a", "b14", "laptop", "a14_monitorwa", 8, None)])),
     ("15", 10, ("g", "s15")),
 ]
@@ -34,16 +34,16 @@ TAKARIR = {
     "03": "Ide ini tidak lahir dari survei, tetapi dari pekerjaan sehari-hari. Undangan masuk dari banyak pintu. Sesudah peristiwa Januari, seluruh Bagian menelaah alur kerja bersama dan menemukan pola yang sama: penugasan tersimpan dalam ingatan, ruangan hanya tercatat di papan tulis, arsip tersebar.",
     "04": "Ada empat pilihan. Menambah pengawasan tidak menyentuh akar masalah. Merapikan spreadsheet tetap menyisakan banyak versi. Membeli aplikasi jadi butuh anggaran, padahal alur keprotokolan sangat khas. Kami memilih membangun sendiri: satu sumber data, setiap keputusan tercatat, tanpa anggaran pengadaan.",
     "05": "Lahirlah Prokopim Hibot: satu alur digital terverifikasi untuk agenda Pimpinan Daerah.",
-    "06": "Admin Rencana Kegiatan memasukkan undangan, cukup dengan memindainya.",
-    "07": "Kepala Sub Bagian menelaah dari mana saja. Tombol persetujuan baru aktif setelah butir pemeriksaan dicentang.",
-    "08": "Kepala Bagian memeriksa dan memutus, dari mana saja.",
-    "09": "Begitu tayang, agenda langsung ada di telepon Pimpinan. Ajudan mengonfirmasi kehadiran, dan Wali Kota dapat mendisposisikan kepada Wakil Wali Kota.",
-    "10": "Petugas ditugaskan dan diberi tahu, daftar hadir cukup dengan kode QR, dan setiap langkah tercatat: siapa, kapan, apa keputusannya.",
-    "11": "Selain alur agenda itu, ada kanal publik, fitur tersendiri. Masyarakat dan instansi mengajukan audiensi atau meminjam ruangan secara daring, lalu memantau sendiri statusnya.",
+    "06": "Admin Rencana Kegiatan cukup memindai undangan. Kecerdasan buatan mengisi nama acara, tanggal, jam, lokasi, dan zona waktunya. Admin tinggal memeriksa, lalu mengirimkannya ke Kepala Sub Bagian.",
+    "07": "Kepala Sub Bagian menelaah dari mana saja, cukup lewat telepon. Tombol persetujuan baru aktif setelah undangan dibuka dan butir pemeriksaan dicentang.",
+    "08": "Kepala Bagian memeriksa dan memutus, dari mana saja. Sekali disetujui, agenda langsung tayang.",
+    "09": "Begitu tayang, agenda langsung ada di telepon Pimpinan. Ajudan mengonfirmasi kehadiran, dan Wali Kota dapat mendisposisikan kepada Wakil Wali Kota. Tidak ada lagi foto disposisi yang berpindah dari grup ke grup.",
+    "10": "Petugas ditugaskan dan langsung diberi tahu. Setiap langkah tercatat: siapa, kapan, dan apa keputusannya. Di lokasi, tamu cukup memindai kode QR untuk mengisi daftar hadir, lengkap dengan tanda tangan.",
+    "11": "Selain alur agenda itu, ada kanal publik, fitur tersendiri. Masyarakat dan instansi mengajukan audiensi atau meminjam ruangan secara daring, lalu memantau sendiri statusnya, tanpa perlu datang berulang.",
     "12": "Per 24 September 2026: 589 kegiatan terkelola. Waktu sampai tayang turun menjadi median 1,99 jam, dan 99,3% tayang kurang dari sehari. 3.072 keputusan terekam. 92,4% kegiatan memiliki penugasan petugas. Belanja pengadaannya nol rupiah.",
     "13": "",
     "14": "Sebelas SOP dan Pelaksana Harian menjaga alur tetap berjalan, bahkan ketika pejabat berhalangan. Sejak proposal, aplikasi terus dikembangkan dari kendala pengguna.",
-    "15": "Satu alur. Satu data. Setiap keputusan tercatat.",
+    "15": "Prokopim Hibot. Satu alur. Satu data. Setiap keputusan tercatat.",
 }
 
 
@@ -97,8 +97,11 @@ def ts(s):
 
 # Adegan ponsel: bingkai HP besar di kiri, jadi takarir digeser ke ruang kanan.
 PONSEL = {"07", "09", "11"}
-ML = lambda no: 720 if no in PONSEL else 0
-MR = lambda no: 60 if no in PONSEL else 0
+PONSEL_SESUDAH = {"10": 13.0}   # adegan campuran: bagian ponsel mulai detik ke-13
+def _hp(no, rel):
+    return no in PONSEL or (no in PONSEL_SESUDAH and rel >= PONSEL_SESUDAH[no] - 0.2)
+ML = lambda no, rel=0: 720 if _hp(no, rel) else 0
+MR = lambda no, rel=0: 60 if _hp(no, rel) else 0
 
 
 def buat_ass(mulai, jalur):
@@ -132,7 +135,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 pot = potong_kalimat(k); tot = sum(len(x) for x in pot); t = a0
                 for x in pot:
                     t2 = t + (a1 - a0) * len(x) / tot
-                    ev.append(f"Dialogue: 0,{ts(t)},{ts(t2 - 0.03)},Takarir,,{ML(no)},{MR(no)},46,,{x}"); t = t2
+                    ev.append(f"Dialogue: 0,{ts(t)},{ts(t2 - 0.03)},Takarir,,{ML(no, t - mulai[no])},{MR(no, t - mulai[no])},46,,{x}"); t = t2
             continue
         k = potong_kalimat(TAKARIR.get(no, ""))
         a0, a1 = mulai[no] + 0.4, mulai[no] + dur - 0.3
@@ -140,7 +143,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         t = a0
         for x in k:
             t2 = t + (a1 - a0) * len(x) / tot
-            ev.append(f"Dialogue: 0,{ts(t)},{ts(t2 - 0.05)},Takarir,,{ML(no)},{MR(no)},46,,{x}")
+            ev.append(f"Dialogue: 0,{ts(t)},{ts(t2 - 0.05)},Takarir,,{ML(no, t - mulai[no])},{MR(no, t - mulai[no])},46,,{x}")
             t = t2
     with open(jalur, "w") as f:
         f.write(head + "\n".join(ev) + "\n")
@@ -191,7 +194,11 @@ def main():
         for i, (no, st) in enumerate(narasi, 1):
             f = next(D + f"narasi/adegan-{no}.{e}" for e in ("wav", "m4a", "mp3") if os.path.exists(D + f"narasi/adegan-{no}.{e}"))
             ins += ["-i", f]; flt.append(f"[{i}:a]adelay={int(st * 1000 + 300)}|{int(st * 1000 + 300)}[n{i}]")
-        flt.append("".join(f"[n{i}]" for i in range(1, len(narasi) + 1)) + f"amix=inputs={len(narasi)}:normalize=0,apad,atrim=0:{t}[a]")
+        n = len(narasi)
+        if os.path.exists(D + "musik.wav"):   # musik latar pelan (musik.py), di bawah narasi
+            ins += ["-i", D + "musik.wav"]; n += 1
+            flt.append(f"[{n}:a]atrim=0:{t},volume=1.0[n{n}]")
+        flt.append("".join(f"[n{i}]" for i in range(1, n + 1)) + f"amix=inputs={n}:normalize=0,apad,atrim=0:{t}[a]")
         jalankan("ffmpeg", "-y", "-loglevel", "error", *ins, "-filter_complex", f"[0:v]{vf}[v];" + ";".join(flt), "-map", "[v]", "-map", "[a]",
                  "-c:v", "libx264", "-crf", "19", "-preset", "slow", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", "-t", str(t), hasil)
     else:

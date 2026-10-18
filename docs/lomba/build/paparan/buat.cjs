@@ -62,8 +62,14 @@ pres.defineSlideMaster({
 const bayang = () => ({ type: "outer", color: "0A1628", opacity: 0.12, blur: 8, offset: 2, angle: 90 });
 const kartu = (s, x, y, w, h, o = {}) =>
   s.addShape(pres.shapes.ROUNDED_RECTANGLE, { x, y, w, h, rectRadius: 0.12, fill: { color: o.isi || C.background2 }, line: { color: o.garis || o.isi || C.background2, width: o.tebal || 0.75 }, shadow: o.bayang ? bayang() : undefined, objectName: o.nama });
-const teks = (s, t, x, y, w, h, o = {}) =>
-  s.addText(t, { x, y, w, h, isTextBox: true, margin: 0, fontSize: 14, color: C.text1, valign: "top", ...o });
+// Batas bawah 14 pt agar terbaca di proyektor; hanya label kapital (charSpacing)
+// dan catatan sumber (kecil: true) yang boleh lebih kecil.
+const teks = (s, t, x, y, w, h, o = {}) => {
+  const { kecil, ...opsi } = o;
+  const ukuran = opsi.fontSize ?? 14;
+  return s.addText(t, { x, y, w, h, isTextBox: true, margin: 0, color: C.text1, valign: "top", ...opsi,
+    fontSize: kecil || opsi.charSpacing ? ukuran : Math.max(14, ukuran) });
+};
 const bulat = (s, x, y, d, warna, label, warnaTeks) => {
   s.addShape(pres.shapes.OVAL, { x, y, w: d, h: d, fill: { color: warna }, line: { color: warna } });
   s.addText(label, { x, y, w: d, h: d, isTextBox: true, margin: 0, align: "center", valign: "middle", fontSize: 14, bold: true, color: warnaTeks });
@@ -205,12 +211,12 @@ bagian("Terobosan inovasi");
 {
   const s = isi("TEROBOSAN INOVASI  ·  20%", "Enam unsur kebaruan, dan terus bertambah");
   const unsur = [
-    ["Jejak audit di setiap kegiatan", "Siapa, kapan, apa keputusannya — 3.072 peristiwa"],
-    ["Daftar periksa wajib", "Tombol setuju baru aktif sesudah butir dicentang"],
-    ["Pelaksana Harian bermasa berlaku", "Kewenangan padam sendiri pada tanggal akhirnya"],
-    ["Pengawasan menurut kegentingan", "Usulan tertahan ditandai menurut umur dan hari H"],
-    ["Kanal publik terlacak", "Pemohon memantau sendiri dengan kode penelusuran"],
-    ["Tersambung kalender bersama", "Agenda tersetujui tampil sendiri di Google Calendar"],
+    ["Jejak audit di setiap kegiatan", "Siapa, kapan, apa keputusannya"],
+    ["Daftar periksa wajib", "Setuju baru aktif sesudah dicentang"],
+    ["Pelaksana Harian bermasa berlaku", "Padam sendiri pada tanggal akhirnya"],
+    ["Pengawasan menurut kegentingan", "Ditandai menurut umur dan hari H"],
+    ["Kanal publik terlacak", "Dipantau sendiri dengan kode"],
+    ["Tersambung kalender bersama", "Agenda tersetujui tampil sendiri"],
   ];
   const gw = 2.62, gh = 2.1, g = 0.22;
   unsur.forEach(([j, k], i) => {
@@ -297,7 +303,7 @@ bagian("Manfaat inovasi");
     teks(s, j, x + 0.22, 5.45, sw - 0.44, 0.4, { fontSize: 14, bold: true, color: C.text2, valign: "middle" });
     teks(s, k, x + 0.22, 5.85, sw - 0.44, 0.65, { fontSize: 12, color: C.text1 });
   });
-  teks(s, "Sumber: basis data Prokopim Hibot, 24 September 2026. Angka \"sebelum\" adalah estimasi dari alur lama.", M, 6.65, W - 2 * M, 0.3, { fontSize: 10, color: C.accent5 });
+  teks(s, "Sumber: basis data Prokopim Hibot, 24 September 2026. Angka \"sebelum\" adalah estimasi dari alur lama.", M, 6.65, W - 2 * M, 0.3, { kecil: true, fontSize: 11, color: C.accent5 });
   s.addNotes("Baca dari kiri ke kanan: sebelumnya diperkirakan 18–24 jam (tidak pernah dicatat), sekarang median 1,99 jam yang terukur, dan 99,3% tayang kurang dari sehari. Sebutkan tiga angka saja: 1,99 jam, 99,3%, dan 47,5% penelaahan di luar jam kerja (405 dari 852), artinya pekerjaan tidak lagi menunggu jendela 30 menit. Jejak audit: 3.072 peristiwa pada 438 kegiatan; penugasan petugas pada 92,4% kegiatan. (±50 detik)");
 }
 {
@@ -441,7 +447,7 @@ bagian("Penutup");
   kartu(s, 9.3, 1.6, 3.43, 4.35, { isi: "FFFFFF", nama: "qr" });
   s.addImage({ path: A + "qr.png", x: 9.62, y: 1.9, w: 2.8, h: 2.8 });
   teks(s, "prokopim.tarakankota.go.id", 9.45, 4.9, 3.13, 0.4, { fontSize: 14, bold: true, color: C.text2, align: "center" });
-  teks(s, "Akses juri baca-saja tersedia saat demonstrasi", 9.45, 5.3, 3.13, 0.5, { fontSize: 11, color: C.accent5, align: "center" });
+  teks(s, "Alamat resmi aplikasi", 9.45, 5.3, 3.13, 0.5, { fontSize: 14, color: C.accent5, align: "center" });
   s.addNotes("Penutup: 'Satu alur. Satu data. Setiap keputusan tercatat.' Terima kasih. Tawarkan akun juri baca-saja bila juri ingin mencoba.");
 }
 
@@ -451,12 +457,12 @@ bagian("Cadangan penjelasan");
   const s = isi("CADANGAN PENJELASAN  ·  JIKA DITANYA", "Sejak proposal, inovasi ini terus disempurnakan");
   teks(s, "Proposal memuat keadaan per 24 September 2026. Pembaruan Oktober 2026 berikut berangkat dari pemakaian dan masukan pengguna.", M, 1.5, W - 2 * M, 0.4, { fontSize: 13, color: C.accent5 });
   const unsur = [
-    ["Pengingat dirampingkan", "Proposal: lima kali sehari. Kini tiga waktu (06.30, 07.30, 16.00) ditambah kabar seketika, berdasarkan data pemakaian agar pesan tidak berulang."],
-    ["WhatsApp hanya yang perlu", "Pesan WhatsApp hanya untuk acara hari ini atau besok; selebihnya lewat notifikasi aplikasi, sehingga tidak ada pesan penting yang tenggelam."],
-    ["Pemberitahuan tamu berjenjang", "Pimpinan menerima ringkasan pagi, bukan kabar per permohonan, dengan jam tenang 21.00–06.00. Admin dapat mengirim ulang pemberitahuan ke tamu dengan jeda anti-spam."],
-    ["Monitor WA", "Meteran dan arsip pesan keluar dengan status terkirim atau dibaca, peringatan dini bila gagal beruntun. Isi pesan dihapus setelah 90 hari; OTP tidak disimpan."],
-    ["Masuk lebih mudah dan aman", "Sidik jari atau wajah (passkey) dan akun Google, tetap hanya untuk akun yang didaftarkan Admin. Kebijakan privasi dan ketentuan mengikuti UU 27/2022."],
-    ["Jam acara mengikuti zona", "Acara di zona WIB, WITA, atau WIT ditulis menurut undangan dan ditampilkan menurut tempat pengguna, sehingga jam tidak lagi tertukar."],
+    ["Pengingat dirampingkan", "Proposal: lima kali sehari. Kini tiga waktu (06.30, 07.30, 16.00) plus kabar seketika, agar pesan tidak berulang."],
+    ["WhatsApp hanya yang perlu", "WhatsApp hanya untuk acara hari ini atau besok; selebihnya lewat notifikasi aplikasi."],
+    ["Tamu berjenjang", "Pimpinan menerima ringkasan pagi, jam tenang 21.00–06.00; admin dapat mengirim ulang pemberitahuan ke tamu."],
+    ["Monitor WA", "Arsip pesan keluar dengan status terkirim atau dibaca dan peringatan dini; isi dihapus setelah 90 hari."],
+    ["Masuk lebih aman", "Sidik jari atau wajah dan akun Google, hanya untuk akun terdaftar; kebijakan privasi sesuai UU 27/2022."],
+    ["Jam acara mengikuti zona", "Acara WIB, WITA, atau WIT ditulis menurut undangan dan tampil menurut tempat pengguna."],
   ];
   const gw = (W - 2 * M - 2 * 0.25) / 3, gh = 2.0, top = 1.95;
   unsur.forEach(([j, k], i) => {

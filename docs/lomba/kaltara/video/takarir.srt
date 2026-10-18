@@ -15,169 +15,201 @@ Yang sampai ke Bagian Prokopim hanya dua.
 Tidak ada yang lalai, tetapi tidak ada pula yang bisa mengetahuinya.
 
 5
-00:00:20,300 --> 00:00:25,240
+00:00:20,300 --> 00:00:25,030
 Rencana kegiatan disusun di spreadsheet lalu dicetak.
 
 6
-00:00:25,320 --> 00:00:31,430
+00:00:25,110 --> 00:00:30,960
 Penelaahan hanya sempat sekitar 30 menit menjelang jam pulang.
 
 7
-00:00:31,510 --> 00:00:37,400
+00:00:31,040 --> 00:00:36,690
 Disposisi beredar sebagai foto, penugasan bergantung pada ingatan.
 
 8
-00:00:37,480 --> 00:00:44,470
+00:00:36,770 --> 00:00:43,470
 Dari pengajuan sampai tayang diperkirakan 18 sampai 24 jam.
 
 9
-00:00:55,300 --> 00:01:00,910
+00:00:45,300 --> 00:00:50,910
 Ide ini tidak lahir dari survei, tetapi dari pekerjaan sehari-hari.
 
 10
-00:01:00,990 --> 00:01:03,900
+00:00:50,990 --> 00:00:53,900
 Undangan masuk dari banyak pintu.
 
 11
-00:01:03,980 --> 00:01:05,990
+00:00:53,980 --> 00:00:55,990
 Sesudah peristiwa Januari,
 
 12
-00:01:06,020 --> 00:01:11,630
+00:00:56,020 --> 00:01:01,630
 seluruh Bagian menelaah alur kerja bersama dan menemukan pola yang sama:
 
 13
-00:01:11,660 --> 00:01:17,340
+00:01:01,660 --> 00:01:07,340
 penugasan tersimpan dalam ingatan, ruangan hanya tercatat di papan tulis,
 
 14
-00:01:17,380 --> 00:01:18,520
+00:01:07,380 --> 00:01:08,520
 arsip tersebar.
 
 15
-00:01:20,300 --> 00:01:22,110
+00:01:10,300 --> 00:01:12,110
 Ada empat pilihan.
 
 16
-00:01:22,190 --> 00:01:25,850
+00:01:12,190 --> 00:01:15,850
 Menambah pengawasan tidak menyentuh akar masalah.
 
 17
-00:01:25,930 --> 00:01:29,910
+00:01:15,930 --> 00:01:19,910
 Merapikan spreadsheet tetap menyisakan banyak versi.
 
 18
-00:01:29,990 --> 00:01:35,710
+00:01:19,990 --> 00:01:25,710
 Membeli aplikasi jadi butuh anggaran, padahal alur keprotokolan sangat khas.
 
 19
-00:01:35,790 --> 00:01:41,500
+00:01:25,790 --> 00:01:31,500
 Kami memilih membangun sendiri: satu sumber data, setiap keputusan tercatat,
 
 20
-00:01:41,530 --> 00:01:43,390
+00:01:31,530 --> 00:01:33,390
 tanpa anggaran pengadaan.
 
 21
-00:01:45,300 --> 00:01:51,370
+00:01:35,300 --> 00:01:41,370
 Lahirlah Prokopim Hibot: satu alur digital terverifikasi untuk agenda
 
 22
-00:01:51,400 --> 00:01:52,780
+00:01:41,400 --> 00:01:42,780
 Pimpinan Daerah.
 
 23
-00:01:55,300 --> 00:02:01,190
-Admin Rencana Kegiatan memasukkan undangan, cukup dengan memindainya.
+00:01:45,300 --> 00:01:49,570
+Admin Rencana Kegiatan cukup memindai undangan.
 
 24
-00:02:10,300 --> 00:02:14,330
-Kepala Sub Bagian menelaah dari mana saja.
+00:01:49,650 --> 00:01:57,310
+Kecerdasan buatan mengisi nama acara, tanggal, jam, lokasi, dan zona waktunya.
 
 25
-00:02:14,410 --> 00:02:20,230
-Tombol persetujuan baru aktif setelah butir pemeriksaan dicentang.
+00:01:57,390 --> 00:02:03,110
+Admin tinggal memeriksa, lalu mengirimkannya ke Kepala Sub Bagian.
 
 26
-00:02:25,300 --> 00:02:30,190
-Kepala Bagian memeriksa dan memutus, dari mana saja.
+00:02:05,300 --> 00:02:11,160
+Kepala Sub Bagian menelaah dari mana saja, cukup lewat telepon.
 
 27
-00:02:35,300 --> 00:02:40,330
-Begitu tayang, agenda langsung ada di telepon Pimpinan.
+00:02:11,240 --> 00:02:17,660
+Tombol persetujuan baru aktif setelah undangan dibuka dan butir pemeriksaan
 
 28
-00:02:40,410 --> 00:02:43,140
-Ajudan mengonfirmasi kehadiran,
+00:02:17,690 --> 00:02:18,520
+dicentang.
 
 29
-00:02:43,170 --> 00:02:48,380
-dan Wali Kota dapat mendisposisikan kepada Wakil Wali Kota.
+00:02:20,300 --> 00:02:25,120
+Kepala Bagian memeriksa dan memutus, dari mana saja.
 
 30
-00:02:55,300 --> 00:03:01,830
-Petugas ditugaskan dan diberi tahu, daftar hadir cukup dengan kode QR,
+00:02:25,200 --> 00:02:28,860
+Sekali disetujui, agenda langsung tayang.
 
 31
-00:03:01,860 --> 00:03:07,460
-dan setiap langkah tercatat: siapa, kapan, apa keputusannya.
+00:02:30,300 --> 00:02:35,330
+Begitu tayang, agenda langsung ada di telepon Pimpinan.
 
 32
+00:02:35,410 --> 00:02:38,190
+Ajudan mengonfirmasi kehadiran,
+
+33
+00:02:38,220 --> 00:02:43,530
+dan Wali Kota dapat mendisposisikan kepada Wakil Wali Kota.
+
+34
+00:02:43,610 --> 00:02:49,100
+Tidak ada lagi foto disposisi yang berpindah dari grup ke grup.
+
+35
+00:02:50,300 --> 00:02:54,440
+Petugas ditugaskan dan langsung diberi tahu.
+
+36
+00:02:54,520 --> 00:03:00,560
+Setiap langkah tercatat: siapa, kapan, dan apa keputusannya.
+
+37
+00:03:00,640 --> 00:03:06,550
+Di lokasi, tamu cukup memindai kode QR untuk mengisi daftar hadir,
+
+38
+00:03:06,580 --> 00:03:09,070
+lengkap dengan tanda tangan.
+
+39
 00:03:10,300 --> 00:03:16,120
 Selain alur agenda itu, ada kanal publik, fitur tersendiri.
 
-33
-00:03:16,200 --> 00:03:21,920
+40
+00:03:16,200 --> 00:03:21,950
 Masyarakat dan instansi mengajukan audiensi atau meminjam ruangan secara
 
-34
-00:03:21,950 --> 00:03:25,120
-daring, lalu memantau sendiri statusnya.
+41
+00:03:21,980 --> 00:03:27,490
+daring, lalu memantau sendiri statusnya, tanpa perlu datang berulang.
 
-35
+42
 00:03:30,300 --> 00:03:38,980
 Per 24 September 2026: 589 kegiatan terkelola.
 
-36
+43
 00:03:39,060 --> 00:03:46,030
 Waktu sampai tayang turun menjadi median 1,99 jam,
 
-37
+44
 00:03:46,060 --> 00:03:51,070
 dan 99,3% tayang kurang dari sehari.
 
-38
+45
 00:03:51,150 --> 00:03:55,060
 3.072 keputusan terekam.
 
-39
+46
 00:03:55,140 --> 00:04:01,150
 92,4% kegiatan memiliki penugasan petugas.
 
-40
+47
 00:04:01,230 --> 00:04:03,800
 Belanja pengadaannya nol rupiah.
 
-41
-00:04:20,300 --> 00:04:25,290
+48
+00:04:15,300 --> 00:04:20,290
 Sebelas SOP dan Pelaksana Harian menjaga alur tetap berjalan,
 
-42
-00:04:25,320 --> 00:04:28,090
+49
+00:04:20,320 --> 00:04:23,090
 bahkan ketika pejabat berhalangan.
 
-43
-00:04:28,170 --> 00:04:33,630
+50
+00:04:23,170 --> 00:04:28,630
 Sejak proposal, aplikasi terus dikembangkan dari kendala pengguna.
 
-44
-00:04:35,300 --> 00:04:36,880
+51
+00:04:30,300 --> 00:04:32,250
+Prokopim Hibot.
+
+52
+00:04:32,330 --> 00:04:33,910
 Satu alur.
 
-45
-00:04:36,960 --> 00:04:38,550
+53
+00:04:33,990 --> 00:04:35,580
 Satu data.
 
-46
-00:04:38,630 --> 00:04:41,230
+54
+00:04:35,660 --> 00:04:38,270
 Setiap keputusan tercatat.

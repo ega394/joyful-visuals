@@ -38,7 +38,7 @@ export async function klik(p, loc, o = {}) {
   const l = loc.first ? loc.first() : loc;
   await l.scrollIntoViewIfNeeded().catch(() => {});
   const b = await l.boundingBox({ timeout: 8000 }).catch(() => null);
-  if (!b) throw new Error("tak terlihat: " + String(l));
+  if (!b) { await p.screenshot({ path: OUT + "_gagal.png" }).catch(() => {}); throw new Error("tak terlihat: " + String(l)); }
   const x = b.x + b.width / 2, y = b.y + b.height / 2;
   await p.mouse.move(x, y, { steps: o.langkah ?? 18 });
   await jeda(p, 180);
@@ -89,4 +89,16 @@ export const ACARA = { ...structuredClone(D.JADWAL[0]), id: 1789000000001, tangg
   namaAcara: "Rapat Koordinasi Persiapan Hari Jadi Kota Tarakan", penyelenggara: "Bagian Tata Pemerintahan", kontak: "Rudi 0812-0000-8008",
   buktiUndangan: "000.1.5/402/TAPEM/2026", lokasi: "Ruang Imbaya, Kantor Wali Kota Tarakan", jenisKegiatan: "Pengarahan", pakaian: "PDH",
   untukPimpinan: ["walikota"], statusWK: null, statusWWK: null, personil: [], undanganFile: D.UNDANGAN_URL, undanganNama: "Undangan-Rakor-Hari-Jadi.pdf", timeline: [] };
-export function keadaan(alur, lain = {}) { const st = M.buatState(); st.jadwal.set(String(ACARA.id), { ...structuredClone(ACARA), alur, ...lain }); return st; }
+// Riwayat alur sesuai tahap, supaya layar tidak menampilkan "Belum ada riwayat alur".
+const jejak = (jam, action, actor, actor_role, note) => ({ action, at: new Date(`${D.tgl(0)}T${jam}:00+08:00`).toISOString(), actor, actor_role, ...(note ? { note } : {}) });
+const JEJAK = [
+  jejak("07:51", "create", "admin_rk", "admin_rk"),
+  jejak("07:52", "upload_undangan", "admin_rk", "admin_rk"),
+  jejak("07:55", "submit", "admin_rk", "admin_rk"),
+  jejak("08:18", "forward_to_kabag", "kasubbag_protokol", "kasubbag_protokol", "Undangan sesuai; tidak bentrok"),
+  jejak("08:31", "publish", "kabag", "kabag", "Undangan sudah dibuka · Tidak bentrok dengan agenda pimpinan · Kehadiran pimpinan pada acara ini layak"),
+];
+const SAMPAI = { draft: 1, menunggu_kasubbag: 3, menunggu_kabag: 4, disetujui: 5 };
+export function keadaan(alur, lain = {}) { const st = M.buatState();
+  // Acara hari ini di data contoh diberi petugas, agar peringatan "belum ditugaskan" tidak muncul di rekaman.
+  for (const e of st.jadwal.values()) if (e.tanggal === D.tgl(0) && e.alur === "disetujui" && !(e.personil || []).length) e.personil = ["nanda"]; st.jadwal.set(String(ACARA.id), { ...structuredClone(ACARA), alur, timeline: JEJAK.slice(0, SAMPAI[alur] ?? 0), ...lain }); return st; }
