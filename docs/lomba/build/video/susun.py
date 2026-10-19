@@ -48,7 +48,7 @@ ADEGAN = [
 
 # Takarir = narasi dengan angka berbentuk digit (naskah dubber mengeja angka).
 TAKARIR = {
-    "01": "Januari 2026. Tiga lembar disposisi agenda diturunkan. Yang sampai ke Bagian Prokopim hanya dua. Tidak ada yang lalai, tetapi tidak ada pula yang bisa mengetahuinya.",
+    "01": "Januari 2026. Dua lembar disposisi agenda diturunkan: rencana kegiatan dan rencana audiensi. Yang sampai ke Bagian Prokopim hanya satu. Tidak ada yang lalai, tetapi tidak ada pula yang bisa mengetahuinya.",
     "02": "Rencana kegiatan disusun di spreadsheet lalu dicetak. Penelaahan hanya sempat sekitar 30 menit menjelang jam pulang. Disposisi beredar sebagai foto, penugasan bergantung pada ingatan. Dari pengajuan sampai tayang diperkirakan 18 sampai 24 jam.",
     "03": "Ide ini tidak lahir dari survei, tetapi dari pekerjaan sehari-hari. Undangan masuk dari banyak pintu. Sesudah peristiwa Januari, seluruh Bagian menelaah alur kerja bersama dan menemukan pola yang sama: penugasan tersimpan dalam ingatan, ruangan hanya tercatat di papan tulis, arsip tersebar.",
     "04": "Ada empat pilihan. Menambah pengawasan tidak menyentuh akar masalah. Merapikan spreadsheet tetap menyisakan banyak versi. Membeli aplikasi jadi butuh anggaran, padahal alur keprotokolan sangat khas. Kami memilih membangun sendiri: satu sumber data, setiap keputusan tercatat, tanpa anggaran pengadaan.",

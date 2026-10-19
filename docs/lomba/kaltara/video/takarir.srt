@@ -1,17 +1,17 @@
 1
-00:00:00,300 --> 00:00:03,220
+00:00:00,300 --> 00:00:03,230
 Januari 2026.
 
 2
-00:00:03,300 --> 00:00:07,260
-Tiga lembar disposisi agenda diturunkan.
+00:00:03,310 --> 00:00:09,810
+Dua lembar disposisi agenda diturunkan: rencana kegiatan dan rencana audiensi.
 
 3
-00:00:07,340 --> 00:00:11,260
-Yang sampai ke Bagian Prokopim hanya dua.
+00:00:09,890 --> 00:00:13,600
+Yang sampai ke Bagian Prokopim hanya satu.
 
 4
-00:00:11,340 --> 00:00:17,130
+00:00:13,680 --> 00:00:18,940
 Tidak ada yang lalai, tetapi tidak ada pula yang bisa mengetahuinya.
 
 5

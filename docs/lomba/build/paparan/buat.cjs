@@ -6,6 +6,8 @@
 //   NODE_PATH=<node_modules> APPLY_THEME=<apply_theme.js> node docs/lomba/build/paparan/buat.cjs <keluaran.pptx>
 const pptxgen = require("pptxgenjs");
 const fs = require("fs");
+// Catatan pembicara = naskah bicara (naskah_paparan.py → naskah-paparan.json).
+const NASKAH = require("./naskah-paparan.json");
 // Menulis warna tema ke dalam berkas; jalurnya diberikan lewat APPLY_THEME
 // (skrip apply_theme.js dari skill pptx). Tanpa itu warna tema bawaan Office.
 const applyTheme = process.env.APPLY_THEME ? require(process.env.APPLY_THEME).applyTheme : async () => {};
@@ -33,7 +35,7 @@ pres.company = "Pemerintah Kota Tarakan";
 const C = pres.SchemeColor;
 
 const W = 13.333, M = 0.6;
-const KAKI = "Prokopim Hibot  ·  Kaltara Innovation Awards 2026  ·  Kategori ASN Pemerintah Kabupaten/Kota";
+const KAKI = "Prokopim Hibot  ·  Kaltara Innovation Awards 2026  ·  Kategori Inovasi Terapan – ASN Pemerintah Kabupaten/Kota";
 
 // ── Layout ─────────────────────────────────────────────────────────
 pres.defineSlideMaster({
@@ -99,13 +101,16 @@ bagian("Pembuka");
   teks(s, "KALTARA INNOVATION AWARDS 2026  ·  PENILAIAN TAHAP II", M, 1.55, 8.4, 0.3, { fontSize: 12, bold: true, color: C.accent1, charSpacing: 1 });
   teks(s, "Prokopim Hibot", M, 2.0, 8.2, 1.1, { fontSize: 54, bold: true, color: C.background1, fontFace: "Arial" });
   teks(s, "Satu Alur Digital Terverifikasi untuk Tata Kelola Agenda dan Keprotokolan Pimpinan Daerah", M, 3.15, 7.8, 1.0, { fontSize: 22, color: C.accent1 });
-  teks(s, "Inovasi Terapan – ASN Pemerintah Kabupaten/Kota\nBagian Protokol dan Komunikasi Pimpinan, Sekretariat Daerah Kota Tarakan", M, 4.4, 7.8, 0.75, { fontSize: 15, color: C.accent6, paraSpaceAfter: 2 });
+  s.addShape(pres.shapes.ROUNDED_RECTANGLE, { x: M, y: 4.3, w: 8.2, h: 0.72, rectRadius: 0.08, fill: { color: C.accent1, transparency: 85 }, line: { color: C.accent1, width: 1.25 } });
+  teks(s, "KATEGORI", M + 0.25, 4.3, 1.3, 0.72, { fontSize: 12, bold: true, color: C.accent1, charSpacing: 1, valign: "middle" });
+  teks(s, "Inovasi Terapan – ASN Pemerintah Kabupaten/Kota", M + 1.45, 4.3, 6.65, 0.72, { fontSize: 19, bold: true, color: C.background1, valign: "middle" });
+  teks(s, "Bagian Protokol dan Komunikasi Pimpinan, Sekretariat Daerah Kota Tarakan", M, 5.12, 7.8, 0.36, { fontSize: 15, color: C.accent6 });
   teks(s, [
     { text: "Tim Inovasi  ", options: { bold: true, color: C.accent1 } },
     { text: "Anugrah Yega Pranatha, M.Si. (Ketua)  ·  Saifullah, S.H.  ·  Juliyanti, S.AP.  ·  Mastura, S.Sos.  ·  Ni Kade Sari Handayani, S.AP.", options: { color: C.background1 } },
-  ], M, 5.55, 7.8, 0.75, { fontSize: 13 });
+  ], M, 5.7, 7.8, 0.75, { fontSize: 13 });
   s.addImage({ path: A + "hp_walikota.jpg", x: 9.35, y: 0.55, w: 2.95, h: 6.38, shadow: { type: "outer", color: "000000", opacity: 0.35, blur: 12, offset: 4, angle: 90 } });
-  s.addNotes("Izin kami sampaikan Prokopim Hibot, satu alur digital terverifikasi untuk agenda Pimpinan Daerah. (±20 detik)");
+  s.addNotes(NASKAH["1"]);
 }
 
 // ══ 2–3. Latar belakang ════════════════════════════════════════════
@@ -123,10 +128,10 @@ bagian("Latar belakang");
     teks(s, "✗  TERTINGGAL · Rencana Audiensi", M + 0.1, 5.64, 3.6, 0.36, { fontSize: 14, bold: true, color: "FFFFFF", fill: { color: C.accent4 }, margin: [0, 0.1, 0, 0.1], valign: "middle" });
     teks(s, "Lembar asli, 2 Januari 2026. Nomor telepon, tanda tangan, dan NIP disamarkan.", M, 6.17, 4.9, 0.5, { fontSize: 14, italic: true, color: C.text2 });
   }
-  // Tiga lembar disposisi
-  const lembar = [["Disposisi 1", "Difoto, terkirim ke grup WA", false], ["Disposisi 2", "Difoto, terkirim ke grup WA", false], ["Disposisi 3", "Tertinggal — tidak ada yang tahu", true]];
+  // Dua lembar disposisi
+  const lembar = [["Rencana Kegiatan", "Difoto, terkirim ke grup WA", false], ["Rencana Audiensi", "Tertinggal — tidak ada yang tahu", true]];
   if (!asli) lembar.forEach(([j, k, hilang], i) => {
-    const y = 1.85 + i * 1.32;
+    const y = 2.2 + i * 1.5;
     kartu(s, M, y, 4.9, 1.1, { isi: hilang ? "FDECEC" : C.background2, garis: hilang ? C.accent4 : C.background2, tebal: hilang ? 1.5 : 0.75, nama: "lembar" + (i + 1) });
     bulat(s, M + 0.25, y + 0.27, 0.56, hilang ? C.accent4 : C.accent3, hilang ? "✗" : "✓", C.background1);
     teks(s, j, M + 1.05, y + 0.2, 3.7, 0.36, { fontSize: 16, bold: true, color: C.text2 });
@@ -148,7 +153,7 @@ bagian("Latar belakang");
     { text: a, options: { bold: true, color: C.text2, fill: { color: i % 2 ? "FFFFFF" : HEX.lt2 } } },
     { text: b, options: { color: i === 5 ? C.accent4 : C.text1, bold: i === 5, fill: { color: i % 2 ? "FFFFFF" : HEX.lt2 } } },
   ]), { x: X, y: 2.35, w: Wt, colW: [2.55, Wt - 2.55], fontSize: 14, fontFace: "Arial", border: { type: "none" }, rowH: 0.56, valign: "middle", margin: [0, 0.12, 0, 0.12] });
-  s.addNotes("Januari 2026. Tiga lembar disposisi agenda diturunkan; yang sampai ke kami hanya dua. Tidak ada yang lalai, tetapi tidak ada pula yang bisa mengetahuinya. Sebelum Maret 2026: rencana kegiatan di spreadsheet lalu dicetak, penelaahan hanya sempat sekitar 30 menit menjelang jam pulang, disposisi beredar sebagai foto, penugasan bergantung pada ingatan. (±40 detik)");
+  s.addNotes(NASKAH["2"]);
 }
 {
   const s = isi("LATAR BELAKANG  ·  20%", "Akar masalahnya satu: tidak ada sumber data yang sahih");
@@ -179,7 +184,7 @@ bagian("Latar belakang");
     { text: "Peristiwa Januari 2026", options: { bullet: true, breakLine: true } },
     { text: "Telaah bersama seluruh Bagian Prokopim", options: { bullet: true } },
   ], XP + 0.22, 2.8, WP - 0.44, 2.8, { fontSize: 14, color: C.text1, paraSpaceAfter: 8 });
-  s.addNotes("Telaah bersama seluruh Bagian sesudah peristiwa Januari menemukan pola yang sama di banyak tempat: penugasan tersimpan dalam ingatan, ruangan hanya tercatat di papan tulis, arsip tersebar. Akarnya satu: tidak ada satu sumber data yang sahih. Data pembanding: dari undangan sampai tayang diperkirakan 18–24 jam. (±40 detik)");
+  s.addNotes(NASKAH["3"]);
 }
 
 // ══ 4–5. Terobosan ═════════════════════════════════════════════════
@@ -217,7 +222,7 @@ bagian("Terobosan inovasi");
     teks(s, k, x + 0.22, y + 0.9, sw - 0.44, 0.9, { fontSize: 14, color: C.text1 });
     if (i < 3) panah(s, x + sw + 0.06, y + 0.97, x + sw + 0.44, y + 0.97, C.text2);
   });
-  s.addNotes("Ada empat pilihan. Menambah pengawasan tidak menyentuh akar masalah. Merapikan spreadsheet tetap menyisakan banyak versi. Membeli aplikasi jadi butuh anggaran, padahal alur keprotokolan sangat khas. Kami memilih membangun sendiri. Hasilnya satu alur: Admin RK → Kasubbag → Kabag → tayang di HP Pimpinan. Sebut daftar periksa wajib, Pelaksana Harian, dan kanal publik. (±40 detik)");
+  s.addNotes(NASKAH["4"]);
 }
 {
   const s = isi("TEROBOSAN INOVASI  ·  20%", "Enam unsur kebaruan, dan terus bertambah");
@@ -247,7 +252,7 @@ bagian("Terobosan inovasi");
     { text: "Zona waktu WIB/WITA/WIT mengikuti lokasi Pimpinan", options: { bullet: true, breakLine: true } },
     { text: "Kebijakan privasi sesuai UU 27/2022", options: { bullet: true } },
   ], X + 0.3, 2.75, Wb - 0.55, 3.3, { fontSize: 15, color: C.background1, paraSpaceAfter: 9 });
-  s.addNotes("Kebaruan ada pada cara aplikasi menjaga mutu keputusan: jejak audit, daftar periksa wajib, Pelaksana Harian bermasa berlaku, pengawasan menurut kegentingan, kanal publik terlacak, dan kalender bersama. Sejak proposal, aplikasi terus dikembangkan dari kendala pengguna (sebut bulannya: Oktober 2026). Lalu: 'Izin kami tunjukkan langsung di aplikasi.' → masuk demo. (±30 detik)");
+  s.addNotes(NASKAH["5"]);
 }
 
 // ══ 6–8. Manfaat ═══════════════════════════════════════════════════
@@ -273,7 +278,7 @@ bagian("Manfaat inovasi");
   });
   const x = M + 2 * (kw + 0.3);
   teks(s, "Langkah 1–4: satu alur sampai ke Pimpinan.\nLangkah 5–6: setiap keputusan dan pesan tercatat.", x, 4.3, 2 * kw + 0.3, 1.6, { fontSize: 16, italic: true, color: C.accent1, paraSpaceAfter: 6 });
-  s.addNotes("DEMO 3 menit (menit 2:50–5:50 paparan). Admin RK memegang laptop, Kasubbag dan Kabag memegang HP; Kabag memandu. Semua memakai instans demo berdata contoh. Kanal publik tidak didemokan di sini; ia fitur terpisah (slide 9). Cadangan: video demo luring di laptop dan diska lepas. Admin RK memberi isyarat pada 5:50.");
+  s.addNotes(NASKAH["6"]);
 }
 {
   const s = isi("MANFAAT INOVASI  ·  25%", "Dari 18–24 jam menjadi 1,99 jam, dan setiap keputusan tercatat");
@@ -320,7 +325,7 @@ bagian("Manfaat inovasi");
     teks(s, k, x + 0.2, 5.85, sw - 0.4, 0.65, { fontSize: 12, color: C.text1 });
   });
   teks(s, "Sumber: basis data Prokopim Hibot, 24 September 2026. Angka \"sebelum\" adalah estimasi dari alur lama.", M, 6.65, W - 2 * M, 0.3, { kecil: true, fontSize: 11, color: C.accent5 });
-  s.addNotes("Baca dari kiri ke kanan: sebelumnya diperkirakan 18–24 jam (tidak pernah dicatat), sekarang median 1,99 jam yang terukur, dan 99,3% tayang kurang dari sehari. Sebutkan tiga angka saja: 1,99 jam, 99,3%, dan 47,5% penelaahan di luar jam kerja (405 dari 852), artinya pekerjaan tidak lagi menunggu jendela 30 menit. Jejak audit: 3.072 peristiwa pada 438 kegiatan; penugasan petugas pada 92,4% kegiatan. Tutup dengan hemat kertas: rencana kegiatan tidak lagi dicetak ulang setiap ada perubahan, 452 berkas undangan terarsip digital, daftar hadir dan persetujuan cukup di layar. (±50 detik)");
+  s.addNotes(NASKAH["7"]);
 }
 {
   const s = isi("MANFAAT INOVASI  ·  25%", "Dirasakan langsung oleh Pimpinan dan jajarannya");
@@ -339,7 +344,7 @@ bagian("Manfaat inovasi");
     teks(s, a, XA, y, WA, 0.55, { fontSize: 30, bold: true, color: C.text2 });
     teks(s, k, XA, y + 0.55, WA, 0.6, { fontSize: 12, color: C.accent5 });
   });
-  s.addNotes("Bacakan satu kutipan Wali Kota. Lalu: 62 kegiatan didisposisikan langsung dari aplikasi, 341 konfirmasi ajudan, 67 tindakan Pelaksana Harian tercatat, dan notifikasi aktif di 37 perangkat. (±25 detik)");
+  s.addNotes(NASKAH["8"]);
 }
 
 // ══ Fitur lain: kanal publik ══════════════════════════════════════
@@ -363,7 +368,7 @@ bagian("Fitur lain: kanal publik");
   kartu(s, M, 5.55, W - 2 * M, 1.05, { isi: "FFFFFF", garis: C.accent6, nama: "kode" });
   bulat(s, M + 0.3, 5.82, 0.5, C.accent1, "#", C.text2);
   teks(s, [{ text: "Kode penelusuran  ", options: { bold: true, color: C.text2 } }, { text: "Pemohon memantau statusnya sendiri dengan kode, tanpa datang atau menelepon berulang. Layanan ini selaras dengan UU 25/2009 tentang Pelayanan Publik.", options: { color: C.text1 } }], M + 1.0, 5.55, W - 2 * M - 1.3, 1.05, { fontSize: 14, valign: "middle" });
-  s.addNotes("Sampaikan sebagai fitur tersendiri, bukan bagian dari alur agenda. Peminjaman ruangan: 123 pengajuan dari 66 instansi, 98 disetujui. Audiensi: 55 permohonan dari 53 instansi, 48 selesai diproses, 31 menjadi agenda Pimpinan. Pemohon memantau dengan kode penelusuran. Data per 24 September 2026. (±30 detik)");
+  s.addNotes(NASKAH["9"]);
 }
 
 // ══ 9. Pemanfaatan sumber daya ═════════════════════════════════════
@@ -399,7 +404,7 @@ bagian("Pemanfaatan sumber daya");
   kartu(s, X, 5.25, Wb, 1.45, { isi: C.text2, nama: "keberlanjutan" });
   teks(s, "KEBERLANJUTAN", X + 0.25, 5.4, Wb - 0.5, 0.3, { fontSize: 12, bold: true, color: C.accent1, charSpacing: 1 });
   teks(s, "11 SOP  ·  Pelaksana Harian  ·  kode dan riwayat lengkap tersimpan  ·  alih pengetahuan ke pengelola kedua 2027", X + 0.25, 5.72, Wb - 0.5, 0.9, { fontSize: 14, color: C.background1 });
-  s.addNotes("Jawab lebih dulu pertanyaan 'bila Kabag dimutasi': kewenangan melekat pada jabatan, 11 SOP, kode dan riwayat tersimpan lengkap, akun layanan atas nama instansi, pengelola kedua didampingi mulai 2027. Biaya berjalan mendekati nol. (±40 detik)");
+  s.addNotes(NASKAH["10"]);
 }
 
 // ══ 10. Diseminasi ═════════════════════════════════════════════════
@@ -430,7 +435,7 @@ bagian("Diseminasi inovasi");
     teks(s, t, X + 0.65, y - 0.02, Wr - 0.65, 0.4, { fontSize: 15, bold: true, color: C.text2 });
     teks(s, k, X + 0.65, y + 0.38, Wr - 0.65, 0.85, { fontSize: 14, color: C.text1 });
   });
-  s.addNotes("Penyebarluasan: 21 akun di luar Bagian, kanal publik dipakai 66 dan 53 instansi, Tim Koordinasi lintas perangkat daerah. Inovasi ini siap direplikasi sesuai kebutuhan: yang disesuaikan hanya nama jabatan, pengguna, dan tata naskah. Sebelas SOP disahkan Sekretaris Daerah pada Oktober–Desember 2026, disesuaikan dengan nomenklatur baru. (±30 detik)");
+  s.addNotes(NASKAH["11"]);
 }
 
 // ══ 11. Kompatibilitas ═════════════════════════════════════════════
@@ -449,7 +454,7 @@ bagian("Kompatibilitas");
     teks(s, j, x + 0.3, 2.0, kw - 0.6, 0.45, { fontSize: 18, bold: true, color: i === 1 ? C.accent1 : C.text2, fit: "none" });
     teks(s, butir.map((b, n) => ({ text: b, options: { bullet: true, breakLine: n < butir.length - 1 } })), x + 0.3, 2.6, kw - 0.55, 4.0, { fontSize: 14, color: i === 1 ? C.background1 : C.text1, paraSpaceAfter: 9 });
   });
-  s.addNotes("Kompatibilitas: dasar regulasi pelayanan publik, keprotokolan, inovasi daerah, SPBE; selaras Misi 3 RPJMD Kaltara dan Misi 4 Kota Tarakan. Aplikasi menyesuaikan cara kerja Pimpinan — contohnya naskah sambutan tetap tercetak. (±30 detik)");
+  s.addNotes(NASKAH["12"]);
 }
 
 // ══ 12. Penutup ════════════════════════════════════════════════════
@@ -464,7 +469,7 @@ bagian("Penutup");
   s.addImage({ path: A + "qr.png", x: 9.62, y: 1.9, w: 2.8, h: 2.8 });
   teks(s, "prokopim.tarakankota.go.id", 9.45, 4.9, 3.13, 0.4, { fontSize: 14, bold: true, color: C.text2, align: "center" });
   teks(s, "Alamat resmi aplikasi", 9.45, 5.3, 3.13, 0.5, { fontSize: 14, color: C.accent5, align: "center" });
-  s.addNotes("Penutup: 'Satu alur. Satu data. Setiap keputusan tercatat.' Terima kasih. Tawarkan akun juri baca-saja bila juri ingin mencoba.");
+  s.addNotes(NASKAH["13"]);
 }
 
 // ══ 13. Cadangan penjelasan: yang berubah sejak proposal ════════════
@@ -480,7 +485,7 @@ bagian("Cadangan penjelasan");
     ["Masuk lebih aman", "Sidik jari atau wajah dan akun Google, hanya untuk akun terdaftar; kebijakan privasi sesuai UU 27/2022."],
     ["Jam acara mengikuti zona", "Acara WIB, WITA, atau WIT ditulis menurut undangan dan tampil menurut tempat pengguna."],
   ];
-  const gw = (W - 2 * M - 2 * 0.25) / 3, gh = 2.0, top = 1.95;
+  const gw = (W - 2 * M - 2 * 0.25) / 3, gh = 1.72, top = 1.95;
   unsur.forEach(([j, k], i) => {
     const x = M + (i % 3) * (gw + 0.25), y = top + Math.floor(i / 3) * (gh + 0.2);
     kartu(s, x, y, gw, gh, { isi: C.background2, nama: "baru" + (i + 1) });
@@ -488,12 +493,16 @@ bagian("Cadangan penjelasan");
     teks(s, j, x + 0.75, y + 0.18, gw - 0.95, 0.4, { fontSize: 15, bold: true, color: C.text2, valign: "middle" });
     teks(s, k, x + 0.2, y + 0.68, gw - 0.4, gh - 0.75, { fontSize: 12, color: C.text1 });
   });
+  teks(s, [
+    { text: "Koreksi data  ", options: { bold: true, color: C.accent4 } },
+    { text: "Proposal menulis tiga lembar (peristiwa Januari 2026); lembar aslinya dua, satu tidak sampai. Peristiwanya sama.", options: { color: C.text1 } },
+  ], M, 5.68, W - 2 * M, 0.42, { fontSize: 14, valign: "middle" });
   kartu(s, M, 6.2, W - 2 * M, 0.7, { isi: C.text2, nama: "nilaitambah" });
   teks(s, [
     { text: "Nilai tambah  ", options: { bold: true, color: C.accent1 } },
     { text: "Setiap pembaruan berangkat dari kendala pengguna, dikerjakan tim sendiri tanpa belanja pengadaan, dan dicatat dalam riwayat perubahan aplikasi.", options: { color: C.background1 } },
   ], M + 0.3, 6.2, W - 2 * M - 0.6, 0.7, { fontSize: 13, valign: "middle" });
-  s.addNotes("Gunakan hanya bila juri menanyakan perbedaan dengan proposal. Jujur dan ringkas: pengingat lima kali sehari dirampingkan menjadi tiga waktu berdasarkan data pemakaian; WhatsApp hanya untuk acara hari ini atau besok; notifikasi tamu berjenjang; Monitor WA; masuk dengan sidik jari dan Google; jam acara berzona. Semua pembaruan berangkat dari kendala pengguna dan tanpa belanja pengadaan.");
+  s.addNotes(NASKAH["14"]);
 }
 
 (async () => {

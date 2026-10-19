@@ -39,16 +39,16 @@ function bingkai(label, judul) {
 }
 
 const ADEGAN = {
-  // 1. Tiga lembar disposisi; dua terkirim, satu tertinggal
+  // 1. Dua lembar disposisi; satu terkirim, satu tertinggal
   s01: { dur: 20, bangun() {
     bingkai("1 · LATAR BELAKANG");
     const th = tambah(`<div class="abs besar" style="left:80px;top:150px;font-size:96px">Januari 2026</div>`);
-    const L = [0, 1, 2].map((i) => tambah(`<div class="lembar" style="left:${300 + i * 300}px;top:360px"><div class="kop">DISPOSISI ${i + 1}</div><div class="g"></div><div class="g" style="width:80%"></div><div class="g"></div><div class="g" style="width:60%"></div><div class="g" style="width:90%"></div><div class="g" style="width:40%"></div></div>`));
+    const L = ["RENCANA<br>KEGIATAN", "RENCANA<br>AUDIENSI"].map((j, i) => tambah(`<div class="lembar" style="left:${450 + i * 330}px;top:360px"><div class="kop">${j}</div><div class="g"></div><div class="g" style="width:80%"></div><div class="g"></div><div class="g" style="width:60%"></div><div class="g" style="width:90%"></div></div>`));
     const hp = tambah(`<div class="kartu" style="left:1330px;top:300px;width:420px;height:470px;padding:30px"><div style="font-size:26px;font-weight:800;color:#2FB57F">● Grup WhatsApp</div><div id="masuk" style="margin-top:24px;display:flex;flex-direction:column;gap:18px"></div></div>`);
     const masuk = hp.querySelector("#masuk");
-    const foto = [0, 1].map((i) => { const b = el(`<div style="background:#1E3A2F;border-radius:16px;padding:14px 18px;font-size:22px;opacity:0">📷 Foto disposisi ${i + 1}</div>`); masuk.appendChild(b); return b; });
+    const foto = [0].map(() => { const b = el(`<div style="background:#1E3A2F;border-radius:16px;padding:14px 18px;font-size:22px;opacity:0">📷 Foto rencana kegiatan</div>`); masuk.appendChild(b); return b; });
     const flash = tambah(`<div class="abs" style="inset:0;background:#fff;opacity:0"></div>`);
-    const tanya = tambah(`<div class="abs besar" style="left:960px;top:820px;font-size:30px;color:#E05252;opacity:0;font-weight:800">Disposisi 3 tertinggal — tidak ada yang tahu</div>`);
+    const tanya = tambah(`<div class="abs besar" style="left:960px;top:820px;font-size:30px;color:#E05252;opacity:0;font-weight:800">Rencana audiensi tertinggal — tidak ada yang tahu</div>`);
     // Foto lembar asli (disamarkan), bila tersedia di aset/: yang sampai dan yang tertinggal, lalu perbesar disposisinya.
     const tirai = tambah(`<div class="abs" style="inset:0;background:var(--navy);opacity:0"></div>`);
     const kepala = tambah(`<div class="abs besar" style="left:110px;top:120px;font-size:46px;opacity:0">Lembar aslinya · 2 Januari 2026</div>`);
@@ -63,24 +63,22 @@ const ADEGAN = {
       muncul(th, t, 0.2, 0.8);
       L.forEach((n, i) => muncul(n, t, 1 + i * 0.5, 0.7, 60));
       gaya(hp, { opacity: e(t, 2.5, 0.8) });
-      [0, 1].forEach((i) => {
-        const a = 5 + i * 2.2, k = e(t, a, 1.2);
-        gaya(L[i], { transform: `translate(${k * (1060 - i * 300 + 40)}px, ${-k * 120 + i * k * 30}px) scale(${1 - 0.65 * k}) rotate(${k * 6}deg)`, opacity: 1 - e(t, a + 1.0, 0.3) });
-        gaya(foto[i], { opacity: e(t, a + 1.0, 0.3) });
-      });
-      gaya(flash, { opacity: 0.55 * (Math.max(0, 1 - Math.abs(t - 5.2) * 6) + Math.max(0, 1 - Math.abs(t - 7.4) * 6)) });
-      const k3 = e(t, 10, 1.2);
-      gaya(L[2], { opacity: 1 - 0.55 * k3, filter: `grayscale(${k3})`, outline: k3 > 0.05 ? `6px solid rgba(224,82,82,${k3})` : "none" });
-      muncul(tanya, t, 11, 0.8);
+      const k = e(t, 8.8, 1.0);
+      gaya(L[0], { transform: `translate(${k * 950}px, ${-k * 120}px) scale(${1 - 0.65 * k}) rotate(${k * 6}deg)`, opacity: 1 - e(t, 9.6, 0.3) });
+      gaya(foto[0], { opacity: e(t, 9.6, 0.3) });
+      gaya(flash, { opacity: 0.55 * Math.max(0, 1 - Math.abs(t - 9.0) * 6) });
+      const k3 = e(t, 11, 1.0);
+      gaya(L[1], { opacity: 1 - 0.55 * k3, filter: `grayscale(${k3})`, outline: k3 > 0.05 ? `6px solid rgba(224,82,82,${k3})` : "none" });
+      muncul(tanya, t, 11.6, 0.8);
       if (!ada) return;
-      gaya(tirai, { opacity: 0.94 * e(t, 12.8, 0.6) });
-      muncul(kepala, t, 13.1, 0.6);
-      muncul(f1, t, 13.3, 0.7, 40); muncul(c1, t, 13.8, 0.5);
-      const z = e(t, 16.3, 1.2);
-      gaya(f2, { opacity: e(t, 14.3, 0.7), left: (990 + (160 - 990) * z) + "px", top: (290 + (230 - 290) * z) + "px", width: (840 + (1600 - 840) * z) + "px" });
-      gaya(c2, { opacity: e(t, 14.8, 0.5) * (1 - e(t, 16.0, 0.4)) });
-      gaya(f1, { opacity: e(t, 13.3, 0.7) * (1 - e(t, 16.0, 0.5)) }); gaya(c1, { opacity: e(t, 13.8, 0.5) * (1 - e(t, 16.0, 0.5)) });
-      muncul(cincin, t, 17.6, 0.5, 0); muncul(ket, t, 18.0, 0.6);
+      gaya(tirai, { opacity: 0.94 * e(t, 13.3, 0.6) });
+      muncul(kepala, t, 13.6, 0.6);
+      muncul(f1, t, 13.8, 0.7, 40); muncul(c1, t, 14.3, 0.5);
+      const z = e(t, 16.6, 1.1);
+      gaya(f2, { opacity: e(t, 14.6, 0.7), left: (990 + (160 - 990) * z) + "px", top: (290 + (230 - 290) * z) + "px", width: (840 + (1600 - 840) * z) + "px" });
+      gaya(c2, { opacity: e(t, 15.1, 0.5) * (1 - e(t, 16.4, 0.4)) });
+      gaya(f1, { opacity: e(t, 13.8, 0.7) * (1 - e(t, 16.4, 0.5)) }); gaya(c1, { opacity: e(t, 14.3, 0.5) * (1 - e(t, 16.4, 0.5)) });
+      muncul(cincin, t, 17.8, 0.5, 0); muncul(ket, t, 18.1, 0.6);
     };
   } },
   // 2. Cara kerja lama
