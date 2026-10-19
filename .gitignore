@@ -36,3 +36,5 @@ docs/lomba/build/tangkapan/out/
 # Rekaman nyata (wajah Pimpinan, agenda asli) dan video yang memuatnya: jangan masuk repo publik
 docs/lomba/build/video/nyata/
 *-dengan-Wali-Kota.mp4
+# Foto lembar disposisi asli (disamarkan) hanya untuk berkas yang dikirim
+docs/lomba/build/*/aset/lembar-*

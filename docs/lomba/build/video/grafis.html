@@ -49,7 +49,17 @@ const ADEGAN = {
     const foto = [0, 1].map((i) => { const b = el(`<div style="background:#1E3A2F;border-radius:16px;padding:14px 18px;font-size:22px;opacity:0">📷 Foto disposisi ${i + 1}</div>`); masuk.appendChild(b); return b; });
     const flash = tambah(`<div class="abs" style="inset:0;background:#fff;opacity:0"></div>`);
     const tanya = tambah(`<div class="abs besar" style="left:960px;top:820px;font-size:30px;color:#E05252;opacity:0;font-weight:800">Disposisi 3 tertinggal — tidak ada yang tahu</div>`);
+    // Foto lembar asli (disamarkan), bila tersedia di aset/: yang sampai dan yang tertinggal, lalu perbesar disposisinya.
+    const tirai = tambah(`<div class="abs" style="inset:0;background:var(--navy);opacity:0"></div>`);
+    const kepala = tambah(`<div class="abs besar" style="left:110px;top:120px;font-size:46px;opacity:0">Lembar aslinya · 2 Januari 2026</div>`);
+    const f1 = tambah(`<img class="abs" src="aset/lembar-sampai.jpg" style="left:110px;top:220px;width:820px;opacity:0;border-radius:8px;box-shadow:0 20px 50px rgba(0,0,0,.5)">`);
+    const f2 = tambah(`<img class="abs" src="aset/lembar-tertinggal.jpg" style="left:990px;top:290px;width:840px;opacity:0;border-radius:8px;box-shadow:0 20px 50px rgba(0,0,0,.5);outline:6px solid #E05252">`);
+    const c1 = tambah(`<div class="abs" style="left:110px;top:660px;padding:10px 22px;border-radius:12px;background:#2FB57F;font-size:30px;font-weight:800;opacity:0">✓ SAMPAI · Rencana Kegiatan</div>`);
+    const c2 = tambah(`<div class="abs" style="left:990px;top:600px;padding:10px 22px;border-radius:12px;background:#E05252;font-size:30px;font-weight:800;opacity:0">✗ TERTINGGAL · Rencana Audiensi</div>`);
+    const cincin = tambah(`<div class="abs" style="left:211px;top:327px;width:241px;height:262px;border:6px solid #E05252;border-radius:18px;opacity:0"></div>`);
+    const ket = tambah(`<div class="abs" style="left:520px;top:800px;font-size:32px;font-weight:700;color:#F3B0B0;opacity:0">Didisposisi untuk Senin, 5 Januari 2026, tetapi tak pernah sampai.</div>`);
     return (t) => {
+      const ada = f1.naturalWidth > 0 && f2.naturalWidth > 0;
       muncul(th, t, 0.2, 0.8);
       L.forEach((n, i) => muncul(n, t, 1 + i * 0.5, 0.7, 60));
       gaya(hp, { opacity: e(t, 2.5, 0.8) });
@@ -62,6 +72,15 @@ const ADEGAN = {
       const k3 = e(t, 10, 1.2);
       gaya(L[2], { opacity: 1 - 0.55 * k3, filter: `grayscale(${k3})`, outline: k3 > 0.05 ? `6px solid rgba(224,82,82,${k3})` : "none" });
       muncul(tanya, t, 11, 0.8);
+      if (!ada) return;
+      gaya(tirai, { opacity: 0.94 * e(t, 12.8, 0.6) });
+      muncul(kepala, t, 13.1, 0.6);
+      muncul(f1, t, 13.3, 0.7, 40); muncul(c1, t, 13.8, 0.5);
+      const z = e(t, 16.3, 1.2);
+      gaya(f2, { opacity: e(t, 14.3, 0.7), left: (990 + (160 - 990) * z) + "px", top: (290 + (230 - 290) * z) + "px", width: (840 + (1600 - 840) * z) + "px" });
+      gaya(c2, { opacity: e(t, 14.8, 0.5) * (1 - e(t, 16.0, 0.4)) });
+      gaya(f1, { opacity: e(t, 13.3, 0.7) * (1 - e(t, 16.0, 0.5)) }); gaya(c1, { opacity: e(t, 13.8, 0.5) * (1 - e(t, 16.0, 0.5)) });
+      muncul(cincin, t, 17.6, 0.5, 0); muncul(ket, t, 18.0, 0.6);
     };
   } },
   // 2. Cara kerja lama

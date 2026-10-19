@@ -5,6 +5,7 @@
 // Membangun:  npm install pptxgenjs (di folder kerja), lalu
 //   NODE_PATH=<node_modules> APPLY_THEME=<apply_theme.js> node docs/lomba/build/paparan/buat.cjs <keluaran.pptx>
 const pptxgen = require("pptxgenjs");
+const fs = require("fs");
 // Menulis warna tema ke dalam berkas; jalurnya diberikan lewat APPLY_THEME
 // (skrip apply_theme.js dari skill pptx). Tanpa itu warna tema bawaan Office.
 const applyTheme = process.env.APPLY_THEME ? require(process.env.APPLY_THEME).applyTheme : async () => {};
@@ -111,19 +112,29 @@ bagian("Pembuka");
 bagian("Latar belakang");
 {
   const s = isi("LATAR BELAKANG  ·  20%", "Satu lembar disposisi hilang, dan tak ada yang tahu");
+  // Foto lembar asli (bagian pribadi disamarkan) hanya untuk berkas yang dikirim, bukan repo publik: LEMBAR_ASLI=1.
+  const asli = process.env.LEMBAR_ASLI && fs.existsSync(A + "lembar-sampai.jpg") && fs.existsSync(A + "lembar-tertinggal.jpg");
+  if (asli) {
+    const bayang = { type: "outer", color: "000000", opacity: 0.25, blur: 8, offset: 3, angle: 90 };
+    s.addImage({ path: A + "lembar-sampai.jpg", x: M, y: 1.85, w: 4.9, h: 2.47, shadow: bayang });
+    s.addImage({ path: A + "lembar-tertinggal.jpg", x: M, y: 4.47, w: 4.9, h: 1.63, shadow: bayang });
+    s.addShape(pres.shapes.RECTANGLE, { x: M, y: 4.47, w: 4.9, h: 1.63, fill: { type: "none" }, line: { color: C.accent4, width: 2.5 } });
+    teks(s, "✓  SAMPAI · Rencana Kegiatan", M + 0.1, 3.86, 3.0, 0.36, { fontSize: 14, bold: true, color: "FFFFFF", fill: { color: C.accent3 }, margin: [0, 0.1, 0, 0.1], valign: "middle" });
+    teks(s, "✗  TERTINGGAL · Rencana Audiensi", M + 0.1, 5.64, 3.6, 0.36, { fontSize: 14, bold: true, color: "FFFFFF", fill: { color: C.accent4 }, margin: [0, 0.1, 0, 0.1], valign: "middle" });
+    teks(s, "Lembar asli, 2 Januari 2026. Nomor telepon, tanda tangan, dan NIP disamarkan.", M, 6.17, 4.9, 0.5, { fontSize: 14, italic: true, color: C.text2 });
+  }
   // Tiga lembar disposisi
   const lembar = [["Disposisi 1", "Difoto, terkirim ke grup WA", false], ["Disposisi 2", "Difoto, terkirim ke grup WA", false], ["Disposisi 3", "Tertinggal — tidak ada yang tahu", true]];
-  lembar.forEach(([j, k, hilang], i) => {
+  if (!asli) lembar.forEach(([j, k, hilang], i) => {
     const y = 1.85 + i * 1.32;
     kartu(s, M, y, 4.9, 1.1, { isi: hilang ? "FDECEC" : C.background2, garis: hilang ? C.accent4 : C.background2, tebal: hilang ? 1.5 : 0.75, nama: "lembar" + (i + 1) });
     bulat(s, M + 0.25, y + 0.27, 0.56, hilang ? C.accent4 : C.accent3, hilang ? "✗" : "✓", C.background1);
     teks(s, j, M + 1.05, y + 0.2, 3.7, 0.36, { fontSize: 16, bold: true, color: C.text2 });
     teks(s, k, M + 1.05, y + 0.58, 3.7, 0.34, { fontSize: 14, color: hilang ? C.accent4 : C.accent5, bold: hilang });
   });
-  teks(s, "Januari 2026 — semua pihak bekerja dengan benar. Rantainya yang rapuh.", M, 5.85, 4.9, 0.7, { fontSize: 15, italic: true, color: C.text2 });
-
   // Cara kerja lama
   const X = 6.2, Wt = W - M - X;
+  teks(s, "Januari 2026 — semua pihak bekerja dengan benar. Rantainya yang rapuh.", asli ? X : M, asli ? 6.0 : 5.85, asli ? Wt : 4.9, 0.7, { fontSize: 15, italic: true, color: C.text2 });
   teks(s, "Cara kerja sebelum Maret 2026", X, 1.85, Wt, 0.4, { fontSize: 18, bold: true, color: C.text2 });
   const baris = [
     ["Rencana kegiatan", "Disusun di spreadsheet, lalu dicetak"],
