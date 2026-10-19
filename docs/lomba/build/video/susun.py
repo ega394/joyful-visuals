@@ -12,6 +12,10 @@ LAYAR = {"laptop": (240, 112, 1440, 790), "hp": (230, 96, 406, 880)}
 PERNYATAAN = [("pernyataan-walikota.mp4", 1.0, 5.25), ("pernyataan-walikota.mp4", 6.0, 8.7),
               ("pernyataan-walikota.mp4", 36.1, 44.35), ("pernyataan-walikota.mp4", 44.6, 51.3),
               ("pernyataan-walikota.mp4", 62.1, 66.2)]
+# Gambar adegan 13: rekaman Wali Kota mengakses aplikasi; suaranya pernyataan di atas.
+WALIKOTA_HP = [("IMG_1729.MOV", 0.0, 4.1), ("IMG_1730.MOV", 0.0, 5.5), ("IMG_1731.MOV", 0.0, 3.3),
+               ("IMG_1727.MOV", 0.0, 6.35), ("IMG_1728.MOV", 0.0, 7.5)]
+SUARA_KLIP = {"13": PERNYATAAN}
 # Takarir ucapan beliau, waktu menurut video sumber.
 UCAPAN = {"13": [(1.2, 5.1, "Yang penting bagi saya adalah kepastian:"),
                  (6.2, 8.6, "kegiatan apa yang harus saya hadiri."),
@@ -33,11 +37,11 @@ ADEGAN = [
     ("06", 20, ("a", [("b06", "laptop", "a06_admin", 20, None)])),
     ("07", 15, ("a", [("b07", "hp", "a07_kasubbag", 15, None)])),
     ("08", 10, ("a", [("b08", "laptop", "a08_kabag", 10, None)])),
-    ("09", 20, ("c", [("n", [("IMG_1729.MOV", 0.3, 3.6), ("IMG_1728.MOV", 0.6, 4.0)], "o09", 6), ("a", "b09", "hp", "a09_walikota", 7, None), ("a", "b09b", "hp", "a09b_ajudan", 7, None)])),
+    ("09", 20, ("a", [("b09", "hp", "a09_walikota", 10, None), ("b09b", "hp", "a09b_ajudan", 10, None)])),
     ("10", 20, ("a", [("b10", "laptop", "a10_penugasan", 13, None), ("b10b", "hp", "a10b_hadir", 7, None)])),
     ("11", 20, ("a", [("b11", "hp", "a11a_tamu", 10, None), ("b11", "hp", "a11b_ruangan", 10, None)])),
     ("12", 35, ("g", "s12")),
-    ("13", 25, ("c", [("n", PERNYATAAN, "o13", 25)])),
+    ("13", 25, ("c", [("n", WALIKOTA_HP, "o13", 25)])),
     ("14", 15, ("c", [("g", "s14a", 7), ("a", "b14", "laptop", "a14_monitorwa", 8, None)])),
     ("15", 10, ("g", "s15")),
 ]
@@ -82,8 +86,9 @@ def bagian_aplikasi(latar, jenis, klip, T, potong, keluar):
              "-filter_complex", vf, "-t", str(T), "-r", "25", "-c:v", "libx264", "-crf", "17", "-pix_fmt", "yuv420p", keluar)
 
 
-def bagian_nyata(klips, lapis, T, keluar, silang=0.4, suara=None):
-    """Rekaman nyata (kamera): potong, perbesar perlahan, sambung dengan transisi, beri lapisan, pas T detik. Suara asli dibisukan kecuali `suara` diisi."""
+def bagian_nyata(klips, lapis, T, keluar, silang=0.4, suara=None, suara_klips=None):
+    """Rekaman nyata (kamera): potong, perbesar perlahan, sambung dengan transisi, beri lapisan, pas T detik.
+    Suara dibisukan kecuali `suara` diisi: diambil dari `suara_klips` (rekaman lain) atau dari klip gambarnya sendiri."""
     ins, flt, lens = [], [], []
     for i, (f, a, b) in enumerate(klips):
         d = b - a; lens.append(d)
@@ -96,7 +101,7 @@ def bagian_nyata(klips, lapis, T, keluar, silang=0.4, suara=None):
         flt.append(f"[{cur}][v{i}]xfade=transition=fade:duration={silang}:offset={off:.3f}[x{i}]")
         cur, off = f"x{i}", off + lens[i]
     total = sum(lens) - silang * (len(klips) - 1)
-    sf = 1.0 if suara else max(1.0, min(1.3, T / total))
+    sf = 1.0 if suara and not suara_klips else max(1.0, min(1.3, T / total))
     sisa = max(0.0, T - total * sf)
     n = len(klips)
     ins += ["-loop", "1", "-i", D + "gr/" + lapis + ".png"]
@@ -106,6 +111,8 @@ def bagian_nyata(klips, lapis, T, keluar, silang=0.4, suara=None):
              "-c:v", "libx264", "-crf", "17", "-pix_fmt", "yuv420p", "-an", keluar)
     if suara:  # suara asli Wali Kota: disambung dengan silang yang sama, dibersihkan, disamakan kerasnya dengan narasi
         ains, af = [], []
+        klips = suara_klips or klips
+        total = sum(b - a for _, a, b in klips) - silang * (len(klips) - 1)
         for i, (f, a, b) in enumerate(klips):
             ains += ["-i", D + "nyata/" + f]
             af.append(f"[{i}:a]atrim=start={a}:end={b},asetpts=PTS-STARTPTS,aresample=48000[a{i}]")
@@ -145,8 +152,8 @@ def ts(s):
 
 
 # Adegan ponsel: bingkai HP besar di kiri, jadi takarir digeser ke ruang kanan.
-PONSEL = {"07", "11"}
-PONSEL_SESUDAH = {"10": 13.0, "09": 6.0}   # adegan campuran: bagian ponsel mulai detik ke-13
+PONSEL = {"07", "09", "11"}
+PONSEL_SESUDAH = {"10": 13.0}   # adegan campuran: bagian ponsel mulai detik ke-13
 def _hp(no, rel):
     return no in PONSEL or (no in PONSEL_SESUDAH and rel >= PONSEL_SESUDAH[no] - 0.2)
 ML = lambda no, rel=0: 720 if _hp(no, rel) else 0
@@ -154,7 +161,7 @@ MR = lambda no, rel=0: 60 if _hp(no, rel) else 0
 
 
 # Adegan yang memakai suara asli Wali Kota; narasi adegan itu digeser (detik) agar tidak bertumpuk.
-# (Klip IMG_1727-1731 hanya berisi suara ruangan, jadi adegan 9 tetap bernarasi.)
+# (Klip IMG_1727-1731 hanya berisi suara ruangan; adegan 13 memakai suara dari video pernyataan.)
 SUARA_ASLI = {"13"}
 NARASI_GESER = {}
 
@@ -243,7 +250,7 @@ def main():
                 p = D + f"bagian/{no}_{j}.mp4"
                 if it[0] == "n":
                     sw = D + f"bagian/suara_{no}.wav" if no in SUARA_ASLI else None
-                    bagian_nyata(it[1], it[2], it[3], p, silang=SILANG_NYATA.get(no, 0.4), suara=sw)
+                    bagian_nyata(it[1], it[2], it[3], p, silang=SILANG_NYATA.get(no, 0.4), suara=sw, suara_klips=SUARA_KLIP.get(no))
                     if sw: suara_asli.append((sw, mulai[no] + sum(x[3] for x in items[:j] if x[0] == "n")))
                 elif it[0] == "g":
                     jalankan("ffmpeg", "-y", "-loglevel", "error", "-i", D + "gr/" + it[1] + ".mp4", "-t", str(it[2]), "-vf", "fps=25,format=yuv420p", "-c:v", "libx264", "-crf", "17", p)

@@ -185,20 +185,17 @@ function bangunLatar(id) {
   }
 }
 
-// Lapisan transparen di atas rekaman nyata: label, logo, dan (adegan 13) nama pembicara.
+// Lapisan transparen di atas rekaman nyata: label dan logo.
 const LAPIS = {
   o09: ["4 · MANFAAT", "4. Tayang ke Pimpinan", null],
-  o13: ["5 · DAMPAK", "Pernyataan Wali Kota", "nama"],
+  o13: ["5 · DAMPAK", "Pernyataan Wali Kota Tarakan, dr. H. Khairul, M.Kes.", null],
 };
 function bangunLapis(id) {
-  const [label, judul, jenis] = LAPIS[id];
+  const [label, judul] = LAPIS[id];
   document.documentElement.style.background = "transparent"; document.body.style.background = "transparent"; P.style.background = "none";
   tambah(`<div class="abs" style="left:0;top:0;width:1920px;height:190px;background:linear-gradient(rgba(10,22,40,.92),rgba(10,22,40,0))"></div>`);
-  tambah(`<div class="abs" style="left:0;bottom:0;width:1920px;height:${jenis === "nama" ? 340 : 220}px;background:linear-gradient(rgba(10,22,40,0),rgba(10,22,40,.85) 100%)"></div>`);
+  tambah(`<div class="abs" style="left:0;bottom:0;width:1920px;height:220px;background:linear-gradient(rgba(10,22,40,0),rgba(10,22,40,.85) 100%)"></div>`);
   bingkai(label, judul || null);
-  if (jenis === "nama") {
-    tambah(`<div class="abs" style="left:96px;top:742px;padding:14px 30px 16px 26px;border-left:8px solid var(--emas);background:rgba(10,22,40,.82);border-radius:0 14px 14px 0"><div style="font-size:42px;font-weight:800">dr. H. Khairul, M.Kes.</div><div style="font-size:30px;font-weight:700;color:var(--emas);margin-top:2px">Wali Kota Tarakan</div></div>`);
-  }
 }
 window.LAPIS_ID = Object.keys(LAPIS);
 window.siapkan = (id) => {
