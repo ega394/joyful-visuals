@@ -269,8 +269,10 @@ def main():
     # Narasi: gabungkan berkas per adegan bila tersedia, selain itu senyap.
     narasi = [(no, mulai[no]) for no, *_ in ADEGAN for ext in ("wav", "m4a", "mp3") if os.path.exists(D + f"narasi/adegan-{no}.{ext}")]
     hasil = D + "keluaran/Video-Prokopim-Hibot-Kaltara-2026.mp4"
+    if os.environ.get("TANPA_NARASI"):  # untuk diisi suara sendiri (CapCut dsb.): musik dan suara asli Wali Kota saja
+        narasi, hasil = [], hasil.replace(".mp4", "-tanpa-narasi.mp4")
     vf = f"subtitles={ass}:fontsdir={os.path.expanduser('~/.fonts')},fade=t=in:st=0:d=0.6,fade=t=out:st={t - 0.8}:d=0.8"
-    if narasi:
+    if narasi or suara_asli:
         ins, flt = ["-i", mentah], []
         for i, (no, st) in enumerate(narasi, 1):
             f = next(D + f"narasi/adegan-{no}.{e}" for e in ("wav", "m4a", "mp3") if os.path.exists(D + f"narasi/adegan-{no}.{e}"))
