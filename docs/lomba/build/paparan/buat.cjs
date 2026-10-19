@@ -77,8 +77,10 @@ const bulat = (s, x, y, d, warna, label, warnaTeks) => {
   s.addShape(pres.shapes.OVAL, { x, y, w: d, h: d, fill: { color: warna }, line: { color: warna } });
   s.addText(label, { x, y, w: d, h: d, isTextBox: true, margin: 0, align: "center", valign: "middle", fontSize: 14, bold: true, color: warnaTeks });
 };
+// Garis berpanah. Ukuran bentuk harus positif; arah naik/kiri memakai flipV/flipH agar tampil sama di PowerPoint dan Keynote.
 const panah = (s, x1, y1, x2, y2, warna = C.accent5) =>
-  s.addShape(pres.shapes.LINE, { x: x1, y: y1, w: x2 - x1, h: y2 - y1, line: { color: warna, width: 1.75, endArrowType: "triangle" } });
+  s.addShape(pres.shapes.LINE, { x: Math.min(x1, x2), y: Math.min(y1, y2), w: Math.abs(x2 - x1), h: Math.abs(y2 - y1),
+    flipH: x2 < x1, flipV: y2 < y1, line: { color: warna, width: 1.75, endArrowType: "triangle" } });
 const logo = (s) => {
   s.addShape(pres.shapes.ROUNDED_RECTANGLE, { x: M, y: 0.45, w: 1.95, h: 0.95, rectRadius: 0.14, fill: { color: C.background1 }, line: { color: C.background1 }, objectName: "alas logo" });
   s.addImage({ path: A + "kaltara.png", x: M + 0.2, y: 0.53, w: 0.6, h: 0.8 });
@@ -444,7 +446,7 @@ bagian("Kompatibilitas");
   const s = isi("KOMPATIBILITAS  ·  5%", "Selaras regulasi, visi daerah, dan cara kerja Pimpinan");
   const kol = [
     ["Regulasi", ["UU 25/2009 Pelayanan Publik", "UU 9/2010 Keprotokolan", "PP 38/2017 Inovasi Daerah", "Perpres 95/2018 SPBE", "PermenPAN-RB 35/2012 (dasar 11 SOP)"]],
-    ["Visi dan misi daerah", ["RPJMD Kaltara 2025–2029, Misi 3: transformasi tata kelola yang kolaboratif dan inovatif", "RPJMD Kota Tarakan, Misi 4: tata kelola pemerintahan", "Semboyan \"Tarakan HIBOT\" — hibot berarti hebat dalam bahasa Tidung"]],
+    ["Visi dan misi daerah", ["RPJMD Kalimantan Utara 2025–2029, Misi 3: Mewujudkan Transformasi Tata Kelola yang Kolaboratif dan Inovatif", "RPJMD Kota Tarakan 2025–2029, Misi 4: Mewujudkan tata kelola pemerintahan yang adaptif, responsif dan menjaga stabilitas ketertiban dan ketentraman kota", "Semboyan \"Tarakan HIBOT\": hibot berarti hebat dalam bahasa Tidung"]],
     ["Kebutuhan pengguna", ["Naskah sambutan tetap tersedia tercetak, sesuai kebiasaan Pimpinan", "Kewenangan melekat pada jabatan, bukan orang", "WA hanya untuk yang perlu bertindak", "Jam acara mengikuti zona tempat Pimpinan berada"]],
   ];
   const kw = (W - 2 * M - 2 * 0.3) / 3;
