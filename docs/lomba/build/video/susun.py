@@ -37,7 +37,7 @@ TAKARIR = {
     "06": "Admin Rencana Kegiatan cukup memindai undangan. Kecerdasan buatan mengisi nama acara, tanggal, jam, lokasi, dan zona waktunya. Admin tinggal memeriksa, lalu mengirimkannya ke Kepala Sub Bagian.",
     "07": "Kepala Sub Bagian menelaah dari mana saja, cukup lewat telepon. Tombol persetujuan baru aktif setelah undangan dibuka dan butir pemeriksaan dicentang.",
     "08": "Kepala Bagian memeriksa dan memutus, dari mana saja. Sekali disetujui, agenda langsung tayang, tanpa cetak ulang.",
-    "09": "Begitu tayang, agenda langsung ada di telepon Pimpinan. Ajudan mengonfirmasi kehadiran, dan Wali Kota dapat mendisposisikan kepada Wakil Wali Kota. Tidak ada lagi foto disposisi yang berpindah dari grup ke grup.",
+    "09": "Ajudan mengonfirmasi kehadiran, dan Wali Kota dapat mendisposisikan kepada Wakil Wali Kota. Tidak ada lagi foto disposisi yang berpindah dari grup ke grup.",
     "10": "Petugas ditugaskan dan langsung diberi tahu. Setiap langkah tercatat: siapa, kapan, dan apa keputusannya. Di lokasi, tamu cukup memindai kode QR untuk mengisi daftar hadir, lengkap dengan tanda tangan, tanpa selembar kertas pun.",
     "11": "Selain alur agenda itu, ada kanal publik, fitur tersendiri. Masyarakat dan instansi mengajukan audiensi atau meminjam ruangan secara daring, lalu memantau sendiri statusnya, tanpa perlu datang berulang.",
     "12": "Per 24 September 2026: 589 kegiatan terkelola. Waktu sampai tayang turun menjadi median 1,99 jam, dan 99,3% tayang kurang dari sehari. 3.072 keputusan terekam. 92,4% kegiatan memiliki penugasan petugas. Belanja pengadaannya nol rupiah.",
@@ -67,8 +67,8 @@ def bagian_aplikasi(latar, jenis, klip, T, potong, keluar):
              "-filter_complex", vf, "-t", str(T), "-r", "25", "-c:v", "libx264", "-crf", "17", "-pix_fmt", "yuv420p", keluar)
 
 
-def bagian_nyata(klips, lapis, T, keluar, silang=0.4):
-    """Rekaman nyata (kamera): potong, perbesar perlahan, sambung dengan transisi, beri lapisan, pas T detik. Suara asli dibisukan."""
+def bagian_nyata(klips, lapis, T, keluar, silang=0.4, suara=None):
+    """Rekaman nyata (kamera): potong, perbesar perlahan, sambung dengan transisi, beri lapisan, pas T detik. Suara asli dibisukan kecuali `suara` diisi."""
     ins, flt, lens = [], [], []
     for i, (f, a, b) in enumerate(klips):
         d = b - a; lens.append(d)
@@ -81,7 +81,7 @@ def bagian_nyata(klips, lapis, T, keluar, silang=0.4):
         flt.append(f"[{cur}][v{i}]xfade=transition=fade:duration={silang}:offset={off:.3f}[x{i}]")
         cur, off = f"x{i}", off + lens[i]
     total = sum(lens) - silang * (len(klips) - 1)
-    sf = max(1.0, min(1.3, T / total))
+    sf = 1.0 if suara else max(1.0, min(1.3, T / total))
     sisa = max(0.0, T - total * sf)
     n = len(klips)
     ins += ["-loop", "1", "-i", D + "gr/" + lapis + ".png"]
@@ -89,6 +89,16 @@ def bagian_nyata(klips, lapis, T, keluar, silang=0.4):
     flt.append(f"[isi][{n}:v]overlay=0:0:shortest=0,trim=duration={T},setsar=1,format=yuv420p")
     jalankan("ffmpeg", "-y", "-loglevel", "error", *ins, "-filter_complex", ";".join(flt), "-t", str(T), "-r", "25",
              "-c:v", "libx264", "-crf", "17", "-pix_fmt", "yuv420p", "-an", keluar)
+    if suara:  # suara asli Wali Kota: disambung dengan silang yang sama, dibersihkan, disamakan kerasnya dengan narasi
+        ains, af = [], []
+        for i, (f, a, b) in enumerate(klips):
+            ains += ["-i", D + "nyata/" + f]
+            af.append(f"[{i}:a]atrim=start={a}:end={b},asetpts=PTS-STARTPTS,aresample=48000[a{i}]")
+        cur = "a0"
+        for i in range(1, len(klips)):
+            af.append(f"[{cur}][a{i}]acrossfade=d={silang}[c{i}]"); cur = f"c{i}"
+        af.append(f"[{cur}]highpass=f=90,afftdn=nf=-30,loudnorm=I=-17:TP=-1.5:LRA=9,afade=t=in:d=0.15,atrim=0:{min(total, T):.3f},afade=t=out:st={min(total, T) - 0.3:.3f}:d=0.3[o]")
+        jalankan("ffmpeg", "-y", "-loglevel", "error", *ains, "-filter_complex", ";".join(af), "-map", "[o]", "-ac", "2", "-ar", "48000", suara)
 
 
 def gabung(daftar, keluar):
@@ -128,6 +138,11 @@ ML = lambda no, rel=0: 720 if _hp(no, rel) else 0
 MR = lambda no, rel=0: 60 if _hp(no, rel) else 0
 
 
+# Adegan yang memakai suara asli Wali Kota; narasi adegan itu digeser (detik) agar tidak bertumpuk.
+SUARA_ASLI = {"09", "13"}
+NARASI_GESER = {"09": 6.0}
+
+
 def buat_ass(mulai, jalur):
     head = """[Script Info]
 ScriptType: v4.00+
@@ -152,7 +167,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             continue
         if no in waktu and len(waktu[no]["awal"]) == len(kal):
             # selaras suara: tiap kalimat tampil sebesar rentang ucapannya
-            w = waktu[no]; base = mulai[no] + 0.3
+            w = waktu[no]; base = mulai[no] + 0.3 + NARASI_GESER.get(no, 0.0)
             for i, k in enumerate(kal):
                 a0 = base + w["awal"][i]
                 a1 = base + (w["awal"][i + 1] - 0.05 if i + 1 < len(kal) else w["panjang"] + 0.15)
@@ -184,7 +199,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
 def main():
     os.makedirs(D + "bagian", exist_ok=True); os.makedirs(D + "keluaran", exist_ok=True)
-    mulai, t, berkas = {}, 0.0, []
+    mulai, t, berkas, suara_asli = {}, 0.0, [], []
     for no, dur, src in ADEGAN:
         mulai[no] = t; t += dur
         out = D + f"bagian/{no}.mp4"
@@ -196,7 +211,9 @@ def main():
             for j, it in enumerate(items):
                 p = D + f"bagian/{no}_{j}.mp4"
                 if it[0] == "n":
-                    bagian_nyata(it[1], it[2], it[3], p)
+                    sw = D + f"bagian/suara_{no}.wav" if no in SUARA_ASLI else None
+                    bagian_nyata(it[1], it[2], it[3], p, suara=sw)
+                    if sw: suara_asli.append((sw, mulai[no] + sum(x[3] for x in items[:j] if x[0] == "n")))
                 elif it[0] == "g":
                     jalankan("ffmpeg", "-y", "-loglevel", "error", "-i", D + "gr/" + it[1] + ".mp4", "-t", str(it[2]), "-vf", "fps=25,format=yuv420p", "-c:v", "libx264", "-crf", "17", p)
                 elif it[0] == "a":
@@ -219,11 +236,15 @@ def main():
         ins, flt = ["-i", mentah], []
         for i, (no, st) in enumerate(narasi, 1):
             f = next(D + f"narasi/adegan-{no}.{e}" for e in ("wav", "m4a", "mp3") if os.path.exists(D + f"narasi/adegan-{no}.{e}"))
-            ins += ["-i", f]; flt.append(f"[{i}:a]adelay={int(st * 1000 + 300)}|{int(st * 1000 + 300)}[n{i}]")
+            g = int((st + NARASI_GESER.get(no, 0.0)) * 1000 + 300); ins += ["-i", f]; flt.append(f"[{i}:a]adelay={g}|{g}[n{i}]")
         n = len(narasi)
         if os.path.exists(D + "musik.wav"):   # musik latar pelan (musik.py), di bawah narasi
             ins += ["-i", D + "musik.wav"]; n += 1
-            flt.append(f"[{n}:a]atrim=0:{t},volume=1.0[n{n}]")
+            redam = "+".join(f"between(t,{a:.2f},{a + durasi(f):.2f})" for f, a in suara_asli) or "0"
+            flt.append(f"[{n}:a]atrim=0:{t},volume='if({redam},0.3,1.0)':eval=frame[n{n}]")
+        for f, a in suara_asli:
+            ins += ["-i", f]; n += 1
+            flt.append(f"[{n}:a]adelay={int(a * 1000)}|{int(a * 1000)}[n{n}]")
         flt.append("".join(f"[n{i}]" for i in range(1, n + 1)) + f"amix=inputs={n}:normalize=0,apad,atrim=0:{t}[a]")
         jalankan("ffmpeg", "-y", "-loglevel", "error", *ins, "-filter_complex", f"[0:v]{vf}[v];" + ";".join(flt), "-map", "[v]", "-map", "[a]",
                  "-c:v", "libx264", "-crf", "19", "-preset", "slow", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", "-t", str(t), hasil)
