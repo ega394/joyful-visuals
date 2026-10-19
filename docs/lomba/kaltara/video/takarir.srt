@@ -187,29 +187,61 @@ dan 99,3% tayang kurang dari sehari.
 Belanja pengadaannya nol rupiah.
 
 48
-00:04:15,300 --> 00:04:20,290
-Sebelas SOP dan Pelaksana Harian menjaga alur tetap berjalan,
+00:04:05,200 --> 00:04:09,100
+Yang penting bagi saya adalah kepastian:
 
 49
-00:04:20,320 --> 00:04:23,090
-bahkan ketika pejabat berhalangan.
+00:04:09,150 --> 00:04:11,550
+kegiatan apa yang harus saya hadiri.
 
 50
-00:04:23,170 --> 00:04:28,630
-Sejak proposal, aplikasi terus dikembangkan dari kendala pengguna.
+00:04:11,850 --> 00:04:14,750
+Dan saya kira sangat membantu,
 
 51
-00:04:30,300 --> 00:04:32,250
-Prokopim Hibot.
+00:04:14,750 --> 00:04:16,850
+karena dari jauh pun saya bisa melihat
 
 52
-00:04:32,330 --> 00:04:33,910
-Satu alur.
+00:04:16,850 --> 00:04:19,550
+kegiatan-kegiatan yang ada setiap hari,
 
 53
-00:04:33,990 --> 00:04:35,580
-Satu data.
+00:04:19,800 --> 00:04:23,900
+dan bisa mendisposisi kalau memang saya tidak bisa hadir
 
 54
-00:04:35,660 --> 00:04:38,270
+00:04:24,000 --> 00:04:25,900
+ke pejabat yang lain.
+
+55
+00:04:25,900 --> 00:04:29,750
+Luar biasa, saya kira, inovasi yang dikerjakan ini.
+
+56
+00:04:30,300 --> 00:04:35,290
+Sebelas SOP dan Pelaksana Harian menjaga alur tetap berjalan,
+
+57
+00:04:35,320 --> 00:04:38,090
+bahkan ketika pejabat berhalangan.
+
+58
+00:04:38,170 --> 00:04:43,630
+Sejak proposal, aplikasi terus dikembangkan dari kendala pengguna.
+
+59
+00:04:45,300 --> 00:04:47,250
+Prokopim Hibot.
+
+60
+00:04:47,330 --> 00:04:48,910
+Satu alur.
+
+61
+00:04:48,990 --> 00:04:50,580
+Satu data.
+
+62
+00:04:50,660 --> 00:04:53,270
 Setiap keputusan tercatat.

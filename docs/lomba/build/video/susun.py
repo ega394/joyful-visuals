@@ -8,6 +8,21 @@ import json, os, re, subprocess, sys
 D = os.path.dirname(os.path.abspath(__file__)) + "/"
 LAYAR = {"laptop": (240, 112, 1440, 790), "hp": (230, 96, 406, 880)}
 
+# Pernyataan Wali Kota (video 19 Oktober 2026): kutipan terpilih, dipotong di jeda antarkalimat.
+PERNYATAAN = [("pernyataan-walikota.mp4", 1.0, 5.25), ("pernyataan-walikota.mp4", 6.0, 8.7),
+              ("pernyataan-walikota.mp4", 36.1, 44.35), ("pernyataan-walikota.mp4", 44.6, 51.3),
+              ("pernyataan-walikota.mp4", 62.1, 66.2)]
+# Takarir ucapan beliau, waktu menurut video sumber.
+UCAPAN = {"13": [(1.2, 5.1, "Yang penting bagi saya adalah kepastian:"),
+                 (6.2, 8.6, "kegiatan apa yang harus saya hadiri."),
+                 (36.6, 39.5, "Dan saya kira sangat membantu,"),
+                 (39.5, 41.6, "karena dari jauh pun saya bisa melihat"),
+                 (41.6, 44.3, "kegiatan-kegiatan yang ada setiap hari,"),
+                 (45.1, 49.2, "dan bisa mendisposisi kalau memang saya tidak bisa hadir"),
+                 (49.3, 51.2, "ke pejabat yang lain."),
+                 (62.3, 66.15, "Luar biasa, saya kira, inovasi yang dikerjakan ini.")]}
+SILANG_NYATA = {"13": 0.3}
+
 # (nomor, durasi, sumber). Sumber grafis: ("g", id). Aplikasi: ("a", latar, jenis, [(klip, durasi_bagian, potong_s|None)]).
 ADEGAN = [
     ("01", 20, ("g", "s01")),
@@ -22,7 +37,7 @@ ADEGAN = [
     ("10", 20, ("a", [("b10", "laptop", "a10_penugasan", 13, None), ("b10b", "hp", "a10b_hadir", 7, None)])),
     ("11", 20, ("a", [("b11", "hp", "a11a_tamu", 10, None), ("b11", "hp", "a11b_ruangan", 10, None)])),
     ("12", 35, ("g", "s12")),
-    ("13", 10, ("c", [("n", [("IMG_1730.MOV", 0.0, 5.5), ("IMG_1731.MOV", 0.0, 3.3)], "o13", 10)])),
+    ("13", 25, ("c", [("n", PERNYATAAN, "o13", 25)])),
     ("14", 15, ("c", [("g", "s14a", 7), ("a", "b14", "laptop", "a14_monitorwa", 8, None)])),
     ("15", 10, ("g", "s15")),
 ]
@@ -37,7 +52,7 @@ TAKARIR = {
     "06": "Admin Rencana Kegiatan cukup memindai undangan. Kecerdasan buatan mengisi nama acara, tanggal, jam, lokasi, dan zona waktunya. Admin tinggal memeriksa, lalu mengirimkannya ke Kepala Sub Bagian.",
     "07": "Kepala Sub Bagian menelaah dari mana saja, cukup lewat telepon. Tombol persetujuan baru aktif setelah undangan dibuka dan butir pemeriksaan dicentang.",
     "08": "Kepala Bagian memeriksa dan memutus, dari mana saja. Sekali disetujui, agenda langsung tayang, tanpa cetak ulang.",
-    "09": "Ajudan mengonfirmasi kehadiran, dan Wali Kota dapat mendisposisikan kepada Wakil Wali Kota. Tidak ada lagi foto disposisi yang berpindah dari grup ke grup.",
+    "09": "Begitu tayang, agenda langsung ada di telepon Pimpinan. Ajudan mengonfirmasi kehadiran, dan Wali Kota dapat mendisposisikan kepada Wakil Wali Kota. Tidak ada lagi foto disposisi yang berpindah dari grup ke grup.",
     "10": "Petugas ditugaskan dan langsung diberi tahu. Setiap langkah tercatat: siapa, kapan, dan apa keputusannya. Di lokasi, tamu cukup memindai kode QR untuk mengisi daftar hadir, lengkap dengan tanda tangan, tanpa selembar kertas pun.",
     "11": "Selain alur agenda itu, ada kanal publik, fitur tersendiri. Masyarakat dan instansi mengajukan audiensi atau meminjam ruangan secara daring, lalu memantau sendiri statusnya, tanpa perlu datang berulang.",
     "12": "Per 24 September 2026: 589 kegiatan terkelola. Waktu sampai tayang turun menjadi median 1,99 jam, dan 99,3% tayang kurang dari sehari. 3.072 keputusan terekam. 92,4% kegiatan memiliki penugasan petugas. Belanja pengadaannya nol rupiah.",
@@ -74,7 +89,7 @@ def bagian_nyata(klips, lapis, T, keluar, silang=0.4, suara=None):
         d = b - a; lens.append(d)
         ins += ["-i", D + "nyata/" + f]
         flt.append(f"[{i}:v]trim=start={a}:end={b},setpts=PTS-STARTPTS,fps=25,"
-                   f"scale=w='trunc(1920*(1+0.06*t/{d:.3f})/2)*2':h=-2:eval=frame,crop=1920:1080,setsar=1,format=yuv420p[v{i}]")
+                   f"scale=w='trunc(max(1920,1080*iw/ih)*(1+0.06*t/{d:.3f})/2)*2':h=-2:eval=frame:flags=lanczos,crop=1920:1080,unsharp=5:5:0.5,setsar=1,format=yuv420p[v{i}]")
     cur, off = "v0", lens[0]
     for i in range(1, len(klips)):
         off -= silang
@@ -139,8 +154,22 @@ MR = lambda no, rel=0: 60 if _hp(no, rel) else 0
 
 
 # Adegan yang memakai suara asli Wali Kota; narasi adegan itu digeser (detik) agar tidak bertumpuk.
-SUARA_ASLI = {"09", "13"}
-NARASI_GESER = {"09": 6.0}
+# (Klip IMG_1727-1731 hanya berisi suara ruangan, jadi adegan 9 tetap bernarasi.)
+SUARA_ASLI = {"13"}
+NARASI_GESER = {}
+
+
+def waktu_ucapan(no, mulai):
+    """Petakan waktu video sumber ke waktu video utama melalui urutan potongan rekaman nyata."""
+    klips, sil = PERNYATAAN, SILANG_NYATA.get(no, 0.4)
+    t, peta = mulai, []
+    for f, a, b in klips:
+        peta.append((a, b, t)); t += (b - a) - sil
+    out = []
+    for s0, s1, teks in UCAPAN.get(no, []):
+        a, b, t0 = next(x for x in peta if x[0] <= s0 < x[1])
+        out.append((t0 + s0 - a, t0 + min(s1, b) - a, teks))
+    return out
 
 
 def buat_ass(mulai, jalur):
@@ -162,6 +191,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
     if os.path.exists(D + "narasi/waktu.json"):
         waktu = json.load(open(D + "narasi/waktu.json"))
     for no, dur, _ in ADEGAN:
+        for a, b, x in waktu_ucapan(no, mulai[no]):
+            ev.append(f"Dialogue: 0,{ts(a)},{ts(b)},Takarir,,0,0,46,,{x}")
         kal = [k for k in re.split(r"(?<=[.!?])\s+", TAKARIR.get(no, "").strip()) if k]
         if not kal:
             continue
@@ -212,7 +243,7 @@ def main():
                 p = D + f"bagian/{no}_{j}.mp4"
                 if it[0] == "n":
                     sw = D + f"bagian/suara_{no}.wav" if no in SUARA_ASLI else None
-                    bagian_nyata(it[1], it[2], it[3], p, suara=sw)
+                    bagian_nyata(it[1], it[2], it[3], p, silang=SILANG_NYATA.get(no, 0.4), suara=sw)
                     if sw: suara_asli.append((sw, mulai[no] + sum(x[3] for x in items[:j] if x[0] == "n")))
                 elif it[0] == "g":
                     jalankan("ffmpeg", "-y", "-loglevel", "error", "-i", D + "gr/" + it[1] + ".mp4", "-t", str(it[2]), "-vf", "fps=25,format=yuv420p", "-c:v", "libx264", "-crf", "17", p)
@@ -241,7 +272,7 @@ def main():
         if os.path.exists(D + "musik.wav"):   # musik latar pelan (musik.py), di bawah narasi
             ins += ["-i", D + "musik.wav"]; n += 1
             redam = "+".join(f"between(t,{a:.2f},{a + durasi(f):.2f})" for f, a in suara_asli) or "0"
-            flt.append(f"[{n}:a]atrim=0:{t},volume='if({redam},0.3,1.0)':eval=frame[n{n}]")
+            flt.append(f"[{n}:a]atrim=0:{t},volume='if({redam},0.22,1.0)':eval=frame[n{n}]")
         for f, a in suara_asli:
             ins += ["-i", f]; n += 1
             flt.append(f"[{n}:a]adelay={int(a * 1000)}|{int(a * 1000)}[n{n}]")

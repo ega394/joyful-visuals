@@ -11,7 +11,7 @@ POTONG = [
     (141, 6, "Diputus Kabag, lalu langsung tayang."),
     (150, 7, "Agenda langsung tiba di HP Wali Kota."),
     (212, 15, "589 kegiatan · median 1,99 jam sampai tayang · 99,3% tayang kurang dari sehari."),
-    (270, 10, "Satu alur. Satu data. Setiap keputusan tercatat."),
+    (285, 10, "Satu alur. Satu data. Setiap keputusan tercatat."),
 ]
 
 
