@@ -18,11 +18,11 @@ ADEGAN = [
     ("06", 20, ("a", [("b06", "laptop", "a06_admin", 20, None)])),
     ("07", 15, ("a", [("b07", "hp", "a07_kasubbag", 15, None)])),
     ("08", 10, ("a", [("b08", "laptop", "a08_kabag", 10, None)])),
-    ("09", 20, ("a", [("b09", "hp", "a09_walikota", 10, None), ("b09b", "hp", "a09b_ajudan", 10, None)])),
+    ("09", 20, ("c", [("n", [("IMG_1729.MOV", 0.3, 3.6), ("IMG_1728.MOV", 0.6, 4.0)], "o09", 6), ("a", "b09", "hp", "a09_walikota", 7, None), ("a", "b09b", "hp", "a09b_ajudan", 7, None)])),
     ("10", 20, ("a", [("b10", "laptop", "a10_penugasan", 13, None), ("b10b", "hp", "a10b_hadir", 7, None)])),
     ("11", 20, ("a", [("b11", "hp", "a11a_tamu", 10, None), ("b11", "hp", "a11b_ruangan", 10, None)])),
     ("12", 35, ("g", "s12")),
-    ("13", 10, ("g", "s13")),
+    ("13", 10, ("c", [("n", [("IMG_1730.MOV", 0.0, 5.5), ("IMG_1731.MOV", 0.0, 3.3)], "o13", 10)])),
     ("14", 15, ("c", [("g", "s14a", 7), ("a", "b14", "laptop", "a14_monitorwa", 8, None)])),
     ("15", 10, ("g", "s15")),
 ]
@@ -67,6 +67,30 @@ def bagian_aplikasi(latar, jenis, klip, T, potong, keluar):
              "-filter_complex", vf, "-t", str(T), "-r", "25", "-c:v", "libx264", "-crf", "17", "-pix_fmt", "yuv420p", keluar)
 
 
+def bagian_nyata(klips, lapis, T, keluar, silang=0.4):
+    """Rekaman nyata (kamera): potong, perbesar perlahan, sambung dengan transisi, beri lapisan, pas T detik. Suara asli dibisukan."""
+    ins, flt, lens = [], [], []
+    for i, (f, a, b) in enumerate(klips):
+        d = b - a; lens.append(d)
+        ins += ["-i", D + "nyata/" + f]
+        flt.append(f"[{i}:v]trim=start={a}:end={b},setpts=PTS-STARTPTS,fps=25,"
+                   f"scale=w='trunc(1920*(1+0.06*t/{d:.3f})/2)*2':h=-2:eval=frame,crop=1920:1080,setsar=1,format=yuv420p[v{i}]")
+    cur, off = "v0", lens[0]
+    for i in range(1, len(klips)):
+        off -= silang
+        flt.append(f"[{cur}][v{i}]xfade=transition=fade:duration={silang}:offset={off:.3f}[x{i}]")
+        cur, off = f"x{i}", off + lens[i]
+    total = sum(lens) - silang * (len(klips) - 1)
+    sf = max(1.0, min(1.3, T / total))
+    sisa = max(0.0, T - total * sf)
+    n = len(klips)
+    ins += ["-loop", "1", "-i", D + "gr/" + lapis + ".png"]
+    flt.append(f"[{cur}]setpts=PTS*{sf:.4f},fps=25,tpad=stop_mode=clone:stop_duration={sisa + 0.5:.3f}[isi]")
+    flt.append(f"[isi][{n}:v]overlay=0:0:shortest=0,trim=duration={T},setsar=1,format=yuv420p")
+    jalankan("ffmpeg", "-y", "-loglevel", "error", *ins, "-filter_complex", ";".join(flt), "-t", str(T), "-r", "25",
+             "-c:v", "libx264", "-crf", "17", "-pix_fmt", "yuv420p", "-an", keluar)
+
+
 def gabung(daftar, keluar):
     lst = keluar + ".txt"
     with open(lst, "w") as f:
@@ -96,8 +120,8 @@ def ts(s):
 
 
 # Adegan ponsel: bingkai HP besar di kiri, jadi takarir digeser ke ruang kanan.
-PONSEL = {"07", "09", "11"}
-PONSEL_SESUDAH = {"10": 13.0}   # adegan campuran: bagian ponsel mulai detik ke-13
+PONSEL = {"07", "11"}
+PONSEL_SESUDAH = {"10": 13.0, "09": 6.0}   # adegan campuran: bagian ponsel mulai detik ke-13
 def _hp(no, rel):
     return no in PONSEL or (no in PONSEL_SESUDAH and rel >= PONSEL_SESUDAH[no] - 0.2)
 ML = lambda no, rel=0: 720 if _hp(no, rel) else 0
@@ -171,7 +195,9 @@ def main():
             items = src[1]
             for j, it in enumerate(items):
                 p = D + f"bagian/{no}_{j}.mp4"
-                if it[0] == "g":
+                if it[0] == "n":
+                    bagian_nyata(it[1], it[2], it[3], p)
+                elif it[0] == "g":
                     jalankan("ffmpeg", "-y", "-loglevel", "error", "-i", D + "gr/" + it[1] + ".mp4", "-t", str(it[2]), "-vf", "fps=25,format=yuv420p", "-c:v", "libx264", "-crf", "17", p)
                 elif it[0] == "a":
                     bagian_aplikasi(it[1], it[2], it[3], it[4], it[5], p)

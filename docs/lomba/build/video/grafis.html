@@ -185,9 +185,28 @@ function bangunLatar(id) {
   }
 }
 
+// Lapisan transparen di atas rekaman nyata: label, logo, dan (adegan 13) kutipan.
+const LAPIS = {
+  o09: ["4 · MANFAAT", "4. Tayang ke Pimpinan", null],
+  o13: ["5 · DAMPAK", "", "kutipan"],
+};
+function bangunLapis(id) {
+  const [label, judul, jenis] = LAPIS[id];
+  document.documentElement.style.background = "transparent"; document.body.style.background = "transparent"; P.style.background = "none";
+  tambah(`<div class="abs" style="left:0;top:0;width:1920px;height:190px;background:linear-gradient(rgba(10,22,40,.92),rgba(10,22,40,0))"></div>`);
+  tambah(`<div class="abs" style="left:0;bottom:0;width:1920px;height:${jenis === "kutipan" ? 470 : 220}px;background:linear-gradient(rgba(10,22,40,0),rgba(10,22,40,${jenis === "kutipan" ? .94 : .8}) ${jenis === "kutipan" ? "45%" : "100%"})"></div>`);
+  bingkai(label, judul || null);
+  if (jenis === "kutipan") {
+    tambah(`<div class="abs" style="left:120px;top:735px;width:1680px;font-size:48px;font-weight:700;line-height:1.28;font-style:italic">“Yang terpenting bagi saya adalah kepastian: ke mana saya harus hadir, kapan, dan siapa yang menyiapkannya.”</div>`);
+    tambah(`<div class="abs" style="left:120px;top:880px;font-size:32px;color:var(--emas);font-weight:800">dr. H. Khairul, M.Kes. — Wali Kota Tarakan</div>`);
+  }
+}
+window.LAPIS_ID = Object.keys(LAPIS);
 window.siapkan = (id) => {
   P.innerHTML = "";
-  if (ADEGAN[id]) { window.perbarui = ADEGAN[id].bangun(); window.durasi = ADEGAN[id].dur; }
+  document.documentElement.style.background = ""; document.body.style.background = ""; P.style.background = "";
+  if (LAPIS[id]) { bangunLapis(id); window.perbarui = () => {}; window.durasi = 0; }
+  else if (ADEGAN[id]) { window.perbarui = ADEGAN[id].bangun(); window.durasi = ADEGAN[id].dur; }
   else { bangunLatar(id); window.perbarui = () => {}; window.durasi = 0; }
   return document.fonts.ready.then(() => Promise.all([...document.images].map((i) => i.complete ? 0 : new Promise((r) => { i.onload = i.onerror = r; })))).then(() => window.durasi);
 };

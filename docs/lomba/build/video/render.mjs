@@ -10,6 +10,7 @@ await p.goto("file://" + D + "grafis.html"); await p.waitForTimeout(300);
 const ids = await p.evaluate(() => window.ADEGAN_ID), latar = await p.evaluate(() => window.LATAR_ID);
 if (mode === "latar") {
   for (const id of latar) { await p.evaluate((i) => window.siapkan(i), id); await p.screenshot({ path: D + "gr/" + id + ".png" }); }
+  for (const id of await p.evaluate(() => window.LAPIS_ID)) { await p.evaluate((i) => window.siapkan(i), id); await p.screenshot({ path: D + "gr/" + id + ".png", omitBackground: true }); }
   console.log(JSON.stringify(await p.evaluate(() => window.LAYAR)));
 } else for (const id of ids) {
   if (pilih.length && !pilih.includes(id)) continue;
