@@ -120,7 +120,7 @@ bagian("Latar belakang");
     teks(s, j, M + 1.05, y + 0.2, 3.7, 0.36, { fontSize: 16, bold: true, color: C.text2 });
     teks(s, k, M + 1.05, y + 0.58, 3.7, 0.34, { fontSize: 14, color: hilang ? C.accent4 : C.accent5, bold: hilang });
   });
-  teks(s, "Januari 2026 — semua pihak bekerja dengan benar. Rantainya yang rapuh.", M, 5.95, 4.9, 0.7, { fontSize: 15, italic: true, color: C.text2 });
+  teks(s, "Januari 2026 — semua pihak bekerja dengan benar. Rantainya yang rapuh.", M, 5.85, 4.9, 0.7, { fontSize: 15, italic: true, color: C.text2 });
 
   // Cara kerja lama
   const X = 6.2, Wt = W - M - X;
@@ -131,12 +131,12 @@ bagian("Latar belakang");
     ["Disposisi", "Beredar sebagai foto di grup percakapan"],
     ["Penugasan petugas", "Bergantung pada ingatan"],
     ["Ketersediaan ruangan", "Hanya tercatat di papan tulis"],
-    ["Dari undangan sampai tayang", "Diperkirakan 18–24 jam"],
+    ["Pengajuan → tayang", "Diperkirakan 18–24 jam"],
   ];
   s.addTable(baris.map(([a, b], i) => [
     { text: a, options: { bold: true, color: C.text2, fill: { color: i % 2 ? "FFFFFF" : HEX.lt2 } } },
     { text: b, options: { color: i === 5 ? C.accent4 : C.text1, bold: i === 5, fill: { color: i % 2 ? "FFFFFF" : HEX.lt2 } } },
-  ]), { x: X, y: 2.35, w: Wt, colW: [2.55, Wt - 2.55], fontSize: 14, fontFace: "Arial", border: { type: "none" }, rowH: 0.62, valign: "middle", margin: [0, 0.12, 0, 0.12] });
+  ]), { x: X, y: 2.35, w: Wt, colW: [2.55, Wt - 2.55], fontSize: 14, fontFace: "Arial", border: { type: "none" }, rowH: 0.56, valign: "middle", margin: [0, 0.12, 0, 0.12] });
   s.addNotes("Januari 2026. Tiga lembar disposisi agenda diturunkan; yang sampai ke kami hanya dua. Tidak ada yang lalai, tetapi tidak ada pula yang bisa mengetahuinya. Sebelum Maret 2026: rencana kegiatan di spreadsheet lalu dicetak, penelaahan hanya sempat sekitar 30 menit menjelang jam pulang, disposisi beredar sebagai foto, penugasan bergantung pada ingatan. (±40 detik)");
 }
 {
