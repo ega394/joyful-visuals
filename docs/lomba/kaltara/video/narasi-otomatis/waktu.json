@@ -102,14 +102,14 @@
  "08": {
   "awal": [
    0.0,
-   4.9
+   4.15
   ],
   "kalimat": [
    "Kepala Bagian memeriksa dan memutus, dari mana saja.",
-   "Sekali disetujui, agenda langsung tayang."
+   "Sekali disetujui, agenda langsung tayang, tanpa cetak ulang."
   ],
-  "panjang": 8.44,
-  "laju": 141
+  "panjang": 8.49,
+  "laju": 165
  },
  "09": {
   "awal": [
@@ -128,16 +128,16 @@
  "10": {
   "awal": [
    0.0,
-   4.22,
-   10.34
+   3.75,
+   9.14
   ],
   "kalimat": [
    "Petugas ditugaskan dan langsung diberi tahu.",
    "Setiap langkah tercatat: siapa, kapan, dan apa keputusannya.",
-   "Di lokasi, tamu cukup memindai kode QR untuk mengisi daftar hadir, lengkap dengan tanda tangan."
+   "Di lokasi, tamu cukup memindai kode QR untuk mengisi daftar hadir, lengkap dengan tanda tangan, tanpa selembar kertas pun."
   ],
-  "panjang": 18.65,
-  "laju": 135
+  "panjang": 18.67,
+  "laju": 153
  },
  "11": {
   "awal": [

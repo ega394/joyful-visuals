@@ -111,12 +111,12 @@ Tombol persetujuan baru aktif setelah undangan dibuka dan butir pemeriksaan
 dicentang.
 
 29
-00:02:20,300 --> 00:02:25,120
+00:02:20,300 --> 00:02:24,370
 Kepala Bagian memeriksa dan memutus, dari mana saja.
 
 30
-00:02:25,200 --> 00:02:28,860
-Sekali disetujui, agenda langsung tayang.
+00:02:24,450 --> 00:02:28,910
+Sekali disetujui, agenda langsung tayang, tanpa cetak ulang.
 
 31
 00:02:30,300 --> 00:02:35,330
@@ -135,20 +135,20 @@ dan Wali Kota dapat mendisposisikan kepada Wakil Wali Kota.
 Tidak ada lagi foto disposisi yang berpindah dari grup ke grup.
 
 35
-00:02:50,300 --> 00:02:54,440
+00:02:50,300 --> 00:02:53,970
 Petugas ditugaskan dan langsung diberi tahu.
 
 36
-00:02:54,520 --> 00:03:00,560
+00:02:54,050 --> 00:02:59,360
 Setiap langkah tercatat: siapa, kapan, dan apa keputusannya.
 
 37
-00:03:00,640 --> 00:03:06,550
+00:02:59,440 --> 00:03:04,690
 Di lokasi, tamu cukup memindai kode QR untuk mengisi daftar hadir,
 
 38
-00:03:06,580 --> 00:03:09,070
-lengkap dengan tanda tangan.
+00:03:04,720 --> 00:03:09,090
+lengkap dengan tanda tangan, tanpa selembar kertas pun.
 
 39
 00:03:10,300 --> 00:03:16,120

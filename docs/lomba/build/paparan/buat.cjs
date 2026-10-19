@@ -294,17 +294,22 @@ bagian("Manfaat inovasi");
     teks(s, k, X + 1.1, y, Wr - 1.1, 0.38, { fontSize: 12, color: C.accent5, valign: "middle" });
   });
   // Alur singkat di bawah: mengapa bisa secepat itu
-  teks(s, "Mengapa lebih cepat", M, 4.95, 6, 0.35, { fontSize: 15, bold: true, color: C.text2 });
-  const sebab = [["Tanpa jendela 30 menit", "telaah dan persetujuan bisa dilakukan kapan saja, dari mana saja"], ["Satu sumber data", "tidak ada versi ganda, foto disposisi, atau grup yang harus ditelusuri"], ["Daftar periksa wajib", "kekeliruan tertahan sebelum tayang, bukan sesudahnya"]];
-  const sw = (W - 2 * M - 2 * 0.25) / 3;
-  sebab.forEach(([j, k], i) => {
-    const x = M + i * (sw + 0.25);
-    kartu(s, x, 5.35, sw, 1.2, { isi: "FFFFFF", garis: C.accent6, nama: "sebab" + (i + 1) });
-    teks(s, j, x + 0.22, 5.45, sw - 0.44, 0.4, { fontSize: 14, bold: true, color: C.text2, valign: "middle" });
-    teks(s, k, x + 0.22, 5.85, sw - 0.44, 0.65, { fontSize: 12, color: C.text1 });
+  teks(s, "Mengapa lebih cepat, dan lebih hemat", M, 4.95, 8, 0.35, { fontSize: 15, bold: true, color: C.text2 });
+  const sebab = [
+    ["Tanpa jendela 30 menit", "telaah dan persetujuan kapan saja, dari mana saja", false],
+    ["Satu sumber data", "tanpa versi ganda, foto disposisi, atau grup", false],
+    ["Daftar periksa wajib", "kekeliruan tertahan sebelum tayang", false],
+    ["Hemat kertas", "Tanpa cetak ulang RK; 452 undangan terarsip digital", true],
+  ];
+  const sw = (W - 2 * M - 3 * 0.2) / 4;
+  sebab.forEach(([j, k, hijau], i) => {
+    const x = M + i * (sw + 0.2);
+    kartu(s, x, 5.35, sw, 1.2, { isi: hijau ? "ECFDF5" : "FFFFFF", garis: hijau ? C.accent3 : C.accent6, tebal: hijau ? 1.5 : 0.75, nama: "sebab" + (i + 1) });
+    teks(s, j, x + 0.2, 5.45, sw - 0.4, 0.4, { fontSize: 14, bold: true, color: hijau ? C.accent3 : C.text2, valign: "middle" });
+    teks(s, k, x + 0.2, 5.85, sw - 0.4, 0.65, { fontSize: 12, color: C.text1 });
   });
   teks(s, "Sumber: basis data Prokopim Hibot, 24 September 2026. Angka \"sebelum\" adalah estimasi dari alur lama.", M, 6.65, W - 2 * M, 0.3, { kecil: true, fontSize: 11, color: C.accent5 });
-  s.addNotes("Baca dari kiri ke kanan: sebelumnya diperkirakan 18–24 jam (tidak pernah dicatat), sekarang median 1,99 jam yang terukur, dan 99,3% tayang kurang dari sehari. Sebutkan tiga angka saja: 1,99 jam, 99,3%, dan 47,5% penelaahan di luar jam kerja (405 dari 852), artinya pekerjaan tidak lagi menunggu jendela 30 menit. Jejak audit: 3.072 peristiwa pada 438 kegiatan; penugasan petugas pada 92,4% kegiatan. (±50 detik)");
+  s.addNotes("Baca dari kiri ke kanan: sebelumnya diperkirakan 18–24 jam (tidak pernah dicatat), sekarang median 1,99 jam yang terukur, dan 99,3% tayang kurang dari sehari. Sebutkan tiga angka saja: 1,99 jam, 99,3%, dan 47,5% penelaahan di luar jam kerja (405 dari 852), artinya pekerjaan tidak lagi menunggu jendela 30 menit. Jejak audit: 3.072 peristiwa pada 438 kegiatan; penugasan petugas pada 92,4% kegiatan. Tutup dengan hemat kertas: rencana kegiatan tidak lagi dicetak ulang setiap ada perubahan, 452 berkas undangan terarsip digital, daftar hadir dan persetujuan cukup di layar. (±50 detik)");
 }
 {
   const s = isi("MANFAAT INOVASI  ·  25%", "Dirasakan langsung oleh Pimpinan dan jajarannya");
