@@ -30,11 +30,11 @@ SILANG_NYATA = {"13": 0.3}
 # (nomor, durasi, sumber). Sumber grafis: ("g", id). Aplikasi: ("a", latar, jenis, [(klip, durasi_bagian, potong_s|None)]).
 ADEGAN = [
     ("01", 20, ("g", "s01")),
-    ("02", 25, ("g", "s02")),
+    ("02", 25, ("c", [("n", [("IMG_1345.MOV", 0.3, 5.6), ("IMG_1346.MOV", 0.2, 5.3)], "o02", 10), ("g", "s02", 15, 10.0)])),
     ("03", 25, ("g", "s03")),
     ("04", 25, ("g", "s04")),
     ("05", 10, ("g", "s05")),
-    ("06", 20, ("a", [("b06", "laptop", "a06_admin", 20, None)])),
+    ("06", 20, ("c", [("n", [("IMG_1347.MOV", 0.0, 5.0)], "o06", 5), ("a", "b06", "laptop", "a06_admin", 15, None)])),
     ("07", 15, ("a", [("b07", "hp", "a07_kasubbag", 15, None)])),
     ("08", 10, ("a", [("b08", "laptop", "a08_kabag", 10, None)])),
     ("09", 20, ("a", [("b09", "hp", "a09_walikota", 10, None), ("b09b", "hp", "a09b_ajudan", 10, None)])),
@@ -252,8 +252,8 @@ def main():
                     sw = D + f"bagian/suara_{no}.wav" if no in SUARA_ASLI else None
                     bagian_nyata(it[1], it[2], it[3], p, silang=SILANG_NYATA.get(no, 0.4), suara=sw, suara_klips=SUARA_KLIP.get(no))
                     if sw: suara_asli.append((sw, mulai[no] + sum(x[3] for x in items[:j] if x[0] == "n")))
-                elif it[0] == "g":
-                    jalankan("ffmpeg", "-y", "-loglevel", "error", "-i", D + "gr/" + it[1] + ".mp4", "-t", str(it[2]), "-vf", "fps=25,format=yuv420p", "-c:v", "libx264", "-crf", "17", p)
+                elif it[0] == "g":  # ("g", id, durasi[, mulai_dari])
+                    jalankan("ffmpeg", "-y", "-loglevel", "error", "-ss", str(it[3] if len(it) > 3 else 0), "-i", D + "gr/" + it[1] + ".mp4", "-t", str(it[2]), "-vf", "fps=25,format=yuv420p", "-c:v", "libx264", "-crf", "17", p)
                 elif it[0] == "a":
                     bagian_aplikasi(it[1], it[2], it[3], it[4], it[5], p)
                 else:

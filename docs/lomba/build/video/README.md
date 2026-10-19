@@ -7,7 +7,8 @@ Semua adegan aplikasi direkam dari aplikasi berdata contoh (`../tangkapan/mock.m
 3. `node render.mjs latar` lalu `node render.mjs penuh` — latar perangkat dan adegan grafis (`grafis.html`) per bingkai ke `gr/`.
 4. `python3 susun.py` — bingkai perangkat, takarir ASS (huruf Plus Jakarta Sans terpasang di `~/.fonts`), gabung MP4 4:55.
    Narasi dubber diletakkan di `narasi/adegan-NN.wav|m4a|mp3`; bila ada, otomatis dicampur pada awal tiap adegan.
-   Rekaman nyata Wali Kota (`IMG_1727-1731.MOV`, `pernyataan-walikota.mp4`) disimpan di `nyata/` dan tidak dimasukkan ke repo.
+   Rekaman nyata (`IMG_1345-1347.MOV` cara lama, jam, dan cara baru; `IMG_1727-1731.MOV` dan `pernyataan-walikota.mp4` Wali Kota)
+   disimpan di `nyata/` dan tidak dimasukkan ke repo.
    Adegan 13: gambar beliau mengakses aplikasi, suara dari video pernyataan dengan takarir ucapan (`UCAPAN` di `susun.py`);
    musik diredam selama beliau berbicara.
 5. `python3 vertikal.py` — potongan 9:16, 60 detik. `node sampul.mjs` — sampul berlogo Pemprov Kaltara.
