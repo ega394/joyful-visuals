@@ -41,13 +41,13 @@ SLIDE = [
         "589 kegiatan terkelola dan 3.072 keputusan terekam. [[92,4 persen kegiatan sudah ada petugasnya.]] Hampir separuh penelaahan, 47,5 persen, dilakukan di luar jam kerja: pekerjaan tidak lagi menunggu jendela 30 menit.",
         "Dan hemat kertas: rencana kegiatan tidak lagi dicetak ulang, 452 berkas undangan terarsip digital."],
   isyarat="Beri jeda dua detik sesudah '1,99 jam'. Ini angka utama; biarkan juri mencernanya."),
- dict(no=8, judul="Dirasakan Pimpinan", mulai="6:30", selesai="7:00",
-  ucap=["Manfaatnya dirasakan langsung oleh Pimpinan. Wali Kota menyampaikan: \"Yang terpenting bagi saya adalah kepastian: ke mana saya harus hadir, kapan, dan siapa yang menyiapkannya.\"",
+ dict(no=8, judul="Manfaat utama: agenda Wali Kota dan Wakil", mulai="6:30", selesai="7:00",
+  ucap=["Manfaat utamanya ada pada agenda Wali Kota dan Wakil Wali Kota. Wali Kota menyampaikan: \"Yang terpenting bagi saya adalah kepastian: ke mana saya harus hadir, kapan, dan siapa yang menyiapkannya.\"",
         "62 kegiatan telah beliau disposisikan kepada Wakil langsung dari aplikasi, dan ajudan sudah 341 kali mengonfirmasi kehadiran."],
-  isyarat="Bacakan kutipan dengan nada hormat dan pelan, sambil menunjuk kotak kutipan."),
- dict(no=9, judul="Fitur lain: kanal publik", mulai="7:00", selesai="7:25",
-  ucap=["Di luar alur agenda, ada fitur tersendiri untuk masyarakat: kanal publik. Tanpa akun, 66 instansi mengajukan peminjaman ruangan dan 53 instansi mengajukan audiensi, lalu memantau statusnya sendiri dengan kode penelusuran, tanpa datang atau menelepon berulang."],
-  isyarat="Tegaskan 'fitur tersendiri', supaya juri tidak mencampurnya dengan alur agenda."),
+  isyarat="Bacakan kutipan dengan nada hormat dan pelan, sambil menunjuk kotak kutipan. Tegaskan kata 'utama'."),
+ dict(no=9, judul="Layanan pendukung: instansi dan masyarakat", mulai="7:00", selesai="7:25",
+  ucap=["Selain agenda Pimpinan, ada dua layanan pendukung. Bagi instansi, peminjaman ruang rapat: 123 pengajuan dari 66 instansi. Bagi instansi dan masyarakat, permohonan audiensi dan bertamu kepada Pimpinan: 55 permohonan dari 53 instansi. Statusnya dipantau sendiri dengan kode penelusuran, tanpa datang atau menelepon berulang."],
+  isyarat="Sampaikan sebagai pendukung, nada lebih ringan; jangan berlama-lama, inti paparan tetap agenda Pimpinan."),
  dict(no=10, judul="Pemanfaatan sumber daya", mulai="7:25", selesai="7:55",
   ucap=["Seluruhnya dibangun tim sendiri, tanpa belanja pengadaan, dengan layanan tanpa biaya.",
         "Bagaimana bila pengelolanya pindah? Kewenangan melekat pada jabatan, sebelas SOP disiapkan, kode dan riwayat tersimpan lengkap atas nama instansi, dan pengelola kedua didampingi mulai 2027."],
@@ -78,7 +78,7 @@ TANYA = [
  ("Angka 18–24 jam itu dari mana?", "Itu perkiraan alur lama, karena dulu memang tidak pernah dicatat; justru itu masalahnya. Angka 1,99 jam sekarang terukur langsung dari basis data."),
  ("Di proposal tertulis tiga lembar, di sini dua?", "Gunakan jawaban pada slide 14 (cadangan): koreksi berdasarkan lembar asli; peristiwanya sama."),
  ("Apakah bisa dipakai daerah lain?", "Bisa, sesuai kebutuhan. Yang disesuaikan hanya nama jabatan, pengguna, dan tata naskah; cukup peramban dan sebelas SOP yang dapat diadaptasi."),
- ("Apa manfaatnya bagi masyarakat?", "Lewat kanal publik, 66 instansi meminjam ruangan dan 53 instansi mengajukan audiensi tanpa akun, dan memantau statusnya sendiri dengan kode penelusuran."),
+ ("Apa manfaatnya bagi instansi dan masyarakat?", "Manfaat utama tetap pada agenda Pimpinan. Sebagai pendukung, instansi meminjam ruang rapat secara daring (123 pengajuan dari 66 instansi), dan instansi maupun masyarakat mengajukan audiensi atau bertamu (55 permohonan dari 53 instansi), lalu memantau statusnya sendiri dengan kode penelusuran."),
 ]
 
 KIAT = [

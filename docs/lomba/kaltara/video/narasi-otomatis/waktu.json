@@ -114,42 +114,44 @@
  "09": {
   "awal": [
    0.0,
-   5.11,
-   13.31
+   6.13,
+   13.39
   ],
   "kalimat": [
-   "Begitu tayang, agenda langsung ada di telepon Pimpinan.",
+   "Begitu tayang, agenda langsung ada di telepon Wali Kota dan Wakil Wali Kota.",
    "Ajudan mengonfirmasi kehadiran, dan Wali Kota dapat mendisposisikan kepada Wakil Wali Kota.",
    "Tidak ada lagi foto disposisi yang berpindah dari grup ke grup."
   ],
-  "panjang": 18.68,
-  "laju": 135
+  "panjang": 18.09,
+  "laju": 153
  },
  "10": {
   "awal": [
    0.0,
-   3.75,
-   9.14
+   3.61,
+   9.77
   ],
   "kalimat": [
    "Petugas ditugaskan dan langsung diberi tahu.",
-   "Setiap langkah tercatat: siapa, kapan, dan apa keputusannya.",
-   "Di lokasi, tamu cukup memindai kode QR untuk mengisi daftar hadir, lengkap dengan tanda tangan, tanpa selembar kertas pun."
+   "Setiap langkah tercatat di Riwayat Alur: siapa, kapan, dan apa keputusannya.",
+   "Bila Kepala Bagian berhalangan, Pelaksana Harian melanjutkan alur, dan kewenangannya padam sendiri pada tanggal akhirnya."
   ],
-  "panjang": 18.67,
-  "laju": 153
+  "panjang": 18.09,
+  "laju": 159
  },
  "11": {
   "awal": [
    0.0,
-   5.9
+   4.44,
+   9.0
   ],
   "kalimat": [
-   "Selain alur agenda itu, ada kanal publik, fitur tersendiri.",
-   "Masyarakat dan instansi mengajukan audiensi atau meminjam ruangan secara daring, lalu memantau sendiri statusnya, tanpa perlu datang berulang."
+   "Selain agenda Pimpinan, ada dua layanan pendukung.",
+   "Bagi instansi, peminjaman ruang rapat secara daring.",
+   "Bagi instansi dan masyarakat, permohonan audiensi dan bertamu kepada Pimpinan, yang statusnya dipantau sendiri dengan kode."
   ],
-  "panjang": 17.07,
-  "laju": 135
+  "panjang": 18.09,
+  "laju": 147
  },
  "12": {
   "awal": [

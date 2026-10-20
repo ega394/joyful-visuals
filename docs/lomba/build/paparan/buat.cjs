@@ -168,7 +168,7 @@ bagian("Latar belakang");
     "Keputusan tidak meninggalkan jejak",
     "Beberapa versi cetakan beredar bersamaan",
     "Pengetahuan kerja melekat pada orang",
-    "Kanal publik tidak dapat ditelusuri",
+    "Permohonan ruangan dan audiensi tidak dapat ditelusuri",
   ];
   const X = 5.35;
   cabang.forEach((c, i) => {
@@ -233,7 +233,7 @@ bagian("Terobosan inovasi");
     ["Daftar periksa wajib", "Setuju baru aktif sesudah dicentang"],
     ["Pelaksana Harian bermasa berlaku", "Padam sendiri pada tanggal akhirnya"],
     ["Pengawasan menurut kegentingan", "Ditandai menurut umur dan hari H"],
-    ["Kanal publik terlacak", "Dipantau sendiri dengan kode"],
+    ["Permohonan publik terlacak", "Ruangan dan audiensi dipantau dengan kode"],
     ["Tersambung kalender bersama", "Agenda tersetujui tampil sendiri"],
   ];
   const gw = 2.62, gh = 2.1, g = 0.22;
@@ -330,7 +330,7 @@ bagian("Manfaat inovasi");
   s.addNotes(NASKAH["7"]);
 }
 {
-  const s = isi("MANFAAT INOVASI  ·  25%", "Dirasakan langsung oleh Pimpinan dan jajarannya");
+  const s = isi("MANFAAT INOVASI  ·  25%", "Manfaat utama: agenda yang pasti bagi Wali Kota dan Wakil");
   s.addImage({ path: A + "hp_walikota.jpg", x: M, y: 1.75, w: 2.35, h: 5.08, shadow: bayang() });
   const X = M + 2.75, Wq = 5.3;
   kartu(s, X, 1.75, Wq, 2.75, { isi: C.text2, nama: "kutipanwk" });
@@ -349,14 +349,14 @@ bagian("Manfaat inovasi");
   s.addNotes(NASKAH["8"]);
 }
 
-// ══ Fitur lain: kanal publik ══════════════════════════════════════
-bagian("Fitur lain: kanal publik");
+// ══ Manfaat bagi instansi dan masyarakat ═══════════════════════════
+bagian("Manfaat bagi instansi dan masyarakat");
 {
-  const s = isi("FITUR LAIN  ·  MANFAAT BAGI MASYARAKAT", "Kanal publik: warga dan instansi mengurus sendiri, tanpa akun");
-  teks(s, "Terpisah dari alur agenda Pimpinan, kanal ini melayani masyarakat dan instansi lewat peramban.", M, 1.5, W - 2 * M, 0.4, { fontSize: 14, color: C.accent5 });
+  const s = isi("MANFAAT INOVASI  ·  LAYANAN PENDUKUNG", "Selain agenda Pimpinan: layanan bagi instansi dan masyarakat");
+  teks(s, "Agenda Wali Kota dan Wakil tetap yang utama. Dua layanan ini diakses lewat peramban, tanpa akun.", M, 1.5, W - 2 * M, 0.4, { fontSize: 14, color: C.accent5 });
   const dua = [
-    ["Peminjaman ruang rapat", "123", "pengajuan dari 66 instansi", ["98 disetujui, total 3.023 peserta kegiatan", "Kalender ketersediaan terbuka untuk umum", "Hanya keterpakaian slot; tanpa identitas atau kontak pemohon"]],
-    ["Permohonan audiensi", "55", "permohonan dari 53 instansi", ["48 telah selesai diproses", "31 di antaranya menjadi agenda Pimpinan", "Pemberitahuan berjenjang; Pimpinan tidak diganggu per permohonan"]],
+    ["Instansi · Peminjaman ruang rapat", "123", "pengajuan dari 66 instansi", ["98 disetujui, total 3.023 peserta kegiatan", "Kalender ketersediaan terbuka untuk umum", "Hanya keterpakaian slot; tanpa identitas atau kontak pemohon"]],
+    ["Instansi dan masyarakat · Audiensi dan tamu", "55", "permohonan dari 53 instansi", ["48 telah selesai diproses", "31 di antaranya menjadi agenda Pimpinan", "Pemberitahuan berjenjang; Pimpinan tidak diganggu per permohonan"]],
   ];
   const cw = (W - 2 * M - 0.3) / 2;
   dua.forEach(([j, a, k, butir], i) => {
@@ -413,7 +413,7 @@ bagian("Pemanfaatan sumber daya");
 bagian("Diseminasi inovasi");
 {
   const s = isi("DISEMINASI INOVASI  ·  10%", "Dipakai melampaui Bagian Prokopim, siap direplikasi");
-  const lingkar = [["40 akun", "14 jenis peran pengguna"], ["21 akun", "di luar Bagian: Pimpinan, ajudan, pengawal, mitra DKISP"], ["66 + 53", "instansi memakai kanal publik ruangan dan audiensi"], ["42 orang", "Tim Koordinasi lintas perangkat daerah"]];
+  const lingkar = [["40 akun", "14 jenis peran pengguna"], ["21 akun", "di luar Bagian: Pimpinan, ajudan, pengawal, mitra DKISP"], ["66 + 53", "instansi mengajukan peminjaman ruangan dan audiensi"], ["42 orang", "Tim Koordinasi lintas perangkat daerah"]];
   const cw = 2.85;
   lingkar.forEach(([a, k], i) => {
     const x = M + (i % 2) * (cw + 0.25), y = 1.8 + Math.floor(i / 2) * 2.1;

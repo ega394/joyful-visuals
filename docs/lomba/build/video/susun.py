@@ -38,8 +38,8 @@ ADEGAN = [
     ("07", 15, ("a", [("b07", "hp", "a07_kasubbag", 15, None)])),
     ("08", 10, ("a", [("b08", "laptop", "a08_kabag", 10, None)])),
     ("09", 20, ("a", [("b09", "hp", "a09_walikota", 10, None), ("b09b", "hp", "a09b_ajudan", 10, None)])),
-    ("10", 20, ("a", [("b10", "laptop", "a10_penugasan", 13, None), ("b10b", "hp", "a10b_hadir", 7, None)])),
-    ("11", 20, ("a", [("b11", "hp", "a11a_tamu", 10, None), ("b11", "hp", "a11b_ruangan", 10, None)])),
+    ("10", 20, ("a", [("b10", "laptop", "a10_penugasan", 20, None)])),
+    ("11", 20, ("a", [("b11r", "hp", "a11b_ruangan", 9, None), ("b11a", "hp", "a11a_tamu", 11, None)])),
     ("12", 35, ("g", "s12")),
     ("13", 25, ("c", [("n", WALIKOTA_HP, "o13", 25)])),
     ("14", 15, ("c", [("g", "s14a", 7), ("a", "b14", "laptop", "a14_monitorwa", 8, None)])),
@@ -56,9 +56,9 @@ TAKARIR = {
     "06": "Admin Rencana Kegiatan cukup memindai undangan. Kecerdasan buatan mengisi nama acara, tanggal, jam, lokasi, dan zona waktunya. Admin tinggal memeriksa, lalu mengirimkannya ke Kepala Sub Bagian.",
     "07": "Kepala Sub Bagian menelaah dari mana saja, cukup lewat telepon. Tombol persetujuan baru aktif setelah undangan dibuka dan butir pemeriksaan dicentang.",
     "08": "Kepala Bagian memeriksa dan memutus, dari mana saja. Sekali disetujui, agenda langsung tayang, tanpa cetak ulang.",
-    "09": "Begitu tayang, agenda langsung ada di telepon Pimpinan. Ajudan mengonfirmasi kehadiran, dan Wali Kota dapat mendisposisikan kepada Wakil Wali Kota. Tidak ada lagi foto disposisi yang berpindah dari grup ke grup.",
-    "10": "Petugas ditugaskan dan langsung diberi tahu. Setiap langkah tercatat: siapa, kapan, dan apa keputusannya. Di lokasi, tamu cukup memindai kode QR untuk mengisi daftar hadir, lengkap dengan tanda tangan, tanpa selembar kertas pun.",
-    "11": "Selain alur agenda itu, ada kanal publik, fitur tersendiri. Masyarakat dan instansi mengajukan audiensi atau meminjam ruangan secara daring, lalu memantau sendiri statusnya, tanpa perlu datang berulang.",
+    "09": "Begitu tayang, agenda langsung ada di telepon Wali Kota dan Wakil Wali Kota. Ajudan mengonfirmasi kehadiran, dan Wali Kota dapat mendisposisikan kepada Wakil Wali Kota. Tidak ada lagi foto disposisi yang berpindah dari grup ke grup.",
+    "10": "Petugas ditugaskan dan langsung diberi tahu. Setiap langkah tercatat di Riwayat Alur: siapa, kapan, dan apa keputusannya. Bila Kepala Bagian berhalangan, Pelaksana Harian melanjutkan alur, dan kewenangannya padam sendiri pada tanggal akhirnya.",
+    "11": "Selain agenda Pimpinan, ada dua layanan pendukung. Bagi instansi, peminjaman ruang rapat secara daring. Bagi instansi dan masyarakat, permohonan audiensi dan bertamu kepada Pimpinan, yang statusnya dipantau sendiri dengan kode.",
     "12": "Per 24 September 2026: 589 kegiatan terkelola. Waktu sampai tayang turun menjadi median 1,99 jam, dan 99,3% tayang kurang dari sehari. 3.072 keputusan terekam. 92,4% kegiatan memiliki penugasan petugas. Belanja pengadaannya nol rupiah.",
     "13": "",
     "14": "Sebelas SOP dan Pelaksana Harian menjaga alur tetap berjalan, bahkan ketika pejabat berhalangan. Sejak proposal, aplikasi terus dikembangkan dari kendala pengguna.",
@@ -153,7 +153,7 @@ def ts(s):
 
 # Adegan ponsel: bingkai HP besar di kiri, jadi takarir digeser ke ruang kanan.
 PONSEL = {"07", "09", "11"}
-PONSEL_SESUDAH = {"10": 13.0}   # adegan campuran: bagian ponsel mulai detik ke-13
+PONSEL_SESUDAH = {}   # adegan campuran: {nomor: detik mulai bagian ponsel}
 def _hp(no, rel):
     return no in PONSEL or (no in PONSEL_SESUDAH and rel >= PONSEL_SESUDAH[no] - 0.2)
 ML = lambda no, rel=0: 720 if _hp(no, rel) else 0
