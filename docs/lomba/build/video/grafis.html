@@ -159,6 +159,19 @@ const ADEGAN = {
     return (t) => { muncul(tanda, t, 0.2, 1, 0); muncul(q, t, 0.5, 1.2, 30); muncul(s, t, 2.5, 0.8, 20); };
   } },
   // 14a. Keberlanjutan
+  s14b: { dur: 10, bangun() {
+    bingkai("5 · DAMPAK", "Pembaruan sejak proposal · Oktober 2026");
+    const isi = [
+      ["Pengingat dirampingkan", "lima kali sehari menjadi tiga waktu"],
+      ["WhatsApp hanya yang perlu", "untuk acara hari ini atau besok"],
+      ["Pemberitahuan tamu berjenjang", "ringkasan pagi, jam tenang malam"],
+      ["Monitor WA", "setiap pesan terlacak terkirim atau dibaca"],
+      ["Masuk lebih aman", "sidik jari atau wajah dan akun Google"],
+      ["Jam acara mengikuti zona", "WIB, WITA, atau WIT menurut tempat"],
+    ];
+    const K = isi.map(([j, k], i) => tambah(`<div class="kartu" style="left:${80 + (i % 3) * 595}px;top:${170 + Math.floor(i / 3) * 360}px;width:565px;height:330px;padding:40px 38px"><div class="besar" style="width:70px;height:70px;border-radius:35px;background:var(--emas);color:var(--navy);font-size:38px;display:flex;align-items:center;justify-content:center">${i + 1}</div><div style="font-size:40px;font-weight:800;margin-top:26px;line-height:1.15">${j}</div><div style="font-size:28px;color:var(--abu);margin-top:14px;line-height:1.35">${k}</div></div>`));
+    return (t) => { K.forEach((n, i) => muncul(n, t, 0.3 + i * 0.55, 0.6, 40)); };
+  } },
   s14a: { dur: 7, bangun() {
     bingkai("5 · DAMPAK", "Keberlanjutan");
     const a = tambah(`<div class="kartu" style="left:80px;top:200px;width:860px;height:560px;padding:56px"><div class="besar" style="font-size:150px;color:var(--emas)">11</div><div style="font-size:46px;font-weight:800">SOP baku</div><div style="font-size:30px;color:var(--abu);margin-top:14px">satu SOP untuk setiap alur kerja</div></div>`);

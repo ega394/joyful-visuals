@@ -13,7 +13,7 @@ S = [
 ('11', '3:10', '3:30', 'Manfaat bagi instansi dan masyarakat', 'Selain agenda Pimpinan, ada dua layanan pendukung. Bagi instansi, peminjaman ruang rapat secara daring. Bagi instansi dan masyarakat, permohonan audiensi dan bertamu kepada Pimpinan, yang statusnya dipantau sendiri dengan kode.', 'Ganti nada sedikit: layanan pendukung di luar agenda Pimpinan.'),
 ('12', '3:30', '4:05', 'Dampak', 'Per dua puluh empat September dua ribu dua puluh enam: lima ratus delapan puluh sembilan kegiatan terkelola. Waktu sampai tayang turun menjadi median satu koma sembilan puluh sembilan jam, dan sembilan puluh sembilan koma tiga persen tayang kurang dari sehari. Tiga ribu tujuh puluh dua keputusan terekam. Sembilan puluh dua koma empat persen kegiatan memiliki penugasan petugas. Belanja pengadaannya nol rupiah.', 'Bagian terpadat: baca angka satu per satu, jeda 0,5 detik antarangka. "Nol rupiah" ditutup dengan nada turun, tegas.'),
 ('13', '4:05', '4:30', 'Dampak', '(Tanpa narasi. Pernyataan asli Wali Kota diputar.)', 'Dubber tidak membaca apa pun; jangan menimpa suara beliau.'),
-('14', '4:30', '4:45', 'Dampak', 'Sebelas SOP dan Pelaksana Harian menjaga alur tetap berjalan, bahkan ketika pejabat berhalangan. Sejak proposal, aplikasi terus dikembangkan dari kendala pengguna.', 'Nada optimis.'),
+('14', '4:30', '4:45', 'Dampak', 'Sebelas SOP dan Pelaksana Harian menjaga alur tetap berjalan. Sejak proposal diajukan, enam pembaruan telah dilakukan, semuanya berangkat dari kendala pengguna.', 'Nada optimis.'),
 ('15', '4:45', '4:55', 'Penutup', 'Prokopim Hibot. Satu alur. Satu data. Setiap keputusan tercatat.', 'Empat hentakan, jeda 0,7 detik; kalimat terakhir paling kuat.'),
 ]
 def sec(t):

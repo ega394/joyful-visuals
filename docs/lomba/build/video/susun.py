@@ -42,7 +42,7 @@ ADEGAN = [
     ("11", 20, ("a", [("b11r", "hp", "a11b_ruangan", 9, None), ("b11a", "hp", "a11a_tamu", 11, None)])),
     ("12", 35, ("g", "s12")),
     ("13", 25, ("c", [("n", WALIKOTA_HP, "o13", 25)])),
-    ("14", 15, ("c", [("g", "s14a", 7), ("a", "b14", "laptop", "a14_monitorwa", 8, None)])),
+    ("14", 15, ("c", [("g", "s14a", 5), ("g", "s14b", 10)])),
     ("15", 10, ("g", "s15")),
 ]
 
@@ -61,7 +61,7 @@ TAKARIR = {
     "11": "Selain agenda Pimpinan, ada dua layanan pendukung. Bagi instansi, peminjaman ruang rapat secara daring. Bagi instansi dan masyarakat, permohonan audiensi dan bertamu kepada Pimpinan, yang statusnya dipantau sendiri dengan kode.",
     "12": "Per 24 September 2026: 589 kegiatan terkelola. Waktu sampai tayang turun menjadi median 1,99 jam, dan 99,3% tayang kurang dari sehari. 3.072 keputusan terekam. 92,4% kegiatan memiliki penugasan petugas. Belanja pengadaannya nol rupiah.",
     "13": "",
-    "14": "Sebelas SOP dan Pelaksana Harian menjaga alur tetap berjalan, bahkan ketika pejabat berhalangan. Sejak proposal, aplikasi terus dikembangkan dari kendala pengguna.",
+    "14": "Sebelas SOP dan Pelaksana Harian menjaga alur tetap berjalan. Sejak proposal diajukan, enam pembaruan telah dilakukan, semuanya berangkat dari kendala pengguna.",
     "15": "Prokopim Hibot. Satu alur. Satu data. Setiap keputusan tercatat.",
 }
 
