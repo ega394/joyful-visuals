@@ -103,14 +103,16 @@ bagian("Pembuka");
   teks(s, "KALTARA INNOVATION AWARDS 2026  ·  PENILAIAN TAHAP II", M, 1.55, 8.4, 0.3, { fontSize: 12, bold: true, color: C.accent1, charSpacing: 1 });
   teks(s, "Prokopim Hibot", M, 2.0, 8.2, 1.1, { fontSize: 54, bold: true, color: C.background1, fontFace: "Arial" });
   teks(s, "Satu Alur Digital Terverifikasi untuk Tata Kelola Agenda dan Keprotokolan Pimpinan Daerah", M, 3.15, 7.8, 1.0, { fontSize: 22, color: C.accent1 });
-  s.addShape(pres.shapes.ROUNDED_RECTANGLE, { x: M, y: 4.3, w: 8.2, h: 0.72, rectRadius: 0.08, fill: { color: C.accent1, transparency: 85 }, line: { color: C.accent1, width: 1.25 } });
-  teks(s, "KATEGORI", M + 0.25, 4.3, 1.3, 0.72, { fontSize: 12, bold: true, color: C.accent1, charSpacing: 1, valign: "middle" });
-  teks(s, "Inovasi Terapan – ASN Pemerintah Kabupaten/Kota", M + 1.45, 4.3, 6.65, 0.72, { fontSize: 19, bold: true, color: C.background1, valign: "middle" });
-  teks(s, "Bagian Protokol dan Komunikasi Pimpinan, Sekretariat Daerah Kota Tarakan", M, 5.12, 7.8, 0.36, { fontSize: 15, color: C.accent6 });
+  s.addShape(pres.shapes.ROUNDED_RECTANGLE, { x: M, y: 4.2, w: 8.2, h: 1.12, rectRadius: 0.08, fill: { color: C.accent1, transparency: 85 }, line: { color: C.accent1, width: 1.25 } });
+  teks(s, "KATEGORI", M + 0.25, 4.27, 1.7, 0.46, { fontSize: 12, bold: true, color: C.accent1, charSpacing: 1, valign: "middle" });
+  teks(s, "Inovasi Terapan – ASN Pemerintah Kabupaten/Kota", M + 1.95, 4.27, 6.15, 0.46, { fontSize: 18, bold: true, color: C.background1, valign: "middle" });
+  teks(s, "BIDANG FOKUS", M + 0.25, 4.77, 1.7, 0.46, { fontSize: 12, bold: true, color: C.accent1, charSpacing: 1, valign: "middle" });
+  teks(s, "3 · Tata Kelola Kolaboratif dan Pelayanan Publik", M + 1.95, 4.77, 6.15, 0.46, { fontSize: 18, bold: true, color: C.background1, valign: "middle" });
+  teks(s, "Bagian Protokol dan Komunikasi Pimpinan, Sekretariat Daerah Kota Tarakan", M, 5.42, 7.8, 0.36, { fontSize: 15, color: C.accent6 });
   teks(s, [
     { text: "Tim Inovasi  ", options: { bold: true, color: C.accent1 } },
     { text: "Anugrah Yega Pranatha, M.Si. (Ketua)  ·  Saifullah, S.H.  ·  Juliyanti, S.AP.  ·  Mastura, S.Sos.  ·  Ni Kade Sari Handayani, S.AP.", options: { color: C.background1 } },
-  ], M, 5.7, 7.8, 0.75, { fontSize: 13 });
+  ], M, 5.9, 7.8, 0.75, { fontSize: 13 });
   s.addImage({ path: A + "hp_walikota.jpg", x: 9.35, y: 0.55, w: 2.95, h: 6.38, shadow: { type: "outer", color: "000000", opacity: 0.35, blur: 12, offset: 4, angle: 90 } });
   s.addNotes(NASKAH["1"]);
 }
@@ -443,18 +445,23 @@ bagian("Diseminasi inovasi");
 // ══ 11. Kompatibilitas ═════════════════════════════════════════════
 bagian("Kompatibilitas");
 {
-  const s = isi("KOMPATIBILITAS  ·  5%", "Selaras regulasi, visi daerah, dan cara kerja Pimpinan");
+  const s = isi("KOMPATIBILITAS  ·  5%", "Selaras bidang fokus, regulasi, dan visi daerah");
+  kartu(s, M, 1.5, W - 2 * M, 0.85, { isi: "FBF6E7", garis: C.accent1, tebal: 1.25, nama: "bidangfokus" });
+  teks(s, [
+    { text: "Bidang Fokus 3 (Pedoman): Tata Kelola Kolaboratif dan Pelayanan Publik — subfokus yang dijawab:", options: { bold: true, color: C.text2, breakLine: true } },
+    { text: "Digitalisasi pelayanan dan SPBE · penyederhanaan proses bisnis · integrasi data · transparansi dan akuntabilitas", options: { color: C.text1 } },
+  ], M + 0.3, 1.5, W - 2 * M - 0.6, 0.85, { fontSize: 14, valign: "middle" });
   const kol = [
     ["Regulasi", ["UU 25/2009 Pelayanan Publik", "UU 9/2010 Keprotokolan", "PP 38/2017 Inovasi Daerah", "Perpres 95/2018 SPBE", "PermenPAN-RB 35/2012 (dasar 11 SOP)"]],
-    ["Visi dan misi daerah", ["RPJMD Kalimantan Utara 2025–2029, Misi 3: Mewujudkan Transformasi Tata Kelola yang Kolaboratif dan Inovatif", "RPJMD Kota Tarakan 2025–2029, Misi 4: Mewujudkan tata kelola pemerintahan yang adaptif, responsif dan menjaga stabilitas ketertiban dan ketentraman kota", "Semboyan \"Tarakan HIBOT\": hibot berarti hebat dalam bahasa Tidung"]],
+    ["Visi dan misi daerah", ["RPJMD Kalimantan Utara 2025–2029, Misi 3: Mewujudkan Transformasi Tata Kelola yang Kolaboratif dan Inovatif", "RPJMD Kota Tarakan 2025–2029, Misi 4: Mewujudkan tata kelola pemerintahan yang adaptif, responsif dan menjaga stabilitas ketertiban dan ketentraman kota", "Semboyan \"Tarakan HIBOT\" (hibot: hebat, bahasa Tidung)"]],
     ["Kebutuhan pengguna", ["Naskah sambutan tetap tersedia tercetak, sesuai kebiasaan Pimpinan", "Kewenangan melekat pada jabatan, bukan orang", "WA hanya untuk yang perlu bertindak", "Jam acara mengikuti zona tempat Pimpinan berada"]],
   ];
   const kw = (W - 2 * M - 2 * 0.3) / 3;
   kol.forEach(([j, butir], i) => {
     const x = M + i * (kw + 0.3);
-    kartu(s, x, 1.8, kw, 4.4, { isi: i === 1 ? C.text2 : C.background2, nama: "kompat" + (i + 1) });
-    teks(s, j, x + 0.3, 2.0, kw - 0.6, 0.45, { fontSize: 18, bold: true, color: i === 1 ? C.accent1 : C.text2, fit: "none" });
-    teks(s, butir.map((b, n) => ({ text: b, options: { bullet: true, breakLine: n < butir.length - 1 } })), x + 0.3, 2.6, kw - 0.55, 4.0, { fontSize: 14, color: i === 1 ? C.background1 : C.text1, paraSpaceAfter: 9 });
+    kartu(s, x, 2.55, kw, 4.1, { isi: i === 1 ? C.text2 : C.background2, nama: "kompat" + (i + 1) });
+    teks(s, j, x + 0.3, 2.65, kw - 0.6, 0.45, { fontSize: 18, bold: true, color: i === 1 ? C.accent1 : C.text2, fit: "none" });
+    teks(s, butir.map((b, n) => ({ text: b, options: { bullet: true, breakLine: n < butir.length - 1 } })), x + 0.3, 3.15, kw - 0.55, 3.45, { fontSize: 14, color: i === 1 ? C.background1 : C.text1, paraSpaceAfter: 9 });
   });
   s.addNotes(NASKAH["12"]);
 }
