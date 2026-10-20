@@ -5,6 +5,26 @@
 // Tidak butuh npm packages — vanilla JS murni
 // Otomatis tersedia di semua browser yang support SW
 
+// ── LENCANA: angka di ikon aplikasi (iPhone 16.4+, Android) ─
+// Hitungan disimpan di Cache Storage yang sama dengan src/lib/lencana.js.
+// Saat aplikasi tertutup, setiap push menambah 1; saat aplikasi dibuka,
+// angka ditimpa dengan jumlah tugas yang sebenarnya.
+var CACHE_LENCANA = "prokopim-lencana";
+var KUNCI_LENCANA = "/__lencana";
+function naikkanLencana(nilai) {
+  if (!self.navigator || !("setAppBadge" in self.navigator)) return Promise.resolve();
+  return caches.open(CACHE_LENCANA).then(function (c) {
+    return c.match(KUNCI_LENCANA)
+      .then(function (r) { return r ? r.text() : "0"; })
+      .then(function (t) {
+        var n = typeof nilai === "number" && nilai >= 0 ? nilai : (parseInt(t, 10) || 0) + 1;
+        return c.put(KUNCI_LENCANA, new Response(String(n))).then(function () {
+          return n > 0 ? self.navigator.setAppBadge(n) : self.navigator.clearAppBadge();
+        });
+      });
+  }).catch(function () { /* lencana bersifat pelengkap; notifikasi tetap tampil */ });
+}
+
 // ── PUSH: Tampilkan notifikasi saat server kirim push ──────
 self.addEventListener("push", function (event) {
   var data = {};
@@ -32,9 +52,11 @@ self.addEventListener("push", function (event) {
     },
   };
 
-  event.waitUntil(
-    self.registration.showNotification(data.title || "Prokopim", options)
-  );
+  event.waitUntil(Promise.all([
+    self.registration.showNotification(data.title || "Prokopim", options),
+    // data.lencana (opsional, angka) menimpa hitungan bila server mengetahuinya.
+    naikkanLencana(data.lencana),
+  ]));
 });
 
 // ── NOTIFICATIONCLICK: Click-to-redirect (Tugas 3) ─────────
