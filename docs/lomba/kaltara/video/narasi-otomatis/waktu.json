@@ -1,0 +1,202 @@
+{
+ "01": {
+  "awal": [
+   0.0,
+   3.01,
+   9.59,
+   13.38
+  ],
+  "kalimat": [
+   "Januari dua ribu dua puluh enam.",
+   "Dua lembar disposisi agenda diturunkan: rencana kegiatan dan rencana audiensi.",
+   "Yang sampai ke Bagian Prokopim hanya satu.",
+   "Tidak ada yang lalai, tetapi tidak ada pula yang bisa mengetahuinya."
+  ],
+  "panjang": 18.52,
+  "laju": 147
+ },
+ "02": {
+  "awal": [
+   0.0,
+   4.81,
+   10.74,
+   16.47
+  ],
+  "kalimat": [
+   "Rencana kegiatan disusun di spreadsheet lalu dicetak.",
+   "Penelaahan hanya sempat sekitar tiga puluh menit menjelang jam pulang.",
+   "Disposisi beredar sebagai foto, penugasan bergantung pada ingatan.",
+   "Dari pengajuan sampai tayang diperkirakan delapan belas sampai dua puluh empat jam."
+  ],
+  "panjang": 23.05,
+  "laju": 141
+ },
+ "03": {
+  "awal": [
+   0.0,
+   5.69,
+   8.68
+  ],
+  "kalimat": [
+   "Ide ini tidak lahir dari survei, tetapi dari pekerjaan sehari-hari.",
+   "Undangan masuk dari banyak pintu.",
+   "Sesudah peristiwa Januari, seluruh Bagian menelaah alur kerja bersama dan menemukan pola yang sama: penugasan tersimpan dalam ingatan, ruangan hanya tercatat di papan tulis, arsip tersebar."
+  ],
+  "panjang": 23.1,
+  "laju": 147
+ },
+ "04": {
+  "awal": [
+   0.0,
+   1.89,
+   5.63,
+   9.69,
+   15.49
+  ],
+  "kalimat": [
+   "Ada empat pilihan.",
+   "Menambah pengawasan tidak menyentuh akar masalah.",
+   "Merapikan spreadsheet tetap menyisakan banyak versi.",
+   "Membeli aplikasi jadi butuh anggaran, padahal alur keprotokolan sangat khas.",
+   "Kami memilih membangun sendiri: satu sumber data, setiap keputusan tercatat, tanpa anggaran pengadaan."
+  ],
+  "panjang": 22.97,
+  "laju": 159
+ },
+ "05": {
+  "awal": [
+   0.0
+  ],
+  "kalimat": [
+   "Lahirlah Prokopim Hibot: satu alur digital terverifikasi untuk agenda Pimpinan Daerah."
+  ],
+  "panjang": 7.36,
+  "laju": 135
+ },
+ "06": {
+  "awal": [
+   0.0,
+   4.35,
+   12.09
+  ],
+  "kalimat": [
+   "Admin Rencana Kegiatan cukup memindai undangan.",
+   "Kecerdasan buatan mengisi nama acara, tanggal, jam, lokasi, dan zona waktunya.",
+   "Admin tinggal memeriksa, lalu mengirimkannya ke Kepala Sub Bagian."
+  ],
+  "panjang": 17.69,
+  "laju": 135
+ },
+ "07": {
+  "awal": [
+   0.0,
+   5.94
+  ],
+  "kalimat": [
+   "Kepala Sub Bagian menelaah dari mana saja, cukup lewat telepon.",
+   "Tombol persetujuan baru aktif setelah undangan dibuka dan butir pemeriksaan dicentang."
+  ],
+  "panjang": 13.1,
+  "laju": 135
+ },
+ "08": {
+  "awal": [
+   0.0,
+   4.15
+  ],
+  "kalimat": [
+   "Kepala Bagian memeriksa dan memutus, dari mana saja.",
+   "Sekali disetujui, agenda langsung tayang, tanpa cetak ulang."
+  ],
+  "panjang": 8.49,
+  "laju": 165
+ },
+ "09": {
+  "awal": [
+   0.0,
+   6.13,
+   13.39
+  ],
+  "kalimat": [
+   "Begitu tayang, agenda langsung ada di telepon Wali Kota dan Wakil Wali Kota.",
+   "Ajudan mengonfirmasi kehadiran, dan Wali Kota dapat mendisposisikan kepada Wakil Wali Kota.",
+   "Tidak ada lagi foto disposisi yang berpindah dari grup ke grup."
+  ],
+  "panjang": 18.09,
+  "laju": 153
+ },
+ "10": {
+  "awal": [
+   0.0,
+   3.61,
+   9.77
+  ],
+  "kalimat": [
+   "Petugas ditugaskan dan langsung diberi tahu.",
+   "Setiap langkah tercatat di Riwayat Alur: siapa, kapan, dan apa keputusannya.",
+   "Bila Kepala Bagian berhalangan, Pelaksana Harian melanjutkan alur, dan kewenangannya padam sendiri pada tanggal akhirnya."
+  ],
+  "panjang": 18.09,
+  "laju": 159
+ },
+ "11": {
+  "awal": [
+   0.0,
+   4.44,
+   9.0
+  ],
+  "kalimat": [
+   "Selain agenda Pimpinan, ada dua layanan pendukung.",
+   "Bagi instansi, peminjaman ruang rapat secara daring.",
+   "Bagi instansi dan masyarakat, permohonan audiensi dan bertamu kepada Pimpinan, yang statusnya dipantau sendiri dengan kode."
+  ],
+  "panjang": 18.09,
+  "laju": 147
+ },
+ "12": {
+  "awal": [
+   0.0,
+   8.76,
+   20.85,
+   24.84,
+   30.93
+  ],
+  "kalimat": [
+   "Per dua puluh empat September dua ribu dua puluh enam: lima ratus delapan puluh sembilan kegiatan terkelola.",
+   "Waktu sampai tayang turun menjadi median satu koma sembilan puluh sembilan jam, dan sembilan puluh sembilan koma tiga persen tayang kurang dari sehari.",
+   "Tiga ribu tujuh puluh dua keputusan terekam.",
+   "Sembilan puluh dua koma empat persen kegiatan memiliki penugasan petugas.",
+   "Belanja pengadaannya nol rupiah."
+  ],
+  "panjang": 33.38,
+  "laju": 147
+ },
+ "14": {
+  "awal": [
+   0.0,
+   5.5
+  ],
+  "kalimat": [
+   "Sebelas SOP dan Pelaksana Harian menjaga alur tetap berjalan.",
+   "Sejak proposal diajukan, enam pembaruan telah dilakukan, semuanya berangkat dari kendala pengguna."
+  ],
+  "panjang": 13.31,
+  "laju": 141
+ },
+ "15": {
+  "awal": [
+   0.0,
+   2.03,
+   3.69,
+   5.36
+  ],
+  "kalimat": [
+   "Prokopim Hibot.",
+   "Satu alur.",
+   "Satu data.",
+   "Setiap keputusan tercatat."
+  ],
+  "panjang": 7.85,
+  "laju": 135
+ }
+}

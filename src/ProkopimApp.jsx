@@ -12,6 +12,8 @@ const _LazyFallback  = () => (
   <div style={{ padding: 24, textAlign: "center", color: "#64748b" }}>Memuat…</div>
 );
 import KontakActions from "./components/KontakActions.jsx";
+import TautanPublik from "./components/TautanPublik.jsx";
+import { hitungLencana, pasangLencana } from "./lib/lencana.js";
 import RekapPenugasanBulanan from "./RekapPenugasanBulanan.jsx"
 import WaliKotaAudiensiDashboard from "./WaliKotaAudiensiDashboard.jsx"
 import NewsroomDashboard from "./NewsroomDashboard.jsx";
@@ -7994,7 +7996,7 @@ export default function App(){
   const[showAI,setShowAI]=useState(false);const[showReport,setShowReport]=useState(false);const[showReportTamu,setShowReportTamu]=useState(false);const[showSummary,setShowSummary]=useState(false);const[showAdmin,setShowAdmin]=useState(false);const[showProfile,setShowProfile]=useState(false);const[showLaporan,setShowLaporan]=useState(false);const[showBroadcast,setShowBroadcast]=useState(false);const[showArsip,setShowArsip]=useState(false);const[showUndanganTool,setShowUndanganTool]=useState(false);
   const[showForgot,setShowForgot]=useState(false);const[showRegister,setShowRegister]=useState(false);const[pendingRegs,setPendingRegs]=useState(()=>loadPendingRegs());
   const[loginLoading,setLoginLoading]=useState(false);const[loginPhase,setLoginPhase]=useState("");
-  const[delegTarget,setDelegTarget]= useState(null);const[expandedId,setExp]=useState(null);const[rejectTexts,setRT]=useState({});const[catatanInput,setCatatanInput]=useState({});const[penugasanEv,setPenugasanEv]=useState(null);const[notifPenugasan,setNotifPenugasan]=useState([]);const[notifSambutan,setNotifSambutan]=useState([]);const[notifSahkan,setNotifSahkan]=useState([]);const[evaluasiEv,setEvaluasiEv]=useState(null);const[showMobMenu,setMobMenu]=useState(false);const[showNotifCenter,setShowNotifCenter]=useState(false);
+  const[delegTarget,setDelegTarget]= useState(null);const[expandedId,setExp]=useState(null);const[rejectTexts,setRT]=useState({});const[catatanInput,setCatatanInput]=useState({});const[penugasanEv,setPenugasanEv]=useState(null);const[notifPenugasan,setNotifPenugasan]=useState([]);const[notifSambutan,setNotifSambutan]=useState([]);const[notifSahkan,setNotifSahkan]=useState([]);const[evaluasiEv,setEvaluasiEv]=useState(null);const[showMobMenu,setMobMenu]=useState(false);const[showTautan,setShowTautan]=useState(false);const[showNotifCenter,setShowNotifCenter]=useState(false);
   const undanganRef=useRef({});
   // ── UX & Security States ──
   const[sessionWarn,setSessionWarn]=useState(false);
@@ -8574,6 +8576,16 @@ export default function App(){
     if(role==="wakilwalikota"){const evTime=tglAcara(e,"08:00");return e.alur==="disetujui"&&(e.untukPimpinan.includes("wakilwalikota")||e.delegasiKeWWK)&&!e.statusWWK&&evTime>=new Date();}
     return false;
   });
+  // Lencana ikon PWA (iPhone/Android): angka yang sama dengan tombol Pending dan lonceng.
+  const PERAN_PENDING=["kasubbag_protokol","kasubbag_komdokpim","kabag","walikota","wakilwalikota","admin_rk"];
+  const jumlahLencana=user?hitungLencana({pending:PERAN_PENDING.includes(role)?pendingList.length:0,notif:notifPenugasan.length+notifSambutan.length+notifSahkan.length}):0;
+  useEffect(()=>{
+    pasangLencana(jumlahLencana);
+    // Saat kembali ke aplikasi, timpa angka yang sempat ditambah push di latar.
+    const lihat=()=>{if(document.visibilityState==="visible")pasangLencana(jumlahLencana);};
+    document.addEventListener("visibilitychange",lihat);
+    return()=>document.removeEventListener("visibilitychange",lihat);
+  },[jumlahLencana]);
   const [pendingExpandTarget,setPendingExpandTarget]=React.useState(null);
   const goToPending=()=>{
     if(!pendingList.length)return;
@@ -9273,6 +9285,8 @@ const TH={
     ...bawaan,
   ]);
 
+  // Tautan formulir audiensi/tamu dan ruangan untuk dibagikan petugas ke tamu (menu Tools).
+  const bolehTautan=!["walikota","wakilwalikota","mitra_kerja"].includes(role);
   const navGroups=[
   {label:"MENU UTAMA",items:menuGabungan(
     // ── Staf/Kasubbag dengan akses kelola ruangan ──
@@ -9293,6 +9307,7 @@ const TH={
     ...(bolehInputJadwal||role==="kabag"?[{key:"action:arsip",icon:"🏛️",label:BAITUL_ARSIP.judul}]:[]),
     ...(!["walikota","wakilwalikota","ajudan_walikota","ajudan_wakilwalikota","admin_undangan","mitra_kerja"].includes(role)?[{key:"ekinerja",icon:"📊",label:"E-Kinerja"}]:[]),
     ...(["kabag","kasubbag_protokol",...PERAN_PETUGAS,"admin_rk"].includes(role)?[{key:"action:undangan",icon:"📋",label:"Generator Undangan"}]:[]),
+    ...(bolehTautan?[{key:"action:tautan",icon:"🔗",label:"Tautan Audiensi & Ruangan"}]:[]),
     ...(bolehKalenderRuangan?[{key:"kalender_ruangan",icon:"🏛️",label:"Kalender Ruangan"}]:[]),
     ...(DAFTAR_HADIR_ROLES.includes(role)?[{key:"daftar_hadir",icon:"✍️",label:"Daftar Hadir Digital"}]:[]),
     ...(bolehMonitorWA?[{key:"monitor_wa",icon:"📊",label:"Monitor WA"}]:[]),
@@ -9307,6 +9322,7 @@ const TH={
 ];
 
   const handleNavClick=key=>{
+    if(key==="action:tautan"){setShowTautan(true);return;}
     if(key==="action:summary"){setShowSummary(true);return;}if(key==="action:report"){setShowReport(true);return;}if(key==="action:report_tamu"){setShowReportTamu(true);return;}if(key==="action:laporan"){setShowLaporan(true);return;}if(key==="action:admin"){setShowAdmin(true);return;}if(key==="action:broadcast"){setShowBroadcast(true);return;}if(key==="action:profile"){setShowProfile(true);return;}if(key==="action:arsip"){setShowArsip(true);return;}if(key==="action:undangan"){setShowUndanganTool(true);return;}
     setTab(key);if(key==="form"){setForm(emptyForm);setEditId(null);}
   };
@@ -9496,6 +9512,7 @@ const TH={
               ...(role==="kabag"?[{icon:"📢",label:"Kirim Pengumuman",action:()=>{setShowBroadcast(true);setMobMenu(false);}}]:[]),
               ...((bolehInputJadwal||role==="kabag")?[{icon:"🏛️",label:BAITUL_ARSIP.judul,action:()=>{setShowArsip(true);setMobMenu(false);}}]:[]),
               ...(["kabag","kasubbag_protokol",...PERAN_PETUGAS,"admin_rk"].includes(role)?[{icon:"📋",label:"Generator Undangan",action:()=>{setShowUndanganTool(true);setMobMenu(false);}}]:[]),
+              ...(bolehTautan?[{icon:"🔗",label:"Tautan Publik",action:()=>{setShowTautan(true);setMobMenu(false);}}]:[]),
             ].map((btn,i)=>(
               <button key={i} onClick={btn.action} className="btn-ios" style={{padding:"14px 12px",borderRadius:14,border:"1.5px solid #E4EAF2",background:"#F8FAFF",color:NAVY,cursor:"pointer",fontSize:13,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
                 <span style={{fontSize:20}}>{btn.icon}</span>{btn.label}
@@ -13058,6 +13075,15 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
       setShowAI(false);setTab("form");
       showT(undanganFile?"Form terisi dari AI ✓ — berkas undangan tersimpan":"Form terisi dari AI ✓","warn");
     }} onClose={()=>setShowAI(false)}/>}
+    {showTautan&&<div onClick={()=>setShowTautan(false)} style={{position:"fixed",inset:0,zIndex:9700,background:"rgba(10,22,40,0.55)",backdropFilter:"blur(4px)",display:"flex",alignItems:isMobile?"flex-end":"center",justifyContent:"center"}}>
+      <div onClick={e=>e.stopPropagation()} role="dialog" aria-label="Tautan layanan publik" style={{width:isMobile?"100%":420,background:"#F0F4FA",borderRadius:isMobile?"20px 20px 0 0":18,padding:isMobile?"14px 14px calc(env(safe-area-inset-bottom,0px) + 14px)":18,boxShadow:"0 -8px 40px rgba(0,0,0,0.25)"}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+          <div style={{fontSize:15,fontWeight:800,color:NAVY}}>🔗 Tautan Audiensi &amp; Ruangan</div>
+          <button onClick={()=>setShowTautan(false)} aria-label="Tutup" style={{width:32,height:32,borderRadius:9,border:"1px solid #E4EAF2",background:"white",cursor:"pointer",fontSize:15,color:"#64748B"}}>✕</button>
+        </div>
+        <TautanPublik showT={showT}/>
+      </div>
+    </div>}
     {showSummary&&<SummaryModal events={events} onToggleHide={id=>upd(id,{tersembunyi:!events.find(e=>e.id===id)?.tersembunyi})} onClose={()=>setShowSummary(false)}/>}
     {showAdmin&&<AdminModal onClose={()=>setShowAdmin(false)} showT={showT} events={events} updAndSync={updAndSync}/>}
     {showBroadcast&&<BroadcastModal onClose={()=>setShowBroadcast(false)} showT={showT} senderNama={user?.nama||"Kabag Protokol dan Komunikasi Pimpinan"}/>}

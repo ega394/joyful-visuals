@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8">
+<style>
+@font-face { font-family: "PJS"; src: url("aset/PlusJakartaSans-Variable.woff2") format("woff2"); font-weight: 200 800; }
+:root { --navy:#0A1628; --navy2:#13233F; --garis:#2A3B57; --emas:#C9A84C; --putih:#FFFFFF; --abu:#9FB0C8; --merah:#E05252; --hijau:#2FB57F; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--navy); font-family: "PJS", sans-serif; color: var(--putih); }
+#panggung { position: absolute; inset: 0; background: radial-gradient(1200px 700px at 70% 20%, #182c4f 0%, var(--navy) 60%); }
+.abs { position: absolute; }
+.pil { position: absolute; left: 80px; top: 42px; height: 44px; padding: 0 20px; border-radius: 22px; background: rgba(201,168,76,.14); border: 1.5px solid rgba(201,168,76,.5); color: var(--emas); font-weight: 800; font-size: 20px; letter-spacing: 3px; display: flex; align-items: center; }
+.judulLangkah { position: absolute; top: 40px; font-size: 32px; font-weight: 800; color: #fff; white-space: nowrap; }
+.logo { position: absolute; right: 70px; top: 30px; height: 72px; padding: 6px 14px; border-radius: 16px; background: #fff; display: flex; gap: 14px; align-items: center; }
+.logo img { height: 58px; }
+.kartu { position: absolute; background: var(--navy2); border: 1.5px solid var(--garis); border-radius: 26px; }
+.besar { font-weight: 800; letter-spacing: -1px; }
+.lembar { position: absolute; width: 250px; height: 330px; background: #F7F4EA; border-radius: 10px; box-shadow: 0 18px 40px rgba(0,0,0,.35); color: #333; padding: 26px 24px; }
+.lembar .kop { font-weight: 800; font-size: 22px; color: #0A1628; margin-bottom: 18px; }
+.lembar .g { height: 12px; background: #D9D3C2; border-radius: 6px; margin: 12px 0; }
+.ikon { font-size: 92px; line-height: 1; }
+</style></head>
+<body><div id="panggung"></div>
+<script>
+const P = document.getElementById("panggung");
+const kl = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const mulus = (x) => x * x * (3 - 2 * x);
+// e(t, mulai, lama): 0→1 dengan pelandaian
+const e = (t, a, d = 0.6) => mulus(kl((t - a) / d));
+const el = (html) => { const d = document.createElement("div"); d.innerHTML = html.trim(); return d.firstChild; };
+const tambah = (html) => { const n = el(html); P.appendChild(n); return n; };
+const gaya = (n, o) => Object.assign(n.style, o);
+const muncul = (n, t, a, d = 0.6, geser = 30) => { const k = e(t, a, d); gaya(n, { opacity: k, transform: `translateY(${(1 - k) * geser}px)` }); return k; };
+const angka = (v, dp = 0) => v.toLocaleString("id-ID", { minimumFractionDigits: dp, maximumFractionDigits: dp });
+
+function bingkai(label, judul) {
+  if (label) tambah(`<div class="pil">${label}</div>`);
+  const lg = tambah(`<div class="logo"><img src="aset/kaltara.png"><img src="aset/tarakan.png"></div>`);
+  if (judul) { const pil = P.querySelector(".pil"); const j = tambah(`<div class="judulLangkah">${judul}</div>`); j.style.left = (pil ? pil.offsetLeft + pil.offsetWidth + 24 : 80) + "px"; }
+  return lg;
+}
+
+const ADEGAN = {
+  // 1. Dua lembar disposisi; satu terkirim, satu tertinggal
+  s01: { dur: 20, bangun() {
+    bingkai("1 · LATAR BELAKANG");
+    const th = tambah(`<div class="abs besar" style="left:80px;top:150px;font-size:96px">Januari 2026</div>`);
+    const L = ["RENCANA<br>KEGIATAN", "RENCANA<br>AUDIENSI"].map((j, i) => tambah(`<div class="lembar" style="left:${450 + i * 330}px;top:360px"><div class="kop">${j}</div><div class="g"></div><div class="g" style="width:80%"></div><div class="g"></div><div class="g" style="width:60%"></div><div class="g" style="width:90%"></div></div>`));
+    const hp = tambah(`<div class="kartu" style="left:1330px;top:300px;width:420px;height:470px;padding:30px"><div style="font-size:26px;font-weight:800;color:#2FB57F">● Grup WhatsApp</div><div id="masuk" style="margin-top:24px;display:flex;flex-direction:column;gap:18px"></div></div>`);
+    const masuk = hp.querySelector("#masuk");
+    const foto = [0].map(() => { const b = el(`<div style="background:#1E3A2F;border-radius:16px;padding:14px 18px;font-size:22px;opacity:0">📷 Foto rencana kegiatan</div>`); masuk.appendChild(b); return b; });
+    const flash = tambah(`<div class="abs" style="inset:0;background:#fff;opacity:0"></div>`);
+    const tanya = tambah(`<div class="abs besar" style="left:960px;top:820px;font-size:30px;color:#E05252;opacity:0;font-weight:800">Rencana audiensi tertinggal — tidak ada yang tahu</div>`);
+    // Foto lembar asli (disamarkan), bila tersedia di aset/: yang sampai dan yang tertinggal, lalu perbesar disposisinya.
+    const tirai = tambah(`<div class="abs" style="inset:0;background:var(--navy);opacity:0"></div>`);
+    const kepala = tambah(`<div class="abs besar" style="left:110px;top:120px;font-size:46px;opacity:0">Lembar aslinya · 2 Januari 2026</div>`);
+    const f1 = tambah(`<img class="abs" src="aset/lembar-sampai.jpg" style="left:110px;top:220px;width:820px;opacity:0;border-radius:8px;box-shadow:0 20px 50px rgba(0,0,0,.5)">`);
+    const f2 = tambah(`<img class="abs" src="aset/lembar-tertinggal.jpg" style="left:990px;top:290px;width:840px;opacity:0;border-radius:8px;box-shadow:0 20px 50px rgba(0,0,0,.5);outline:6px solid #E05252">`);
+    const c1 = tambah(`<div class="abs" style="left:110px;top:660px;padding:10px 22px;border-radius:12px;background:#2FB57F;font-size:30px;font-weight:800;opacity:0">✓ SAMPAI · Rencana Kegiatan</div>`);
+    const c2 = tambah(`<div class="abs" style="left:990px;top:600px;padding:10px 22px;border-radius:12px;background:#E05252;font-size:30px;font-weight:800;opacity:0">✗ TERTINGGAL · Rencana Audiensi</div>`);
+    const cincin = tambah(`<div class="abs" style="left:211px;top:327px;width:241px;height:262px;border:6px solid #E05252;border-radius:18px;opacity:0"></div>`);
+    const ket = tambah(`<div class="abs" style="left:520px;top:800px;font-size:32px;font-weight:700;color:#F3B0B0;opacity:0">Didisposisi untuk Senin, 5 Januari 2026, tetapi tak pernah sampai.</div>`);
+    return (t) => {
+      const ada = f1.naturalWidth > 0 && f2.naturalWidth > 0;
+      muncul(th, t, 0.2, 0.8);
+      L.forEach((n, i) => muncul(n, t, 1 + i * 0.5, 0.7, 60));
+      gaya(hp, { opacity: e(t, 2.5, 0.8) });
+      const k = e(t, 8.8, 1.0);
+      gaya(L[0], { transform: `translate(${k * 950}px, ${-k * 120}px) scale(${1 - 0.65 * k}) rotate(${k * 6}deg)`, opacity: 1 - e(t, 9.6, 0.3) });
+      gaya(foto[0], { opacity: e(t, 9.6, 0.3) });
+      gaya(flash, { opacity: 0.55 * Math.max(0, 1 - Math.abs(t - 9.0) * 6) });
+      const k3 = e(t, 11, 1.0);
+      gaya(L[1], { opacity: 1 - 0.55 * k3, filter: `grayscale(${k3})`, outline: k3 > 0.05 ? `6px solid rgba(224,82,82,${k3})` : "none" });
+      muncul(tanya, t, 11.6, 0.8);
+      if (!ada) return;
+      gaya(tirai, { opacity: 0.94 * e(t, 13.3, 0.6) });
+      muncul(kepala, t, 13.6, 0.6);
+      muncul(f1, t, 13.8, 0.7, 40); muncul(c1, t, 14.3, 0.5);
+      const z = e(t, 16.6, 1.1);
+      gaya(f2, { opacity: e(t, 14.6, 0.7), left: (990 + (160 - 990) * z) + "px", top: (290 + (230 - 290) * z) + "px", width: (840 + (1600 - 840) * z) + "px" });
+      gaya(c2, { opacity: e(t, 15.1, 0.5) * (1 - e(t, 16.4, 0.4)) });
+      gaya(f1, { opacity: e(t, 13.8, 0.7) * (1 - e(t, 16.4, 0.5)) }); gaya(c1, { opacity: e(t, 14.3, 0.5) * (1 - e(t, 16.4, 0.5)) });
+      muncul(cincin, t, 17.8, 0.5, 0); muncul(ket, t, 18.1, 0.6);
+    };
+  } },
+  // 2. Cara kerja lama
+  s02: { dur: 25, bangun() {
+    bingkai("1 · LATAR BELAKANG", "Sebelum Maret 2026");
+    const isi = [
+      ["🖨️", "Rencana kegiatan", "disusun di spreadsheet, lalu dicetak", 0.5],
+      ["🕓", "Penelaahan", "±30 menit menjelang jam pulang", 4.5],
+      ["📷", "Disposisi", "beredar sebagai foto di grup", 10],
+      ["💭", "Penugasan", "bergantung pada ingatan", 12.5],
+    ];
+    const K = isi.map(([ik, j, k], i) => tambah(`<div class="kartu" style="left:${80 + i * 445}px;top:170px;width:415px;height:420px;padding:40px 34px"><div class="ikon">${ik}</div><div style="font-size:38px;font-weight:800;margin-top:34px">${j}</div><div style="font-size:28px;color:var(--abu);margin-top:16px;line-height:1.35">${k}</div></div>`));
+    const jam = K[1].querySelector(".ikon");
+    const hasil = tambah(`<div class="kartu" style="left:80px;top:640px;width:1760px;height:220px;display:flex;align-items:center;gap:40px;padding:0 60px;border-color:rgba(224,82,82,.6)"><div style="font-size:34px;color:var(--abu);font-weight:700">Dari pengajuan sampai tayang</div><div class="besar" style="font-size:110px;color:#E05252">±18–24 jam</div><div style="font-size:26px;color:var(--abu)">perkiraan alur lama</div></div>`);
+    return (t) => {
+      isi.forEach((d, i) => muncul(K[i], t, d[3], 0.7, 40));
+      jam.textContent = t < 7 ? "🕒" : "🕓";
+      muncul(hasil, t, 17.5, 0.9, 40);
+    };
+  } },
+  // 3. Penjaringan ide
+  s03: { dur: 25, bangun() {
+    bingkai("2 · PENJARINGAN IDE", "Ide dijaring dari pekerjaan sehari-hari");
+    const isi = [["📨", "Banyak pintu masuk", "Surat, WhatsApp, telepon, titipan — sebagian rencana pernah tidak terinput", 1], ["📄", "Peristiwa Januari 2026", "Satu lembar disposisi tidak terkirim tanpa diketahui", 7], ["👥", "Telaah bersama seluruh Bagian", "Mencari pola yang sama di setiap alur kerja", 12]];
+    const K = isi.map(([ik, j, k], i) => tambah(`<div class="kartu" style="left:${80 + i * 595}px;top:170px;width:565px;height:390px;padding:40px"><div class="ikon">${ik}</div><div style="font-size:40px;font-weight:800;margin-top:30px">${j}</div><div style="font-size:28px;color:var(--abu);margin-top:16px;line-height:1.4">${k}</div></div>`));
+    const temuan = ["Penugasan tersimpan dalam ingatan", "Ruangan hanya tercatat di papan tulis", "Arsip tersebar"].map((x, i) => tambah(`<div class="abs" style="left:${80 + i * 595}px;top:620px;width:565px;padding:24px 30px;border-radius:20px;background:rgba(201,168,76,.12);border:1.5px solid rgba(201,168,76,.45);font-size:30px;font-weight:700;color:#F3E3B0">${x}</div>`));
+    return (t) => { isi.forEach((d, i) => muncul(K[i], t, d[3], 0.8, 40)); temuan.forEach((n, i) => muncul(n, t, 16.5 + i * 1.6, 0.7, 30)); };
+  } },
+  // 4. Pemilihan ide: empat pilihan, tiga dicoret
+  s04: { dur: 25, bangun() {
+    bingkai("3 · PEMILIHAN IDE", "Empat pilihan solusi");
+    const isi = [["Menambah pengawasan dan pengingat manual", "Tidak menyentuh akar masalah"], ["Merapikan spreadsheet bersama", "Tetap banyak versi, tanpa jejak keputusan"], ["Membeli aplikasi jadi", "Butuh anggaran; alur keprotokolan sangat khas"], ["Membangun sendiri", "Satu sumber data, setiap keputusan tercatat, tanpa anggaran pengadaan"]];
+    const K = isi.map(([j, k], i) => tambah(`<div class="kartu" style="left:${80 + i * 445}px;top:180px;width:415px;height:470px;padding:40px 34px"><div class="nomor" style="width:64px;height:64px;border-radius:32px;background:#22324F;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:800">${i + 1}</div><div style="font-size:36px;font-weight:800;margin-top:34px;line-height:1.25">${j}</div><div class="alasan" style="font-size:27px;color:var(--abu);margin-top:22px;line-height:1.4">${k}</div><div class="silang abs" style="inset:0;display:flex;align-items:center;justify-content:center;font-size:300px;color:#E05252;opacity:0;font-weight:800">✕</div></div>`));
+    const akar = tambah(`<div class="abs besar" style="left:80px;top:720px;font-size:46px">Akar masalah: <span style="color:var(--emas)">tidak ada satu sumber data yang sahih</span></div>`);
+    return (t) => {
+      K.forEach((n, i) => muncul(n, t, 0.4 + i * 0.4, 0.6, 40));
+      [0, 1, 2].forEach((i) => { const k = e(t, 4 + i * 4, 0.5); gaya(K[i].querySelector(".silang"), { opacity: 0.85 * k, transform: `scale(${1.4 - 0.4 * k})` }); [...K[i].children].forEach((c) => { if (!c.classList.contains('silang')) c.style.filter = `grayscale(${k}) brightness(${1 - 0.4 * k})`; }); });
+      const k4 = e(t, 16, 0.8);
+      gaya(K[3], { background: k4 > 0 ? `rgba(201,168,76,${0.18 * k4})` : "", borderColor: k4 > 0 ? `rgba(201,168,76,${0.3 + 0.7 * k4})` : "", boxShadow: `0 0 ${60 * k4}px rgba(201,168,76,${0.35 * k4})` });
+      K[3].querySelector(".nomor").style.background = k4 > 0.5 ? "#C9A84C" : "#22324F";
+      K[3].querySelector(".nomor").style.color = k4 > 0.5 ? "#0A1628" : "#fff";
+      muncul(akar, t, 19, 0.8, 30);
+    };
+  } },
+  // 5. Lahirlah Prokopim Hibot
+  s05: { dur: 10, bangun() {
+    bingkai("");
+    const ikon = tambah(`<img class="abs" src="aset/hibot.png" style="left:810px;top:150px;width:300px;border-radius:60px">`);
+    const j = tambah(`<div class="abs besar" style="left:0;width:1920px;text-align:center;top:500px;font-size:110px">Prokopim Hibot</div>`);
+    const s = tambah(`<div class="abs" style="left:0;width:1920px;text-align:center;top:650px;font-size:38px;color:var(--emas);font-weight:600">Satu alur digital terverifikasi untuk agenda Pimpinan Daerah</div>`);
+    return (t) => { const k = e(t, 0.3, 1); gaya(ikon, { opacity: k, transform: `scale(${0.8 + 0.2 * k})` }); muncul(j, t, 1.2, 0.8); muncul(s, t, 2, 0.8); };
+  } },
+  // 12. Angka dampak
+  s12: { dur: 35, bangun() {
+    bingkai("5 · DAMPAK", "Per 24 September 2026");
+    const D = [
+      { a: 0.3, v: 589, dp: 0, s: "", k: "kegiatan terkelola" },
+      { a: 5, v: 1.99, dp: 2, s: " jam", k: "median dari pengajuan sampai tayang", banding: "sebelumnya ±18–24 jam" },
+      { a: 13, v: 99.3, dp: 1, s: "%", k: "tayang kurang dari sehari" },
+      { a: 19, v: 3072, dp: 0, s: "", k: "keputusan terekam di jejak audit" },
+      { a: 24, teks: "92,4%", k: "kegiatan memiliki penugasan petugas" },
+      { a: 30, teks: "Rp0", k: "belanja pengadaan" },
+    ];
+    const pos = [[80, 170], [680, 170], [1280, 170], [80, 530], [680, 530], [1280, 530]];
+    const K = D.map((d, i) => { const n = tambah(`<div class="kartu" style="left:${pos[i][0]}px;top:${pos[i][1]}px;width:560px;height:330px;padding:44px"><div class="besar nilai" style="font-size:96px;color:${i === 1 || i === 5 ? "var(--emas)" : "#fff"}"></div><div style="font-size:29px;color:var(--abu);margin-top:16px;line-height:1.35">${d.k}</div>${d.banding ? `<div style="font-size:26px;color:#E05252;font-weight:700;margin-top:10px">${d.banding}</div>` : ""}</div>`); return n; });
+    const sumber = tambah(`<div class="abs" style="left:80px;top:880px;font-size:22px;color:var(--abu)">Sumber: basis data Prokopim Hibot. Angka "sebelum" adalah perkiraan alur lama.</div>`);
+    return (t) => {
+      D.forEach((d, i) => { muncul(K[i], t, d.a, 0.6, 30); const k = e(t, d.a + 0.2, 1.6); K[i].querySelector(".nilai").textContent = d.teks ? d.teks : angka(d.v * k, d.dp) + d.s; });
+      muncul(sumber, t, 1, 0.8, 0);
+    };
+  } },
+  // 13. Testimoni Wali Kota
+  s13: { dur: 10, bangun() {
+    bingkai("5 · DAMPAK");
+    const q = tambah(`<div class="abs" style="left:200px;top:240px;width:1520px;font-size:62px;font-weight:700;line-height:1.3;font-style:italic">“Yang terpenting bagi saya adalah kepastian: ke mana saya harus hadir, kapan, dan siapa yang menyiapkannya.”</div>`);
+    const s = tambah(`<div class="abs" style="left:200px;top:640px;font-size:34px;color:var(--emas);font-weight:800">dr. H. Khairul, M.Kes. — Wali Kota Tarakan</div>`);
+    const tanda = tambah(`<div class="abs" style="left:120px;top:150px;font-size:220px;color:rgba(201,168,76,.25);font-weight:800;line-height:1">“</div>`);
+    return (t) => { muncul(tanda, t, 0.2, 1, 0); muncul(q, t, 0.5, 1.2, 30); muncul(s, t, 2.5, 0.8, 20); };
+  } },
+  // 14a. Keberlanjutan
+  s14b: { dur: 10, bangun() {
+    bingkai("5 · DAMPAK", "Pembaruan sejak proposal · Oktober 2026");
+    const isi = [
+      ["Pengingat dirampingkan", "lima kali sehari menjadi tiga waktu"],
+      ["WhatsApp hanya yang perlu", "untuk acara hari ini atau besok"],
+      ["Pemberitahuan tamu berjenjang", "ringkasan pagi, jam tenang malam"],
+      ["Monitor WA", "setiap pesan terlacak terkirim atau dibaca"],
+      ["Masuk lebih aman", "sidik jari atau wajah dan akun Google"],
+      ["Jam acara mengikuti zona", "WIB, WITA, atau WIT menurut tempat"],
+    ];
+    const K = isi.map(([j, k], i) => tambah(`<div class="kartu" style="left:${80 + (i % 3) * 595}px;top:${170 + Math.floor(i / 3) * 360}px;width:565px;height:330px;padding:40px 38px"><div class="besar" style="width:70px;height:70px;border-radius:35px;background:var(--emas);color:var(--navy);font-size:38px;display:flex;align-items:center;justify-content:center">${i + 1}</div><div style="font-size:40px;font-weight:800;margin-top:26px;line-height:1.15">${j}</div><div style="font-size:28px;color:var(--abu);margin-top:14px;line-height:1.35">${k}</div></div>`));
+    return (t) => { K.forEach((n, i) => muncul(n, t, 0.3 + i * 0.55, 0.6, 40)); };
+  } },
+  s14a: { dur: 7, bangun() {
+    bingkai("5 · DAMPAK", "Keberlanjutan");
+    const a = tambah(`<div class="kartu" style="left:80px;top:200px;width:860px;height:560px;padding:56px"><div class="besar" style="font-size:150px;color:var(--emas)">11</div><div style="font-size:46px;font-weight:800">SOP baku</div><div style="font-size:30px;color:var(--abu);margin-top:14px">satu SOP untuk setiap alur kerja</div></div>`);
+    const b = tambah(`<div class="kartu" style="left:980px;top:200px;width:860px;height:560px;padding:56px"><div class="ikon" style="font-size:130px">🛡️</div><div style="font-size:46px;font-weight:800;margin-top:24px">Pelaksana Harian</div><div style="font-size:30px;color:var(--abu);margin-top:14px">alur tetap berjalan ketika pejabat berhalangan</div></div>`);
+    return (t) => { muncul(a, t, 0.2, 0.7); muncul(b, t, 1.2, 0.7); };
+  } },
+  // 15. Penutup
+  s15: { dur: 10, bangun() {
+    const lg = tambah(`<div class="abs" style="left:0;width:1920px;top:110px;display:flex;justify-content:center;gap:40px;align-items:center"><div style="background:#fff;border-radius:24px;padding:14px 26px;display:flex;gap:26px"><img src="aset/kaltara.png" style="height:130px"><img src="aset/tarakan.png" style="height:130px"></div><img src="aset/hibot.png" style="height:158px;border-radius:34px"></div>`);
+    const s = ["Satu alur.", "Satu data.", "Setiap keputusan tercatat."].map((x, i) => tambah(`<div class="abs besar" style="left:0;width:1920px;text-align:center;top:${380 + i * 110}px;font-size:88px">${x}</div>`));
+    const f = tambah(`<div class="abs" style="left:0;width:1920px;text-align:center;top:740px;font-size:30px;color:var(--emas);font-weight:700">Kaltara Innovation Awards 2026  ·  Bagian Protokol dan Komunikasi Pimpinan, Setda Kota Tarakan</div>`);
+    return (t) => { muncul(lg, t, 0.2, 0.8, 0); s.forEach((n, i) => muncul(n, t, 1 + i * 0.9, 0.7)); muncul(f, t, 4, 0.8, 0); };
+  } },
+};
+
+// Latar adegan aplikasi: bingkai laptop/HP + judul langkah + panel teks.
+const LATAR = {
+  b06: ["4 · MANFAAT", "1. Admin RK: input dari undangan", "laptop"],
+  b07: ["4 · MANFAAT", "2. Kasubbag: telaah dan verifikasi", "hp", ["Menelaah dari mana saja", "Tombol baru aktif sesudah daftar periksa dicentang"]],
+  b08: ["4 · MANFAAT", "3. Kabag: memeriksa dan memutus", "laptop"],
+  b09: ["4 · MANFAAT", "4. Tayang ke Pimpinan", "hp", ["Agenda langsung di HP Wali Kota dan Wakil Wali Kota", "Hadir, tidak hadir, atau disposisi ke Wakil Wali Kota"]],
+  b09b: ["4 · MANFAAT", "4. Ajudan mengonfirmasi kehadiran", "hp", ["Pemberitahuan lengkap: lokasi, pakaian, narahubung", "Kesediaan hadir cukup satu ketukan"]],
+  b10: ["4 · MANFAAT", "Penugasan petugas dan jejak audit", "laptop"],
+  b11r: ["4 · MANFAAT", "Bagi instansi: peminjaman ruang rapat", "hp", ["Diajukan secara daring", "Kalender ketersediaan terbuka"]],
+  b11a: ["4 · MANFAAT", "Bagi instansi dan masyarakat: audiensi dan tamu", "hp", ["Permohonan bertemu Pimpinan secara daring", "Status dipantau sendiri dengan kode"]],
+  b14: ["5 · DAMPAK", "Terus dikembangkan: Monitor WA", "laptop"],
+};
+// Kotak layar dalam koordinat panggung (dipakai ffmpeg untuk overlay).
+window.LAYAR = { laptop: { x: 240, y: 112, w: 1440, h: 790 }, hp: { x: 230, y: 96, w: 406, h: 880 } };
+function bangunLatar(id) {
+  const [label, judul, jenis, poin] = LATAR[id];
+  bingkai(label, judul);
+  const L = window.LAYAR[jenis];
+  if (jenis === "laptop") {
+    tambah(`<div class="abs" style="left:${L.x - 18}px;top:${L.y - 18}px;width:${L.w + 36}px;height:${L.h + 36}px;border-radius:22px;background:#0F1622;border:2px solid #3A4A66;box-shadow:0 30px 80px rgba(0,0,0,.5)"></div>`);
+    tambah(`<div class="abs" style="left:${L.x - 120}px;top:${L.y + L.h + 18}px;width:${L.w + 240}px;height:22px;border-radius:0 0 30px 30px;background:linear-gradient(#3A4A66,#1C2738)"></div>`);
+  } else {
+    tambah(`<div class="abs" style="left:${L.x - 16}px;top:${L.y - 16}px;width:${L.w + 32}px;height:${L.h + 32}px;border-radius:44px;background:#0F1622;border:2px solid #3A4A66;box-shadow:0 30px 80px rgba(0,0,0,.5)"></div>`);
+    const pn = tambah(`<div class="abs" style="left:740px;top:240px;width:1080px"></div>`);
+    pn.innerHTML = (poin || []).map((x) => `<div style="display:flex;gap:22px;margin-bottom:46px"><div style="width:18px;height:18px;border-radius:9px;background:var(--emas);margin-top:18px;flex:none"></div><div style="font-size:50px;font-weight:700;line-height:1.3">${x}</div></div>`).join("");
+  }
+}
+
+// Lapisan transparen di atas rekaman nyata: label dan logo.
+const LAPIS = {
+  o02: ["1 · LATAR BELAKANG", "Sebelum Maret 2026", null],
+  o06: ["4 · MANFAAT", "1. Admin RK: input dari undangan", null],
+  o09: ["4 · MANFAAT", "4. Tayang ke Pimpinan", null],
+  o13: ["5 · DAMPAK", "Pernyataan Wali Kota Tarakan, dr. H. Khairul, M.Kes.", null],
+};
+function bangunLapis(id) {
+  const [label, judul] = LAPIS[id];
+  document.documentElement.style.background = "transparent"; document.body.style.background = "transparent"; P.style.background = "none";
+  tambah(`<div class="abs" style="left:0;top:0;width:1920px;height:190px;background:linear-gradient(rgba(10,22,40,.92),rgba(10,22,40,0))"></div>`);
+  tambah(`<div class="abs" style="left:0;bottom:0;width:1920px;height:220px;background:linear-gradient(rgba(10,22,40,0),rgba(10,22,40,.85) 100%)"></div>`);
+  bingkai(label, judul || null);
+}
+window.LAPIS_ID = Object.keys(LAPIS);
+window.siapkan = (id) => {
+  P.innerHTML = "";
+  document.documentElement.style.background = ""; document.body.style.background = ""; P.style.background = "";
+  if (LAPIS[id]) { bangunLapis(id); window.perbarui = () => {}; window.durasi = 0; }
+  else if (ADEGAN[id]) { window.perbarui = ADEGAN[id].bangun(); window.durasi = ADEGAN[id].dur; }
+  else { bangunLatar(id); window.perbarui = () => {}; window.durasi = 0; }
+  return document.fonts.ready.then(() => Promise.all([...document.images].map((i) => i.complete ? 0 : new Promise((r) => { i.onload = i.onerror = r; })))).then(() => window.durasi);
+};
+window.ADEGAN_ID = Object.keys(ADEGAN); window.LATAR_ID = Object.keys(LATAR);
+</script></body></html>

@@ -51,8 +51,6 @@ for n, a, b, sub, txt, cat in S:
     row[1].text = ""; p = row[1].paragraphs[0]; p.add_run(f"{a}–{b}\n").font.size = Pt(10); r = p.add_run(f"maks {dur} dtk\n{sub}"); r.font.size = Pt(9); r.font.color.rgb = RGBColor(90, 90, 90)
     row[2].text = ""; r = row[2].paragraphs[0].add_run(txt); r.font.size = Pt(12)
     row[3].text = ""; r = row[3].paragraphs[0].add_run(cat); r.font.size = Pt(10); r.italic = True
-    if n in ("13",): 
-        for c in row: shade(c, "F3F4F6")
 for row in t.rows:
     for c, w in zip(row.cells, W): c.width = w
     trPr = row._tr.get_or_add_trPr(); cs = OxmlElement("w:cantSplit"); trPr.append(cs)
@@ -63,5 +61,4 @@ hdr = t.rows[0]._tr.get_or_add_trPr(); th = OxmlElement("w:tblHeader"); hdr.appe
 
 para("", after=6)
 para("Yang dikirim kembali: seluruh berkas adegan, ke Admin Rencana Kegiatan atau Kabag Prokopim. Bila ada kata yang sulit diucapkan atau kalimat yang terasa terlalu panjang, tandai nomor adegannya dan sampaikan; naskah bisa dipersingkat.", i=True, after=2)
-para("Adegan 13 (abu-abu) bersifat opsional: dibaca hanya bila cuplikan Wali Kota atau ajudan tidak tersedia.", i=True, after=2)
 d.save(sys.argv[1])
