@@ -12,6 +12,7 @@ const _LazyFallback  = () => (
   <div style={{ padding: 24, textAlign: "center", color: "#64748b" }}>Memuat…</div>
 );
 import KontakActions from "./components/KontakActions.jsx";
+import TautanPublik from "./components/TautanPublik.jsx";
 import RekapPenugasanBulanan from "./RekapPenugasanBulanan.jsx"
 import WaliKotaAudiensiDashboard from "./WaliKotaAudiensiDashboard.jsx"
 import NewsroomDashboard from "./NewsroomDashboard.jsx";
@@ -12628,6 +12629,8 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
 
     {/* ── Content area ── */}
     <div style={{flex:1,overflowY:"auto",padding:isMobile?"12px 14px calc(env(safe-area-inset-bottom,0px) + 72px)":"24px 32px 48px"}}>
+      {/* Tautan audiensi/tamu dan ruangan di beranda HP petugas, siap dibagikan ke tamu. */}
+      {isMobile&&tab===mobTabs[0]?.key&&!["walikota","wakilwalikota","mitra_kerja"].includes(role)&&<TautanPublik showT={showT}/>}
       {/* ── Filter Toggle Agenda ── */}
       {tab==="tayang"&&<div style={{marginBottom:14}}>
         <div style={{display:"flex",gap:3,background:"#F1F5F9",borderRadius:12,padding:3}}>
