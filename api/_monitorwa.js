@@ -13,6 +13,7 @@
 //   GET  ?op=monitor_wa[&saring=semua|gagal|tamu|ruangan|internal][&q=][&hal=0]
 //   POST ?op=wa_status&k=KUNCI     ← webhook "update message status" Fonnte
 //   POST ?op=wa_perangkat&k=KUNCI  ← webhook "device status" Fonnte
+//   POST ?op=wa_kirim_ulang_gagal  ← kirim ulang WA yang gagal karena perangkat terputus
 //
 // Webhook Fonnte tidak bertanda tangan, jadi alamatnya membawa kunci rahasia
 // turunan kunci layanan (HMAC) — tidak perlu variabel lingkungan baru. Alamat
@@ -21,6 +22,7 @@
 const crypto = require("crypto");
 const { wajibSesi, peranDipegang } = require("./_sesi.js");
 const { peringatkanAdmin } = require("./_dorong.js");
+const { catatWA, hasilFonnte } = require("./_walog.js");
 
 const SUPA_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "";
 const SUPA_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_KEY || "";
@@ -152,6 +154,63 @@ async function webhookPerangkat(req, res) {
   return res.status(200).json({ ok: true });
 }
 
+// ── Kirim ulang yang gagal karena perangkat terputus ─────────────
+// Saat perangkat Fonnte terputus, semua WA ditolak ("disconnected device").
+// Setelah tersambung lagi, pesan yang sama dapat dikirim ulang sekali:
+// isi dan nomor sudah tersimpan di arsip (kecuali OTP). Batas 48 jam supaya
+// kabar yang sudah basi tidak terkirim; satu ketukan paling banyak 10 pesan
+// agar fungsi tidak melewati batas waktu. Kiriman ulang dicatat dengan
+// rujukan "ulang:<id asal>", sehingga pesan yang sama tidak terkirim dua kali.
+const ULANG_JAM = 48;
+const ULANG_PER_KETUK = 10;
+
+async function calonUlang(lingkup) {
+  const sejak = encodeURIComponent(new Date(Date.now() - ULANG_JAM * 3600000).toISOString());
+  const [gagal, sudah] = await Promise.all([
+    sbGet("wa_log?select=id,waktu,jenis,peran,nomor,nama_penerima,penerima_username,isi" + lingkup +
+      "&berhasil=is.false&waktu=gte." + sejak + "&nomor=not.is.null&isi=not.is.null&jenis=neq.otp" +
+      "&catatan=ilike.*disconnected*&order=waktu.asc&limit=300"),
+    sbGet("wa_log?select=rujukan&rujukan=like.ulang:*&waktu=gte." + sejak + "&limit=1000"),
+  ]);
+  const dikirim = new Set((sudah || []).map((r) => String(r.rujukan).slice(6)));
+  const unik = new Set();
+  return (gagal || []).filter((r) => {
+    const k = r.nomor + "|" + r.isi;
+    if (dikirim.has(String(r.id)) || unik.has(k)) return false;
+    unik.add(k); return true;
+  });
+}
+
+async function kirimUlangGagal(req, res) {
+  const u = await wajibSesi(req, res, { peran: PERAN_LIHAT });
+  if (!u) return;
+  const penuh = peranDipegang(u).some((p) => PERAN_PENUH.includes(p));
+  const lingkup = penuh ? "" : "&peran=eq.pemohon";
+  const token = process.env.FONNTE_TOKEN;
+  if (!token) return res.status(503).json({ error: "Token Fonnte belum diatur." });
+  const perangkat = await statusPerangkat(true);
+  if (perangkat && perangkat.status === "terputus") {
+    return res.status(409).json({ error: "Perangkat WhatsApp masih terputus. Sambungkan dulu di dasbor fonnte.com, lalu coba lagi." });
+  }
+  const calon = await calonUlang(lingkup);
+  const kirim = calon.slice(0, ULANG_PER_KETUK);
+  let terkirim = 0, gagal = 0;
+  for (const r of kirim) {
+    let h = { ok: false, detail: null };
+    try {
+      const x = await fetch("https://api.fonnte.com/send", {
+        method: "POST", headers: { Authorization: token, "Content-Type": "application/json" },
+        body: JSON.stringify({ target: r.nomor, message: r.isi, countryCode: "62" }),
+      });
+      h = await hasilFonnte(x);
+    } catch (e) { h = { ok: false, detail: { reason: e && e.message } }; }
+    h.ok ? terkirim++ : gagal++;
+    await catatWA({ jenis: r.jenis, sumber: "kirim_ulang", peran: r.peran, berhasil: h.ok, nomor: r.nomor,
+      nama: r.nama_penerima, username: r.penerima_username, isi: r.isi, rujukan: "ulang:" + r.id, detail: h.detail });
+  }
+  return res.status(200).json({ terkirim, gagal, sisa: Math.max(0, calon.length - kirim.length), oleh: u.username });
+}
+
 // ── Monitor WA (aplikasi) ──────────────────────────────────────
 async function monitor(req, res) {
   const u = await wajibSesi(req, res, { peran: PERAN_LIHAT });
@@ -214,6 +273,13 @@ async function monitor(req, res) {
     (perJenis[r.jenis] = perJenis[r.jenis] || kosong())[k]++;
   }
 
+  // Pesan gagal karena perangkat terputus yang masih bisa dikirim ulang.
+  let ulang = null;
+  try {
+    const c = await calonUlang(lingkup);
+    ulang = { jumlah: c.length, contoh: c.slice(0, 5).map((r) => ({ waktu: r.waktu, jenis: r.jenis, nama_penerima: r.nama_penerima, nomor: samarkan(r.nomor) })) };
+  } catch { /* kolom arsip belum ada: abaikan */ }
+
   const ada = (baris || []).length > PER_HALAMAN;
   const arsip = (baris || []).slice(0, PER_HALAMAN).map((r) => ({ ...r, nomor: samarkan(r.nomor) }));
   const host = String(req.headers["x-forwarded-host"] || req.headers.host || "").split(",")[0].trim();
@@ -229,6 +295,7 @@ async function monitor(req, res) {
       perangkat: "https://" + host + "/api/whatsapp?op=wa_perangkat&k=" + kunci,
     } : null,
     masaArsipHari: MASA_ARSIP_HARI,
+    ulang,
   });
 }
 
@@ -241,6 +308,7 @@ async function tanganiMonitor(req, res) {
       return op === "wa_status" ? webhookStatus(req, res) : webhookPerangkat(req, res);
     }
     if (op === "monitor_wa" && req.method === "GET") return monitor(req, res);
+    if (op === "wa_kirim_ulang_gagal" && req.method === "POST") return kirimUlangGagal(req, res);
     return res.status(404).json({ error: "Operasi tidak dikenal." });
   } catch (e) {
     console.error("[monitor WA]", op, e.message);
@@ -248,4 +316,4 @@ async function tanganiMonitor(req, res) {
   }
 }
 
-module.exports = { tanganiMonitor, kunciWebhook, samarkan };
+module.exports = { tanganiMonitor, kunciWebhook, samarkan, calonUlang };

@@ -39,6 +39,7 @@ import webpush from "web-push";
 import { plhAktif, hariIniWita } from "../src/lib/plh.js";
 import { fmtJamDuaZona, urutAcara } from "../src/lib/zona.js";
 import { kalenderAktif, rekonsiliasi } from "./_kalender.mjs";
+import { proyekResmi } from "./_proyek.mjs";
 // CommonJS (lihat kepala _walog.js) — impor bawaan, lalu ambil fungsinya.
 import walog from "./_walog.js";
 const { catatWA, hasilFonnte } = walog;
@@ -755,6 +756,12 @@ export default async function handler(req, res) {
   const sah = CRON_SEC ? secret === CRON_SEC : req.headers["x-vercel-cron"] === "1";
   if (!sah) {
     return res.status(401).json({ error: "Unauthorized" });
+  }
+  // Hanya proyek resmi yang boleh menjalankan jadwal (lihat _proyek.mjs);
+  // diperiksa SEBELUM kunci harian supaya proyek lain tidak memakan jatahnya.
+  if (!proyekResmi()) {
+    console.log("[CRON] Dilewati: bukan proyek resmi (" + (process.env.VERCEL_PROJECT_PRODUCTION_URL || "-") + ")");
+    return res.status(200).json({ ok: true, skipped: true, reason: "Bukan proyek resmi; jadwal hanya berjalan di prokopim.tarakankota.go.id" });
   }
 
   const type = req.query.type || "pagi";
