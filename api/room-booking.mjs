@@ -49,6 +49,7 @@ import { sinkronSatu } from "./_kalender.mjs";
 import { tanganiMasuk } from "./_masuk.mjs";
 // CommonJS (lihat kepala _walog.js) — impor bawaan, lalu ambil fungsinya.
 import walog from "./_walog.js";
+import persetujuan from "./_persetujuan.js";
 const { catatWA, hasilFonnte } = walog;
 
 const SUPA_URL = process.env.SUPABASE_URL  || process.env.VITE_SUPABASE_URL;
@@ -646,6 +647,9 @@ export default async function handler(req, res) {
       if (String(body?.website || body?.alamat_web || "").trim()) {
         return res.status(200).json({ ok: true, booking_code: null });
       }
+      // Kotak centang di layar bisa dilewati dengan memanggil API langsung.
+      if (!persetujuan.sudahSetuju(body))
+        return res.status(400).json({ error: persetujuan.PESAN_TOLAK });
       const spam = await pastikanTidakSpam(pic_wa);
       if (spam) return res.status(429).json(spam);
       if (!slots || !slots.length)
@@ -718,11 +722,12 @@ export default async function handler(req, res) {
         srikandi_ref: srikandi_ref || null,
         document_path: document_path || null,
         status: "Pending", booking_code,
+        ...persetujuan.kolomPersetujuan(),
       };
       const rows = slots.map(sl => ({
         ...shared, start_date: sl.date, end_date: sl.date, session: sl.session,
       }));
-      await sbPost("room_bookings", rows);
+      await persetujuan.simpanDenganPersetujuan((b) => sbPost("room_bookings", b), rows);
 
       const slotLines = slots
         .slice()

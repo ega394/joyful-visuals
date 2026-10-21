@@ -25,6 +25,7 @@
 import React, {
   useState, useEffect, useRef, useCallback, useMemo,
 } from "react";
+import KotakPersetujuan from "./components/KotakPersetujuan.jsx";
 
 // ── Konstanta ──────────────────────────────────────────────
 var NAVY     = "#0A1628";
@@ -109,6 +110,8 @@ export default function TamuPage() {
   var [errors,  setErrors]  = useState({});
   var [touched, setTouched] = useState({});
   var [result,  setResult]  = useState(null);
+  // Persetujuan privasi sengaja tidak ikut draf: harus dicentang ulang tiap pengajuan.
+  var [setuju,  setSetuju]  = useState(false);
 
   // ── Aksesibilitas: ukuran teks & kontras tinggi ──────────
   var [textSize,     setTextSize]     = useState("normal"); // normal | large | xlarge
@@ -275,6 +278,15 @@ export default function TamuPage() {
       return;
     }
 
+    if (!setuju) {
+      setErrors({ _global: "Centang persetujuan Kebijakan Privasi dan Ketentuan Penggunaan terlebih dahulu." });
+      requestAnimationFrame(function() {
+        var el = document.getElementById(formId + "-setuju");
+        if (el) el.focus();
+      });
+      return;
+    }
+
     setErrors({});
     setStep("loading");
     announce("Mengirim permohonan. Mohon tunggu...");
@@ -320,6 +332,7 @@ export default function TamuPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(Object.assign({}, insertPayload, {
           sumber:  "publik",
+          setuju_privasi: setuju,
           website: form.website || "",   // kolom umpan — manusia tak melihatnya
         })),
       });
@@ -473,6 +486,7 @@ export default function TamuPage() {
                 onSubmit={submit}
                 loading={step === "loading"}
                 formId={formId}
+                setuju={setuju} setSetuju={setSetuju}
               />
           }
         </main>
@@ -488,7 +502,7 @@ export default function TamuPage() {
 // ══════════════════════════════════════════════════════════
 //  FORM VIEW
 // ══════════════════════════════════════════════════════════
-function FormView({ form, setF, errors, touched, onBlur, onSubmit, loading, formId }) {
+function FormView({ form, setF, errors, touched, onBlur, onSubmit, loading, formId, setuju, setSetuju }) {
   return (
     <div style={{
       background:"#fff", borderRadius:22,
@@ -769,25 +783,22 @@ function FormView({ form, setF, errors, touched, onBlur, onSubmit, loading, form
 
         <div aria-hidden="true" style={{ height:1, background:"#EEF2F8", margin:"20px 0 16px" }}/>
 
-        <p style={{ fontSize:12, color:"#6b7e94", lineHeight:1.7, textAlign:"center", margin:"0 0 16px" }}>
-          Dengan mengirim formulir ini, Anda menyetujui penggunaan data Anda
-          untuk keperluan koordinasi audiensi oleh Tim Prokopim Kota Tarakan.
-        </p>
+        <KotakPersetujuan id={formId + "-setuju"} checked={setuju} onChange={setSetuju}/>
 
         {/* Tombol Submit — minHeight 52px (WCAG 2.5.5) */}
         <button
           type="submit"
           aria-label="Kirim permohonan audiensi"
           aria-busy={loading}
-          disabled={loading}
+          disabled={loading || !setuju}
           style={{
             width:"100%", minHeight:52, padding:"14px 16px",
             borderRadius:13, border:"none",
-            background: loading ? "#7a90a8" : ("linear-gradient(135deg," + NAVY + "," + NAVY_MID + ")"),
+            background: (loading || !setuju) ? "#9AABBF" : ("linear-gradient(135deg," + NAVY + "," + NAVY_MID + ")"),
             color:"#fff", fontSize:15, fontWeight:800,
-            cursor: loading ? "not-allowed" : "pointer",
+            cursor: (loading || !setuju) ? "not-allowed" : "pointer",
             display:"flex", alignItems:"center", justifyContent:"center", gap:9,
-            boxShadow: loading ? "none" : "0 8px 24px rgba(10,22,40,.28)",
+            boxShadow: (loading || !setuju) ? "none" : "0 8px 24px rgba(10,22,40,.28)",
             transition:"all .2s",
             fontFamily:"inherit",
             letterSpacing:.2,
@@ -805,6 +816,11 @@ function FormView({ form, setF, errors, touched, onBlur, onSubmit, loading, form
               </>
           }
         </button>
+        {!setuju && !loading && (
+          <p style={{ fontSize:12, color:"#6b7e94", textAlign:"center", margin:"10px 0 0" }}>
+            Centang persetujuan di atas untuk mengaktifkan tombol kirim.
+          </p>
+        )}
       </form>
     </div>
   );

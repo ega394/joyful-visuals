@@ -7,6 +7,7 @@
 import { wajibSesi } from "./_sesi.js";
 import { rateLimit, getIP } from "./_middleware.js";
 import { catatWA, hasilFonnte } from "./_walog.js";
+import { sudahSetuju, kolomPersetujuan, simpanDenganPersetujuan, PESAN_TOLAK } from "./_persetujuan.js";
 // web-push dimuat dengan require (berkas ini ditranspilasi menjadi CommonJS),
 // sama seperti api/webpush.js.
 const webpush = require("web-push");
@@ -623,6 +624,9 @@ async function actionCheckin(body) {
   if (String(body.website || body.alamat_web || "").trim()) {
     return { ok: true, id: null };
   }
+  // Persetujuan privasi diperiksa di sini juga, bukan hanya kotak centang di
+  // layar, karena API ini bisa dipanggil langsung (api/_persetujuan.js).
+  if (!sudahSetuju(body)) throw new Error(PESAN_TOLAK);
   await pastikanTidakSpam(no_wa);
 
   // Tujuan hanya salah satu pimpinan yang dilayani formulir; nama dibersihkan
@@ -631,7 +635,7 @@ async function actionCheckin(body) {
   var tujuan = TUJUAN_SAH.indexOf(body.tujuan_pejabat) !== -1 ? body.tujuan_pejabat : "Wali Kota";
   nama = bersihkanNama(nama);
   if (!nama) throw new Error("Nama tidak valid");
-  var created = await sbPost({
+  var created = await simpanDenganPersetujuan(sbPost, Object.assign({
     nama: nama,
     instansi: body.instansi || "-",
     no_wa: normalWA(no_wa),
@@ -643,7 +647,7 @@ async function actionCheckin(body) {
     preferensi_jam: body.preferensi_jam || body.preferred_time || null,
     butuh_aksesibilitas: body.butuh_aksesibilitas || false,
     detail_aksesibilitas: body.detail_aksesibilitas || null
-  });
+  }, kolomPersetujuan()));
 
   // Formulir publik memakai sapaan audiensi; pemanggil lain memakai sapaan
   // pendaftaran tamu seperti sebelumnya.
