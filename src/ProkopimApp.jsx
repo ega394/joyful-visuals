@@ -1172,9 +1172,14 @@ function appendTimelineEntries(prevEv, patch, actor) {
     out.push({ ...base, action: "penugasan_personil", note: _catatanTugas });
   }
 
-  // 7. Naskah sambutan disahkan
+  // 7. Naskah sambutan disahkan, dibatalkan, atau dihapus
   if (patch.sambutanSah === true && !prevEv.sambutanSah) {
     out.push({ ...base, action: "sambutan_disahkan" });
+  }
+  if (patch.sambutanFile === null && prevEv.sambutanFile) {
+    out.push({ ...base, action: "sambutan_dihapus", note: prevEv.sambutanNama || "" });
+  } else if (patch.sambutanSah === false && prevEv.sambutanSah) {
+    out.push({ ...base, action: "sambutan_dibatalkan" });
   }
 
   // 8. Evaluasi pasca kegiatan
@@ -1237,6 +1242,8 @@ const TIMELINE_LABEL = {
   delegasi_jajaran:   { label: "Didisposisi ke jajaran",            color: "#7C3AED", icon: "🎯" },
   penugasan_personil: { label: "Penugasan personil",                color: "#1E40AF", icon: "👤" },
   sambutan_disahkan:  { label: "Naskah sambutan disahkan",          color: "#047857", icon: "🎤" },
+  sambutan_dibatalkan:{ label: "Pengesahan naskah sambutan dibatalkan", color: "#B45309", icon: "↩" },
+  sambutan_dihapus:   { label: "Naskah sambutan dihapus",           color: "#B91C1C", icon: "🗑" },
   evaluasi_diisi:     { label: "Evaluasi pasca kegiatan diisi",     color: "#0D6B4F", icon: "📝" },
 };
 
@@ -1245,7 +1252,7 @@ const TIMELINE_PELAKSANAAN = {
   wk_hadir:1, wk_tidak_hadir:1, wk_diwakilkan:1, wk_update:1,
   wwk_hadir:1, wwk_tidak_hadir:1, wwk_diwakilkan:1, wwk_update:1,
   delegasi_to_wwk:1, cancel_delegasi:1, delegasi_jajaran:1,
-  penugasan_personil:1, sambutan_disahkan:1, evaluasi_diisi:1,
+  penugasan_personil:1, sambutan_disahkan:1, sambutan_dibatalkan:1, sambutan_dihapus:1, evaluasi_diisi:1,
 };
 
 function fmtTimelineAt(iso) {
@@ -1458,7 +1465,7 @@ function UndanganBlock({ev,canEdit,onUpload,onRemove}){
 }
 
 // ==================== SAMBUTAN BLOCK (DOCX→PDF) ====================
-function SambutanBlock({ev,canUpload,onUploadDocx,onUploadPdf,onRemove,onCommit,onDiscard}){
+function SambutanBlock({ev,canUpload,canHapus,canBatalSah,onBatalSah,onUploadDocx,onUploadPdf,onRemove,onCommit,onDiscard}){
   const NAVY_="#0A1628",GREEN_="#0D6B4F",GOLD_="#C9A84C";
   const ref=useRef();
   const[step,setStep]=React.useState("idle");
@@ -1562,6 +1569,12 @@ function SambutanBlock({ev,canUpload,onUploadDocx,onUploadPdf,onRemove,onCommit,
           <a href={ev.sambutanFile} download={ev.sambutanNama} style={{flex:1,minWidth:80,padding:"9px 8px",borderRadius:9,border:"1.5px solid "+NAVY_,background:"white",color:NAVY_,textDecoration:"none",textAlign:"center",fontSize:12,fontWeight:700}}>⬇ Unduh PDF</a>
           {canUpload&&<><button onClick={()=>{if(ref.current)ref.current.click();}} style={{padding:"9px 10px",borderRadius:9,border:"1.5px solid #94A3B8",background:"white",color:"#475569",cursor:"pointer",fontSize:13,fontWeight:700}}>🔄 Ganti</button><button onClick={onRemove} style={{padding:"9px 10px",borderRadius:9,border:"1.5px solid #FCA5A5",background:"white",color:"#EF4444",cursor:"pointer",fontSize:13,fontWeight:700}}>🗑</button><input ref={ref} type="file" accept=".docx,.pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf" onChange={e=>{handleFile(e.target.files[0]);e.target.value="";}} style={{display:"none"}}/></>}
         </div>
+        {/* Pejabat (Kabag, Kasubbag) dapat membatalkan pengesahan atau menghapus naskah yang keliru;
+            keduanya tercatat di jejak audit. */}
+        {((canBatalSah&&ev.sambutanSah)||(canHapus&&!canUpload))&&<div style={{display:"flex",gap:7,flexWrap:"wrap",marginTop:8}}>
+          {canBatalSah&&ev.sambutanSah&&<button onClick={onBatalSah} style={{flex:1,minWidth:120,padding:"8px 10px",borderRadius:9,border:"1.5px solid #FCD34D",background:"white",color:"#B45309",cursor:"pointer",fontSize:12,fontWeight:700}}>↩ Batalkan Pengesahan</button>}
+          {canHapus&&!canUpload&&<button onClick={onRemove} style={{flex:1,minWidth:120,padding:"8px 10px",borderRadius:9,border:"1.5px solid #FCA5A5",background:"white",color:"#DC2626",cursor:"pointer",fontSize:12,fontWeight:700}}>🗑 Hapus Naskah</button>}
+        </div>}
       </div>
     </>;
   }
@@ -6883,7 +6896,9 @@ function ExpandedDetail({ev,hariEv}){
         </div>
       </div>
       {needsSambutan(ev)&&<div>
-        <SambutanBlock ev={ev} canUpload={role==="timkom"||role==="kasubbag_komdokpim"||(ev.sambutanPenyusun&&user&&ev.sambutanPenyusun===user.username)} onUploadDocx={(f)=>handleSambutanDocx(ev.id,f,ev)} onUploadPdf={(f,name)=>handleSambutanUpload(ev.id,f,name)} onCommit={(patch)=>commitSambutan(ev.id,patch)} onDiscard={(patch)=>discardSambutan(patch)} onRemove={()=>{if(ev.sambutanFile&&!ev.sambutanFile.startsWith("data:"))storageDelete("sambutan",ev.sambutanFile).catch(e=>console.warn("Sync:",e?.message||e));if(ev.sambutanDocx&&!ev.sambutanDocx.startsWith("data:")&&!ev.sambutanDocx.startsWith("blob:"))storageDelete("sambutan",ev.sambutanDocx).catch(e=>console.warn("Sync:",e?.message||e));updAndSync(ev.id,{sambutanFile:null,sambutanNama:"",sambutanDocx:null,sambutanDocxNama:"",sambutanSah:false,sambutanKabag:null,sambutanSelesaiAt:null});showT("Naskah sambutan dihapus","warn");}}/>
+        <SambutanBlock ev={ev} canHapus={["kabag","kasubbag_protokol","kasubbag_komdokpim"].includes(role)} canBatalSah={["kasubbag_protokol","kasubbag_komdokpim"].includes(role)}
+          onBatalSah={()=>askConfirm("Batalkan Pengesahan?","Naskah tetap tersimpan, tetapi kembali berstatus belum disahkan dan perlu disahkan ulang oleh Kabag.",()=>{updAndSync(ev.id,{sambutanSah:false,sambutanKabag:null,sambutanSelesaiAt:null});showT("Pengesahan dibatalkan","warn");},"Ya, Batalkan","#B45309")}
+          canUpload={role==="timkom"||role==="kasubbag_komdokpim"||(ev.sambutanPenyusun&&user&&ev.sambutanPenyusun===user.username)} onUploadDocx={(f)=>handleSambutanDocx(ev.id,f,ev)} onUploadPdf={(f,name)=>handleSambutanUpload(ev.id,f,name)} onCommit={(patch)=>commitSambutan(ev.id,patch)} onDiscard={(patch)=>discardSambutan(patch)} onRemove={()=>askConfirm("Hapus Naskah Sambutan?","Berkas PDF dan DOCX naskah dihapus dari agenda ini. Penyusun perlu mengunggah ulang, dan penghapusan tercatat di jejak audit.",()=>{if(ev.sambutanFile&&!ev.sambutanFile.startsWith("data:"))storageDelete("sambutan",ev.sambutanFile).catch(e=>console.warn("Sync:",e?.message||e));if(ev.sambutanDocx&&!ev.sambutanDocx.startsWith("data:")&&!ev.sambutanDocx.startsWith("blob:"))storageDelete("sambutan",ev.sambutanDocx).catch(e=>console.warn("Sync:",e?.message||e));updAndSync(ev.id,{sambutanFile:null,sambutanNama:"",sambutanDocx:null,sambutanDocxNama:"",sambutanSah:false,sambutanKabag:null,sambutanSelesaiAt:null});showT("Naskah sambutan dihapus","warn");},"Ya, Hapus","#DC2626")}/>
         {["kasubbag_komdokpim","kabag","timkom"].includes(role)&&ev.alur==="disetujui"&&<SambutanKinerja ev={ev}/>}
       </div>}
     </div>
