@@ -109,6 +109,29 @@ export default function MonitorWA({ ambil, isMobile, showT }) {
     finally { setSibuk(null); }
   };
 
+  // Kirim ulang semua WA yang gagal karena perangkat Fonnte terputus (48 jam
+  // terakhir); peladen mengirim paling banyak 10 per ketukan dan menolak bila
+  // perangkat masih terputus.
+  const kirimUlangSemua = async () => {
+    const n = data?.ulang?.jumlah || 0;
+    if (!n || !window.confirm("Kirim ulang " + n + " WA yang gagal karena perangkat terputus?\n\nIsi pesannya sama persis dengan aslinya. Pastikan kabarnya masih relevan.")) return;
+    setSibuk("ulang");
+    try {
+      let total = 0, gagal = 0, sisa = n;
+      while (sisa > 0) {
+        const x = await ambil("/api/whatsapp?op=wa_kirim_ulang_gagal", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+        const d = await x.json().catch(() => ({}));
+        if (!x.ok) throw new Error(d.error || "Gagal (HTTP " + x.status + ")");
+        total += d.terkirim || 0; gagal += d.gagal || 0;
+        if ((d.terkirim || 0) + (d.gagal || 0) === 0) break;
+        sisa = d.sisa || 0;
+      }
+      showT && showT(gagal ? "⚠️ " + total + " terkirim ulang, " + gagal + " masih gagal" : "✅ " + total + " WA terkirim ulang");
+      muat(0);
+    } catch (e) { showT ? showT("❌ " + e.message) : alert(e.message); }
+    finally { setSibuk(null); }
+  };
+
   const perangkat = data?.perangkat;
   const putus = perangkat?.status === "terputus";
   const kotak = { background: "white", border: "1px solid #E2E8F0", borderRadius: 12, padding: isMobile ? "12px 14px" : "14px 18px", marginBottom: 12 };
@@ -154,6 +177,19 @@ export default function MonitorWA({ ambil, isMobile, showT }) {
             {perangkat.galat && <div style={{ color: "#B45309" }}>{perangkat.galat}</div>}
             {putus && <div style={{ marginTop: 4, color: "#991B1B" }}>Sambungkan ulang: buka dasbor fonnte.com → Device → Connect, lalu pindai kode QR dengan WhatsApp di HP nomor resmi.</div>}
           </div>
+        </div>
+      )}
+
+      {data?.ulang?.jumlah > 0 && (
+        <div style={{ ...kotak, background: "#FFFBEB", borderColor: "#FDE68A" }}>
+          <div style={{ fontSize: 14, fontWeight: 800, color: "#92400E" }}>🔁 {data.ulang.jumlah} WA gagal karena perangkat terputus (48 jam terakhir)</div>
+          <div style={{ fontSize: 12.5, color: "#78350F", marginTop: 4, lineHeight: 1.6 }}>
+            {data.ulang.contoh.map((c, i) => <div key={i}>{waktu(c.waktu)} · {labelJenis(c.jenis)} · {c.nama_penerima || c.nomor}</div>)}
+            {data.ulang.jumlah > data.ulang.contoh.length && <div>dan {data.ulang.jumlah - data.ulang.contoh.length} lainnya</div>}
+          </div>
+          <button onClick={kirimUlangSemua} disabled={sibuk === "ulang" || putus} style={{ marginTop: 8, padding: "9px 14px", borderRadius: 9, border: "none", background: putus ? "#CBD5E1" : "#D97706", color: "white", fontWeight: 800, fontSize: 13, cursor: putus ? "not-allowed" : "pointer" }}>
+            {sibuk === "ulang" ? "Mengirim ulang…" : putus ? "Sambungkan perangkat dulu" : "🔁 Kirim ulang semua"}
+          </button>
         </div>
       )}
 
