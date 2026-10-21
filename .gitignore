@@ -38,3 +38,6 @@ docs/lomba/build/video/nyata/
 *-dengan-Wali-Kota.mp4
 # Foto lembar disposisi asli (disamarkan) hanya untuk berkas yang dikirim
 docs/lomba/build/*/aset/lembar-*
+
+# Python
+__pycache__/
