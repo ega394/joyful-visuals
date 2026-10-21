@@ -8,10 +8,12 @@
  */
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
+import { VERSI_KEBIJAKAN } from "../lib/persetujuan.js";
 
 const NAVY = "#0A1628";
 const GOLD = "#C9A84C";
-const BERLAKU = "13 Oktober 2026";
+// Tanggal berlaku = versi kebijakan yang disimpan sebagai bukti persetujuan.
+const BERLAKU = VERSI_KEBIJAKAN;
 const NARAHUBUNG = "0811-5961-116";
 
 const H2 = ({ id, children }) => (

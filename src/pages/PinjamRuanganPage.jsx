@@ -2,6 +2,7 @@
  * PinjamRuanganPage.jsx — Halaman Publik Peminjaman Ruangan
  */
 import React, { useState, useEffect, useCallback, useRef, useMemo, memo } from "react";
+import KotakPersetujuan from "../components/KotakPersetujuan.jsx";
 
 const NAVY   = "#0A1628";
 const NAVY2  = "#1E3A5F";
@@ -343,7 +344,7 @@ function FormStepper({ step }) {
 }
 
 // ── Confirm step ──────────────────────────────────────────────
-function ConfirmView({ form, file, rooms, submitting, uploading, err, onBack, onSubmit }) {
+function ConfirmView({ form, file, rooms, submitting, uploading, err, setuju, onSetuju, onBack, onSubmit }) {
   const room = rooms.find(r=>r.id===Number(form.room_id));
   const slots = form.slots || [];
   const Row = ({label,value,hi})=>(
@@ -379,22 +380,28 @@ function ConfirmView({ form, file, rooms, submitting, uploading, err, onBack, on
         {form.srikandi_ref&&<Row label="No. Srikandi" value={form.srikandi_ref}/>}
         {file&&<Row label="File Surat" value={file.name}/>}
       </div>
+      <KotakPersetujuan id="pinjam-setuju" checked={setuju} onChange={onSetuju}/>
       {err&&<div style={{padding:"12px 14px",background:RED_BG,color:RED,borderRadius:10,fontSize:13,marginBottom:14,border:`1.5px solid ${RED_BORDER}`}}>{err}</div>}
       <div style={{display:"flex",gap:10}}>
         <button type="button" onClick={onBack} disabled={submitting}
           style={{flex:1,padding:"13px",borderRadius:12,border:`1.5px solid ${BORDER}`,background:"white",color:"#374151",fontWeight:700,fontSize:14,cursor:"pointer"}}>
           ← Ubah Data
         </button>
-        <button type="button" onClick={onSubmit} disabled={submitting}
+        <button type="button" onClick={onSubmit} disabled={submitting||!setuju}
           style={{
             flex:2,padding:"13px",borderRadius:12,border:"none",
-            background:submitting?"#9CA3AF":`linear-gradient(135deg,${GREEN} 0%,#047857 100%)`,
-            color:"white",fontWeight:800,fontSize:14,cursor:submitting?"not-allowed":"pointer",
-            boxShadow:submitting?"none":"0 4px 14px rgba(5,150,105,0.3)",letterSpacing:0.3,
+            background:(submitting||!setuju)?"#9CA3AF":`linear-gradient(135deg,${GREEN} 0%,#047857 100%)`,
+            color:"white",fontWeight:800,fontSize:14,cursor:(submitting||!setuju)?"not-allowed":"pointer",
+            boxShadow:(submitting||!setuju)?"none":"0 4px 14px rgba(5,150,105,0.3)",letterSpacing:0.3,
           }}>
           {uploading?"Mengupload...":submitting?"Mengirim...":"✓ Kirim Pengajuan"}
         </button>
       </div>
+      {!setuju&&!submitting&&(
+        <div style={{fontSize:12,color:GRAY,textAlign:"center",marginTop:10}}>
+          Centang persetujuan di atas untuk mengaktifkan tombol kirim.
+        </div>
+      )}
     </div>
   );
 }
@@ -631,6 +638,8 @@ function BookingForm({ rooms, bookings, onSuccess, prefill, onClearPrefill }) {
   const [uploading,setUpl]   = useState(false);
   const [err,setErr]         = useState("");
   const [step1Err,setS1Err]  = useState("");
+  // Persetujuan privasi — wajib sebelum kirim; peladen memeriksa ulang.
+  const [setuju,setSetuju]   = useState(false);
 
   useEffect(()=>{
     if (prefill) {
@@ -719,6 +728,8 @@ function BookingForm({ rooms, bookings, onSuccess, prefill, onClearPrefill }) {
   };
 
   const handleSubmit = async () => {
+    // Diperiksa sebelum unggah surat, agar berkas tidak terunggah sia-sia.
+    if (!setuju) { setErr("Centang persetujuan Kebijakan Privasi dan Ketentuan Penggunaan terlebih dahulu."); return; }
     setErr(""); setSub(true);
     try {
       let document_path=null;
@@ -740,6 +751,7 @@ function BookingForm({ rooms, bookings, onSuccess, prefill, onClearPrefill }) {
           pic_wa:form.pic_wa, event_name:form.event_name,
           participant_count:Number(form.participant_count),
           slots:form.slots, srikandi_ref:form.srikandi_ref, document_path,
+          setuju_privasi:setuju,
           website:form.website||"",   // kolom umpan — server membuang bila terisi
         }),
       });
@@ -924,6 +936,7 @@ function BookingForm({ rooms, bookings, onSuccess, prefill, onClearPrefill }) {
       {/* ── Step 3: Konfirmasi ── */}
       {formStep===3&&(
         <ConfirmView form={form} file={file} rooms={rooms} submitting={submitting} uploading={uploading} err={err}
+          setuju={setuju} onSetuju={(v)=>{ setSetuju(v); if (v) setErr(""); }}
           onBack={()=>setFormStep(2)} onSubmit={handleSubmit}/>
       )}
     </div>
