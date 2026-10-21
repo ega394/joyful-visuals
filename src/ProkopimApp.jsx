@@ -3,24 +3,25 @@ import { ZenModeView, AjudanView, StafView, MitraView, SkeletonLoader, EmptyStat
 import { ZenDashboard } from "./ZenModeUI.jsx";
 import UndanganGenerator from "./UndanganGenerator.jsx";
 // Lazy load modul tamu (publik + dashboard) → bundle awal lebih ringan
-const TamuPage       = React.lazy(() => import("./TamuPage.jsx"));
-const GuestDashboard = React.lazy(() => import("./GuestDashboard.jsx"));
-const RoomCalendarView = React.lazy(() => import("./components/RoomCalendarView.jsx"));
-const DaftarHadirAdmin = React.lazy(() => import("./components/DaftarHadirAdmin.jsx"));
-const MonitorWA = React.lazy(() => import("./components/MonitorWA.jsx"));
+const TamuPage       = React.lazy(() => imporSegar(() => import("./TamuPage.jsx")));
+const GuestDashboard = React.lazy(() => imporSegar(() => import("./GuestDashboard.jsx")));
+const RoomCalendarView = React.lazy(() => imporSegar(() => import("./components/RoomCalendarView.jsx")));
+const DaftarHadirAdmin = React.lazy(() => imporSegar(() => import("./components/DaftarHadirAdmin.jsx")));
+const MonitorWA = React.lazy(() => imporSegar(() => import("./components/MonitorWA.jsx")));
 const _LazyFallback  = () => (
   <div style={{ padding: 24, textAlign: "center", color: "#64748b" }}>Memuat…</div>
 );
 import KontakActions from "./components/KontakActions.jsx";
 import TautanPublik from "./components/TautanPublik.jsx";
 import { hitungLencana, pasangLencana } from "./lib/lencana.js";
+import { imporSegar } from "./lib/imporSegar.js";
 import RekapPenugasanBulanan from "./RekapPenugasanBulanan.jsx"
 import WaliKotaAudiensiDashboard from "./WaliKotaAudiensiDashboard.jsx"
 import NewsroomDashboard from "./NewsroomDashboard.jsx";
 import SuperadminPage from "./pages/SuperadminPage.jsx";
 import BookingDashboard from "./components/BookingDashboard.jsx";
 import RoomManagement from "./components/RoomManagement.jsx";
-const PlhManagement = React.lazy(() => import("./components/PlhManagement.jsx"));
+const PlhManagement = React.lazy(() => imporSegar(() => import("./components/PlhManagement.jsx")));
 import { clearAdminToken, adminFetch, sesiFetch, setPenggunaSesi, simpanTokenSesi } from "./roomAuth";
 import { passkeyDidukung, dibatalkan, konfigMasuk, masukPasskey, daftarPasskey, daftarCaraMasuk, hapusPasskey, putuskanGoogle, pasangTombolGoogle } from "./lib/caraMasuk.js";
 import { JADWAL_STATUS } from "./lib/statusColors.js";

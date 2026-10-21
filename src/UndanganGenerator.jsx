@@ -10,6 +10,7 @@ import React, { useState, useEffect } from "react";
 import { buatPdfUndangan, namaBerkasUndangan, sesiDariJam } from "./lib/undanganPdf";
 import { PratinjauPdf, JendelaPdf, unduhPdf, cetakPdf } from "./components/PratinjauPdf";
 import { userFetch, adminFetch } from "./roomAuth";
+import { chunkBasi } from "./lib/imporSegar.js";
 
 // ── Tempat acara ──────────────────────────────────────────────
 // Dua ruangan terakhir dikelola layanan Peminjaman Ruangan, jadi ketersediaannya
@@ -206,10 +207,35 @@ export default function UndanganGenerator({ isMobile, showT, user }) {
     return true;
   };
 
+  // Versi aplikasi berganti saat formulir masih terbuka: pustaka PDF versi
+  // lama sudah tidak ada (lib/imporSegar.js). Isian disimpan dulu sebagai
+  // konsep — memakai satu slot tetap agar tidak menumpuk — baru ditawarkan
+  // muat ulang, supaya isian yang panjang tidak hilang.
+  const ID_KONSEP_PULIH = "pulih-pembaruan";
+  const pulihkanSetelahPembaruan = () => {
+    const nama = "Tersimpan otomatis — " + namaBawaanKonsep();
+    const entri = { id: ID_KONSEP_PULIH, nama, disimpan: new Date().toISOString(), data: { ...form } };
+    const berikut = [entri, ...konsep.filter(k => k.id !== ID_KONSEP_PULIH)];
+    if (!tulisKonsep(berikut)) {
+      if (showT) showT("Aplikasi baru saja diperbarui, tetapi isian gagal disimpan otomatis. Tekan Simpan Konsep, lalu muat ulang halaman.", "error");
+      return;
+    }
+    setKonsep(berikut.slice(0, MAKS_KONSEP));
+    if (window.confirm(`Aplikasi baru saja diperbarui.\n\nIsian Anda sudah disimpan sebagai konsep "${nama}". Setelah dimuat ulang, buka kembali Generator Undangan dan pilih konsep itu.\n\nMuat ulang sekarang?`)) {
+      window.location.reload();
+    } else if (showT) {
+      showT("Isian tersimpan sebagai konsep. Muat ulang halaman sebelum membuat PDF.", "warn");
+    }
+  };
+
   const buatPdf = async () => {
     setLoading(true);
     try { return await buatPdfUndangan(form); }
-    catch (err) { if (showT) showT("Gagal menyusun PDF: " + err.message, "error"); return null; }
+    catch (err) {
+      if (chunkBasi(err)) pulihkanSetelahPembaruan();
+      else if (showT) showT("Gagal menyusun PDF: " + err.message, "error");
+      return null;
+    }
     finally { setLoading(false); }
   };
 
@@ -224,11 +250,13 @@ export default function UndanganGenerator({ isMobile, showT, user }) {
 
   // Pratinjau langsung di desktop: PDF disusun ulang sejenak setelah berhenti mengetik.
   const [pratinjau, setPratinjau] = useState(null);
+  const [pratinjauBasi, setPratinjauBasi] = useState(false);
   useEffect(() => {
     if (isMobile) return;
     let batal = false;
     const t = setTimeout(async () => {
-      try { const b = await buatPdfUndangan(form); if (!batal) setPratinjau(b); } catch { /* biarkan pratinjau lama */ }
+      try { const b = await buatPdfUndangan(form); if (!batal) { setPratinjau(b); setPratinjauBasi(false); } }
+      catch (e) { if (!batal && chunkBasi(e)) setPratinjauBasi(true); /* galat lain: biarkan pratinjau lama */ }
     }, 700);
     return () => { batal = true; clearTimeout(t); };
   }, [form, isMobile]);
@@ -540,7 +568,15 @@ export default function UndanganGenerator({ isMobile, showT, user }) {
               <span style={{ marginLeft: "auto", fontSize: 11, color: "rgba(255,255,255,0.4)" }}>Sama persis dengan berkas yang diunduh · Arial tertanam</span>
             </div>
             <div style={{ flex: 1, overflow: "auto" }}>
-              {pratinjau
+              {pratinjauBasi && !pratinjau
+                ? <div style={{ color: "rgba(255,255,255,.85)", fontSize: 13, lineHeight: 1.7, textAlign: "center", padding: 40 }}>
+                    Aplikasi baru saja diperbarui, jadi pratinjau belum bisa disusun.<br/>
+                    <button onClick={pulihkanSetelahPembaruan}
+                      style={{ marginTop: 12, padding: "9px 16px", borderRadius: 9, border: "none", background: "white", color: "#0A1628", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+                      Simpan isian &amp; muat ulang
+                    </button>
+                  </div>
+                : pratinjau
                 ? <PratinjauPdf blob={pratinjau} />
                 : <div style={{ color: "rgba(255,255,255,.6)", fontSize: 13, textAlign: "center", padding: 40 }}>Menyusun pratinjau…</div>}
             </div>

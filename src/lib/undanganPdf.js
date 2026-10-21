@@ -18,6 +18,7 @@
  * pdfmake (±1 MB) dan font dimuat hanya saat PDF pertama kali dibuat.
  */
 
+import { imporSegar, ambilAset } from "./imporSegar.js";
 import urlRegular from "../assets/fonts/arial-regular.ttf?url";
 import urlBold from "../assets/fonts/arial-bold.ttf?url";
 import urlItalic from "../assets/fonts/arial-italic.ttf?url";
@@ -71,10 +72,10 @@ const keBase64 = (buf) => {
 
 async function siapkanPdfMake() {
   if (_pdfMake) return _pdfMake;
-  const mod = await import("pdfmake/build/pdfmake");
+  const mod = await imporSegar(() => import("pdfmake/build/pdfmake"));
   const pdfMake = mod.default || mod;
   const [r, b, i, bi] = await Promise.all(
-    [urlRegular, urlBold, urlItalic, urlBoldItalic].map(async (u) => keBase64(await (await fetch(u)).arrayBuffer()))
+    [urlRegular, urlBold, urlItalic, urlBoldItalic].map(async (u) => keBase64(await (await ambilAset(u)).arrayBuffer()))
   );
   pdfMake.vfs = { "arial.ttf": r, "arialbd.ttf": b, "ariali.ttf": i, "arialbi.ttf": bi };
   pdfMake.fonts = { Arial: { normal: "arial.ttf", bold: "arialbd.ttf", italics: "ariali.ttf", bolditalics: "arialbi.ttf" } };
