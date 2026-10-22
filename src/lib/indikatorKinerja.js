@@ -20,16 +20,19 @@
  *                   Kabag mengesahkan (`sambutanSelesaiAt`). Tenggat = 24 jam
  *                   sebelum acara dimulai. Naskah tetap dihitung bila pimpinan
  *                   akhirnya diwakilkan: naskahnya tetap harus siap.
- *  Berita kegiatan  setiap agenda tayang yang DIHADIRI WK atau WWK. Selesai =
- *                   saat caption berita atau rilis disetujui Kasubbag
- *                   Komdokpim (mana yang lebih dulu), dibaca dari riwayat
- *                   `timeline`. Tenggat = 24 jam sesudah acara selesai.
+ *  Berita kegiatan  setiap agenda tayang yang DIHADIRI WK atau WWK. Tenggat =
+ *                   24 jam sesudah acara selesai. Selesai =
+ *                   - bila akun Instagram resmi tersambung: saat postingan
+ *                     yang cocok TERBIT di @humas_tarakan (lib/beritaInstagram.js);
+ *                   - bila belum: saat caption berita atau rilis disetujui
+ *                     Kasubbag Komdokpim (mana yang lebih dulu), dari `timeline`.
  *
  * Persentase = tepat waktu ÷ (tepat waktu + terlambat). Layanan yang
  * tenggatnya belum lewat ("berjalan") belum dihitung; yang selesai tanpa
  * catatan waktu ("tak terukur") disisihkan dan ditampilkan apa adanya.
  */
 import { epochMulai, epochSelesai } from "./zona.js";
+import { cocokkanBerita } from "./beritaInstagram.js";
 
 export const TARGET = 90;
 export const BATAS_SAMBUTAN_JAM = 24;
@@ -39,6 +42,10 @@ export const BATAS_BERITA_JAM = 24;
 // Berita untuk acara sebelum tanggal ini tidak punya catatan waktu, sehingga
 // tidak dihitung sama sekali — bukan dianggap terlambat.
 export const BERITA_DICATAT_SEJAK = "2026-10-23";
+
+// Bila akun Instagram resmi tersambung, berita diukur dari JAM TERBIT
+// postingan — yang bisa dibaca mundur. Dihitung mulai Triwulan IV 2026.
+export const BERITA_TERBIT_SEJAK = "2026-10-01";
 
 const JAM = 3600000;
 const SAMBUTAN_JENIS = ["Sambutan", "Sambutan membuka acara"];
@@ -88,7 +95,7 @@ function nilaiStatus(selesai, tenggat, sekarang) {
 }
 
 /** Satuan layanan komunikasi pimpinan dari satu agenda (0, 1, atau 2 butir). */
-export function layananKomunikasi(ev, sekarang = Date.now()) {
+export function layananKomunikasi(ev, sekarang = Date.now(), terbit = null) {
   if (!ev || ev.alur !== "disetujui") return [];
   const mulai = epochMulai(ev);
   if (Number.isNaN(mulai)) return [];
@@ -105,7 +112,7 @@ export function layananKomunikasi(ev, sekarang = Date.now()) {
     });
   }
 
-  if (ev.tanggal >= BERITA_DICATAT_SEJAK) {
+  if (ev.tanggal >= (terbit ? BERITA_TERBIT_SEJAK : BERITA_DICATAT_SEJAK)) {
     const hadir = kehadiranPimpinan(ev);
     const tenggat = epochSelesai(ev) + BATAS_BERITA_JAM * JAM;
     if (hadir === "hadir" || (hadir === "belum" && sekarang > mulai)) {
@@ -120,7 +127,20 @@ export function layananKomunikasi(ev, sekarang = Date.now()) {
         const t = waktuTerakhir(ev, ["rilis_disetujui"]);
         t === null ? (tanpaWaktu = true) : calon.push(t);
       }
-      const selesai = calon.length ? Math.min(...calon) : null;
+      const disetujui = calon.length ? Math.min(...calon) : null;
+      const pj = pelakuTerakhir(ev, ["caption_diajukan", "rilis_diajukan"]) || ev2.news_updated_by || null;
+      if (terbit) {
+        // Mode Instagram: yang dihitung jam terbit, bukan jam persetujuan.
+        const h = terbit.get(ev.id) || { post: null, kandidat: [] };
+        const selesai = h.post ? Date.parse(h.post.terbit_at) : null;
+        out.push({
+          jenis: "berita", ev, tenggat, selesai, disetujui, pj,
+          status: hadir === "belum" ? "tanpa_kehadiran" : nilaiStatus(selesai, tenggat, sekarang),
+          postingan: h.post, cara: h.cara || null, kandidat: h.kandidat || [],
+        });
+        return out;
+      }
+      const selesai = disetujui;
       out.push({
         jenis: "berita", ev, tenggat, selesai,
         // Kehadiran belum dikonfirmasi: belum tentu berita diperlukan, jadi
@@ -128,7 +148,7 @@ export function layananKomunikasi(ev, sekarang = Date.now()) {
         status: hadir === "belum" ? "tanpa_kehadiran"
           : selesai === null && tanpaWaktu ? "tak_terukur"
           : nilaiStatus(selesai, tenggat, sekarang),
-        pj: pelakuTerakhir(ev, ["caption_diajukan", "rilis_diajukan"]) || ev2.news_updated_by || null,
+        pj,
       });
     }
   }
@@ -149,15 +169,14 @@ function hitung(butir) {
 /**
  * Rekap IKU 3 untuk agenda bertanggal [dari, sampai] (YYYY-MM-DD, inklusif).
  * Mengembalikan seluruh butir (untuk dirinci) dan hitungan per jenis.
+ * `postingan`: daftar postingan akun resmi bila tersambung, selain itu null.
  */
-export function rekapKomunikasi(events, { dari, sampai, sekarang = Date.now() } = {}) {
+export function rekapKomunikasi(events, { dari, sampai, sekarang = Date.now(), postingan = null } = {}) {
+  const dipilih = (events || []).filter((ev) => ev && ev.tanggal && !(dari && ev.tanggal < dari) && !(sampai && ev.tanggal > sampai));
+  // `postingan` diisi (walau kosong) = akun Instagram tersambung → mode terbit.
+  const terbit = Array.isArray(postingan) ? cocokkanBerita(dipilih.filter((ev) => ev.alur === "disetujui"), postingan) : null;
   const butir = [];
-  for (const ev of events || []) {
-    if (!ev || !ev.tanggal) continue;
-    if (dari && ev.tanggal < dari) continue;
-    if (sampai && ev.tanggal > sampai) continue;
-    butir.push(...layananKomunikasi(ev, sekarang));
-  }
+  for (const ev of dipilih) butir.push(...layananKomunikasi(ev, sekarang, terbit));
   butir.sort((a, b) => a.tenggat - b.tenggat);
   return {
     butir,

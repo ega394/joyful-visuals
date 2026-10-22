@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from "react";
-import { rekapKomunikasi, rentangPeriode, TARGET, BERITA_DICATAT_SEJAK } from "../lib/indikatorKinerja.js";
+import React, { useEffect, useMemo, useState } from "react";
+import { rekapKomunikasi, rentangPeriode, TARGET, BERITA_DICATAT_SEJAK, BERITA_TERBIT_SEJAK } from "../lib/indikatorKinerja.js";
+import { epochMulai } from "../lib/zona.js";
 
 /**
  * Menu "Indikator Kinerja" — Kabag dan kedua Kasubbag.
@@ -7,6 +8,11 @@ import { rekapKomunikasi, rentangPeriode, TARGET, BERITA_DICATAT_SEJAK } from ".
  * Kabag melihat ketiga indikator; Kasubbag Protokol melihat IKU 1 dan 2;
  * Kasubbag Komdokpim melihat IKU 1 dan 3. Perhitungan ada di
  * lib/indikatorKinerja.js; berkas ini hanya menampilkan dan merinci.
+ *
+ * Berita kegiatan dibaca dari akun Instagram resmi (@humas_tarakan) lewat
+ * /api/room-booking?op=instagram. Kabag dan Kasubbag Komdokpim dapat
+ * memilih postingan secara manual atau menolak tautan otomatis yang keliru;
+ * pilihan itu tersimpan di agenda dan tercatat di riwayatnya.
  */
 
 const NAVY = "#0A1628", GOLD = "#C9A84C", ABU = "#64748B", GARIS = "#E4EAF2";
@@ -108,14 +114,32 @@ const SARINGAN = [
   { key: "tepat", label: "Tepat waktu", cocok: (b) => b.status === "tepat" },
 ];
 
-export default function IndikatorKinerja({ events, user, isMobile, allUsers }) {
+export default function IndikatorKinerja({ events, user, isMobile, allUsers, ambil, upd }) {
   const role = user?.role || "";
   const [jenis, setJenis] = useState("bulan");
   const [acuan, setAcuan] = useState(hariIniWita());
   const [saring, setSaring] = useState("perhatian");
+  const [ig, setIg] = useState(null);          // { status, postingan } dari peladen
+  const [pilih, setPilih] = useState(null);    // butir berita yang sedang dipilihkan postingannya
 
   const rentang = rentangPeriode(jenis, acuan);
-  const iku3 = useMemo(() => rekapKomunikasi(events, rentang), [events, rentang.dari, rentang.sampai]);
+  const sejak = rentang.dari < BERITA_TERBIT_SEJAK ? rentang.dari : BERITA_TERBIT_SEJAK;
+  useEffect(() => {
+    if (!ambil) return;
+    let batal = false;
+    ambil("/api/room-booking?op=instagram&sejak=" + sejak)
+      .then((r) => r.json())
+      .then((d) => { if (!batal) setIg(d && d.status ? d : { status: { tersambung: false, alasan: d?.error || "Gagal memuat" }, postingan: [] }); })
+      .catch((e) => { if (!batal) setIg({ status: { tersambung: false, alasan: e.message }, postingan: [] }); });
+    return () => { batal = true; };
+  }, [ambil, sejak]);
+  const igAktif = !!(ig && ig.status && ig.status.tersambung);
+  const bolehAtur = !!upd && (role === "kabag" || role === "kasubbag_komdokpim");
+
+  const iku3 = useMemo(
+    () => rekapKomunikasi(events, { ...rentang, postingan: igAktif ? ig.postingan : null }),
+    [events, rentang.dari, rentang.sampai, igAktif, ig]
+  );
   const nama = (u) => (allUsers || []).find((x) => x.username === u)?.nama || u || "—";
 
   const lihat1 = true;
@@ -166,8 +190,9 @@ export default function IndikatorKinerja({ events, user, isMobile, allUsers }) {
               : `${iku3.semua.tepat} dari ${iku3.semua.tepat + iku3.semua.terlambat} layanan yang jatuh tempo selesai tepat waktu.`}>
             <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
               <Rincian label="Naskah sambutan · ≤ 24 jam sebelum acara" data={iku3.sambutan} />
-              <Rincian label="Berita kegiatan · ≤ 24 jam sesudah acara" data={iku3.berita} />
+              <Rincian label={igAktif ? "Berita terbit di Instagram · ≤ 24 jam sesudah acara" : "Berita kegiatan · ≤ 24 jam sesudah acara"} data={iku3.berita} />
             </div>
+            <StatusInstagram ig={ig} />
           </KartuIndikator>
         )}
       </div>
@@ -195,19 +220,108 @@ export default function IndikatorKinerja({ events, user, isMobile, allUsers }) {
                   <div style={{ fontSize: 13, fontWeight: 700, color: NAVY, lineHeight: 1.35 }}>{b.ev.namaAcara || "(tanpa nama acara)"}</div>
                   <div style={{ fontSize: 11.5, color: ABU, marginTop: 2, lineHeight: 1.5 }}>
                     {b.jenis === "sambutan" ? "Naskah sambutan" : "Berita kegiatan"} · acara {fmtTanggal(b.ev.tanggal)} · PJ {nama(b.pj)}
-                    <br />Tenggat {fmtWaktu(b.tenggat)} · Selesai {fmtWaktu(b.selesai)}
+                    <br />Tenggat {fmtWaktu(b.tenggat)} · {b.postingan !== undefined ? "Terbit" : "Selesai"} {fmtWaktu(b.selesai)}
                   </div>
+                  {b.postingan !== undefined && (
+                    <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginTop: 6 }}>
+                      {b.postingan ? (
+                        <>
+                          <a href={b.postingan.permalink} target="_blank" rel="noopener" style={{ fontSize: 12, fontWeight: 700, color: "#1E3A6E" }}>Lihat postingan ↗</a>
+                          <span style={{ fontSize: 11, color: ABU }}>{b.cara === "manual" ? "dipilih manual" : "terdeteksi otomatis"}</span>
+                          {bolehAtur && (b.cara === "manual"
+                            ? <button onClick={() => upd(b.ev.id, { beritaTerbit: null })} style={tombolKecil}>Batalkan pilihan</button>
+                            : <button onClick={() => upd(b.ev.id, { beritaTolak: [...(b.ev.beritaTolak || []), b.postingan.id] })} style={tombolKecil}>Bukan postingan ini</button>)}
+                        </>
+                      ) : bolehAtur && igAktif && b.status !== "tanpa_kehadiran" ? (
+                        <button onClick={() => setPilih(b)} style={tombolKecil}>
+                          Pilih postingan{b.kandidat && b.kandidat.length ? ` · ${b.kandidat.length} kandidat` : ""}
+                        </button>
+                      ) : null}
+                    </div>
+                  )}
                 </div>
                 <div style={{ flexShrink: 0, fontSize: 11, fontWeight: 800, color: st.warna, background: st.latar, borderRadius: 20, padding: "3px 9px", whiteSpace: "nowrap" }}>{st.label}</div>
               </div>
             );
           })}
           <div style={{ fontSize: 11, color: "#94A3B8", lineHeight: 1.6, marginTop: 10, borderTop: "1px solid #F1F5F9", paddingTop: 8 }}>
-            Berita dihitung untuk acara yang dihadiri sendiri oleh Wali Kota atau Wakil Wali Kota, mulai acara tanggal {fmtTanggal(BERITA_DICATAT_SEJAK)} (sejak waktu persetujuan caption/rilis dicatat).
+            {igAktif
+              ? <>Berita dihitung untuk acara yang dihadiri sendiri oleh Wali Kota atau Wakil Wali Kota, mulai acara tanggal {fmtTanggal(BERITA_TERBIT_SEJAK)}, dari jam terbit postingan di akun resmi. Kecocokan yang meragukan tidak dihitung sampai dipilih manual.</>
+              : <>Berita dihitung untuk acara yang dihadiri sendiri oleh Wali Kota atau Wakil Wali Kota, mulai acara tanggal {fmtTanggal(BERITA_DICATAT_SEJAK)}, dari jam persetujuan caption/rilis (Instagram belum tersambung).</>}
             Naskah sambutan dihitung untuk setiap agenda berjenis Sambutan. Layanan yang tenggatnya belum lewat belum masuk hitungan.
           </div>
         </div>
       )}
+      {pilih && (
+        <PilihPostingan butir={pilih} postingan={ig?.postingan || []} onTutup={() => setPilih(null)}
+          onPilih={(p) => {
+            upd(pilih.ev.id, { beritaTerbit: { id: p.id, permalink: p.permalink, terbit_at: p.terbit_at, oleh: user?.username, pada: new Date().toISOString() } });
+            setPilih(null);
+          }} />
+      )}
+    </div>
+  );
+}
+
+const tombolKecil = {
+  padding: "4px 10px", borderRadius: 8, border: "1.5px solid " + GARIS, background: "white", color: NAVY,
+  fontWeight: 700, fontSize: 11.5, cursor: "pointer", fontFamily: "inherit",
+};
+
+function StatusInstagram({ ig }) {
+  if (!ig) return <div style={{ fontSize: 11.5, color: ABU, marginTop: 10 }}>Memeriksa akun Instagram resmi…</div>;
+  const s = ig.status || {};
+  const ok = !!s.tersambung;
+  return (
+    <div style={{ display: "flex", gap: 8, alignItems: "flex-start", marginTop: 10, padding: "8px 10px", borderRadius: 10, fontSize: 11.5, lineHeight: 1.5,
+      background: ok ? "#F0FDF4" : "#FFFBEB", color: ok ? "#166534" : "#92400E", border: "1px solid " + (ok ? "#BBF7D0" : "#FDE68A") }}>
+      <span aria-hidden="true">📸</span>
+      <span>
+        {ok
+          ? <>Terhubung ke <b>@{s.username || "akun resmi"}</b> · diperbarui {fmtWaktu(Date.parse(s.sinkron_at))}</>
+          : <>Instagram belum tersambung — berita sementara dihitung dari jam persetujuan caption. {s.alasan || s.galat || ""}</>}
+        {ok && s.galat && <><br />⚠️ {s.galat}</>}
+      </span>
+    </div>
+  );
+}
+
+// Postingan yang terbit sejak 2 jam sebelum acara sampai 7 hari sesudahnya;
+// kandidat dengan skor kecocokan tertinggi di atas.
+function PilihPostingan({ butir, postingan, onPilih, onTutup }) {
+  const mulai = epochMulai(butir.ev);
+  const skor = new Map((butir.kandidat || []).map((k) => [k.post.id, k.skor]));
+  const daftar = postingan
+    .filter((p) => { const t = Date.parse(p.terbit_at); return t >= mulai - 2 * 3600000 && t <= mulai + 7 * 86400000 && !(butir.ev.beritaTolak || []).includes(p.id); })
+    .sort((a, b) => (skor.get(b.id) || 0) - (skor.get(a.id) || 0) || Date.parse(a.terbit_at) - Date.parse(b.terbit_at));
+  return (
+    <div role="dialog" aria-modal="true" aria-label="Pilih postingan" onClick={onTutup}
+      style={{ position: "fixed", inset: 0, background: "rgba(10,22,40,.55)", zIndex: 1000, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+      <div onClick={(e) => e.stopPropagation()}
+        style={{ background: "white", width: "100%", maxWidth: 560, maxHeight: "85vh", overflowY: "auto", borderRadius: "16px 16px 0 0", padding: "16px 16px 22px" }}>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 10 }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 15, fontWeight: 800, color: NAVY }}>Pilih postingan berita</div>
+            <div style={{ fontSize: 12, color: ABU, marginTop: 2 }}>{butir.ev.namaAcara} · {fmtTanggal(butir.ev.tanggal)}</div>
+          </div>
+          <button onClick={onTutup} aria-label="Tutup" style={{ ...tombolKecil, fontSize: 14 }}>✕</button>
+        </div>
+        {daftar.length === 0
+          ? <div style={{ padding: "20px 4px", color: ABU, fontSize: 13, textAlign: "center" }}>Belum ada postingan di akun resmi dalam 7 hari sejak acara.</div>
+          : daftar.map((p) => (
+            <div key={p.id} style={{ borderTop: "1px solid #F1F5F9", padding: "10px 2px", display: "flex", gap: 10, alignItems: "flex-start" }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 11.5, fontWeight: 700, color: NAVY }}>
+                  {fmtWaktu(Date.parse(p.terbit_at))}
+                  {skor.has(p.id) && <span style={{ marginLeft: 6, color: HIJAU }}>· kemiripan {Math.round(skor.get(p.id) * 100)}%</span>}
+                </div>
+                <div style={{ fontSize: 12, color: "#334155", lineHeight: 1.5, marginTop: 3 }}>{String(p.caption || "(tanpa teks)").slice(0, 180)}{String(p.caption || "").length > 180 ? "…" : ""}</div>
+                <a href={p.permalink} target="_blank" rel="noopener" style={{ fontSize: 11.5, fontWeight: 700, color: "#1E3A6E" }}>Buka di Instagram ↗</a>
+              </div>
+              <button onClick={() => onPilih(p)} style={{ ...tombolKecil, background: NAVY, color: "white", borderColor: NAVY }}>Pilih</button>
+            </div>
+          ))}
+      </div>
     </div>
   );
 }

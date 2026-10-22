@@ -50,6 +50,8 @@ import { tanganiMasuk } from "./_masuk.mjs";
 // CommonJS (lihat kepala _walog.js) — impor bawaan, lalu ambil fungsinya.
 import walog from "./_walog.js";
 import persetujuan from "./_persetujuan.js";
+import { sinkronPostingan, bacaPostingan } from "./_instagram.mjs";
+import { BERITA_TERBIT_SEJAK } from "../src/lib/indikatorKinerja.js";
 const { catatWA, hasilFonnte } = walog;
 
 const SUPA_URL = process.env.SUPABASE_URL  || process.env.VITE_SUPABASE_URL;
@@ -410,6 +412,26 @@ export default async function handler(req, res) {
         // Gagal di sini bukan bencana: pencocokan terjadwal akan menambalnya.
         console.error("[kalender] sinkron satu:", e.message);
         return res.status(502).json({ error: "Sinkron kalender gagal", detail: e.message.slice(0, 200) });
+      }
+    }
+
+    // ?op=instagram → postingan akun resmi untuk IKU 3 (berita tepat waktu).
+    // Menumpang di sini karena kuota fungsi Vercel Hobby penuh (12/12).
+    // Sinkron dengan Instagram paling sering sekali per 15 menit; selebihnya
+    // membaca salinan di basis data. Token tidak pernah ikut dikirim.
+    if (query.op === "instagram" && method === "GET") {
+      const pemohon = await verifySession(req);
+      if (!pemohon) return res.status(403).json({ error: "Sesi tidak valid — silakan login ulang." });
+      if (!["kabag", "kasubbag_protokol", "kasubbag_komdokpim", "timkom", "superadmin"].includes(pemohon.role))
+        return res.status(403).json({ error: "Tidak berwenang." });
+      const sejak = /^\d{4}-\d{2}-\d{2}$/.test(String(query.sejak || "")) ? String(query.sejak) : BERITA_TERBIT_SEJAK;
+      try {
+        await sinkronPostingan({ sejak: sejak < BERITA_TERBIT_SEJAK ? sejak : BERITA_TERBIT_SEJAK });
+        return res.status(200).json(await bacaPostingan({ sejak }));
+      } catch (e) {
+        if (tabelBelumAda(e) || /instagram_/.test(e.message))
+          return res.status(200).json({ status: { tersambung: false, alasan: "Tabel Instagram belum dibuat — jalankan migrasi 2026-10-22_instagram.sql." }, postingan: [] });
+        throw e;
       }
     }
 

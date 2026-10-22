@@ -1207,6 +1207,13 @@ function appendTimelineEntries(prevEv, patch, actor) {
   if (patch.captionStatus !== undefined && patch.captionStatus !== prevEv.captionStatus && LANGKAH_CAPTION[patch.captionStatus]) {
     out.push({ ...base, action: LANGKAH_CAPTION[patch.captionStatus], note: patch.captionStatus === "revisi" ? (patch.captionCatatan || null) : null });
   }
+  // Pilihan manual postingan Instagram mengubah angka IKU 3, jadi dicatat.
+  if (patch.beritaTerbit !== undefined && JSON.stringify(patch.beritaTerbit) !== JSON.stringify(prevEv.beritaTerbit || null)) {
+    out.push({ ...base, action: patch.beritaTerbit ? "berita_dipilih" : "berita_pilihan_dibatalkan", note: patch.beritaTerbit ? patch.beritaTerbit.permalink : null });
+  }
+  if (patch.beritaTolak !== undefined && (patch.beritaTolak || []).length > (prevEv.beritaTolak || []).length) {
+    out.push({ ...base, action: "berita_ditolak", note: (patch.beritaTolak || []).slice(-1)[0] || null });
+  }
   const LANGKAH_RILIS = { review: "rilis_diajukan", approved: "rilis_disetujui", revisi: "rilis_revisi" };
   const rilisBaru = patch.evaluasi !== undefined ? bacaObj(patch.evaluasi).news_status : undefined;
   const rilisLama = bacaObj(prevEv.evaluasi).news_status;
@@ -1283,6 +1290,9 @@ const TIMELINE_LABEL = {
   rilis_diajukan:     { label: "Rilis berita diajukan",             color: "#1E40AF", icon: "🗞" },
   rilis_disetujui:    { label: "Rilis berita disetujui",            color: "#047857", icon: "🗞" },
   rilis_revisi:       { label: "Rilis berita dikembalikan",         color: "#B45309", icon: "↩" },
+  berita_dipilih:     { label: "Postingan berita dipilih manual",   color: "#047857", icon: "📸" },
+  berita_pilihan_dibatalkan: { label: "Pilihan postingan berita dibatalkan", color: "#B45309", icon: "↩" },
+  berita_ditolak:     { label: "Tautan postingan otomatis ditolak", color: "#B45309", icon: "🚫" },
 };
 
 // Action yang termasuk FASE PELAKSANAAN (setelah agenda disetujui)
@@ -1293,6 +1303,7 @@ const TIMELINE_PELAKSANAAN = {
   penugasan_personil:1, sambutan_disahkan:1, sambutan_dibatalkan:1, sambutan_dihapus:1, evaluasi_diisi:1,
   arahan_pimpinan:1, arahan_dihapus:1,
   caption_diajukan:1, caption_disetujui:1, caption_revisi:1, rilis_diajukan:1, rilis_disetujui:1, rilis_revisi:1,
+  berita_dipilih:1, berita_pilihan_dibatalkan:1, berita_ditolak:1,
 };
 
 function fmtTimelineAt(iso) {
@@ -13110,7 +13121,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
       :tab==="rekap_saya"&&REKAP_SAYA_ROLES.includes(role)
         ?<RekapPenugasanBulanan mode="saya" events={events} user={user} isMobile={isMobile} allUsers={loadUsers()}/>
       :tab==="indikator_kinerja"&&bolehRekapTim
-        ?<IndikatorKinerja events={events} user={user} isMobile={isMobile} allUsers={loadUsers()}/>
+        ?<IndikatorKinerja events={events} user={user} isMobile={isMobile} allUsers={loadUsers()} ambil={sesiFetch} upd={upd}/>
       :tab==="rekap_penugasan"&&bolehRekapTim
         ?<RekapPenugasanBulanan events={events} user={user} isMobile={isMobile} allUsers={loadUsers()}/>
       :showPenugasan&&bolehRekapTim
