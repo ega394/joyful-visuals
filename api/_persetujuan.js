@@ -23,6 +23,18 @@ const VERSI_KEBIJAKAN = "13 Oktober 2026";
 const PESAN_TOLAK =
   "Centang persetujuan Kebijakan Privasi dan Ketentuan Penggunaan terlebih dahulu.";
 
+// Halaman yang dibuka sebelum kotak persetujuan ada (tab lama, salinan
+// PWA lama) tidak mengirim kolom ini sama sekali — dan tidak punya kotak
+// untuk dicentang. Pemohon perlu diarahkan memuat ulang, bukan disuruh
+// mencentang kotak yang tidak tampak (laporan 22 Oktober 2026).
+const PESAN_VERSI_LAMA =
+  "Formulir ini baru saja diperbarui. Muat ulang halaman (tekan F5 di komputer, " +
+  "atau tutup lalu buka kembali di HP), lalu centang persetujuan di langkah terakhir.";
+
+function pesanTolak(body) {
+  return body && Object.prototype.hasOwnProperty.call(body, "setuju_privasi") ? PESAN_TOLAK : PESAN_VERSI_LAMA;
+}
+
 // Hanya nilai true sungguhan; "false", "0", atau string kosong bukan persetujuan.
 function sudahSetuju(body) {
   return !!body && (body.setuju_privasi === true || body.setuju_privasi === "true");
@@ -62,6 +74,6 @@ async function simpanDenganPersetujuan(simpan, baris) {
 }
 
 module.exports = {
-  VERSI_KEBIJAKAN, PESAN_TOLAK, sudahSetuju, kolomPersetujuan,
+  VERSI_KEBIJAKAN, PESAN_TOLAK, PESAN_VERSI_LAMA, pesanTolak, sudahSetuju, kolomPersetujuan,
   kolomBelumAda, tanpaKolom, simpanDenganPersetujuan,
 };

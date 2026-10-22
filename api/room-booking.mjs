@@ -649,7 +649,7 @@ export default async function handler(req, res) {
       }
       // Kotak centang di layar bisa dilewati dengan memanggil API langsung.
       if (!persetujuan.sudahSetuju(body))
-        return res.status(400).json({ error: persetujuan.PESAN_TOLAK });
+        return res.status(400).json({ error: persetujuan.pesanTolak(body) });
       const spam = await pastikanTidakSpam(pic_wa);
       if (spam) return res.status(429).json(spam);
       if (!slots || !slots.length)
