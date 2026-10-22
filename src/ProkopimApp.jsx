@@ -18,6 +18,7 @@ import { HUT, hutAktif } from "./lib/hut.js";
 import { hitungLencana, pasangLencana } from "./lib/lencana.js";
 import { imporSegar } from "./lib/imporSegar.js";
 import RekapPenugasanBulanan from "./RekapPenugasanBulanan.jsx"
+import IndikatorKinerja from "./components/IndikatorKinerja.jsx";
 import WaliKotaAudiensiDashboard from "./WaliKotaAudiensiDashboard.jsx"
 import NewsroomDashboard from "./NewsroomDashboard.jsx";
 import SuperadminPage from "./pages/SuperadminPage.jsx";
@@ -1176,9 +1177,20 @@ function appendTimelineEntries(prevEv, patch, actor) {
     out.push({ ...base, action: "sambutan_dibatalkan" });
   }
 
-  // 8. Evaluasi pasca kegiatan
+  // 8. Evaluasi pasca kegiatan. Rilis berita Newsroom menumpang di objek yang
+  //    sama (news_*), tetapi dicatat sebagai langkahnya sendiri di bawah.
+  const bacaObj = (o) => {
+    let d = o || {};
+    if (typeof d === "string") { try { d = JSON.parse(d); } catch { d = {}; } }
+    return d || {};
+  };
+  const tanpaRilis = (o) => {
+    const salin = { ...bacaObj(o) };
+    Object.keys(salin).forEach(k => { if (k.startsWith("news_")) delete salin[k]; });
+    return salin;
+  };
   if (patch.evaluasi !== undefined &&
-      JSON.stringify(patch.evaluasi || {}) !== JSON.stringify(prevEv.evaluasi || {})) {
+      JSON.stringify(tanpaRilis(patch.evaluasi)) !== JSON.stringify(tanpaRilis(prevEv.evaluasi))) {
     out.push({ ...base, action: "evaluasi_diisi" });
   }
 
@@ -1187,6 +1199,19 @@ function appendTimelineEntries(prevEv, patch, actor) {
   if (patch.catatanPimpinan !== undefined && String(patch.catatanPimpinan || "").trim() !== String(prevEv.catatanPimpinan || "").trim()) {
     const isi = String(patch.catatanPimpinan || "").trim();
     out.push({ ...base, action: isi ? "arahan_pimpinan" : "arahan_dihapus", note: isi ? isi.slice(0, 300) : null });
+  }
+
+  // 8b. Caption berita dan rilis (Newsroom). Waktunya menjadi dasar IKU 3 —
+  //     berita paling lambat 24 jam sesudah acara (lib/indikatorKinerja.js).
+  const LANGKAH_CAPTION = { menunggu: "caption_diajukan", disetujui: "caption_disetujui", revisi: "caption_revisi" };
+  if (patch.captionStatus !== undefined && patch.captionStatus !== prevEv.captionStatus && LANGKAH_CAPTION[patch.captionStatus]) {
+    out.push({ ...base, action: LANGKAH_CAPTION[patch.captionStatus], note: patch.captionStatus === "revisi" ? (patch.captionCatatan || null) : null });
+  }
+  const LANGKAH_RILIS = { review: "rilis_diajukan", approved: "rilis_disetujui", revisi: "rilis_revisi" };
+  const rilisBaru = patch.evaluasi !== undefined ? bacaObj(patch.evaluasi).news_status : undefined;
+  const rilisLama = bacaObj(prevEv.evaluasi).news_status;
+  if (rilisBaru !== undefined && rilisBaru !== rilisLama && LANGKAH_RILIS[rilisBaru]) {
+    out.push({ ...base, action: LANGKAH_RILIS[rilisBaru] });
   }
 
   // 9. Usulan perubahan jadwal terbit (jalur paralel `alurEdit`)
@@ -1252,6 +1277,12 @@ const TIMELINE_LABEL = {
   arahan_pimpinan:    { label: "Arahan pimpinan untuk tim",         color: "#4338CA", icon: "💬" },
   arahan_dihapus:     { label: "Arahan pimpinan dihapus",           color: "#475569", icon: "💬" },
   evaluasi_diisi:     { label: "Evaluasi pasca kegiatan diisi",     color: "#0D6B4F", icon: "📝" },
+  caption_diajukan:   { label: "Caption berita diajukan",           color: "#1E40AF", icon: "📰" },
+  caption_disetujui:  { label: "Caption berita disetujui",          color: "#047857", icon: "📰" },
+  caption_revisi:     { label: "Caption berita dikembalikan",       color: "#B45309", icon: "↩" },
+  rilis_diajukan:     { label: "Rilis berita diajukan",             color: "#1E40AF", icon: "🗞" },
+  rilis_disetujui:    { label: "Rilis berita disetujui",            color: "#047857", icon: "🗞" },
+  rilis_revisi:       { label: "Rilis berita dikembalikan",         color: "#B45309", icon: "↩" },
 };
 
 // Action yang termasuk FASE PELAKSANAAN (setelah agenda disetujui)
@@ -1261,6 +1292,7 @@ const TIMELINE_PELAKSANAAN = {
   delegasi_to_wwk:1, cancel_delegasi:1, delegasi_jajaran:1,
   penugasan_personil:1, sambutan_disahkan:1, sambutan_dibatalkan:1, sambutan_dihapus:1, evaluasi_diisi:1,
   arahan_pimpinan:1, arahan_dihapus:1,
+  caption_diajukan:1, caption_disetujui:1, caption_revisi:1, rilis_diajukan:1, rilis_disetujui:1, rilis_revisi:1,
 };
 
 function fmtTimelineAt(iso) {
@@ -9443,6 +9475,7 @@ const TH={
     {key:"action:report", icon:"📄",label:"Cetak Rekap PDF"},
     ...(role!=="mitra_kerja"?[{key:"action:report_tamu", icon:"📇",label:"Cetak Rekap Tamu"}]:[]),
     ...(canReport?[{key:"action:laporan",icon:"📊",label:"Laporan Mingguan/Bulanan"}]:[]),
+    ...(bolehRekapTim?[{key:"indikator_kinerja",icon:"🎯",label:"Indikator Kinerja"}]:[]),
     ...(bolehRekapTim?[{key:"penugasan",icon:"📈",label:"Rekap Evaluasi Kinerja"}]:[]),
     ...(bolehRekapTim?[{key:"rekap_penugasan",icon:"🏆",label:"Rekap Penugasan Bulanan"}]:[]),
     ...(REKAP_SAYA_ROLES.includes(role)?[{key:"rekap_saya",icon:"🏅",label:"Rekap Kinerja Saya"}]:[]),
@@ -9654,6 +9687,7 @@ const TH={
               {icon:"📄",label:"Cetak PDF",action:()=>{setShowReport(true);setMobMenu(false);}},
               {icon:"📇",label:"Cetak Tamu",action:()=>{setShowReportTamu(true);setMobMenu(false);}},
               ...(canReport?[{icon:"📊",label:"Laporan",action:()=>{setShowLaporan(true);setMobMenu(false);}}]:[]),
+              ...(bolehRekapTim?[{icon:"🎯",label:"Indikator Kinerja",action:()=>{setTab("indikator_kinerja");setMobMenu(false);}}]:[]),
               ...(bolehRekapTim?[{icon:"📈",label:"Rekap Evaluasi",action:()=>{setTab("penugasan");setMobMenu(false);}}]:[]),
               ...(bolehRekapTim?[{icon:"🏆",label:"Rekap Penugasan",action:()=>{setTab("rekap_penugasan");setMobMenu(false);}}]:[]),
               ...(REKAP_SAYA_ROLES.includes(role)?[{icon:"🏅",label:"Rekap Kinerja Saya",action:()=>{setTab("rekap_saya");setMobMenu(false);}}]:[]),
@@ -12664,7 +12698,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
 
 
   // ==================== MAIN CONTENT ====================
-  const pageTitle=tab==="beranda"?"Beranda":tab==="monitor_wa"?"Monitor WA":tab==="kalender_bersama"?"Kalender Bersama":tab==="ekinerja"?"Generator E-Kinerja":tab==="tayang"?"Agenda Kegiatan Pimpinan":tab==="pantau"?"Input & Pantau Jadwal":tab==="undangan"?"Generator Undangan Resmi":tab==="form"?"Input Jadwal Baru":tab==="semua"?"Semua Jadwal":tab==="penugasan"?"Penugasan Saya":tab==="audit"?"Riwayat Alur Jadwal":tab==="dashboard"?"Dashboard":tab==="newsroom"?"Newsroom":tab==="tamu"?"Tamu":tab==="ajudan"?"Konfirmasi Kehadiran":tab==="jadwal"?KASUBBAG_ROLES.includes(role)||role==="kabag"?"Antrian Approval":"Jadwal":"Jadwal";
+  const pageTitle=tab==="indikator_kinerja"?"Indikator Kinerja":tab==="beranda"?"Beranda":tab==="monitor_wa"?"Monitor WA":tab==="kalender_bersama"?"Kalender Bersama":tab==="ekinerja"?"Generator E-Kinerja":tab==="tayang"?"Agenda Kegiatan Pimpinan":tab==="pantau"?"Input & Pantau Jadwal":tab==="undangan"?"Generator Undangan Resmi":tab==="form"?"Input Jadwal Baru":tab==="semua"?"Semua Jadwal":tab==="penugasan"?"Penugasan Saya":tab==="audit"?"Riwayat Alur Jadwal":tab==="dashboard"?"Dashboard":tab==="newsroom"?"Newsroom":tab==="tamu"?"Tamu":tab==="ajudan"?"Konfirmasi Kehadiran":tab==="jadwal"?KASUBBAG_ROLES.includes(role)||role==="kabag"?"Antrian Approval":"Jadwal":"Jadwal";
 
   // ═══════════════════════════════════════════════════════════════
   // FITUR 1: SAPAAN CERDAS + RINGKASAN PAGI
@@ -13075,6 +13109,8 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
         ?<React.Suspense fallback={<_LazyFallback />}><RoomCalendarView isMobile={isMobile} user={user}/></React.Suspense>
       :tab==="rekap_saya"&&REKAP_SAYA_ROLES.includes(role)
         ?<RekapPenugasanBulanan mode="saya" events={events} user={user} isMobile={isMobile} allUsers={loadUsers()}/>
+      :tab==="indikator_kinerja"&&bolehRekapTim
+        ?<IndikatorKinerja events={events} user={user} isMobile={isMobile} allUsers={loadUsers()}/>
       :tab==="rekap_penugasan"&&bolehRekapTim
         ?<RekapPenugasanBulanan events={events} user={user} isMobile={isMobile} allUsers={loadUsers()}/>
       :showPenugasan&&bolehRekapTim
