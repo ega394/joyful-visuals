@@ -83,7 +83,7 @@ Nama inovasi mengusung semboyan "Tarakan HIBOT" (Handal, Inovatif, Berbudaya, Un
 Regulasi terkait: UU 23/2014; UU 25/2009; UU 9/2010 tentang Keprotokolan; PP 38/2017; Permendagri 104/2018; Perpres 95/2018 dan 82/2023; PermenPAN-RB 35/2012; Perda Kota Tarakan 2/2025 (RPJMD); Perwali 20/2025 (RKPD 2026); Perwali 41/2025 (Penyelenggaraan Inovasi Daerah); Perwali 50/2021; SE Wali Kota 000.7.2.4/70/Bappeda Litbang/2026; Keputusan Sekda 100.3.3.6/98/HK/VIII/2026.
 
 ======================================================================
-6. DESKRIPSI DAN KEBARUAN   [1.713 karakter]
+6. DESKRIPSI DAN KEBARUAN   [1.889 karakter]
 ======================================================================
 
 Konsep: setiap kegiatan Pimpinan memiliki satu data yang sama bagi semua pihak, dan setiap keputusan atasnya tercatat. Di atasnya dibangun superapp: satu aplikasi, satu pintu, banyak layanan, dengan tampilan sesuai peran.
@@ -92,7 +92,7 @@ Lapisan layanan: Pimpinan Daerah (agenda terkini, disposisi kepada Wakil Wali Ko
 
 Cara kerja: Admin Rencana Kegiatan menginput jadwal dan undangan → Kepala Sub Bagian Protokol menelaah → Kepala Bagian menyetujui → jadwal tayang kepada Pimpinan, ajudan, dan petugas, lalu tersalin otomatis ke kalender bersama.
 
-Kebaruan: (a) jejak audit melekat pada setiap kegiatan; (b) daftar periksa wajib sebelum persetujuan; (c) kewenangan melekat pada jabatan dengan Pelaksana Harian yang padam sendiri; (d) pengawasan usulan perubahan menurut kegentingan; (e) kanal publik yang dapat ditelusuri tanpa membuka data pribadi; (f) sinkron otomatis ke Google Calendar; (g) undangan PDF siap TTE Srikandi dengan pemesanan ruang rapat Imbaya/Kenawai sekaligus.
+Kebaruan: (a) jejak audit melekat pada setiap kegiatan; (b) daftar periksa wajib sebelum persetujuan; (c) kewenangan melekat pada jabatan dengan Pelaksana Harian yang padam sendiri; (d) pengawasan usulan perubahan menurut kegentingan; (e) kanal publik yang dapat ditelusuri tanpa membuka data pribadi; (f) sinkron otomatis ke Google Calendar; (g) undangan PDF siap TTE Srikandi dengan pemesanan ruang rapat Imbaya/Kenawai sekaligus; (h) persetujuan eksplisit atas Kebijakan Privasi pada formulir publik sesuai UU 27/2022; (i) setiap pesan WhatsApp tercatat beserta status terkirimnya dan dapat dikirim ulang.
 
 Perbedaan dengan cara lama: satu data terkini menggantikan beberapa versi cetakan; pemberitahuan otomatis hanya kepada yang berubah; alur tidak berhenti saat pejabat berhalangan; kalender bersama terisi sendiri; satu superapp menggantikan kertas, grup percakapan, papan tulis, dan telepon.
 
@@ -102,7 +102,7 @@ Perbedaan dengan cara lama: satu data terkini menggantikan beberapa versi cetaka
 
 Waktu mulai: Maret 2026 (kegiatan pertama 9 Maret 2026). Lama implementasi per 1 Oktober 2026: 6 bulan 22 hari. Lokasi: Bagian Prokopim Setda Kota Tarakan, dapat diakses dari mana saja. Pengguna: 40 akun aktif pada 14 peran.
 
-Tahapan: Januari 2026 peristiwa pemicu dan telaah alur kerja; Februari–Maret pembangunan, uji coba, dan mulai digunakan; Mei jejak audit dan kanal peminjaman ruangan; Juli–Agustus audiensi terhubung ke agenda, notifikasi, kalender ruangan, daftar hadir digital; September Pelaksana Harian, daftar periksa wajib, pemantauan usulan perubahan, sinkron Google Calendar; Oktober generator undangan siap TTE Srikandi dan pemesanan ruang rapat internal. Tercatat lebih dari 580 pembaruan aplikasi sejak Maret 2026.
+Tahapan: Januari 2026 peristiwa pemicu dan telaah alur kerja; Februari–Maret pembangunan, uji coba, dan mulai digunakan; Mei jejak audit dan kanal peminjaman ruangan; Juli–Agustus audiensi terhubung ke agenda, notifikasi, kalender ruangan, daftar hadir digital; September Pelaksana Harian, daftar periksa wajib, pemantauan usulan perubahan, sinkron Google Calendar; Oktober generator undangan siap TTE Srikandi dan pemesanan ruang rapat internal. Tercatat lebih dari 140 pembaruan aplikasi sejak Maret 2026.
 
 SOP dan regulasi: sebelas SOP format PermenPAN-RB 35/2012 (satu untuk setiap alur), Keputusan Sekda Nomor 100.3.3.6/98/HK/VIII/2026, dan Surat Sekda Nomor 300.2.10/265/SETDA/2026. Dokumentasi: tangkapan layar (Lampiran 4) dan video bagi finalis.
 
@@ -135,14 +135,14 @@ Sosial-ekonomi: masyarakat tidak perlu datang atau menelepon berulang; hemat ker
 Catatan: pengesahan naskah sambutan melalui aplikasi baru 3 naskah karena Pimpinan lebih nyaman dengan naskah tercetak; modul keterangan foto berbantuan AI dan pemesanan ruang internal masih tahap awal.
 
 ======================================================================
-10. KEBERLANJUTAN DAN PELEMBAGAAN   [939 karakter]
+10. KEBERLANJUTAN DAN PELEMBAGAAN   [992 karakter]
 ======================================================================
 
 Pembiayaan: biaya berjalan mendekati nol, tidak bergantung anggaran tahunan. Pengelola: Bagian Protokol dan Komunikasi Pimpinan Setda. Pemeliharaan: pembaruan berkelanjutan berdasarkan masukan pengguna. SOP: sebelas SOP untuk disahkan Sekda. Kebijakan: Keputusan Sekda tentang Tim Koordinasi, Surat Sekda 12 Maret 2026, SE Wali Kota tentang Inovasi Daerah. Kelembagaan: kewenangan melekat pada jabatan sehingga mutasi pejabat tidak memutus alur.
 
 Rencana: Oktober–Desember 2026 pengesahan SOP; Januari–Juni 2027 pendampingan pengelola kedua dan dokumentasi teknis; Juli–Desember 2027 paket replikasi.
 
-Risiko dan mitigasi: ketergantungan pada satu pengembang (SOP, repositori kode, akun atas nama instansi, alih pengetahuan 2027); kuota layanan tanpa biaya (pemantauan, penggabungan fungsi); kehilangan data (pencadangan berkala); data pribadi (kanal publik tanpa identitas pemohon); pejabat berhalangan (Pelaksana Harian bermasa berlaku).
+Risiko dan mitigasi: ketergantungan pada satu pengembang (SOP, repositori kode, akun atas nama instansi, alih pengetahuan 2027); kuota layanan tanpa biaya (pemantauan, penggabungan fungsi); kehilangan data (pencadangan berkala); data pribadi (Kebijakan Privasi dan persetujuan eksplisit pemohon, kanal publik tanpa identitas pemohon); pejabat berhalangan (Pelaksana Harian bermasa berlaku).
 
 ======================================================================
 11. REPLIKASI, PERLUASAN, DAN DISEMINASI   [891 karakter]
