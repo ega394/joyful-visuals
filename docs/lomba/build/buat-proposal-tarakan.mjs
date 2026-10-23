@@ -766,7 +766,7 @@ function isi() {
       ["Waktu", "Rencana"],
       ["Oktober–Desember 2026", "Pengesahan SOP oleh Sekretaris Daerah"],
       ["Januari–Juni 2027", "Pendampingan pengelola kedua dan penyusunan dokumentasi teknis untuk alih pengetahuan; pengetatan kebijakan akses basis data"],
-      ["Juli–Desember 2027", "Paket replikasi bagi perangkat daerah di lingkungan Pemerintah Kota Tarakan dan pemerintah daerah lain di Kalimantan Utara (Bagian 11)"],
+      ["Juli–Desember 2027", "Paket replikasi bagi perangkat daerah di lingkungan Pemerintah Kota Tarakan dan pemerintah daerah lain di seluruh Indonesia, dimulai dari Kalimantan Utara (Bagian 11)"],
     ],
   }));
   tambah(h2("10.2 Mitigasi Risiko"));
@@ -786,7 +786,7 @@ function isi() {
   // ── 11. REPLIKASI ───────────────────────────────────────────────
   tambah(h1("b11"));
   tambah(h2("11.1 Potensi Adopsi"));
-  tambah(P(`Sebagai *superapp*, Prokopim Hibot dapat direplikasi utuh maupun per modul. Di lingkungan Pemerintah Kota Tarakan, Sekretariat DPRD dapat mengadopsi alur penetapan agenda untuk pimpinan dewan, sedangkan modul peminjaman ruangan, permohonan audiensi, dan daftar hadir digital dapat dipakai perangkat daerah yang mengelola ruang pertemuan atau menerima tamu. Di luar Kota Tarakan, tugas keprotokolan dan komunikasi pimpinan dijalankan oleh setiap pemerintah daerah, termasuk Pemerintah Provinsi Kalimantan Utara serta Kabupaten Bulungan, Malinau, Nunukan, dan Tana Tidung. Yang perlu disesuaikan hanya nama jabatan, daftar pengguna, dan tata naskah dinas setempat.`));
+  tambah(P(`Sebagai *superapp*, Prokopim Hibot dapat direplikasi utuh maupun per modul. Di lingkungan Pemerintah Kota Tarakan, Sekretariat DPRD dapat mengadopsi alur penetapan agenda untuk pimpinan dewan, sedangkan modul peminjaman ruangan, permohonan audiensi, dan daftar hadir digital dapat dipakai perangkat daerah yang mengelola ruang pertemuan atau menerima tamu. Di luar Kota Tarakan, tugas keprotokolan dan komunikasi pimpinan dijalankan oleh setiap pemerintah daerah di Indonesia, baik pemerintah provinsi maupun pemerintah kabupaten/kota, sehingga inovasi ini dapat direplikasi oleh seluruh pemerintah daerah. Langkah terdekat adalah Pemerintah Provinsi Kalimantan Utara serta Kabupaten Bulungan, Malinau, Nunukan, dan Tana Tidung. Yang perlu disesuaikan hanya nama jabatan, daftar pengguna, dan tata naskah dinas setempat.`));
   tambah(h2("11.2 Syarat Replikasi"));
   tambah(P(`Replikasi hanya memerlukan peramban dan sambungan internet tanpa perangkat keras khusus, layanan komputasi awan pada kuota tanpa biaya, sebelas SOP yang siap diadaptasi, serta satu pengelola dengan pendampingan. Pengguna cukup dibekali pengenalan singkat.`));
   tambah(h2("11.3 Dokumentasi Pengetahuan"));
@@ -1296,7 +1296,7 @@ function isianRisda() {
       `Risiko dan mitigasi: ketergantungan pada satu pengembang (SOP, repositori kode, akun atas nama instansi, alih pengetahuan 2027); kuota layanan tanpa biaya (pemantauan, penggabungan fungsi); kehilangan data (pencadangan berkala); data pribadi (Kebijakan Privasi dan persetujuan eksplisit pemohon, kanal publik tanpa identitas pemohon); pejabat berhalangan (Pelaksana Harian bermasa berlaku).`,
     ]],
     ["11. REPLIKASI, PERLUASAN, DAN DISEMINASI", [
-      `Potensi adopsi: dapat direplikasi utuh atau per modul. Di lingkungan Pemkot Tarakan: Sekretariat DPRD (agenda pimpinan dewan) serta perangkat daerah yang mengelola ruang pertemuan atau menerima tamu (modul ruangan, audiensi, daftar hadir). Di luar Tarakan: Pemprov Kalimantan Utara dan kabupaten di Kaltara.`,
+      `Potensi adopsi: dapat direplikasi utuh atau per modul. Di lingkungan Pemkot Tarakan: Sekretariat DPRD (agenda pimpinan dewan) serta perangkat daerah yang mengelola ruang pertemuan atau menerima tamu (modul ruangan, audiensi, daftar hadir). Di luar Tarakan: seluruh pemerintah daerah di Indonesia, baik provinsi maupun kabupaten/kota, dimulai dari Pemprov Kalimantan Utara dan kabupaten di Kaltara.`,
       `Syarat replikasi: peramban dan internet, layanan awan kuota tanpa biaya, sebelas SOP siap diadaptasi, satu pengelola dengan pendampingan. Dokumentasi: sebelas SOP, panduan pemasangan daftar hadir, catatan teknis kode.`,
       `Diseminasi dan publikasi: Tim Koordinasi lintas perangkat daerah; pengenalan langsung kepada Pimpinan, ajudan, dan mitra kerja; ${D.ruang.instansi_berbeda} instansi peminjam ruangan dan ${D.tamu.instansi_berbeda} instansi pemohon audiensi; Surat Sekda kepada DKISP ditembuskan kepada Wali Kota dan Kepala Bappeda Litbang; alamat resmi prokopim.tarakankota.go.id dan Google Calendar bersama yang dapat dilanggani.`,
     ]],

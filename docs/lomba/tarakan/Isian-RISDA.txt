@@ -145,10 +145,10 @@ Rencana: Oktober–Desember 2026 pengesahan SOP; Januari–Juni 2027 pendampinga
 Risiko dan mitigasi: ketergantungan pada satu pengembang (SOP, repositori kode, akun atas nama instansi, alih pengetahuan 2027); kuota layanan tanpa biaya (pemantauan, penggabungan fungsi); kehilangan data (pencadangan berkala); data pribadi (Kebijakan Privasi dan persetujuan eksplisit pemohon, kanal publik tanpa identitas pemohon); pejabat berhalangan (Pelaksana Harian bermasa berlaku).
 
 ======================================================================
-11. REPLIKASI, PERLUASAN, DAN DISEMINASI   [891 karakter]
+11. REPLIKASI, PERLUASAN, DAN DISEMINASI   [981 karakter]
 ======================================================================
 
-Potensi adopsi: dapat direplikasi utuh atau per modul. Di lingkungan Pemkot Tarakan: Sekretariat DPRD (agenda pimpinan dewan) serta perangkat daerah yang mengelola ruang pertemuan atau menerima tamu (modul ruangan, audiensi, daftar hadir). Di luar Tarakan: Pemprov Kalimantan Utara dan kabupaten di Kaltara.
+Potensi adopsi: dapat direplikasi utuh atau per modul. Di lingkungan Pemkot Tarakan: Sekretariat DPRD (agenda pimpinan dewan) serta perangkat daerah yang mengelola ruang pertemuan atau menerima tamu (modul ruangan, audiensi, daftar hadir). Di luar Tarakan: seluruh pemerintah daerah di Indonesia, baik provinsi maupun kabupaten/kota, dimulai dari Pemprov Kalimantan Utara dan kabupaten di Kaltara.
 
 Syarat replikasi: peramban dan internet, layanan awan kuota tanpa biaya, sebelas SOP siap diadaptasi, satu pengelola dengan pendampingan. Dokumentasi: sebelas SOP, panduan pemasangan daftar hadir, catatan teknis kode.
 
