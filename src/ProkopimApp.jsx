@@ -13,6 +13,8 @@ const _LazyFallback  = () => (
 );
 import KontakActions from "./components/KontakActions.jsx";
 import TautanPublik from "./components/TautanPublik.jsx";
+import LogoHUT from "./components/LogoHUT.jsx";
+import { HUT, hutAktif } from "./lib/hut.js";
 import { hitungLencana, pasangLencana } from "./lib/lencana.js";
 import { imporSegar } from "./lib/imporSegar.js";
 import RekapPenugasanBulanan from "./RekapPenugasanBulanan.jsx"
@@ -6610,6 +6612,8 @@ async function generateAndShareAgendaCard(ev) {
     y+=row.h+24;
   }
 
+  // Logo HUT Kota Tarakan di pojok kanan kaki kartu, selama periode HUT saja.
+  const logoHUT=hutAktif()?await new Promise(res=>{const im=new Image();im.onload=()=>res(im);im.onerror=()=>res(null);im.src=HUT.putih;}):null;
   const footerY=H-FOOTER_H;
   ctx.fillStyle=NAVY_DARK;ctx.fillRect(0,footerY,W,FOOTER_H);
   const fg=ctx.createLinearGradient(P,0,W-P,0);
@@ -6625,8 +6629,14 @@ async function generateAndShareAgendaCard(ev) {
 
   const now3=new Date();
   const jamNow=`${String(now3.getHours()).padStart(2,"0")}.${String(now3.getMinutes()).padStart(2,"0")} ${zonaPerangkat()}`;
+  let kananTeks=W-P;
+  if(logoHUT){
+    const lh=FOOTER_H-20,lw=Math.round(logoHUT.width*lh/logoHUT.height);
+    ctx.drawImage(logoHUT,W-P-lw,footerY+10,lw,lh);
+    kananTeks=W-P-lw-18;
+  }
   ctx.textAlign="right";ctx.fillStyle="rgba(255,255,255,0.2)";setFont(ctx,17,"400");
-  ctx.fillText("Dibagikan",W-P,footerY+38);ctx.fillText(jamNow,W-P,footerY+60);ctx.textAlign="left";
+  ctx.fillText("Dibagikan",kananTeks,footerY+38);ctx.fillText(jamNow,kananTeks,footerY+60);ctx.textAlign="left";
 
   canvas.toBlob(blob=>{
     if(!blob)return;
@@ -9130,6 +9140,7 @@ const TH={
               <div style={{color:GOLD2,fontSize:12,letterSpacing:2.5,textTransform:"uppercase",fontWeight:700,marginBottom:3}}>Pemerintah Kota Tarakan</div>
               <div style={{color:FG,fontSize:15,fontWeight:800,lineHeight:1.3}}>Protokol &amp; Komunikasi Pimpinan</div>
             </div>
+            <LogoHUT tinggi={54} style={{marginLeft:"auto"}}/>
           </div>
           <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
             {features.map(([ic,t])=><span key={t} style={{background:"hsla(42,78%,55%,0.12)",border:"1px solid hsla(42,78%,55%,0.3)",borderRadius:20,padding:"4px 11px",fontSize:12,color:GOLD2,fontWeight:700,display:"inline-flex",alignItems:"center",gap:5}}><Glif d={ic} size={13}/>{t}</span>)}
@@ -9203,6 +9214,7 @@ const TH={
                 <div style={{color:FG,fontSize:17,fontWeight:800,lineHeight:1.25}}>Bagian Protokol &amp;</div>
                 <div style={{color:FG,fontSize:17,fontWeight:800}}>Komunikasi Pimpinan</div>
               </div>
+              <LogoHUT tinggi={76} style={{marginLeft:"auto"}}/>
             </div>
             <div style={{width:40,height:3,background:"linear-gradient(90deg,"+GOLD2+","+GOLD_LIGHT+")",borderRadius:3,marginBottom:18}}/>
 
