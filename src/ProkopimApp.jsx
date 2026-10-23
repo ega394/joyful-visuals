@@ -9032,7 +9032,11 @@ const TH={
       <div style={{position:"absolute",width:400,height:400,borderRadius:"50%",border:"1px solid rgba(201,168,76,0.08)",top:"50%",left:"50%",transform:"translate(-50%,-50%)"}}/>
       <div style={{position:"absolute",width:260,height:260,borderRadius:"50%",border:"1px solid rgba(201,168,76,0.12)",top:"50%",left:"50%",transform:"translate(-50%,-50%)"}}/>
       {/* Logo */}
-      <img src="/logo_tarakan.png" alt="" style={{height:80,width:"auto",objectFit:"contain",filter:"drop-shadow(0 4px 24px rgba(201,168,76,0.35))",marginBottom:20,animation:"pulse 2s ease infinite"}} onError={e=>e.target.style.display="none"}/>
+      <div style={{display:"flex",alignItems:"center",gap:18,marginBottom:20}}>
+        <img src="/logo_tarakan.png" alt="" style={{height:80,width:"auto",objectFit:"contain",filter:"drop-shadow(0 4px 24px rgba(201,168,76,0.35))",animation:"pulse 2s ease infinite"}} onError={e=>e.target.style.display="none"}/>
+        {/* Logo HUT Kota Tarakan, selama periode HUT saja (lib/hut.js) */}
+        <LogoHUT tinggi={88}/>
+      </div>
       {/* Nama sistem */}
       <div style={{color:"white",fontSize:20,fontWeight:800,letterSpacing:"1px",marginBottom:4}}>Prokopim Tarakan</div>
       <div style={{color:"rgba(201,168,76,0.7)",fontSize:13,fontWeight:500,letterSpacing:"2px",textTransform:"uppercase",marginBottom:32}}>Sistem Informasi Jadwal Pimpinan</div>
@@ -9307,7 +9311,10 @@ const TH={
 
   if(!dbReady)return(
     <div style={{minHeight:"100vh",background:"linear-gradient(160deg,"+NAVY+" 0%,#142238 60%,#0D1F35 100%)",display:"flex",alignItems:"center",justifyContent:"center",gap:16,flexDirection:"column"}}><style>{CSS}</style>
-      <img src="/logo_tarakan.png" alt="" style={{height:56,width:"auto",objectFit:"contain",filter:"drop-shadow(0 4px 16px rgba(0,0,0,0.4))",marginBottom:8,animation:"pulse 2s ease infinite"}} onError={e=>e.target.style.display="none"}/>
+      <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:8}}>
+        <img src="/logo_tarakan.png" alt="" style={{height:56,width:"auto",objectFit:"contain",filter:"drop-shadow(0 4px 16px rgba(0,0,0,0.4))",animation:"pulse 2s ease infinite"}} onError={e=>e.target.style.display="none"}/>
+        <LogoHUT tinggi={62}/>
+      </div>
       <div style={{width:40,height:40,border:"3px solid rgba(212,175,90,0.2)",borderTopColor:GOLD,borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/>
       <div style={{color:"white",fontSize:14,fontWeight:600,letterSpacing:"0.3px",opacity:0.85}}>{TEKS_MEMUAT[_memuatKe]}</div>
       {dbError&&<div style={{color:"#FCA5A5",fontSize:12,maxWidth:260,textAlign:"center",padding:"8px 16px",background:"rgba(220,38,38,0.15)",borderRadius:10,border:"1px solid rgba(220,38,38,0.3)"}}>{dbError}</div>}
