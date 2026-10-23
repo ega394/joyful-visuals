@@ -77,8 +77,10 @@ export default function MonitorWA({ ambil, isMobile, showT }) {
       const r = await ambil("/api/whatsapp?" + p.toString());
       const d = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(d.error || "Gagal memuat (HTTP " + r.status + ")");
-      setData(d); setHal(halaman);
-      setArsip((lama) => (halaman === 0 ? d.arsip : [...lama, ...d.arsip]));
+      // Balasan yang tidak lengkap tidak boleh merobohkan seluruh layar.
+      const arsipBaru = Array.isArray(d && d.arsip) ? d.arsip : [];
+      setData(d || {}); setHal(halaman);
+      setArsip((lama) => (halaman === 0 ? arsipBaru : [...(lama || []), ...arsipBaru]));
     } catch (e) { setGalat(e.message); }
     finally { setMemuat(false); }
   }, [ambil, saring, cari]);
@@ -184,8 +186,8 @@ export default function MonitorWA({ ambil, isMobile, showT }) {
         <div style={{ ...kotak, background: "#FFFBEB", borderColor: "#FDE68A" }}>
           <div style={{ fontSize: 14, fontWeight: 800, color: "#92400E" }}>🔁 {data.ulang.jumlah} WA gagal karena perangkat terputus (48 jam terakhir)</div>
           <div style={{ fontSize: 12.5, color: "#78350F", marginTop: 4, lineHeight: 1.6 }}>
-            {data.ulang.contoh.map((c, i) => <div key={i}>{waktu(c.waktu)} · {labelJenis(c.jenis)} · {c.nama_penerima || c.nomor}</div>)}
-            {data.ulang.jumlah > data.ulang.contoh.length && <div>dan {data.ulang.jumlah - data.ulang.contoh.length} lainnya</div>}
+            {(data.ulang.contoh || []).map((c, i) => <div key={i}>{waktu(c.waktu)} · {labelJenis(c.jenis)} · {c.nama_penerima || c.nomor}</div>)}
+            {data.ulang.jumlah > (data.ulang.contoh || []).length && <div>dan {data.ulang.jumlah - (data.ulang.contoh || []).length} lainnya</div>}
           </div>
           <button onClick={kirimUlangSemua} disabled={sibuk === "ulang" || putus} style={{ marginTop: 8, padding: "9px 14px", borderRadius: 9, border: "none", background: putus ? "#CBD5E1" : "#D97706", color: "white", fontWeight: 800, fontSize: 13, cursor: putus ? "not-allowed" : "pointer" }}>
             {sibuk === "ulang" ? "Mengirim ulang…" : putus ? "Sambungkan perangkat dulu" : "🔁 Kirim ulang semua"}

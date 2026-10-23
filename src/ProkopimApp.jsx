@@ -5494,7 +5494,12 @@ function urlBase64ToUint8Array(base64String){
 // ── PersonilBanner component ──
 function PersonilBanner({ev,role,user,setPenugasanEv,setEvaluasiEv,onCabutPersonil}){
   const all=loadUsers();
-  const pLabels=(ev.personil||[]).map(un=>{const u=all.find(x=>x.username===un);return{un,nm:u?.nama||un,isMe:un===user.username};});
+  const pLabels=(ev.personil||[]).map(un=>{const u=all.find(x=>x.username===un);return{un,nm:u?.nama||un,isMe:un===user.username,peran:u?.role||""};});
+  // Tombol cabut: hanya untuk acara yang belum selesai, dan hanya atas personil
+  // dari tim yang memang boleh ditugaskan peran ini (ASSIGN_ROLES) — dulu
+  // Kasubbag Komdokpim juga bisa mencabut petugas Protokol.
+  const acaraSelesai=epochSelesai(ev)<Date.now();
+  const bolehCabut=p=>!acaraSelesai&&(ASSIGN_ROLES[role]||[]).includes(p.peran);
   const isAssigned=(ev.personil||[]).includes(user.username);
   const evTime=tglAcara(ev);
   const hoursLeft=(evTime-new Date())/(1000*60*60);
@@ -5511,7 +5516,7 @@ function PersonilBanner({ev,role,user,setPenugasanEv,setEvaluasiEv,onCabutPerson
             <span key={i} style={{display:"inline-flex",alignItems:"center",gap:3,background:p.isMe?"#D1FAE5":"#E0F2FE",color:p.isMe?"#065F46":"#0369A1",borderRadius:5,padding:"2px 7px",fontSize:12,fontWeight:700,whiteSpace:"nowrap"}}>
               {p.isMe&&<span style={{fontSize:12}}>🎯</span>}{p.nm}{p.isMe?" (Anda)":""}
               {/* Tombol cabut inline per personil — hanya untuk Kasubbag */}
-              {isKasubbag&&onCabutPersonil&&<button onClick={e=>{e.stopPropagation();onCabutPersonil(ev,p.un,p.nm);}}
+              {isKasubbag&&onCabutPersonil&&bolehCabut(p)&&<button aria-label={"Cabut "+p.nm+" dari penugasan"} title={"Cabut "+p.nm+" dari penugasan"} onClick={e=>{e.stopPropagation();onCabutPersonil(ev,p.un,p.nm);}}
                 style={{marginLeft:2,width:14,height:14,borderRadius:"50%",border:"none",background:"rgba(220,38,38,0.15)",color:"#DC2626",cursor:"pointer",fontSize:12,fontWeight:900,display:"inline-flex",alignItems:"center",justifyContent:"center",lineHeight:1}}
                 title={"Cabut "+p.nm}>✕</button>}
             </span>))
@@ -8587,13 +8592,20 @@ export default function App(){
   };
 
   // ── Cabut satu personil dari penugasan (aksi cepat dari PersonilBanner) ──
-  const cabutPersonilSatu=async(ev,username,nama)=>{
-    const newPersonil=(ev.personil||[]).filter(un=>un!==username);
-    upd(ev.id,{personil:newPersonil});
-    // Jalur ini dulu sama sekali tidak memberi tahu yang bersangkutan —
-    // orangnya baru sadar saat kegiatannya hilang dari daftar tugasnya.
-    await kabariPenugasan(username,ev,"cabut");
-    showT(nama+" dicabut dari penugasan","warn");
+  // Dulu satu sentuhan pada "✕" kecil langsung mencabut penugasan tanpa
+  // konfirmasi (dan langsung mengabari petugasnya) — mudah tersentuh tanpa
+  // sengaja karena bentuknya sama dengan tombol tutup.
+  const cabutPersonilSatu=(ev,username,nama)=>{
+    askConfirm("Cabut "+nama+" dari penugasan?",
+      "Penugasan "+nama+" pada \u201C"+ev.namaAcara+"\u201D akan dicabut, dan yang bersangkutan akan menerima pemberitahuan.",
+      async()=>{
+        const newPersonil=(ev.personil||[]).filter(un=>un!==username);
+        upd(ev.id,{personil:newPersonil});
+        // Jalur ini dulu sama sekali tidak memberi tahu yang bersangkutan —
+        // orangnya baru sadar saat kegiatannya hilang dari daftar tugasnya.
+        await kabariPenugasan(username,ev,"cabut");
+        showT(nama+" dicabut dari penugasan","warn");
+      },"Ya, Cabut");
   };
 
   // ── Cek jadwal belum ditugaskan (notif H-12) ──
