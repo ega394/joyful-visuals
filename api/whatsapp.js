@@ -19,7 +19,7 @@ const EVENT_DIKENAL = [
   "broadcast", "submit", "kasubbag_approve", "approved", "rejected", "recalled",
   "penugasan", "konfirmasi_kehadiran", "jadwal_diubah", "delegasi_wwk", "undangan_sore",
   "ajukan_batal", "batal_ke_kabag", "batal_disetujui_kabag", "batal_ditolak",
-  "ajukan_edit", "edit_ke_kabag", "edit_disetujui", "edit_ditolak", "kabar_lapangan",
+  "ajukan_edit", "edit_ke_kabag", "edit_disetujui", "edit_ditolak", "kabar_lapangan", "arahan_pimpinan",
 ];
 
 export default async function handler(req, res) {
@@ -62,6 +62,7 @@ export default async function handler(req, res) {
     statusKehadiran,
     perwakilan,         // konfirmasi_kehadiran: pejabat yang mewakili (bila diwakilkan)
     perwakilanLama,     // konfirmasi_kehadiran: pejabat sebelumnya (pergantian perwakilan)
+    arahan,             // arahan_pimpinan: catatan/arahan WK atau WWK untuk tim
     namaPersonil,
     catatanPenugasan,
     rekanBertugas,      // array nama rekan yang bertugas
@@ -429,6 +430,18 @@ export default async function handler(req, res) {
       KABAR[0] + `\n` + KABAR[1] + `\n\n` +
       infoJadwal + untuk + ubah + alasan +
       `\n\nDetail lengkap ada di aplikasi Prokopim.` +
+      FOOTER;
+
+  // ── arahan_pimpinan: WK/WWK menulis arahan untuk tim pada sebuah acara ──
+  } else if (event === "arahan_pimpinan") {
+    const isi = String(arahan || "").replace(/[*_~`]+/g, "").trim().slice(0, 600);
+    if (!isi) return res.status(400).json({ error: "Arahan kosong." });
+    pesan = HEADER +
+      sapa +
+      `💬 *Arahan ${labelPimpinan || "Pimpinan"}*\n\n` +
+      `"${isi}"\n\n` +
+      infoJadwal +
+      `\n\nMohon ditindaklanjuti dan disampaikan kepada petugas terkait.` +
       FOOTER;
   }
 
