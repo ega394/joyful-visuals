@@ -15,7 +15,8 @@ import React, { useState, useEffect, useCallback } from "react";
 import JSZip from "jszip";
 import PlhManagement from "../components/PlhManagement.jsx";
 import { adminFetch } from "../roomAuth";
-const MonitorWA = React.lazy(() => import("../components/MonitorWA.jsx"));
+import { imporSegar } from "../lib/imporSegar.js";
+const MonitorWA = React.lazy(() => imporSegar(() => import("../components/MonitorWA.jsx")));
 
 const SUPA_URL = import.meta.env.VITE_SUPABASE_URL || "";
 const SUPA_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "";

@@ -10,11 +10,12 @@
  */
 import React, { useEffect, useRef, useState } from "react";
 import workerUrl from "pdfjs-dist/build/pdf.worker.min.js?url";
+import { imporSegar } from "../lib/imporSegar.js";
 
 let _pdfjs = null;
 async function muatPdfjs() {
   if (_pdfjs) return _pdfjs;
-  const lib = await import("pdfjs-dist");
+  const lib = await imporSegar(() => import("pdfjs-dist"));
   lib.GlobalWorkerOptions.workerSrc = workerUrl;
   _pdfjs = lib;
   return lib;

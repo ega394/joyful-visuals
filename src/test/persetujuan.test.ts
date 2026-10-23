@@ -19,6 +19,11 @@ describe("persetujuan privasi formulir publik", () => {
     expect(p.sudahSetuju(null)).toBe(false);
   });
 
+  it("halaman versi lama diarahkan memuat ulang, bukan disuruh mencentang", () => {
+    expect(p.pesanTolak({ nama: "A" })).toBe(p.PESAN_VERSI_LAMA);
+    expect(p.pesanTolak({ setuju_privasi: false })).toBe(p.PESAN_TOLAK);
+  });
+
   it("bukti memakai jam peladen dan versi yang berlaku", () => {
     const k = p.kolomPersetujuan(new Date("2026-10-21T02:00:00Z"));
     expect(k).toEqual({ persetujuan_privasi_at: "2026-10-21T02:00:00.000Z", persetujuan_versi: VERSI_LAYAR });

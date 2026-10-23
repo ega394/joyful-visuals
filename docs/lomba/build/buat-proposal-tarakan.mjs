@@ -507,7 +507,7 @@ function isi() {
       ["2", "Perubahan jadwal terbit", "Diajukan berjenjang; jadwal tetap tayang dengan data lama selama usulan diproses", "Pasal 52 huruf c, d"],
       ["3", "Penarikan dan pembatalan", "Wajib disertai alasan; data tidak dihapus", "Pasal 52 huruf c, d"],
       ["4", "Penugasan petugas", "Pemberitahuan hanya kepada petugas yang penugasannya berubah", "Pasal 52 huruf e; Pasal 54 huruf h"],
-      ["5", "Audiensi dan tamu", "Permohonan daring berjenjang; otomatis menjadi agenda bila disetujui", "Pasal 52 huruf a, e"],
+      ["5", "Audiensi dan tamu", "Permohonan daring berjenjang dengan pemberitahuan bertahap yang tidak membebani Pimpinan; otomatis menjadi agenda bila disetujui", "Pasal 52 huruf a, e"],
       ["6", "Peminjaman ruangan", "Kanal publik dengan kalender ketersediaan dan kode penelusuran", "Pasal 52 huruf b"],
       ["7", "Daftar hadir digital", "Pindai kode QR; tanda tangan layar sentuh; buka-tutup mengikuti jam acara", "Pasal 52 huruf e"],
       ["8", "Naskah sambutan", "Penyusun, penyelia, dan pengesah dalam satu alur", "Pasal 54 huruf g"],
@@ -528,6 +528,8 @@ function isi() {
     `**Kanal publik yang dapat ditelusuri sendiri.** Pemohon audiensi dan peminjam ruangan memantau permohonannya dengan kode penelusuran. Kalender ketersediaan ruangan untuk umum hanya menampilkan keterpakaian slot, tanpa identitas maupun kontak pemohon.`,
     `**Tersambung ke kalender bersama.** Kegiatan yang telah disetujui tampil sendiri, termasuk perubahan dan pembatalannya, di Google Calendar bersama yang dapat dilanggani pihak terkait tanpa akun aplikasi. Nomor narahubung dan catatan internal tidak ikut dikirim, dan kegiatan tertentu dapat ditahan agar tidak ditampilkan.`,
     `**Undangan siap tanda tangan elektronik.** Generator undangan menghasilkan PDF berhuruf Arial yang langsung dapat diunggah ke Srikandi; letak kode QR tanda tangan elektronik telah disesuaikan, dan ruang rapat Imbaya atau Kenawai dapat diperiksa ketersediaannya serta dipesan sekaligus dari formulir yang sama.`,
+    `**Pelindungan data pribadi sejak formulir.** Formulir audiensi dan peminjaman ruangan mensyaratkan persetujuan eksplisit atas Kebijakan Privasi dan Ketentuan Penggunaan sesuai Undang-Undang Nomor 27 Tahun 2022; waktu persetujuan dan versi kebijakan dicatat sebagai bukti, dan peladen menolak pengajuan tanpa persetujuan.`,
+    `**Pengiriman WhatsApp yang dapat diperiksa.** Setiap pesan WhatsApp yang dikirim aplikasi tercatat beserta status terkirimnya, pemakaian kuota terpantau, dan pesan yang gagal karena perangkat gerbang pesan terputus dapat dikirim ulang sekaligus.`,
   ]));
 
   tambah(h2("6.5 Perbedaan dari Cara Lama dan Solusi Sejenis"));
@@ -611,7 +613,7 @@ function isi() {
       ["Mei 2026", `Jejak audit mulai merekam (${tglPanjang(D.jejak.pertama)}); kanal peminjaman ruangan dibuka`],
       ["Juli–Agustus 2026", "Permohonan audiensi terhubung ke agenda; notifikasi aplikasi; kalender ketersediaan ruangan; daftar hadir digital"],
       ["September 2026", "Pelaksana Harian; daftar periksa wajib sebelum persetujuan; penanda kegentingan dan pemantauan usulan perubahan; sinkron otomatis ke kalender bersama"],
-      ["Oktober 2026", "Generator undangan siap tanda tangan elektronik Srikandi; pemesanan ruang rapat Imbaya dan Kenawai langsung dari formulir undangan; pratinjau undangan pada telepon pintar"],
+      ["Oktober 2026", "Generator undangan siap tanda tangan elektronik Srikandi dengan pemesanan ruang rapat Imbaya dan Kenawai; masuk tanpa kata sandi (sidik jari atau Face ID, dan akun Google); pemantauan dan kirim ulang pesan WhatsApp; zona waktu WIB, WITA, dan WIT untuk perjalanan dinas; Kebijakan Privasi dan Ketentuan Penggunaan dengan persetujuan eksplisit pada formulir publik; peladen dipindahkan ke Singapura agar lebih cepat diakses"],
     ],
   }));
   if (pembaruan) tambah(P(`Sepanjang Maret sampai awal Oktober 2026 tercatat lebih dari ${bulatBawah(pembaruan, 10)} pembaruan aplikasi dalam lebih dari ${bulatBawah(hariKembang, 10)} hari pengembangan. Sebagian besar pembaruan berangkat dari kendala yang dilaporkan pengguna, sehingga aplikasi berkembang mengikuti kebutuhan nyata.`));
@@ -764,7 +766,7 @@ function isi() {
       ["Waktu", "Rencana"],
       ["Oktober–Desember 2026", "Pengesahan SOP oleh Sekretaris Daerah"],
       ["Januari–Juni 2027", "Pendampingan pengelola kedua dan penyusunan dokumentasi teknis untuk alih pengetahuan; pengetatan kebijakan akses basis data"],
-      ["Juli–Desember 2027", "Paket replikasi bagi perangkat daerah di lingkungan Pemerintah Kota Tarakan dan pemerintah daerah lain di Kalimantan Utara (Bagian 11)"],
+      ["Juli–Desember 2027", "Paket replikasi bagi perangkat daerah di lingkungan Pemerintah Kota Tarakan dan pemerintah daerah lain di seluruh Indonesia, dimulai dari Kalimantan Utara (Bagian 11)"],
     ],
   }));
   tambah(h2("10.2 Mitigasi Risiko"));
@@ -776,7 +778,7 @@ function isi() {
       ["Ketergantungan pada satu pengembang", "Prosedur telah terdokumentasi dalam sebelas SOP; kode tersimpan dalam repositori dengan riwayat perubahan lengkap; akun layanan terdaftar atas nama instansi; alih pengetahuan kepada pengelola kedua dijadwalkan pada 2027"],
       ["Batas kuota layanan tanpa biaya", "Pemakaian dipantau; fungsi baru digabungkan ke fungsi yang ada; pengambilan data hanya untuk data yang berubah"],
       ["Kehilangan data", "Pencadangan berkala; peringatan pencadangan pada setiap jalur penghapusan"],
-      ["Perlindungan data pribadi", "Kanal publik tidak menampilkan identitas maupun kontak pemohon; penelusuran menuntut kode lengkap; pengetatan kebijakan akses basis data berjalan bertahap"],
+      ["Perlindungan data pribadi", "Kebijakan Privasi dan persetujuan eksplisit pemohon (UU 27/2022); kanal publik tidak menampilkan identitas maupun kontak pemohon; penelusuran menuntut kode lengkap; pengetatan kebijakan akses basis data berjalan bertahap"],
       ["Pejabat berhalangan", "Pelaksana Harian bermasa berlaku yang padam dengan sendirinya"],
     ],
   }));
@@ -784,7 +786,7 @@ function isi() {
   // ── 11. REPLIKASI ───────────────────────────────────────────────
   tambah(h1("b11"));
   tambah(h2("11.1 Potensi Adopsi"));
-  tambah(P(`Sebagai *superapp*, Prokopim Hibot dapat direplikasi utuh maupun per modul. Di lingkungan Pemerintah Kota Tarakan, Sekretariat DPRD dapat mengadopsi alur penetapan agenda untuk pimpinan dewan, sedangkan modul peminjaman ruangan, permohonan audiensi, dan daftar hadir digital dapat dipakai perangkat daerah yang mengelola ruang pertemuan atau menerima tamu. Di luar Kota Tarakan, tugas keprotokolan dan komunikasi pimpinan dijalankan oleh setiap pemerintah daerah, termasuk Pemerintah Provinsi Kalimantan Utara serta Kabupaten Bulungan, Malinau, Nunukan, dan Tana Tidung. Yang perlu disesuaikan hanya nama jabatan, daftar pengguna, dan tata naskah dinas setempat.`));
+  tambah(P(`Sebagai *superapp*, Prokopim Hibot dapat direplikasi utuh maupun per modul. Di lingkungan Pemerintah Kota Tarakan, Sekretariat DPRD dapat mengadopsi alur penetapan agenda untuk pimpinan dewan, sedangkan modul peminjaman ruangan, permohonan audiensi, dan daftar hadir digital dapat dipakai perangkat daerah yang mengelola ruang pertemuan atau menerima tamu. Di luar Kota Tarakan, tugas keprotokolan dan komunikasi pimpinan dijalankan oleh setiap pemerintah daerah di Indonesia, baik pemerintah provinsi maupun pemerintah kabupaten/kota, sehingga inovasi ini dapat direplikasi oleh seluruh pemerintah daerah. Langkah terdekat adalah Pemerintah Provinsi Kalimantan Utara serta Kabupaten Bulungan, Malinau, Nunukan, dan Tana Tidung. Yang perlu disesuaikan hanya nama jabatan, daftar pengguna, dan tata naskah dinas setempat.`));
   tambah(h2("11.2 Syarat Replikasi"));
   tambah(P(`Replikasi hanya memerlukan peramban dan sambungan internet tanpa perangkat keras khusus, layanan komputasi awan pada kuota tanpa biaya, sebelas SOP yang siap diadaptasi, serta satu pengelola dengan pendampingan. Pengguna cukup dibekali pengenalan singkat.`));
   tambah(h2("11.3 Dokumentasi Pengetahuan"));
@@ -1266,7 +1268,7 @@ function isianRisda() {
       `Konsep: setiap kegiatan Pimpinan memiliki satu data yang sama bagi semua pihak, dan setiap keputusan atasnya tercatat. Di atasnya dibangun superapp: satu aplikasi, satu pintu, banyak layanan, dengan tampilan sesuai peran.`,
       `Lapisan layanan: Pimpinan Daerah (agenda terkini, disposisi kepada Wakil Wali Kota); ajudan dan pengawal pribadi (pemberitahuan dini, konfirmasi kehadiran, pengingat); pejabat struktural (antrean persetujuan dengan daftar periksa, pemantauan usulan perubahan, Pelaksana Harian); petugas (penugasan melalui aplikasi dan WhatsApp, rekap pagi, evaluasi); masyarakat dan instansi (audiensi dan peminjaman ruangan daring dengan kode penelusuran, daftar hadir QR); integrasi (Google Calendar otomatis, notifikasi, undangan siap TTE Srikandi).`,
       `Cara kerja: Admin Rencana Kegiatan menginput jadwal dan undangan → Kepala Sub Bagian Protokol menelaah → Kepala Bagian menyetujui → jadwal tayang kepada Pimpinan, ajudan, dan petugas, lalu tersalin otomatis ke kalender bersama.`,
-      `Kebaruan: (a) jejak audit melekat pada setiap kegiatan; (b) daftar periksa wajib sebelum persetujuan; (c) kewenangan melekat pada jabatan dengan Pelaksana Harian yang padam sendiri; (d) pengawasan usulan perubahan menurut kegentingan; (e) kanal publik yang dapat ditelusuri tanpa membuka data pribadi; (f) sinkron otomatis ke Google Calendar; (g) undangan PDF siap TTE Srikandi dengan pemesanan ruang rapat Imbaya/Kenawai sekaligus.`,
+      `Kebaruan: (a) jejak audit melekat pada setiap kegiatan; (b) daftar periksa wajib sebelum persetujuan; (c) kewenangan melekat pada jabatan dengan Pelaksana Harian yang padam sendiri; (d) pengawasan usulan perubahan menurut kegentingan; (e) kanal publik yang dapat ditelusuri tanpa membuka data pribadi; (f) sinkron otomatis ke Google Calendar; (g) undangan PDF siap TTE Srikandi dengan pemesanan ruang rapat Imbaya/Kenawai sekaligus; (h) persetujuan eksplisit atas Kebijakan Privasi pada formulir publik sesuai UU 27/2022; (i) setiap pesan WhatsApp tercatat beserta status terkirimnya dan dapat dikirim ulang.`,
       `Perbedaan dengan cara lama: satu data terkini menggantikan beberapa versi cetakan; pemberitahuan otomatis hanya kepada yang berubah; alur tidak berhenti saat pejabat berhalangan; kalender bersama terisi sendiri; satu superapp menggantikan kertas, grup percakapan, papan tulis, dan telepon.`,
     ]],
     ["7. PELAKSANAAN INOVASI", [
@@ -1291,10 +1293,10 @@ function isianRisda() {
     ["10. KEBERLANJUTAN DAN PELEMBAGAAN", [
       `Pembiayaan: biaya berjalan mendekati nol, tidak bergantung anggaran tahunan. Pengelola: Bagian Protokol dan Komunikasi Pimpinan Setda. Pemeliharaan: pembaruan berkelanjutan berdasarkan masukan pengguna. SOP: sebelas SOP untuk disahkan Sekda. Kebijakan: Keputusan Sekda tentang Tim Koordinasi, Surat Sekda 12 Maret 2026, SE Wali Kota tentang Inovasi Daerah. Kelembagaan: kewenangan melekat pada jabatan sehingga mutasi pejabat tidak memutus alur.`,
       `Rencana: Oktober–Desember 2026 pengesahan SOP; Januari–Juni 2027 pendampingan pengelola kedua dan dokumentasi teknis; Juli–Desember 2027 paket replikasi.`,
-      `Risiko dan mitigasi: ketergantungan pada satu pengembang (SOP, repositori kode, akun atas nama instansi, alih pengetahuan 2027); kuota layanan tanpa biaya (pemantauan, penggabungan fungsi); kehilangan data (pencadangan berkala); data pribadi (kanal publik tanpa identitas pemohon); pejabat berhalangan (Pelaksana Harian bermasa berlaku).`,
+      `Risiko dan mitigasi: ketergantungan pada satu pengembang (SOP, repositori kode, akun atas nama instansi, alih pengetahuan 2027); kuota layanan tanpa biaya (pemantauan, penggabungan fungsi); kehilangan data (pencadangan berkala); data pribadi (Kebijakan Privasi dan persetujuan eksplisit pemohon, kanal publik tanpa identitas pemohon); pejabat berhalangan (Pelaksana Harian bermasa berlaku).`,
     ]],
     ["11. REPLIKASI, PERLUASAN, DAN DISEMINASI", [
-      `Potensi adopsi: dapat direplikasi utuh atau per modul. Di lingkungan Pemkot Tarakan: Sekretariat DPRD (agenda pimpinan dewan) serta perangkat daerah yang mengelola ruang pertemuan atau menerima tamu (modul ruangan, audiensi, daftar hadir). Di luar Tarakan: Pemprov Kalimantan Utara dan kabupaten di Kaltara.`,
+      `Potensi adopsi: dapat direplikasi utuh atau per modul. Di lingkungan Pemkot Tarakan: Sekretariat DPRD (agenda pimpinan dewan) serta perangkat daerah yang mengelola ruang pertemuan atau menerima tamu (modul ruangan, audiensi, daftar hadir). Di luar Tarakan: seluruh pemerintah daerah di Indonesia, baik provinsi maupun kabupaten/kota, dimulai dari Pemprov Kalimantan Utara dan kabupaten di Kaltara.`,
       `Syarat replikasi: peramban dan internet, layanan awan kuota tanpa biaya, sebelas SOP siap diadaptasi, satu pengelola dengan pendampingan. Dokumentasi: sebelas SOP, panduan pemasangan daftar hadir, catatan teknis kode.`,
       `Diseminasi dan publikasi: Tim Koordinasi lintas perangkat daerah; pengenalan langsung kepada Pimpinan, ajudan, dan mitra kerja; ${D.ruang.instansi_berbeda} instansi peminjam ruangan dan ${D.tamu.instansi_berbeda} instansi pemohon audiensi; Surat Sekda kepada DKISP ditembuskan kepada Wali Kota dan Kepala Bappeda Litbang; alamat resmi prokopim.tarakankota.go.id dan Google Calendar bersama yang dapat dilanggani.`,
     ]],

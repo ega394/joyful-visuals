@@ -7,7 +7,7 @@
 import { wajibSesi } from "./_sesi.js";
 import { rateLimit, getIP } from "./_middleware.js";
 import { catatWA, hasilFonnte } from "./_walog.js";
-import { sudahSetuju, kolomPersetujuan, simpanDenganPersetujuan, PESAN_TOLAK } from "./_persetujuan.js";
+import { sudahSetuju, kolomPersetujuan, simpanDenganPersetujuan, pesanTolak } from "./_persetujuan.js";
 // web-push dimuat dengan require (berkas ini ditranspilasi menjadi CommonJS),
 // sama seperti api/webpush.js.
 const webpush = require("web-push");
@@ -626,7 +626,7 @@ async function actionCheckin(body) {
   }
   // Persetujuan privasi diperiksa di sini juga, bukan hanya kotak centang di
   // layar, karena API ini bisa dipanggil langsung (api/_persetujuan.js).
-  if (!sudahSetuju(body)) throw new Error(PESAN_TOLAK);
+  if (!sudahSetuju(body)) throw new Error(pesanTolak(body));
   await pastikanTidakSpam(no_wa);
 
   // Tujuan hanya salah satu pimpinan yang dilayani formulir; nama dibersihkan

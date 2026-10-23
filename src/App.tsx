@@ -7,15 +7,16 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "./pages/NotFound.tsx";
 import SuperadminPage from "./pages/SuperadminPage.jsx";
+import { imporSegar } from "./lib/imporSegar.js";
 // Seluruh halaman dimuat sesuai kebutuhan. `Index` memuat ProkopimApp — aplikasi
 // internal utuh — dan dulu diimpor langsung, sehingga TAMU yang membuka halaman
 // publik ikut mengunduhnya lebih dulu. Memisahkannya menurunkan unduhan awal
 // tamu dari 317 KB menjadi 140 KB (gzip).
-const Index             = lazy(() => import("./pages/Index.tsx"));
-const TamuPage          = lazy(() => import("./TamuPage.jsx"));
-const PinjamRuanganPage = lazy(() => import("./pages/PinjamRuanganPage.jsx"));
-const DaftarHadirPage   = lazy(() => import("./pages/DaftarHadirPage.jsx"));
-const PrivasiPage       = lazy(() => import("./pages/PrivasiPage.jsx"));
+const Index             = lazy(() => imporSegar(() => import("./pages/Index.tsx")));
+const TamuPage          = lazy(() => imporSegar(() => import("./TamuPage.jsx")));
+const PinjamRuanganPage = lazy(() => imporSegar(() => import("./pages/PinjamRuanganPage.jsx")));
+const DaftarHadirPage   = lazy(() => imporSegar(() => import("./pages/DaftarHadirPage.jsx")));
+const PrivasiPage       = lazy(() => imporSegar(() => import("./pages/PrivasiPage.jsx")));
 
 const queryClient = new QueryClient();
 

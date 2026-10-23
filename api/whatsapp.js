@@ -60,6 +60,8 @@ export default async function handler(req, res) {
     catatanTolak,
     labelPimpinan,
     statusKehadiran,
+    perwakilan,         // konfirmasi_kehadiran: pejabat yang mewakili (bila diwakilkan)
+    perwakilanLama,     // konfirmasi_kehadiran: pejabat sebelumnya (pergantian perwakilan)
     namaPersonil,
     catatanPenugasan,
     rekanBertugas,      // array nama rekan yang bertugas
@@ -225,12 +227,17 @@ export default async function handler(req, res) {
   // ── konfirmasi_kehadiran: WK/WWK sendiri, atau Ajudan/Admin RK ──
   } else if (event === "konfirmasi_kehadiran") {
     const pim   = labelPimpinan || "Pimpinan";
-    const statusLabel = {
-      hadir:       "✅ *Hadir*",
-      tidak_hadir: "❌ *Tidak Hadir*",
-      diwakilkan:  "↩️ *Diwakilkan/Delegasi*",
-      delegasi:    "↩️ *Didelegasikan ke Wakil*",
-    }[statusKehadiran] || statusKehadiran || "-";
+    // Nama pejabat diketik pengguna: satu baris, tanpa format WA, dipotong.
+    const bersih = (t) => String(t || "").replace(/[\r\n*_~`]+/g, " ").trim().slice(0, 80);
+    const wakil = bersih(perwakilan), wakilLama = bersih(perwakilanLama);
+    const statusLabel = (statusKehadiran === "diwakilkan" && wakil
+      ? `↩️ *Diwakilkan kepada ${wakil}*` + (wakilLama ? ` (sebelumnya: ${wakilLama})` : "")
+      : {
+        hadir:       "✅ *Hadir*",
+        tidak_hadir: "❌ *Tidak Hadir*",
+        diwakilkan:  "↩️ *Diwakilkan/Delegasi*",
+        delegasi:    "↩️ *Didelegasikan ke Wakil*",
+      }[statusKehadiran]) || statusKehadiran || "-";
 
     // Deteksi siapa yang melakukan konfirmasi berdasarkan role
     const ROLE_LABEL = {
@@ -240,6 +247,9 @@ export default async function handler(req, res) {
       "ajudan_wakilwalikota": "Ajudan Wakil Wali Kota",
       "admin_rk":             "Admin Rencana Kegiatan",
       "kabag":                "Kabag Prokopim",
+      "kasubbag_protokol":    "Kasubbag Protokol",
+      "kasubbag_komdokpim":   "Kasubbag Komdokpim",
+      "superadmin":           "Superadmin",
     };
     const labelAktor = jabatanPengirim in ROLE_LABEL
       ? ROLE_LABEL[jabatanPengirim]       // null jika pimpinan sendiri
