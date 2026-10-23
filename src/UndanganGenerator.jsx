@@ -334,7 +334,9 @@ export default function UndanganGenerator({ isMobile, showT, user }) {
 
       <div style={{ display: "flex", height: isMobile ? "auto" : "calc(100vh - 60px)", overflow: "hidden", fontFamily: "var(--font-sans)" }}>
 
-        <div style={{ flex: "0 0 400px", background: "#F8FAFC", overflowY: "auto", display: "flex", flexDirection: "column", borderRight: "1px solid #E2E8F0" }}>
+        {/* Di HP panel isian memenuhi layar; dulu lebar tetap 400px membuat sisi
+            kanan (tombol Cetak, panah, "Hanya Utama") terpotong. */}
+        <div style={{ flex: isMobile ? "1 1 100%" : "0 0 400px", width: isMobile ? "100%" : undefined, minWidth: 0, background: "#F8FAFC", overflowY: "auto", display: "flex", flexDirection: "column", borderRight: isMobile ? "none" : "1px solid #E2E8F0" }}>
           
           <div style={{ background: "linear-gradient(135deg," + NAVY + ",#1A2F50)", padding: "20px 20px 16px", flexShrink: 0 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
