@@ -1179,6 +1179,13 @@ function appendTimelineEntries(prevEv, patch, actor) {
     out.push({ ...base, action: "evaluasi_diisi" });
   }
 
+  // 8c. Arahan pimpinan untuk tim. Dulu tersimpan diam-diam: tidak tercatat
+  //     di riwayat dan tidak dikabarkan kepada siapa pun.
+  if (patch.catatanPimpinan !== undefined && String(patch.catatanPimpinan || "").trim() !== String(prevEv.catatanPimpinan || "").trim()) {
+    const isi = String(patch.catatanPimpinan || "").trim();
+    out.push({ ...base, action: isi ? "arahan_pimpinan" : "arahan_dihapus", note: isi ? isi.slice(0, 300) : null });
+  }
+
   // 9. Usulan perubahan jadwal terbit (jalur paralel `alurEdit`)
   if (patch.alurEdit !== undefined && patch.alurEdit !== prevEv.alurEdit) {
     if (patch.alurEdit === "menunggu_kasubbag") {
@@ -1239,6 +1246,8 @@ const TIMELINE_LABEL = {
   sambutan_disahkan:  { label: "Naskah sambutan disahkan",          color: "#047857", icon: "🎤" },
   sambutan_dibatalkan:{ label: "Pengesahan naskah sambutan dibatalkan", color: "#B45309", icon: "↩" },
   sambutan_dihapus:   { label: "Naskah sambutan dihapus",           color: "#B91C1C", icon: "🗑" },
+  arahan_pimpinan:    { label: "Arahan pimpinan untuk tim",         color: "#4338CA", icon: "💬" },
+  arahan_dihapus:     { label: "Arahan pimpinan dihapus",           color: "#475569", icon: "💬" },
   evaluasi_diisi:     { label: "Evaluasi pasca kegiatan diisi",     color: "#0D6B4F", icon: "📝" },
 };
 
@@ -1248,6 +1257,7 @@ const TIMELINE_PELAKSANAAN = {
   wwk_hadir:1, wwk_tidak_hadir:1, wwk_diwakilkan:1, wwk_update:1, wwk_ganti_wakil:1, wwk_batal:1,
   delegasi_to_wwk:1, cancel_delegasi:1, delegasi_jajaran:1,
   penugasan_personil:1, sambutan_disahkan:1, sambutan_dibatalkan:1, sambutan_dihapus:1, evaluasi_diisi:1,
+  arahan_pimpinan:1, arahan_dihapus:1,
 };
 
 function fmtTimelineAt(iso) {
@@ -5239,6 +5249,7 @@ const WA_EVENT_CATEGORY = {
   recalled:             "persetujuan",
   jadwal_diubah:        "persetujuan",
   konfirmasi_kehadiran: "kehadiran",
+  arahan_pimpinan:      "kehadiran",
   delegasi_wwk:         "delegasi",
   // Nama event harus sama persis dengan yang dikirim. Dulu kategori
   // pembatalan memakai nama yang tidak pernah dipakai, dan event usulan
@@ -5329,6 +5340,28 @@ const pemegangJabatan=role=>loadUsers().filter(u=>!u.disabled&&punyaPeran(u,role
  *     pejabat yang mewakili ikut di-WA bila acaranya hari ini/besok.
  * Penanda singkat mencegah kabar ganda bila pembaruan diproses dua kali.
  */
+/**
+ * Arahan pimpinan (catatanPimpinan) untuk tim: push ke Kabag, kedua Kasubbag,
+ * ajudan terkait, dan personil yang ditugaskan; WA ke Kasubbag Protokol bila
+ * acaranya hari ini/besok. Dulu arahan tersimpan tanpa kabar apa pun.
+ */
+function laporArahan(lama,baru,pelaku){
+  const isi=String(baru.catatanPimpinan||"").trim();
+  if(!isi||isi===String(lama.catatanPimpinan||"").trim())return;
+  const kunci=[baru.id,"arahan",isi].join("|"),kini=Date.now();
+  if(kini-(_kabarTerkirim.get(kunci)||0)<15000)return;
+  _kabarTerkirim.set(kunci,kini);
+  const label=pelaku.role==="wakilwalikota"?"Wakil Wali Kota":pelaku.role==="walikota"?"Wali Kota":"Pimpinan";
+  const judul="💬 Arahan "+label;
+  const body=baru.namaAcara+" · "+(baru.tanggal||"")+" "+fmtJamDuaZona(baru)+": \u201C"+isi.slice(0,160)+"\u201D";
+  const tag="arahan-"+baru.id;
+  ["kabag","kasubbag_protokol","kasubbag_komdokpim"].forEach(r=>sendPush({targetRole:r,title:judul,body,url:"/",tag}));
+  const pim=baru.untukPimpinan||[];
+  if(pim.includes("walikota"))sendPush({targetRole:"ajudan_walikota",title:judul,body,url:"/",tag});
+  if(pim.includes("wakilwalikota")||baru.delegasiKeWWK)sendPush({targetRole:"ajudan_wakilwalikota",title:judul,body,url:"/",tag});
+  (baru.personil||[]).filter(un=>un&&un!==pelaku.username).forEach(un=>sendPush({targetUser:un,title:judul,body,url:"/",tag}));
+  if(acaraDekat(baru.tanggal))kirimWAUnik(pemegangJabatan("kasubbag_protokol").filter(u=>u.username!==pelaku.username),{...infoWA(baru),event:"arahan_pimpinan",labelPimpinan:label,arahan:isi});
+}
 const _kabarTerkirim=new Map();
 function laporKehadiran(lama,baru,pelaku){
   const daftar=perubahanKehadiran(lama,baru);
@@ -8387,7 +8420,7 @@ export default function App(){
       const keKalender=KOLOM_KALENDER.some(k=>k in finalPatch);
       // Kabar kehadiran dari SATU tempat, apa pun layar asalnya — dulu tiap
       // tombol mengirim sendiri dan sebagian layar tidak mengirim apa pun.
-      if(prev&&ev&&user)laporKehadiran(prev,ev,user);
+      if(prev&&ev&&user){laporKehadiran(prev,ev,user);laporArahan(prev,ev,user);}
       if(ev)dbUpsert(ev).then(()=>{if(keKalender)sinkronKalender(id);}).catch(e=>{console.error(e);if(_toast.fn)_toast.fn("⚠ Gagal menyimpan ke server — perubahan mungkin belum tersimpan. Periksa koneksi.","error");});
       return next;
     });
@@ -8925,7 +8958,7 @@ const TH={
 
     /* ── iOS Tab Bar ── */
     .ios-tab-bar{position:fixed;bottom:0;left:0;right:0;z-index:300;background:rgba(248,250,255,0.88);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);border-top:0.5px solid rgba(0,0,0,0.1);padding-bottom:env(safe-area-inset-bottom,0px);display:flex;}
-    .ios-tab-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 4px 6px;border:none;background:transparent;cursor:pointer;-webkit-tap-highlight-color:transparent;gap:3px;transition:transform 0.15s cubic-bezier(0.34,1.56,0.64,1);}
+    .ios-tab-btn{position:relative;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 4px 6px;border:none;background:transparent;cursor:pointer;-webkit-tap-highlight-color:transparent;gap:3px;transition:transform 0.15s cubic-bezier(0.34,1.56,0.64,1);}
     .ios-tab-btn:active{transform:scale(0.88);}
     .ios-tab-icon{font-size:22px;line-height:1;transition:transform 0.2s cubic-bezier(0.34,1.56,0.64,1);}
     .ios-tab-btn.active .ios-tab-icon{transform:scale(1.1);}
@@ -9520,7 +9553,10 @@ const TH={
         return <button key={t.key} className={"ios-tab-btn"+(isActive?" active":"")} onClick={handleTab} style={{color:isActive?NAVY:"#94A3B8"}}>
           <span className="ios-tab-icon" style={{filter:isActive?"none":"grayscale(0.3)"}}>{t.icon}</span>
           <span className="ios-tab-label" style={{fontWeight:isActive?700:500,color:isActive?NAVY:"#94A3B8"}}>{t.label}</span>
-          {t.key==="action:more"&&!showMobMenu&&(
+          {/* Angka antrean menempel di "Lainnya". Dulu tombolnya tidak relatif, sehingga
+              angka melayang ke tab tengah (bagi Wali Kota: tepat di atas "Tamu").
+              Pimpinan tidak punya antrean di menu Lainnya — konfirmasinya ada di kepala layar. */}
+          {t.key==="action:more"&&!showMobMenu&&!["walikota","wakilwalikota"].includes(role)&&(
             (pendingList.length>0?<span style={{position:"absolute",top:6,right:"calc(50% - 14px)",background:"#EF4444",color:"white",borderRadius:"50%",width:16,height:16,fontSize:12,fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center"}}>{pendingList.length}</span>:null)
           )}
         </button>;
