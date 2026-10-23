@@ -1480,7 +1480,7 @@ function UndanganBlock({ev,canEdit,onUpload,onRemove}){
 }
 
 // ==================== SAMBUTAN BLOCK (DOCX→PDF) ====================
-function SambutanBlock({ev,canUpload,canHapus,canBatalSah,onBatalSah,onUploadDocx,onUploadPdf,onRemove,onCommit,onDiscard}){
+function SambutanBlock({ev,pimpinan,canUpload,canHapus,canBatalSah,onBatalSah,onUploadDocx,onUploadPdf,onRemove,onCommit,onDiscard}){
   const NAVY_="#0A1628",GREEN_="#0D6B4F",GOLD_="#C9A84C";
   const ref=useRef();
   const[step,setStep]=React.useState("idle");
@@ -1652,7 +1652,9 @@ function SambutanBlock({ev,canUpload,canHapus,canBatalSah,onBatalSah,onUploadDoc
       </div>
     </div>;
   }
-  return <div style={{padding:"9px 12px",background:"#FEF9C3",borderRadius:8,fontSize:12,color:"#92400E",fontWeight:600}}>⏳ Naskah sambutan belum diupload</div>;
+  // Bagi pimpinan cukup kabar bahwa naskah sedang disiapkan; "belum diupload"
+  // adalah urusan tim.
+  return <div style={{padding:"9px 12px",background:"#FEF9C3",borderRadius:8,fontSize:12,color:"#92400E",fontWeight:600}}>{pimpinan?"⏳ Naskah sambutan sedang disiapkan tim":"⏳ Naskah sambutan belum diupload"}</div>;
 }
 // ==================== AI MODAL ====================
 function AIModal({onFill,onClose}){
@@ -5779,9 +5781,10 @@ function EventCard({ev}){
             <span style={{fontSize:12,padding:"2px 6px",borderRadius:10,background:"#EFF6FF",color:"#1E40AF",fontWeight:700,border:"1px solid #BFDBFE"}}>🎯 {tujuanPimpinanLabel(ev)}</span>
           </div>
           <div style={{fontSize:14,fontWeight:700,color:"#0F1C2E",lineHeight:1.35,marginBottom:3,letterSpacing:"-0.1px"}}>{ev.namaAcara}</div>
-          <div style={{fontSize:12,color:"#64748B",display:"flex",alignItems:"center",gap:4}}>
-            <span>{ev.penyelenggara}</span>
-            {ev.lokasi&&<><span style={{color:"#CBD5E1"}}>·</span><span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:130}}>{ev.lokasi}</span></>}
+          {/* Satu baris teks yang boleh terlipat dua — dulu penyelenggara terhimpit
+              menjadi tiga baris sempit sementara lokasi dipotong 130px. */}
+          <div style={{fontSize:12,color:"#64748B",lineHeight:1.45,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>
+            {ev.penyelenggara}{ev.lokasi&&<><span style={{color:"#CBD5E1"}}> · </span>{ev.lokasi}</>}
           </div>
           {(hadirStr||showMenungguKehadiran)&&
             <div style={{marginTop:4,fontSize:13,display:"flex",alignItems:"center",gap:6}}>
@@ -5844,7 +5847,16 @@ function BatasTampil({ list, awal = 40, langkah = 40, dariAkhir = false, childre
     : <>{children(list.slice(0, n))}{tombol}</>;
 }
 
-function GroupedEventList({ evList, isMobile, viewMode }) {
+function GroupedEventList({ evList, isMobile, viewMode, pimpinan }) {
+  // Pimpinan: agenda hari ini sudah ada di Sorotan (bisa dibuka di sana), jadi
+  // tidak diulang di sini; agenda yang sudah lewat dilipat.
+  const [lihatLalu, setLihatLalu] = React.useState(!pimpinan);
+  const hariIniWITA = new Date(Date.now() + 8*3600000).toISOString().slice(0,10);
+  // Harus sama dengan isi Sorotan (KartuSorotanHariIni, filterPimpinan).
+  const diSorotan = e => e.tanggal === hariIniWITA && (pimpinan !== "wakilwalikota" ||
+    (e.untukPimpinan||[]).includes("wakilwalikota") || e.delegasiKeWWK || e.statusWWK === "hadir" || e.perwakilanWK === "Wakil Wali Kota");
+  const jmlHariIni = pimpinan ? evList.filter(diSorotan).length : 0;
+  if (pimpinan) evList = evList.filter(e => !diSorotan(e));
   const NAVY = "#0A1628", GOLD = "#C9A84C";
   const nowStr = new Date().toISOString().slice(0,16).replace("T"," ");
 
@@ -5860,6 +5872,11 @@ function GroupedEventList({ evList, isMobile, viewMode }) {
 
   return (
     <div>
+      {pimpinan && jmlHariIni > 0 && (
+        <div style={{ fontSize: 12, color: "#64748B", margin: "0 0 10px", textAlign: "center" }}>
+          {jmlHariIni} agenda hari ini ada di Sorotan di atas — ketuk untuk detail.
+        </div>
+      )}
       {/* ── Bagian akan datang ── */}
       {upcoming.length > 0 && <>
         <div style={{
@@ -5910,12 +5927,18 @@ function GroupedEventList({ evList, isMobile, viewMode }) {
           </div>
           <div style={{ flex: 1, height: 1, background: "linear-gradient(90deg,#E2E8F0,transparent)" }}/>
         </div>
-        <div style={{ opacity: 0.75 }}>
-          <BatasTampil list={past} awal={20} dariAkhir>{renderList}</BatasTampil>
-        </div>
+        {lihatLalu
+          ? <div style={{ opacity: 0.75 }}>
+              <BatasTampil list={past} awal={20} dariAkhir>{renderList}</BatasTampil>
+            </div>
+          : <button onClick={() => setLihatLalu(true)} className="btn-ios"
+              style={{ display: "block", width: "100%", padding: "11px", borderRadius: 12, border: "1.5px dashed #CBD5E1",
+                       background: "white", color: "#475569", cursor: "pointer", fontSize: 13, fontWeight: 700 }}>
+              ▼ Lihat {past.length} agenda yang sudah berlalu
+            </button>}
       </>}
 
-      {upcoming.length === 0 && past.length === 0 && (
+      {upcoming.length === 0 && past.length === 0 && !jmlHariIni && (
         <div style={{ textAlign: "center", padding: "40px 20px", color: "#94A3B8" }}>
           <div style={{ fontSize: 32, marginBottom: 8 }}>📭</div>
           <div style={{ fontSize: 13, fontWeight: 600 }}>Belum ada agenda</div>
@@ -6188,7 +6211,8 @@ function WeatherJarak({tanggal, jam, lokasi}) {
 // ── KartuSorotanHariIni ─────────────────────────────────────────────────────
 // Menampilkan agenda hari ini yang belum lewat, dengan cuaca + estimasi jarak
 // Muncul di atas daftar agenda untuk semua role (kecuali role khusus pimpinan)
-function KartuSorotanHariIni({ events, filterForRole, filterPimpinan, isMobile, showUnconfirmed, santai }) {
+function KartuSorotanHariIni({ events, filterForRole, filterPimpinan, isMobile, showUnconfirmed, santai, bukaDetail }) {
+  const ctx = React.useContext(AppCtx);
   const WEATHER_KEY = (import.meta?.env?.VITE_OPENWEATHER_KEY) || "";
   const LAT = "3.3169", LON = "117.5765";
   const now = new Date();
@@ -6337,7 +6361,8 @@ function KartuSorotanHariIni({ events, filterForRole, filterPimpinan, isMobile, 
             );
 
             return (
-              <div key={ev.id} style={{ background: "rgba(255,255,255,0.09)", borderRadius: 12,
+              <div key={ev.id} onClick={bukaDetail?()=>ctx.setExp(ctx.expandedId===ev.id?null:ev.id):undefined}
+                style={{ background: "rgba(255,255,255,0.09)", borderRadius: 12, cursor: bukaDetail?"pointer":"default",
                 padding: "12px 14px", border: "1px solid "+(isUnconfirmed(ev)?"rgba(251,191,36,0.5)":"rgba(255,255,255,0.12)") }}>
                 {/* Badge belum konfirmasi */}
                 {isUnconfirmed(ev)&&<div style={{display:"inline-flex",alignItems:"center",gap:4,background:"rgba(251,191,36,0.2)",border:"1px solid rgba(251,191,36,0.4)",borderRadius:6,padding:"2px 8px",marginBottom:6,fontSize:12,fontWeight:700,color:"#FDE68A",letterSpacing:0.3}}>
@@ -6375,8 +6400,11 @@ function KartuSorotanHariIni({ events, filterForRole, filterPimpinan, isMobile, 
 
                 {/* Baris bawah: tombol bagikan */}
                 <div style={{ marginTop: 10, display: "flex", justifyContent: "flex-end" }}>
+                  {bukaDetail&&<span style={{ marginRight: "auto", alignSelf: "center", fontSize: 12, color: "rgba(255,255,255,0.65)", fontWeight: 600 }}>
+                    {ctx.expandedId===ev.id?"▲ Tutup detail":"▼ Ketuk untuk detail"}
+                  </span>}
                   <button
-                    onClick={()=>generateAndShareAgendaCard(ev)}
+                    onClick={e=>{e.stopPropagation();generateAndShareAgendaCard(ev);}}
                     title="Bagikan kartu agenda"
                     style={{
                       display:"flex",alignItems:"center",gap:5,
@@ -6390,6 +6418,11 @@ function KartuSorotanHariIni({ events, filterForRole, filterPimpinan, isMobile, 
                     <ShareIcon /> Bagikan
                   </button>
                 </div>
+                {bukaDetail&&ctx.expandedId===ev.id&&(
+                  <div onClick={e=>e.stopPropagation()} style={{ background: "white", borderRadius: 10, marginTop: 10, color: "#0F1C2E", overflow: "hidden", cursor: "auto" }}>
+                    <ExpandedDetail ev={ev} hariEv={ctx.getHari(ev.tanggal)}/>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -6955,7 +6988,7 @@ function ExpandedDetail({ev,hariEv}){
         </div>
       </div>
       {needsSambutan(ev)&&<div>
-        <SambutanBlock ev={ev} canHapus={["kabag","kasubbag_komdokpim"].includes(role)} canBatalSah={["kasubbag_protokol","kasubbag_komdokpim"].includes(role)}
+        <SambutanBlock ev={ev} pimpinan={role==="walikota"||role==="wakilwalikota"} canHapus={["kabag","kasubbag_komdokpim"].includes(role)} canBatalSah={["kasubbag_protokol","kasubbag_komdokpim"].includes(role)}
           onBatalSah={()=>askConfirm("Batalkan Pengesahan?","Naskah tetap tersimpan, tetapi kembali berstatus belum disahkan dan perlu disahkan ulang oleh Kabag.",()=>{updAndSync(ev.id,{sambutanSah:false,sambutanKabag:null,sambutanSelesaiAt:null});showT("Pengesahan dibatalkan","warn");},"Ya, Batalkan","#B45309")}
           canUpload={role==="timkom"||role==="kasubbag_komdokpim"||(ev.sambutanPenyusun&&user&&ev.sambutanPenyusun===user.username)} onUploadDocx={(f)=>handleSambutanDocx(ev.id,f,ev)} onUploadPdf={(f,name)=>handleSambutanUpload(ev.id,f,name)} onCommit={(patch)=>commitSambutan(ev.id,patch)} onDiscard={(patch)=>discardSambutan(patch)} onRemove={()=>askConfirm("Hapus Naskah Sambutan?","Berkas PDF dan DOCX naskah dihapus dari agenda ini. Penyusun perlu mengunggah ulang, dan penghapusan tercatat di jejak audit.",()=>{if(ev.sambutanFile&&!ev.sambutanFile.startsWith("data:"))storageDelete("sambutan",ev.sambutanFile).catch(e=>console.warn("Sync:",e?.message||e));if(ev.sambutanDocx&&!ev.sambutanDocx.startsWith("data:")&&!ev.sambutanDocx.startsWith("blob:"))storageDelete("sambutan",ev.sambutanDocx).catch(e=>console.warn("Sync:",e?.message||e));updAndSync(ev.id,{sambutanFile:null,sambutanNama:"",sambutanDocx:null,sambutanDocxNama:"",sambutanSah:false,sambutanKabag:null,sambutanSelesaiAt:null});showT("Naskah sambutan dihapus","warn");},"Ya, Hapus","#DC2626")}/>
         {["kasubbag_komdokpim","kabag","timkom"].includes(role)&&ev.alur==="disetujui"&&<SambutanKinerja ev={ev}/>}
@@ -10211,7 +10244,12 @@ function NotifCenter({events, user, onClose, isMobile}){
     const pending=events.filter(e=>e.alur==="menunggu_kasubbag"||e.alur==="menunggu_kabag");
 
     // Semua role: jadwal hari ini
-    const todayEvs=approved.filter(e=>e.tanggal===todayS&&(e.untukPimpinan?.length>0));
+    // Wali Kota/Wakil Wali Kota: hanya agenda untuk dirinya (termasuk disposisi
+    // dari WK ke WWK) — dulu agenda pimpinan lain ikut tampil di loncengnya.
+    const untukSaya=e=>role==="walikota"?(e.untukPimpinan||[]).includes("walikota")&&!e.delegasiKeWWK
+      :role==="wakilwalikota"?(e.untukPimpinan||[]).includes("wakilwalikota")||!!e.delegasiKeWWK
+      :(e.untukPimpinan?.length>0);
+    const todayEvs=approved.filter(e=>e.tanggal===todayS&&untukSaya(e));
     todayEvs.forEach(e=>list.push({id:"today-"+e.id,icon:"📅",type:"info",title:"Jadwal Hari Ini",body:e.namaAcara+" · "+fmtJamWita(e),ev:e}));
 
     // Staf & admin_rk: draft lama (>3 hari)
@@ -12739,7 +12777,9 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
           ))}
         </div>
         <div style={{fontSize:12,color:"#94A3B8",textAlign:"center",marginTop:5}}>
-          {agendaFilter==="semua"?"Semua agenda yang sudah disetujui Kabag":agendaFilter==="terkonfirmasi"?"Kehadiran WK/WWK sudah dikonfirmasi":"Kehadiran WK/WWK belum dikonfirmasi"}
+          {(role==="walikota"||role==="wakilwalikota")
+            ?(agendaFilter==="semua"?"Seluruh agenda Pimpinan":agendaFilter==="terkonfirmasi"?"Kehadiran sudah dikonfirmasi":"Kehadiran belum dikonfirmasi")
+            :(agendaFilter==="semua"?"Semua agenda yang sudah disetujui Kabag":agendaFilter==="terkonfirmasi"?"Kehadiran WK/WWK sudah dikonfirmasi":"Kehadiran WK/WWK belum dikonfirmasi")}
         </div>
       </div>}
       {/* ── Summary bar penugasan — kasubbag protokol & komdokpim di tab tayang ── */}
@@ -12839,7 +12879,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
                         else{upd(ev.id,{statusWWK:"tidak_hadir",statusWWK_by:"wakilwalikota"});showT("Tidak hadir dicatat","warn");}
                         
                       }} style={{flex:1,padding:"10px",borderRadius:10,border:"1.5px solid rgba(239,68,68,0.5)",background:"rgba(239,68,68,0.1)",color:"#FCA5A5",fontWeight:800,fontSize:13,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
-                        <span>✗</span> Tidak Hadir
+                        <span>✗</span> <span style={{whiteSpace:"nowrap"}}>Tidak Hadir</span>
                       </button>
                       {role==="walikota"&&<button onClick={e=>{e.stopPropagation();
                         if(ev.delegasiKeWWK){showT("Sudah didelegasikan ke Wakil WK");return;}
@@ -12859,11 +12899,17 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
         );
       })()}
       {/* ── Kartu Sorotan Hari Ini — cuaca+jarak, tampil semua role ── */}
-      {(tab==="tayang"||tab==="semua")&&(
-        <KartuSorotanHariIni events={events} role={role} isMobile={isMobile} santai={bolehSantai(role)}/>
+      {/* Disembunyikan selama pencarian aktif: dulu hasil cari tertutup kartu
+          agenda hari ini yang tidak berhubungan. Bagi pimpinan, agenda hari ini
+          hanya tampil di sini (bisa diketuk untuk detail), tidak diulang di daftar. */}
+      {(tab==="tayang"||tab==="semua")&&!cariTunda.trim()&&(
+        <KartuSorotanHariIni events={events} role={role} isMobile={isMobile} santai={bolehSantai(role)}
+          showUnconfirmed={role==="walikota"||role==="wakilwalikota"}
+          filterPimpinan={role==="wakilwalikota"?"wakilwalikota":undefined}
+          bukaDetail={role==="walikota"||role==="wakilwalikota"}/>
       )}
       {/* ── Morning Summary + Streak ── */}
-      {(tab==="tayang"||tab==="semua")&&<>
+      {(tab==="tayang"||tab==="semua")&&!cariTunda.trim()&&<>
         <MorningSummaryCard/>
       </>}
       {tab==="tayang"&&!isMobile&&<div style={{background:"linear-gradient(135deg,"+NAVY+" 0%,#1E3254 100%)",padding:"18px 22px",borderRadius:16,marginBottom:20,display:"flex",alignItems:"center",gap:14,boxShadow:"0 6px 24px rgba(10,22,40,0.22)"}}>
@@ -12981,7 +13027,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
           {listEvents.length===0
             ?<EmptyState icon="📭" message="Belum ada agenda" sub="Jadwal akan muncul setelah disetujui Kabag."/>
             :(!filterDate||filterDate===""||filterDate==="week")&&!cariTunda.trim()
-              ?<GroupedEventList evList={listEvents} isMobile={isMobile} viewMode={viewMode}/>
+              ?<GroupedEventList evList={listEvents} isMobile={isMobile} viewMode={viewMode} pimpinan={role==="walikota"||role==="wakilwalikota"?role:null}/>
               :<BatasTampil list={listEvents}>{daftar=>viewMode==="timeline"
               ?<TimelineView evList={daftar}/>
               :isMobile
@@ -13011,7 +13057,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
             />
           :(!filterDate||filterDate===""||filterDate==="week")&&!cariTunda.trim()
               // Semua / Minggu Ini — tampilkan dengan pemisah upcoming/past
-              ?<GroupedEventList evList={listEvents} isMobile={isMobile} viewMode={viewMode}/>
+              ?<GroupedEventList evList={listEvents} isMobile={isMobile} viewMode={viewMode} pimpinan={role==="walikota"||role==="wakilwalikota"?role:null}/>
               :<BatasTampil list={listEvents}>{daftar=>viewMode==="timeline"
               ?<TimelineView evList={daftar}/>
               :isMobile
