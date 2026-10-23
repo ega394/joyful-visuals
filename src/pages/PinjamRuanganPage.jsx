@@ -3,6 +3,7 @@
  */
 import React, { useState, useEffect, useCallback, useRef, useMemo, memo } from "react";
 import KotakPersetujuan from "../components/KotakPersetujuan.jsx";
+import LogoHUT from "../components/LogoHUT.jsx";
 
 const NAVY   = "#0A1628";
 const NAVY2  = "#1E3A5F";
@@ -1205,6 +1206,7 @@ export default function PinjamRuanganPage() {
               <div style={{color:"white",fontSize:18,fontWeight:900,lineHeight:1.2,letterSpacing:-0.3}}>Peminjaman Ruang Rapat</div>
               <div style={{color:"rgba(255,255,255,0.5)",fontSize:11.5,marginTop:1}}>Bagian Protokol & Komunikasi Pimpinan</div>
             </div>
+            <LogoHUT tinggi={48} style={{marginLeft:"auto"}}/>
           </div>
           <div style={{display:"flex",gap:2}}>
             {NAV_TABS.map(({k,icon,label})=>{

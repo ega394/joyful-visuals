@@ -26,6 +26,7 @@ import React, {
   useState, useEffect, useRef, useCallback, useMemo,
 } from "react";
 import KotakPersetujuan from "./components/KotakPersetujuan.jsx";
+import LogoHUT from "./components/LogoHUT.jsx";
 
 // ── Konstanta ──────────────────────────────────────────────
 var NAVY     = "#0A1628";
@@ -1348,6 +1349,7 @@ function PageHeader() {
       >
         🏛
       </div>
+      <LogoHUT tinggi={72} style={{marginBottom:16}}/>
 
       <p style={{
         color:GOLD, fontSize:11, fontWeight:700,
