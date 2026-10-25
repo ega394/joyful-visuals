@@ -29,14 +29,18 @@ SUSUNAN = [
     ("judul", {"lama": 3.2, "bagian": "latar"}),
     ("dulu", {"lead": 0.3, "tail": 0.3}),
     ("akar", {"lead": 0.2, "tail": 0.5}),
+    ("ide", {"lead": 0.3, "tail": 0.4}),
     ("lahir", {"lead": 0.3, "tail": 0.4}),
     ("alur", {"lead": 0.2, "tail": 0.4}),
     ("layanan", {"lead": 0.0, "tail": 0.3}),
     ("jejak", {"lead": 0.0, "tail": 0.4}),
     ("bangun", {"lead": 0.2, "tail": 0.4}),
+    ("daya", {"lead": 0.2, "tail": 0.4}),
     ("dampak", {"lead": 0.6, "tail": 0.8}),
     ("walikota", {"lead": 0.4, "tail": 0.6}),
+    ("testimoni", {"lead": 0.3, "tail": 5.5}),
     ("lanjut", {"lead": 0.4, "tail": 0.4}),
+    ("tim", {"lead": 0.3, "tail": 2.0}),
     ("tutup", {"lead": 0.3, "tail": 2.8}),
 ]
 
@@ -59,14 +63,17 @@ REKAMAN_NYATA = [
 REKAMAN_APP = ["a06_admin", "a07_kasubbag", "a08_kabag", "a09_walikota", "a09b_ajudan", "a10_penugasan",
                "a10b_hadir", "a11a_tamu", "a11b_ruangan"]
 GAMBAR = ["kabag_kalender_bersama.jpg", "undangan_imbaya.jpg", "hp_walikota.jpg", "hp_staf.jpg", "hp_ajudan.jpg",
-          "kabag_riwayat.jpg", "kabag_plh.jpg", "kabag_antrian.jpg", "kasubbag_jadwal.jpg", "hp_ruangan.jpg", "hp_tamu.jpg"]
+          "kabag_riwayat.jpg", "kabag_plh.jpg", "kabag_antrian.jpg", "kasubbag_jadwal.jpg", "hp_ruangan.jpg", "hp_tamu.jpg",
+          "komdokpim_newsroom.jpg", "kabag_usulan.jpg", "kabag_rekap_wa.jpg"]
 IKON = ["file-text", "sheet", "messages-square", "presentation", "phone", "printer", "clock", "camera", "user",
         "users", "circle-help", "calendar", "calendar-check", "mail", "circle-check", "shield-check", "timer",
         "bell", "qr-code", "signature", "building-2", "map-pin", "coins", "refresh-cw", "history", "sparkles",
         "smartphone", "laptop", "landmark", "scroll-text", "badge-check", "trophy", "inbox",
         "send", "route", "layers", "zap", "moon", "user-check", "user-x", "repeat", "wallet", "globe",
         "message-circle", "door-open", "database", "check", "x", "arrow-right", "footprints", "brain",
-        "clipboard-check", "file-check", "hourglass", "phone-call", "pen-line", "stamp", "award", "star"]
+        "clipboard-check", "file-check", "hourglass", "phone-call", "pen-line", "stamp", "award", "star",
+        "search", "newspaper", "lock", "cloud", "server", "trending-down", "trending-up", "handshake", "quote",
+        "network", "circle-alert", "list-checks", "users-round", "user-round", "hard-drive", "gauge", "target", "puzzle"]
 
 
 def jalankan(*a):

@@ -1,6 +1,6 @@
 # Video Lomba Inovasi Daerah Kota Tarakan 2026 — Prokopim Hibot
 
-Cerita: mengikuti perjalanan satu undangan, dulu (satu lembar disposisi hilang tanpa diketahui) dan
+Cerita: mengikuti perjalanan satu undangan, dulu (satu lembar disposisi tidak sampai, tanpa ada yang tahu) dan
 sekarang (tercatat dari ujung ke ujung). Urutannya memenuhi Petunjuk Teknis Bab 4.4: latar belakang,
 masalah, solusi, implementasi, dan dampak, dengan thumbnail dan identitas Pemerintah Kota Tarakan.
 Angka sama dengan proposal Tarakan (data per 5 Oktober 2026 pukul 15.47 WITA).

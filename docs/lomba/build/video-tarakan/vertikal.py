@@ -28,7 +28,7 @@ def klip(i, k0, k1, pasca=0.25):
 
 
 SEGMEN = [utuh("pembuka"), utuh("judul"), (A["lahir"]["mulai"], kalimat("lahir", 0, 2)[1]),
-          kalimat("alur", 1, 1), kalimat("alur", 5, 5), kalimat("dampak", 2, 3), kalimat("dampak", 7, 7, 0.3, 0.6),
+          kalimat("alur", 1, 1), kalimat("alur", 5, 5), kalimat("dampak", 2, 3), kalimat("dampak", 8, 8, 0.3, 0.6),
           klip("walikota", 0, 1), klip("walikota", 3, 3, 0.4), utuh("tutup")]
 
 

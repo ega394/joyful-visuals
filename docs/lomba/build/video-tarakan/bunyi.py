@@ -302,18 +302,30 @@ def efek():
     d = A["dulu"]
     tambah(E, k("dulu", 1) + 0.5, hentak(), 0.8)
     tambah(E, kata("dulu", 2, "dicetak"), printer(1.0), 0.8, 0.4)
-    for b in np.arange(k("dulu", 3), k("dulu", 4) - 0.2, 0.5):
+    tambah(E, kata("dulu", 3, "cetak"), printer(1.2), 0.8, 0.4)
+    for b in np.arange(k("dulu", 4), k("dulu", 5) - 0.2, 0.5):
         tambah(E, b, tik(), 0.5, 0.3)
     for i in range(3):
-        tambah(E, k("dulu", 4) + 0.45 + i * 0.55, jepret(), 0.45, 0.4)
-    tambah(E, kata("dulu", 6, "menelepon"), dering(1.6), 0.9, 0.3)
-    tambah(E, kata("dulu", 7, "delapan") - 0.2, hentak(), 0.5)
+        tambah(E, k("dulu", 5) + 0.45 + i * 0.55, jepret(), 0.45, 0.4)
+    for i in range(4):
+        tambah(E, k("dulu", 7) + 0.3 + i * 0.35, letup(0.5, 74), 0.4, -0.3 + 0.2 * i)
+    tambah(E, kata("dulu", 8, "menelepon"), dering(1.6), 0.9, 0.3)
+    tambah(E, kata("dulu", 9, "delapan") - 0.2, hentak(), 0.5)
     # akar
     for nm in ("kertas", "spredsit", "grup", "papan", "telepon"):
         tambah(E, kata("akar", 0, nm) - 0.25, letup(0.6, 72), 0.6, rng.uniform(-0.6, 0.6))
-    tk = kata("akar", 2, "jawabannya") - 0.2
+    for nm in ("pendampingan", "peliputan", "naskah"):
+        tambah(E, kata("akar", 2, nm) - 0.15, letup(0.6, 69), 0.5)
+    tk = kata("akar", 3, "jawabannya") - 0.2
     tambah(E, tk, desir(0.9, True), 0.8)
     tambah(E, tk + 0.75, dentang((76, 83, 88), 0.08, 1.0), 0.7)
+    # ide: kartu penjaringan, tiga pilihan dicoret, satu dipilih
+    for i, (kk, nm) in enumerate(((0, "pekerjaan"), (1, "sesudah"), (1, "menelaah"))):
+        tambah(E, kata("ide", kk, nm) - 0.3, letup(0.6, 72 + 2 * i), 0.5)
+    tambah(E, k("ide", 2) - 0.2, desir(0.6, False), 0.4)
+    for kk in (3, 4, 5):
+        tambah(E, k("ide", kk) + 0.15, hentak(), 0.35)
+    tambah(E, k("ide", 6) - 0.1, dentang((79, 84, 88), 0.08, 0.9), 0.6)
     # lahir
     l0 = A["lahir"]["mulai"]
     tambah(E, l0 + 0.35, dentang((84, 88, 91, 96), 0.07, 1.0), 0.6)
@@ -337,20 +349,40 @@ def efek():
     # layanan, jejak, bangun
     for nm, kk in (("undangan", 0), ("daftar", 0)):
         tambah(E, kata("layanan", kk, nm) - 0.25, desir(0.5, False), 0.35)
-    tambah(E, k("layanan", 1) - 0.2, desir(0.6, True), 0.35)
-    tambah(E, kata("layanan", 2, "kode") - 0.35, letup(0.9, 84), 0.7)
+    tambah(E, k("layanan", 1) - 0.2, desir(0.5, False), 0.35)
+    tambah(E, k("layanan", 2) - 0.2, desir(0.6, True), 0.35)
+    tambah(E, kata("layanan", 3, "kode") - 0.35, letup(0.9, 84), 0.7)
     for i in range(7):
         tambah(E, A["jejak"]["mulai"] + 0.35 + i * 0.28, tik(), 0.3, 0.3)
     tambah(E, k("jejak", 2) - 0.25, desir(0.6, False), 0.4)
+    tambah(E, kata("jejak", 3, "berakhir"), dentang((84, 88), 0.06, 0.6), 0.45)
+    tambah(E, k("jejak", 4) - 0.25, desir(0.6, False), 0.4)
+    for kk in (4, 5, 6):
+        tambah(E, k("jejak", kk) - 0.15, letup(0.6, 76 + kk), 0.5)
     tambah(E, k("bangun", 1) - 0.2, desir(0.6, False), 0.35)
     tambah(E, k("bangun", 2) - 0.25, desir(0.6, True), 0.35)
+    # daya
+    for i in range(5):
+        tambah(E, A["daya"]["mulai"] + 0.7 + i * 0.15, tik(), 0.3, -0.4 + 0.2 * i)
+    tambah(E, k("daya", 1) - 0.25, desir(0.6, False), 0.35)
+    for nm in ("sekretaris", "de ka", "bapeda"):
+        tambah(E, kata("daya", 1, nm) - 0.3, letup(0.6, 74), 0.5)
+    tambah(E, k("daya", 2) - 0.25, desir(0.6, False), 0.35)
+    tambah(E, kata("daya", 3, "satu gigabita") - 0.4, desir(0.8, False), 0.5)
     # dampak: tiap angka diberi letupan
-    for i in range(1, 8):
+    for i in range(1, 9):
         tambah(E, k("dampak", i) - 0.25, letup(0.8, 76 + i), 0.55)
-    tambah(E, kata("dampak", 7, "nol") - 0.15, gong(0.8), 0.6)
+    tambah(E, kata("dampak", 8, "nol") - 0.15, gong(0.8), 0.6)
+    # testimoni
+    for nm in ("ajudan", "staf", "pelaksana"):
+        tambah(E, kata("testimoni", 0, nm) - 0.25, letup(0.5, 79), 0.4)
     # lanjut, tutup
-    tambah(E, k("lanjut", 1) - 0.25, desir(0.6, False), 0.35)
-    tambah(E, k("lanjut", 3) - 0.25, desir(0.8, True), 0.45)
+    for kk in (1, 2, 4):
+        tambah(E, k("lanjut", kk) - 0.25, desir(0.6, False), 0.35)
+    for nm in ("tata kelola, proses", "proses bisnis", "digitalisasi", "data, manajemen", "manajemen", "pengawasan", "efisiensi"):
+        tambah(E, kata("lanjut", 1, nm) - 0.25, letup(0.45, 77), 0.35)
+    tambah(E, k("lanjut", 5) - 0.25, desir(0.8, True), 0.45)
+    tambah(E, kata("tim", 0, "tim inovasi") - 0.2, dentang((79, 84), 0.08, 0.7), 0.45)
     tambah(E, A["tutup"]["mulai"] + 0.2, dentang((84, 88, 91, 96, 100), 0.06, 0.9), 0.55)
     return gema(E, 1.2, 0.18)
 
