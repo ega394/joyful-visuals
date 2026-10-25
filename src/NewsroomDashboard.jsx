@@ -75,9 +75,16 @@ export default function NewsroomDashboard({ events, user, showT, isMobile, upd }
   const [teksBerita,    setTeksBerita]    = useState("");
   const [catatanBerita, setCatatanBerita] = useState("");
 
+  // Urutan: caption menunggu review dulu, lalu kegiatan hari ini dan yang sudah
+  // lewat (terbaru di atas), baru kegiatan mendatang (terdekat di atas). Dulu
+  // diurutkan dari tanggal terjauh, sehingga caption hari ini tertimbun di bawah.
+  const hariIni = new Date().toLocaleDateString("sv-SE");
+  const peringkat = e => e.captionStatus === "menunggu" ? 0 : (e.tanggal <= hariIni ? 1 : 2);
   const jadwal = events
     .filter(e => e.alur === "disetujui")
-    .sort((a,b) => new Date(b.tanggal)-new Date(a.tanggal))
+    .sort((a,b) => peringkat(a) - peringkat(b)
+      || (peringkat(a) === 2 ? a.tanggal.localeCompare(b.tanggal) : b.tanggal.localeCompare(a.tanggal))
+      || String(b.jam||"").localeCompare(String(a.jam||"")))
     .slice(0, 60);
 
   const fmtDate = d => {
