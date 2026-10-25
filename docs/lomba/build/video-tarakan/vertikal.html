@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8">
+<style>
+@font-face { font-family: "PJS"; src: url("aset/PlusJakartaSans-Variable.woff2") format("woff2"); font-weight: 200 800; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 1080px; height: 1920px; font-family: "PJS", sans-serif; color: #fff; }
+body { background: radial-gradient(900px 700px at 50% 18%, #23215a 0%, #0d1836 55%, #070d1c 100%); }
+.abs { position: absolute; }
+.b { font-weight: 800; letter-spacing: -0.02em; }
+</style></head>
+<body>
+<div class="abs" style="left:0;right:0;top:170px;display:flex;justify-content:center;align-items:center;gap:22px">
+  <img src="aset/tarakan.png" style="height:104px">
+  <img src="aset/hibot.png" style="height:104px;border-radius:24px">
+</div>
+<div class="abs b" style="left:0;right:0;top:310px;text-align:center;font-size:92px">Prokopim Hibot</div>
+<div class="abs" style="left:0;right:0;top:420px;text-align:center;font-size:34px;font-weight:700;color:#D7DDF0">Superapp Keprotokolan · Pemerintah Kota Tarakan</div>
+<div class="abs" style="left:0;right:0;top:480px;text-align:center"><span style="display:inline-block;padding:10px 24px;border-radius:999px;background:rgba(242,193,78,.14);border:2px solid rgba(242,193,78,.6);color:#F2C14E;font-weight:800;font-size:26px;letter-spacing:2px">JUARA I · LOMBA INOVASI DAERAH KALTARA 2026</span></div>
+<div class="abs" style="left:0;right:0;top:1300px;height:6px;background:rgba(255,255,255,.12)"></div>
+<div class="abs" style="left:0;right:0;top:1780px;text-align:center;font-size:30px;font-weight:700;color:#A7B6CC;letter-spacing:1px">prokopim.tarakankota.go.id</div>
+<script>
+window.siap = (async () => { await document.fonts.load("800 40px PJS"); await document.fonts.ready;
+  await Promise.all([...document.images].map((i) => (i.complete ? null : new Promise((r) => { i.onload = i.onerror = r; })))); return true; })();
+</script>
+</body></html>

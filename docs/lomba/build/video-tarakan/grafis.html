@@ -1,0 +1,922 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8">
+<title>Prokopim Hibot — video Lomba Inovasi Daerah Kota Tarakan 2026</title>
+<style>
+@font-face { font-family: "PJS"; src: url("aset/PlusJakartaSans-Variable.woff2") format("woff2"); font-weight: 200 800; }
+:root { --navy:#0A1628; --navy2:#10203A; --navy3:#172B4A; --garis:#2A3B57; --emas:#F2C14E; --emas2:#C9A84C; --ungu:#7C6CF2;
+        --biru:#4C8DF6; --hijau:#34C38F; --merah:#F05A5A; --abu:#A7B6CC; --abu2:#6B7F9E; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 1920px; height: 1080px; overflow: hidden; background: #000; font-family: "PJS", sans-serif; color: #fff; }
+#dunia { position: absolute; inset: 0; overflow: hidden; background: var(--navy); }
+.adegan { position: absolute; inset: 0; overflow: hidden; display: none;
+          background: radial-gradient(1500px 900px at 72% 12%, #172c4f 0%, var(--navy) 60%); }
+.abs { position: absolute; }
+.b { font-weight: 800; letter-spacing: -0.02em; }
+.tengah { left: 0; right: 0; text-align: center; }
+.kartu { position: absolute; background: rgba(16,32,58,.94); border: 1.5px solid var(--garis); border-radius: 28px; box-shadow: 0 30px 70px rgba(0,0,0,.35); }
+.pil { position: absolute; display: inline-flex; align-items: center; gap: 12px; padding: 12px 24px; border-radius: 999px; font-weight: 700; font-size: 26px; white-space: nowrap; }
+.pil.emas { background: rgba(242,193,78,.14); border: 1.5px solid rgba(242,193,78,.55); color: var(--emas); }
+.pil.hijau { background: rgba(52,195,143,.16); border: 1.5px solid rgba(52,195,143,.6); color: #7FE3BD; }
+.pil.merah { background: rgba(240,90,90,.16); border: 1.5px solid rgba(240,90,90,.6); color: #FFA3A3; }
+.pil.putih { background: #fff; color: var(--navy); }
+.pil.ungu { background: rgba(124,108,242,.2); border: 1.5px solid rgba(124,108,242,.7); color: #C9C1FF; }
+.ik { display: inline-flex; }
+.ik svg { display: block; }
+.kertas { position: absolute; background: #fff; padding: 10px; border-radius: 6px; box-shadow: 0 30px 60px rgba(0,0,0,.6); }
+.kertas img { display: block; width: 100%; }
+.laptop { position: absolute; }
+.laptop .layar { position: absolute; left: 0; top: 0; right: 0; bottom: 26px; border-radius: 20px; background: #05080f; border: 14px solid #0c121c;
+                 box-shadow: 0 40px 90px rgba(0,0,0,.55), 0 0 0 2px #26344c; overflow: hidden; }
+.laptop .layar img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; }
+.laptop .dasar { position: absolute; left: -5%; right: -5%; bottom: 0; height: 26px; border-radius: 0 0 26px 26px; background: linear-gradient(#34445e, #151e2e); }
+.ponsel { position: absolute; border-radius: 50px; background: #05080f; border: 12px solid #0c121c; box-shadow: 0 40px 90px rgba(0,0,0,.55), 0 0 0 2px #2b3b57; overflow: hidden; }
+.ponsel img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; }
+.bingkaiFoto { position: absolute; border-radius: 26px; overflow: hidden; box-shadow: 0 40px 90px rgba(0,0,0,.55), 0 0 0 2px rgba(255,255,255,.08); }
+.bingkaiFoto img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.penuh { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.gelapKiri { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(10,22,40,.96) 0%, rgba(10,22,40,.82) 42%, rgba(10,22,40,.1) 75%); }
+.angka { font-weight: 800; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; }
+.label { font-size: 34px; font-weight: 700; color: var(--abu); }
+.obrol { position: absolute; border-radius: 46px; background: #0c1621; border: 12px solid #0c121c; box-shadow: 0 40px 90px rgba(0,0,0,.55), 0 0 0 2px #2b3b57; overflow: hidden; }
+.obrol .kepala { height: 92px; background: #16263a; display: flex; align-items: center; gap: 14px; padding: 0 20px; }
+.obrol .ava { width: 52px; height: 52px; border-radius: 26px; background: linear-gradient(135deg, #3b6fd8, #7c6cf2); display: flex; align-items: center; justify-content: center; }
+.obrol .gel { position: absolute; max-width: 78%; padding: 14px 16px; border-radius: 18px; font-size: 21px; line-height: 1.35; }
+.obrol .kiri { left: 16px; background: #1e2c3d; border-top-left-radius: 4px; }
+.obrol .kanan { right: 16px; background: #1d4d3a; border-top-right-radius: 4px; }
+.ubin { position: absolute; display: flex; align-items: center; gap: 14px; padding: 0 18px; border-radius: 18px; background: rgba(23,43,74,.95); border: 1.5px solid #2f456a; font-size: 22px; font-weight: 700; line-height: 1.2; }
+#atas { position: absolute; inset: 0; pointer-events: none; }
+#chip { position: absolute; left: 64px; top: 40px; display: flex; align-items: center; gap: 18px; padding: 12px 24px 12px 20px; border-radius: 999px;
+        background: rgba(10,22,40,.72); border: 1.5px solid rgba(242,193,78,.45); }
+#chip .nama { color: var(--emas); font-weight: 800; font-size: 22px; letter-spacing: 3px; }
+#chip .titik { display: flex; gap: 8px; }
+#chip .titik i { width: 10px; height: 10px; border-radius: 5px; background: rgba(255,255,255,.22); display: block; }
+#chip .titik i.on { background: var(--emas); width: 26px; }
+#logo { position: absolute; right: 60px; top: 30px; display: flex; align-items: center; gap: 16px; padding: 10px 22px 10px 12px; border-radius: 20px; background: rgba(10,22,40,.72); border: 1.5px solid rgba(255,255,255,.1); }
+#logo img { height: 66px; }
+#logo .t1 { font-weight: 800; font-size: 20px; letter-spacing: 2.5px; }
+#logo .t2 { font-weight: 600; font-size: 16px; color: var(--abu); letter-spacing: 1px; margin-top: 2px; }
+</style></head>
+<body>
+<div id="dunia"></div>
+<div id="atas">
+  <div id="chip"><span class="nama"></span><span class="titik"></span></div>
+  <div id="logo"><img src="aset/tarakan.png"><div><div class="t1">PEMERINTAH KOTA TARAKAN</div><div class="t2">Bagian Protokol dan Komunikasi Pimpinan</div></div></div>
+</div>
+<script src="data.js"></script>
+<script>
+const L = window.LINI, FPS = L.fps, IKON = window.IKON, JUMLAH = window.JUMLAH || {};
+const dunia = document.getElementById("dunia");
+
+// ---------- alat bantu ----------
+const kl = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const lin = (t, a, d) => kl((t - a) / d);
+const halus = (x) => x * x * (3 - 2 * x);
+const keluar3 = (x) => 1 - Math.pow(1 - x, 3);
+const masukKeluar = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+const pegas = (x) => { const c1 = 1.70158, c3 = c1 + 1; return x <= 0 ? 0 : x >= 1 ? 1 : 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+const e = (t, a, d = 0.6, f = keluar3) => f(lin(t, a, d));
+const campur = (a, b, k) => a + (b - a) * k;
+const gaya = (n, o) => Object.assign(n.style, o);
+const buat = (induk, html) => { const d = document.createElement("div"); d.innerHTML = html.trim(); const n = d.firstChild; induk.appendChild(n); return n; };
+const angka = (v, dp = 0) => v.toLocaleString("id-ID", { minimumFractionDigits: dp, maximumFractionDigits: dp });
+function ik(n, uk = 40, warna = "currentColor", tebal = 2) {
+  const s = IKON[n] || IKON["circle-help"];
+  return `<span class="ik" style="color:${warna}">` + s.replace(/width="24"/, `width="${uk}"`).replace(/height="24"/, `height="${uk}"`).replace(/stroke-width="2"/, `stroke-width="${tebal}"`) + "</span>";
+}
+// muncul: pudar + geser naik + skala; hilang pada `sampai` (opsional)
+function muncul(n, t, a, d = 0.5, dy = 26, sampai = null, sk = 1, f = keluar3) {
+  let k = f(lin(t, a, d));
+  if (sampai !== null) k *= 1 - keluar3(lin(t, sampai, 0.35));
+  n.style.opacity = k;
+  n.style.transform = `translateY(${(1 - k) * dy}px) scale(${sk + (1 - sk) * k})`;
+  return k;
+}
+function jendela(n, t, a, b, d = 0.35) {   // tampak antara a..b, pudar masuk/keluar
+  const k = lin(t, a, d) * (1 - lin(t, b, d));
+  n.style.opacity = k; n.style.visibility = k > 0.001 ? "visible" : "hidden";
+  return k;
+}
+const MENUNGGU = [];
+class Rekaman {               // urutan bingkai JPG hasil siapkan.py
+  constructor(img, id) { this.img = img; this.id = id; this.n = -1; this.maks = Math.max(0, (JUMLAH[id] || 1) - 1); }
+  bingkai(n) {
+    n = Math.max(0, Math.min(this.maks, Math.floor(n)));
+    if (n !== this.n) { this.n = n; this.img.src = `bingkai/${this.id}/${String(n + 1).padStart(5, "0")}.jpg`; MENUNGGU.push(this.img.decode().catch(() => {})); }
+  }
+  // petakan rentang sumber [s0, s1] (detik) ke rentang tayang [t0, t1]
+  petakan(t, t0, t1, s0 = 0, s1 = null) {
+    if (s1 === null) s1 = this.maks / FPS;
+    this.bingkai((s0 + (s1 - s0) * kl((t - t0) / (t1 - t0))) * FPS);
+  }
+}
+function rekaman(induk, id, kelas, css) {
+  const img = buat(induk, `<img class="${kelas || "penuh"}" style="${css || ""}">`);
+  return new Rekaman(img, id);
+}
+function ponsel(induk, x, y, w, h, isi = "") {
+  return buat(induk, `<div class="ponsel" style="left:${x}px;top:${y}px;width:${w}px;height:${h}px">${isi}</div>`);
+}
+function laptop(induk, x, y, w, h) {
+  return buat(induk, `<div class="laptop" style="left:${x}px;top:${y}px;width:${w}px;height:${h + 26}px"><div class="layar"></div><div class="dasar"></div></div>`);
+}
+function bantu(a) {
+  const K = a.kalimat || [];
+  return Object.assign({}, a, {
+    k: (i) => (K[i] ? K[i].awal : 0),
+    e: (i) => (K[i] ? K[i].akhir : 0),
+    // perkiraan saat sebuah kata diucapkan: sebanding letaknya dalam teks ucapan
+    w: (i, kata, urut = 0) => {
+      const s = K[i]; if (!s) return 0;
+      const u = (s.ucap || s.takarir).toLowerCase(); let idx = -1, dari = 0;
+      for (let j = 0; j <= urut; j++) { idx = u.indexOf(kata.toLowerCase(), dari); if (idx < 0) break; dari = idx + 1; }
+      return idx < 0 ? s.awal : s.awal + (s.akhir - s.awal) * idx / u.length;
+    },
+  });
+}
+// angka acak tetap (agar tiap render sama)
+let benih = 7; const acak = () => ((benih = (benih * 16807) % 2147483647) / 2147483647);
+
+const SC = {};
+
+// =====================================================================
+// 1. PEMBUKA — satu lembar tidak ikut terfoto
+// =====================================================================
+SC.pembuka = (R, A) => {
+  R.style.background = "radial-gradient(1300px 820px at 50% 45%, #10203a 0%, #050a14 72%)";
+  const tgl = buat(R, `<div class="abs b tengah" style="top:380px;font-size:150px;letter-spacing:12px"></div>`);
+  const kursor = buat(R, `<div class="abs" style="top:400px;width:10px;height:140px;background:var(--emas)"></div>`);
+  const lokasi = buat(R, `<div class="abs tengah" style="top:585px;font-size:30px;font-weight:700;color:var(--abu);letter-spacing:7px">SEKRETARIAT DAERAH KOTA TARAKAN</div>`);
+  const stempel = buat(R, `<div class="pil emas" style="left:110px;top:150px;font-size:24px">${ik("calendar", 26)}Januari 2026</div>`);
+  const kA = buat(R, `<div class="kertas" style="left:110px;top:240px;width:700px;transform-origin:50% 50%"><img src="aset/lembar-sampai.jpg"></div>`);
+  const kB = buat(R, `<div class="kertas" style="left:190px;top:626px;width:700px"><img src="aset/lembar-tertinggal.jpg"></div>`);
+  const lA = buat(R, `<div class="pil putih" style="left:140px;top:206px;font-size:20px;padding:8px 16px">RENCANA KEGIATAN</div>`);
+  const lB = buat(R, `<div class="pil putih" style="left:220px;top:592px;font-size:20px;padding:8px 16px">RENCANA AUDIENSI</div>`);
+  const garisB = buat(R, `<div class="abs" style="left:176px;top:612px;width:728px;height:272px;border:5px dashed var(--merah);border-radius:14px"></div>`);
+  const tandaB = buat(R, `<div class="pil merah" style="left:925px;top:720px;font-size:21px;padding:10px 18px">${ik("x", 22)}TIDAK IKUT<br>TERFOTO</div>`);
+  const bidik = buat(R, `<div class="abs" style="left:96px;top:226px;width:728px;height:398px">
+     ${["left:0;top:0;border-left:6px solid #fff;border-top:6px solid #fff", "right:0;top:0;border-right:6px solid #fff;border-top:6px solid #fff",
+        "left:0;bottom:0;border-left:6px solid #fff;border-bottom:6px solid #fff", "right:0;bottom:0;border-right:6px solid #fff;border-bottom:6px solid #fff"]
+       .map((s) => `<div class="abs" style="width:70px;height:70px;${s}"></div>`).join("")}</div>`);
+  const hp = buat(R, `<div class="obrol" style="left:1240px;top:150px;width:420px;height:760px">
+     <div class="kepala"><div class="ava">${ik("users", 28, "#fff")}</div><div><div style="font-weight:800;font-size:22px">Grup Koordinasi Agenda</div><div style="font-size:17px;color:var(--abu)">14 anggota</div></div></div>
+     <div class="gel kiri" style="top:120px;opacity:0" id="m1"><b style="color:#7FB2FF;font-size:17px">Ajudan</b><br>Berkas disposisi agenda, mohon ditindaklanjuti.</div>
+     <div class="gel kanan" style="top:250px;width:300px;padding:8px;opacity:0" id="m2"><img src="aset/lembar-sampai.jpg" style="width:100%;border-radius:10px;display:block"><div style="font-size:16px;text-align:right;color:#9fd5bd;margin-top:6px">16.31 ✓✓</div></div>
+     <div class="gel kiri" style="top:470px;opacity:0" id="m3"><b style="color:#FFB27F;font-size:17px">Staf Protokol</b><br>Siap, ditindaklanjuti.</div></div>`);
+  const m1 = hp.querySelector("#m1"), m2 = hp.querySelector("#m2"), m3 = hp.querySelector("#m3");
+  const terbang = buat(R, `<div class="abs" style="left:120px;top:250px;width:680px;opacity:0"><img src="aset/lembar-sampai.jpg" style="width:100%;display:block;border-radius:8px"></div>`);
+  const kilat = buat(R, `<div class="abs" style="inset:0;background:#fff;opacity:0"></div>`);
+  const cap = buat(R, `<div class="abs b" style="left:215px;top:700px;font-size:62px;color:var(--merah);letter-spacing:4px;opacity:0;border:7px solid var(--merah);background:rgba(10,22,40,.82);padding:4px 26px;border-radius:14px;white-space:nowrap">TIDAK PERNAH SAMPAI</div>`);
+  const ket = buat(R, `<div class="pil merah" style="left:220px;top:592px;font-size:20px;padding:8px 16px;opacity:0">RENCANA AUDIENSI · untuk Senin, 5 Januari 2026</div>`);
+  const b1 = buat(R, `<div class="abs b tengah" style="top:380px;font-size:88px;opacity:0">Tidak ada yang lalai…</div>`);
+  const b2 = buat(R, `<div class="abs b tengah" style="top:510px;font-size:88px;color:var(--emas);opacity:0">…tapi juga tidak ada yang tahu.</div>`);
+  const hitam = buat(R, `<div class="abs" style="inset:0;background:#000;opacity:0"></div>`);
+  const TEKS = "JANUARI 2026";
+  const tTerfoto = A.w(1, "terfoto"), tFoto = tTerfoto - 1.1, tGrup = A.w(1, "grup");
+  return (t) => {
+    const n = Math.floor(kl((t - 0.8) / 0.095, 0, TEKS.length));
+    tgl.textContent = TEKS.slice(0, n);
+    const lebar = tgl.textContent.length * 104;
+    gaya(kursor, { left: (960 + lebar / 2 + 10) + "px", opacity: (t < 3.4 && Math.floor(t * 2.4) % 2 === 0) || (t > 0.8 && t < 2.1) ? 1 : 0 });
+    const besar = 1 - lin(t, 3.5, 0.4);
+    tgl.style.opacity = besar; lokasi.style.opacity = e(t, 2.0, 0.6) * besar;
+    muncul(stempel, t, 3.8, 0.5, 10, 12.9);
+    // dua lembar di meja
+    muncul(kA, t, 3.9, 0.7, 50, 12.9); muncul(lA, t, 4.3, 0.4, 10, 12.9);
+    const pergi = e(t, A.k(2) + 0.1, 1.6, masukKeluar);
+    const kb = muncul(kB, t, 4.2, 0.7, 50);
+    kB.style.opacity = kb * (1 - 0.6 * pergi) * (1 - lin(t, 12.9, 0.35));
+    kB.style.transform = `translateY(${(1 - kb) * 50}px) rotate(${2 - 1 * pergi}deg) scale(${1 - 0.04 * pergi})`;
+    kB.style.filter = `grayscale(${kl(pergi * 1.3)}) brightness(${1 - 0.45 * pergi}) blur(${1.5 * pergi}px)`;
+    lB.style.opacity = e(t, 4.6, 0.4) * (1 - lin(t, A.k(2) + 0.9, 0.3)); kA.style.transform += " rotate(-2.5deg)";
+    // bidik & jepret lembar pertama
+    jendela(bidik, t, tFoto - 0.8, tFoto + 0.15, 0.25);
+    kilat.style.opacity = 0.75 * Math.max(0, 1 - Math.abs(t - tFoto) * 5);
+    const tb = e(t, tFoto + 0.05, 0.75, masukKeluar);
+    gaya(terbang, { opacity: t > tFoto && tb < 1 ? 1 : 0, transform: `translate(${tb * 1210}px, ${tb * 30}px) scale(${1 - 0.62 * tb})`, transformOrigin: "0 0" });
+    muncul(hp, t, 3.95, 0.7, 40, 12.9);
+    muncul(m1, t, 4.5, 0.4, 12); muncul(m2, t, tFoto + 0.75, 0.3, 10); muncul(m3, t, tGrup + 0.3, 0.4, 12);
+    // lembar kedua: tidak ikut terfoto
+    jendela(garisB, t, tTerfoto, A.k(2) + 0.2, 0.3);
+    jendela(tandaB, t, tTerfoto + 0.2, A.k(2) + 0.2, 0.3);
+    muncul(cap, t, A.k(2) + 0.7, 0.35, 0, 12.9, 1.6, pegas); cap.style.transform += " rotate(-5deg)";
+    muncul(ket, t, A.k(2) + 1.0, 0.4, 8, 12.9);
+    muncul(b1, t, A.k(3) - 0.05, 0.6, 20); muncul(b2, t, A.k(4) - 0.05, 0.7, 20);
+    hitam.style.opacity = lin(t, A.lama - 1.1, 1.0);
+  };
+};
+
+// =====================================================================
+// 2. JUDUL
+// =====================================================================
+SC.judul = (R, A) => {
+  R.style.background = "radial-gradient(1100px 700px at 50% 42%, #2a2366 0%, #0d1736 55%, #070d1c 100%)";
+  const cahaya = buat(R, `<div class="abs" style="left:660px;top:120px;width:600px;height:600px;border-radius:300px;background:radial-gradient(circle, rgba(124,108,242,.55), rgba(124,108,242,0) 70%)"></div>`);
+  const logo = buat(R, `<img class="abs" src="aset/hibot.png" style="left:840px;top:150px;width:240px;border-radius:52px;box-shadow:0 30px 80px rgba(0,0,0,.5)">`);
+  const nama = buat(R, `<div class="abs b tengah" style="top:440px;font-size:128px;letter-spacing:-2px">Prokopim Hibot</div>`);
+  const kilau = buat(R, `<div class="abs" style="top:430px;height:170px;width:260px;background:linear-gradient(100deg, rgba(255,255,255,0), rgba(255,255,255,.35), rgba(255,255,255,0));mix-blend-mode:overlay"></div>`);
+  const sub = buat(R, `<div class="abs tengah" style="top:620px;font-size:40px;font-weight:600;color:#D7DDF0">Superapp Pelayanan Keprotokolan dan Komunikasi Pimpinan</div>`);
+  const garis = buat(R, `<div class="abs" style="left:860px;top:705px;width:200px;height:4px;border-radius:2px;background:var(--emas)"></div>`);
+  const kota = buat(R, `<div class="abs tengah" style="top:740px;font-size:28px;font-weight:700;color:var(--emas);letter-spacing:4px">PEMERINTAH KOTA TARAKAN · LOMBA INOVASI DAERAH 2026</div>`);
+  return (t) => {
+    const k = e(t, 0.05, 0.7, pegas);
+    gaya(logo, { opacity: lin(t, 0.05, 0.25), transform: `scale(${0.4 + 0.6 * k}) rotate(${(1 - k) * -12}deg)` });
+    cahaya.style.opacity = 0.6 + 0.4 * Math.sin(t * 2.2); cahaya.style.transform = `scale(${0.8 + 0.25 * e(t, 0, 1.2)})`;
+    muncul(nama, t, 0.35, 0.6, 30); gaya(kilau, { left: (520 + 900 * lin(t, 0.9, 0.9)) + "px", opacity: lin(t, 0.9, 0.1) * (1 - lin(t, 1.7, 0.1)) });
+    muncul(sub, t, 0.65, 0.6, 20); garis.style.transform = `scaleX(${e(t, 0.9, 0.6)})`; muncul(kota, t, 1.05, 0.6, 16);
+    R.style.opacity = 1 - lin(t, A.lama - 0.35, 0.35) * 0.0;
+  };
+};
+
+// =====================================================================
+// 3. DULU — serba manual
+// =====================================================================
+SC.dulu = (R, A) => {
+  // P0: 91 kegiatan per bulan
+  const p0 = buat(R, `<div class="abs" style="inset:0"></div>`);
+  const r0 = rekaman(p0, "n1345", "penuh", "filter:blur(7px) brightness(.32) saturate(.7);transform:scale(1.06)");
+  const n91 = buat(p0, `<div class="abs angka" style="left:120px;top:230px;font-size:300px;line-height:1;color:var(--emas)">0</div>`);
+  const l91 = buat(p0, `<div class="abs" style="left:130px;top:560px;width:860px"><div class="b" style="font-size:44px">kegiatan Wali Kota &amp; Wakil Wali Kota</div><div class="label" style="margin-top:10px">setiap bulan, rata-rata</div></div>`);
+  const kal = buat(p0, `<div class="kartu" style="left:1010px;top:200px;width:780px;height:640px;padding:34px 40px"></div>`);
+  kal.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><div class="b" style="font-size:34px">Satu bulan</div><div style="font-size:22px;color:var(--abu);display:flex;gap:18px"><span><i style="display:inline-block;width:14px;height:14px;border-radius:7px;background:var(--emas)"></i> Wali Kota</span><span><i style="display:inline-block;width:14px;height:14px;border-radius:7px;background:var(--biru)"></i> Wakil Wali Kota</span></div></div>`
+    + `<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-top:22px">` + ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"].map((h) => `<div style="text-align:center;font-size:18px;color:var(--abu2);font-weight:700">${h}</div>`).join("")
+    + Array.from({ length: 35 }, (_, i) => `<div class="hari" style="height:78px;border-radius:12px;background:rgba(255,255,255,${i < 31 ? 0.05 : 0.015});padding:6px 8px;position:relative"><div style="font-size:15px;color:var(--abu2)">${i < 31 ? i + 1 : ""}</div><div class="titik" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px"></div></div>`).join("") + `</div>`;
+  const hari = [...kal.querySelectorAll(".hari .titik")];
+  const sebaran = [3, 4, 2, 5, 3, 1, 2, 4, 3, 3, 5, 2, 1, 2, 3, 4, 4, 3, 2, 2, 1, 4, 3, 5, 3, 2, 1, 3, 4, 3, 3]; // 91
+  const titik = []; sebaran.forEach((c, d) => { for (let j = 0; j < c; j++) titik.push(buat(hari[d], `<i style="width:13px;height:13px;border-radius:7px;background:${acak() < 0.72 ? "var(--emas)" : "var(--biru)"};display:block;opacity:0"></i>`)); });
+  // P1: serba manual
+  const p1 = buat(R, `<div class="abs" style="inset:0"></div>`);
+  const r1 = rekaman(p1, "n1345", "penuh", "");
+  buat(p1, `<div class="abs" style="inset:0;background:linear-gradient(0deg, rgba(5,10,20,.6), rgba(5,10,20,0) 45%)"></div>`);
+  const cap1 = buat(p1, `<div class="abs b" style="left:560px;top:380px;font-size:120px;color:#fff;border:12px solid var(--merah);background:rgba(240,90,90,.82);padding:10px 50px;border-radius:24px;letter-spacing:6px">SERBA MANUAL</div>`);
+  // P2: spreadsheet -> cetak
+  const p2 = buat(R, `<div class="abs" style="inset:0"></div>`);
+  const ss = buat(p2, `<div class="kartu" style="left:170px;top:250px;width:700px;height:470px;padding:0;overflow:hidden"></div>`);
+  ss.innerHTML = `<div style="height:56px;background:#1f6e43;display:flex;align-items:center;gap:12px;padding:0 20px;font-weight:800;font-size:22px">${ik("sheet", 28, "#fff")} RK-Januari.xlsx</div>`
+    + `<div style="display:grid;grid-template-columns:120px 1fr 1fr 1fr;">` + Array.from({ length: 36 }, (_, i) => `<div class="sel" style="height:46px;border-right:1px solid #2a3b57;border-bottom:1px solid #2a3b57;padding:12px 10px"><div style="height:12px;border-radius:6px;background:${i < 4 ? "#3d5579" : "#2c4060"};width:${40 + (i * 37) % 55}%;opacity:0"></div></div>`).join("") + `</div>`;
+  const sel = [...ss.querySelectorAll(".sel div")];
+  const panah2 = buat(p2, `<div class="abs" style="left:920px;top:440px">${ik("arrow-right", 90, "var(--abu)", 2.5)}</div>`);
+  const printer = buat(p2, `<div class="abs" style="left:1130px;top:300px">${ik("printer", 300, "#fff", 1.4)}</div>`);
+  const lembar2 = buat(p2, `<div class="abs" style="left:1205px;top:520px;width:150px;height:190px;background:#F7F4EA;border-radius:6px;box-shadow:0 12px 30px rgba(0,0,0,.4)"></div>`);
+  const t2a = buat(p2, `<div class="abs b" style="left:170px;top:160px;font-size:50px">Diketik di spreadsheet…</div>`);
+  const t2b = buat(p2, `<div class="abs b" style="left:1110px;top:160px;font-size:50px;color:var(--emas)">…lalu dicetak</div>`);
+  // P3: 30 menit menjelang pulang
+  const p3 = buat(R, `<div class="abs" style="inset:0"></div>`);
+  const f3 = buat(p3, `<div class="bingkaiFoto" style="left:1010px;top:210px;width:800px;height:580px"></div>`);
+  const r3 = rekaman(f3, "n1346", "penuh");
+  const t3a = buat(p3, `<div class="abs label" style="left:130px;top:280px">Pemeriksaan hanya sempat</div>`);
+  const t3b = buat(p3, `<div class="abs angka" style="left:120px;top:340px;font-size:166px;color:var(--emas)">±30 menit</div>`);
+  const t3c = buat(p3, `<div class="abs b" style="left:130px;top:570px;font-size:50px">menjelang jam pulang</div>`);
+  const t3d = buat(p3, `<div class="pil merah" style="left:130px;top:670px">${ik("clock", 28)}hanya hari kerja</div>`);
+  // P4: disposisi sebagai foto
+  const p4 = buat(R, `<div class="abs" style="inset:0"></div>`);
+  const t4 = buat(p4, `<div class="abs b" style="left:130px;top:360px;font-size:72px;width:760px;line-height:1.1">Disposisi dikirim sebagai <span style="color:var(--emas)">foto</span></div>`);
+  const hp4 = buat(p4, `<div class="obrol" style="left:1180px;top:150px;width:420px;height:760px"><div class="kepala"><div class="ava">${ik("users", 28, "#fff")}</div><div><div style="font-weight:800;font-size:22px">Grup Koordinasi Agenda</div><div style="font-size:17px;color:var(--abu)">foto · foto · foto</div></div></div></div>`);
+  const foto4 = [0, 1, 2].map((i) => buat(hp4, `<div class="gel ${i % 2 ? "kiri" : "kanan"}" style="top:${115 + i * 205}px;width:270px;padding:8px;opacity:0"><img src="aset/${i === 1 ? "lembar-tertinggal" : "lembar-sampai"}.jpg" style="width:100%;height:150px;object-fit:cover;border-radius:10px;display:block;filter:blur(${i === 2 ? 1.5 : 0}px)"></div>`));
+  const ikKam = buat(p4, `<div class="abs" style="left:900px;top:430px;opacity:0">${ik("camera", 110, "var(--abu)", 1.6)}</div>`);
+  // P5: petugas tergantung ingatan
+  const p5 = buat(R, `<div class="abs" style="inset:0"></div>`);
+  const o5 = buat(p5, `<div class="abs" style="left:300px;top:330px">${ik("user", 300, "#fff", 1.3)}</div>`);
+  const tny = buat(p5, `<div class="abs b" style="left:600px;top:240px;font-size:140px;color:var(--emas)">Petugas?</div>`);
+  const awan = buat(p5, `<div class="kartu" style="left:640px;top:450px;width:880px;height:250px;border-radius:125px;display:flex;align-items:center;gap:30px;padding:0 60px">${ik("brain", 110, "#C9C1FF", 1.6)}<div><div class="b" style="font-size:54px">Tergantung ingatan</div><div class="label" style="margin-top:8px;font-size:28px">Rina? Agus? Dewi? …siapa yang bertugas?</div></div></div>`);
+  // P6: mau bertemu wali kota
+  const p6 = buat(R, `<div class="abs" style="inset:0"></div>`);
+  const t6 = buat(p6, `<div class="abs b tengah" style="top:200px;font-size:72px">Mau bertemu Wali Kota?</div>`);
+  const k6a = buat(p6, `<div class="kartu" style="left:330px;top:350px;width:560px;height:360px;padding:44px;text-align:center">${ik("footprints", 130, "var(--emas)", 1.6)}<div class="b" style="font-size:46px;margin-top:26px">Datang langsung</div></div>`);
+  const k6b = buat(p6, `<div class="kartu" style="left:1030px;top:350px;width:560px;height:360px;padding:44px;text-align:center"><div class="dering" style="display:inline-block">${ik("phone-call", 130, "var(--emas)", 1.6)}</div><div class="b" style="font-size:46px;margin-top:26px">Menelepon</div></div>`);
+  const dering = k6b.querySelector(".dering");
+  const k6c = buat(p6, `<div class="pil putih" style="left:640px;top:760px;font-size:26px">${ik("presentation", 30, "var(--navy)")}Ruang rapat? Dicatat di papan tulis</div>`);
+  // P7: 18-24 jam
+  const p7 = buat(R, `<div class="abs" style="inset:0"></div>`);
+  const n7a = buat(p7, `<div class="kartu" style="left:130px;top:470px;width:340px;height:200px;padding:30px;text-align:center">${ik("inbox", 70, "#fff", 1.6)}<div class="b" style="font-size:32px;margin-top:14px">Undangan masuk</div></div>`);
+  const n7b = buat(p7, `<div class="kartu" style="left:1450px;top:470px;width:340px;height:200px;padding:30px;text-align:center">${ik("calendar-check", 70, "#fff", 1.6)}<div class="b" style="font-size:32px;margin-top:14px">Tercantum di agenda</div></div>`);
+  const g7 = buat(p7, `<div class="abs" style="left:490px;top:566px;width:940px;height:8px;background:repeating-linear-gradient(90deg, rgba(255,255,255,.35) 0 22px, transparent 22px 40px);border-radius:4px"></div>`);
+  const isi7 = buat(p7, `<div class="abs" style="left:490px;top:566px;width:0;height:8px;background:var(--merah);border-radius:4px"></div>`);
+  const jam7 = buat(p7, `<div class="abs" style="left:470px;top:520px;width:100px;height:100px;border-radius:50px;background:#1b2a44;border:4px solid var(--merah);display:flex;align-items:center;justify-content:center"><div class="jarum" style="width:6px;height:34px;background:#fff;border-radius:3px;transform-origin:50% 100%;margin-top:-34px"></div></div>`);
+  const jarum = jam7.querySelector(".jarum");
+  const besar7 = buat(p7, `<div class="abs angka tengah" style="top:250px;font-size:170px;color:var(--merah)">±18–24 jam</div>`);
+  const ket7 = buat(p7, `<div class="abs tengah label" style="top:745px">perkiraan alur lama, jalur tercepat</div>`);
+  return (t) => {
+    // P0
+    jendela(p0, t, -1, A.k(1) - 0.1, 0.3);
+    r0.petakan(t, 0, A.k(1), 0, 6.5);
+    const c = Math.round(91 * e(t, A.k(0) + 0.4, 2.2, masukKeluar));
+    n91.textContent = c; muncul(n91, t, 0.2, 0.5, 30); muncul(l91, t, 0.6, 0.6, 20); muncul(kal, t, 0.5, 0.7, 40);
+    titik.forEach((n, i) => { const a = 0.9 + 4.6 * i / titik.length; n.style.opacity = lin(t, a, 0.12); n.style.transform = `scale(${pegas(lin(t, a, 0.3))})`; });
+    // P1
+    jendela(p1, t, A.k(1) - 0.15, A.k(2) - 0.2, 0.25);
+    r1.petakan(t, A.k(1) - 0.2, A.k(2), 3.5, 6.5);
+    const k1 = e(t, A.k(1) + 0.5, 0.35, pegas);
+    gaya(cap1, { opacity: lin(t, A.k(1) + 0.5, 0.08), transform: `rotate(-6deg) scale(${2.2 - 1.2 * k1})` });
+    // P2
+    jendela(p2, t, A.k(2) - 0.2, A.k(3) - 0.15, 0.3);
+    muncul(ss, t, A.k(2), 0.5, 30); muncul(t2a, t, A.k(2), 0.5, 16);
+    sel.forEach((n, i) => { n.style.opacity = lin(t, A.k(2) + 0.3 + i * 0.035, 0.1); });
+    muncul(panah2, t, A.w(2, "lalu") - 0.3, 0.4, 0); muncul(printer, t, A.w(2, "lalu") - 0.2, 0.5, 20); muncul(t2b, t, A.w(2, "dicetak") - 0.2, 0.4, 16);
+    const kp = e(t, A.w(2, "dicetak"), 0.9, masukKeluar);
+    gaya(lembar2, { opacity: lin(t, A.w(2, "dicetak") - 0.1, 0.15), transform: `translateY(${-140 + 200 * kp}px)`, clipPath: `inset(${(1 - kp) * 70}% 0 0 0)` });
+    // P3
+    jendela(p3, t, A.k(3) - 0.15, A.k(4) - 0.15, 0.3);
+    r3.petakan(t, A.k(3) - 0.2, A.k(4), 0, 5.0);
+    muncul(f3, t, A.k(3), 0.6, 30); muncul(t3a, t, A.k(3) + 0.1, 0.4, 12); muncul(t3b, t, A.w(3, "tiga") - 0.2, 0.5, 20, null, 0.8, pegas);
+    muncul(t3c, t, A.w(3, "menjelang") - 0.1, 0.5, 16); muncul(t3d, t, A.e(3) - 0.4, 0.4, 10);
+    // P4
+    jendela(p4, t, A.k(4) - 0.15, A.k(5) - 0.15, 0.3);
+    muncul(t4, t, A.k(4), 0.5, 20); muncul(hp4, t, A.k(4) - 0.1, 0.5, 40); muncul(ikKam, t, A.k(4) + 0.2, 0.4, 0);
+    foto4.forEach((n, i) => muncul(n, t, A.k(4) + 0.45 + i * 0.55, 0.3, 12));
+    // P5
+    jendela(p5, t, A.k(5) - 0.15, A.k(6) - 0.15, 0.3);
+    muncul(o5, t, A.k(5) - 0.1, 0.5, 30); muncul(tny, t, A.k(5), 0.4, 20, null, 0.85, pegas); muncul(awan, t, A.w(5, "tergantung") - 0.1, 0.5, 20);
+    // P6
+    jendela(p6, t, A.k(6) - 0.15, A.k(7) - 0.15, 0.3);
+    muncul(t6, t, A.k(6), 0.5, 16); muncul(k6a, t, A.w(6, "datang") - 0.15, 0.5, 30); muncul(k6b, t, A.w(6, "menelepon") - 0.25, 0.5, 30);
+    dering.style.transform = `rotate(${t > A.w(6, "menelepon") ? 9 * Math.sin(t * 38) * (Math.floor(t * 2) % 2) : 0}deg)`;
+    muncul(k6c, t, A.e(6) - 0.5, 0.4, 12);
+    // P7
+    jendela(p7, t, A.k(7) - 0.15, A.lama + 1, 0.3);
+    muncul(n7a, t, A.k(7), 0.5, 20); muncul(n7b, t, A.w(7, "tercantum") - 0.2, 0.5, 20); muncul(g7, t, A.k(7) + 0.3, 0.4, 0);
+    const jalan = e(t, A.k(7) + 0.4, A.e(7) - A.k(7) - 0.2, (x) => x);
+    isi7.style.width = 940 * jalan + "px"; jam7.style.left = (470 + 940 * jalan - 50 + 50) + "px"; jam7.style.opacity = lin(t, A.k(7) + 0.3, 0.3);
+    jarum.style.transform = `rotate(${t * 720}deg)`;
+    muncul(besar7, t, A.w(7, "delapan") - 0.2, 0.45, 20, null, 0.7, pegas); muncul(ket7, t, A.w(7, "delapan") + 0.6, 0.5, 10);
+  };
+};
+
+// =====================================================================
+// 4. AKAR — data tercerai-berai, jawabannya harus satu
+// =====================================================================
+SC.akar = (R, A) => {
+  const judul = buat(R, `<div class="abs b tengah" style="top:150px;font-size:64px">Data <span style="color:var(--merah)">tercerai-berai</span></div>`);
+  const judul2 = buat(R, `<div class="abs b tengah" style="top:150px;font-size:54px;opacity:0">Tidak ada <span style="color:var(--emas)">satu sumber</span> yang dipercaya semua pihak</div>`);
+  const judul3 = buat(R, `<div class="abs b tengah" style="top:140px;font-size:72px;opacity:0">Jawabannya harus <span style="color:var(--emas)">satu</span>.</div>`);
+  const POS = [[250, 300], [1370, 300], [170, 600], [1450, 600], [810, 690]];
+  const NAMA = [["file-text", "Kertas", "kertas"], ["sheet", "Spreadsheet", "spredsit"], ["messages-square", "Grup percakapan", "grup"], ["presentation", "Papan tulis", "papan"], ["phone", "Telepon", "telepon"]];
+  const svg = buat(R, `<svg class="abs" style="left:0;top:0" width="1920" height="1080"></svg>`);
+  const PASANG = [[0, 1], [1, 3], [3, 4], [4, 2], [2, 0], [0, 3], [1, 2]];
+  const garis = PASANG.map(([a, b]) => { const g = document.createElementNS("http://www.w3.org/2000/svg", "line"); g.setAttribute("stroke", "#F05A5A"); g.setAttribute("stroke-width", "4"); g.setAttribute("stroke-dasharray", "14 14"); svg.appendChild(g); return [g, a, b]; });
+  const kartu = NAMA.map(([i, n], j) => buat(R, `<div class="kartu" style="left:${POS[j][0]}px;top:${POS[j][1]}px;width:300px;height:150px;display:flex;align-items:center;gap:20px;padding:0 28px">${ik(i, 64, "#fff", 1.6)}<div class="b" style="font-size:30px;line-height:1.15">${n}</div></div>`));
+  const bulat = buat(R, `<div class="abs" style="left:830px;top:340px;width:260px;height:260px"><div class="cincin" style="position:absolute;inset:0;border-radius:130px;border:6px dashed rgba(240,90,90,.8)"></div><div class="b tanda" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:160px;color:var(--merah)">?</div></div>`);
+  const tanda = bulat.querySelector(".tanda"), cincinB = bulat.querySelector(".cincin");
+  const cahaya = buat(R, `<div class="abs" style="left:560px;top:70px;width:800px;height:800px;border-radius:400px;background:radial-gradient(circle, rgba(242,193,78,.55), rgba(242,193,78,0) 65%);opacity:0"></div>`);
+  const putih = buat(R, `<div class="abs" style="inset:0;background:#fff;opacity:0"></div>`);
+  const tKumpul = A.w(2, "jawabannya") - 0.2;
+  return (t) => {
+    muncul(judul, t, 0.4, 0.5, 16, A.k(1) - 0.2); muncul(judul2, t, A.k(1), 0.5, 16, tKumpul); muncul(judul3, t, tKumpul + 0.6, 0.5, 16);
+    const kum = e(t, tKumpul, 0.9, masukKeluar);
+    const pusat = [];
+    kartu.forEach((n, j) => {
+      const a = A.w(0, NAMA[j][2]) - 0.25;
+      const k = e(t, a, 0.45, pegas);
+      const fx = 10 * Math.sin(t * 1.3 + j * 1.7), fy = 8 * Math.cos(t * 1.1 + j);
+      const dx = (810 - POS[j][0]) * kum, dy = (395 - POS[j][1]) * kum;
+      n.style.opacity = lin(t, a, 0.15) * (1 - lin(t, tKumpul + 0.75, 0.2));
+      n.style.transform = `translate(${fx * (1 - kum) + dx}px, ${fy * (1 - kum) + dy}px) scale(${(0.5 + 0.5 * k) * (1 - 0.6 * kum)}) rotate(${(j % 2 ? 3 : -3) * (1 - kum)}deg)`;
+      pusat.push([POS[j][0] + 150 + fx + dx, POS[j][1] + 75 + fy + dy, lin(t, a, 0.15)]);
+    });
+    garis.forEach(([g, a, b], i) => {
+      g.setAttribute("x1", pusat[a][0]); g.setAttribute("y1", pusat[a][1]); g.setAttribute("x2", pusat[b][0]); g.setAttribute("y2", pusat[b][1]);
+      const kedip = 0.35 + 0.35 * Math.abs(Math.sin(t * 3 + i));
+      g.setAttribute("opacity", Math.min(pusat[a][2], pusat[b][2]) * kedip * (1 - kum));
+      g.setAttribute("stroke-dashoffset", -t * 30);
+    });
+    const kb = muncul(bulat, t, A.k(1) + 0.1, 0.5, 0, null, 0.6, pegas);
+    const emas = lin(t, tKumpul + 0.7, 0.3);
+    tanda.textContent = emas > 0.5 ? "1" : "?";
+    tanda.style.color = emas > 0.5 ? "#F2C14E" : "#F05A5A";
+    cincinB.style.borderColor = emas > 0.5 ? "rgba(242,193,78,.95)" : "rgba(240,90,90,.8)";
+    cincinB.style.borderStyle = emas > 0.5 ? "solid" : "dashed";
+    cincinB.style.transform = `rotate(${emas > 0.5 ? 0 : t * 25}deg)`;
+    bulat.style.transform = `scale(${(0.6 + 0.4 * kb) * (1 + 0.15 * e(t, tKumpul + 0.7, 0.4, pegas))})`;
+    cahaya.style.opacity = emas * (0.7 + 0.3 * Math.sin(t * 4));
+    putih.style.opacity = lin(t, A.lama - 0.6, 0.6);
+  };
+};
+
+// =====================================================================
+// 5. LAHIR — Inilah Prokopim Hibot
+// =====================================================================
+SC.lahir = (R, A) => {
+  R.style.background = "radial-gradient(1300px 820px at 30% 35%, #23215a 0%, #0d1836 55%, var(--navy) 100%)";
+  const putih = buat(R, `<div class="abs" style="inset:0;background:#fff"></div>`);
+  const cincin = buat(R, `<div class="abs" style="left:660px;top:170px;width:600px;height:600px;border-radius:300px;border:3px solid rgba(124,108,242,.6)"></div>`);
+  const logo = buat(R, `<img class="abs" src="aset/hibot.png" style="left:810px;top:270px;width:300px;border-radius:64px;box-shadow:0 30px 80px rgba(0,0,0,.5)">`);
+  const pilSuper = buat(R, `<div class="pil ungu" style="left:340px;top:200px;font-size:24px;letter-spacing:3px">${ik("layers", 28)}SUPERAPP</div>`);
+  const jd = buat(R, `<div class="abs b" style="left:340px;top:262px;font-size:96px">Aplikasi super</div>`);
+  const sb = buat(R, `<div class="abs" style="left:345px;top:385px;width:820px;font-size:38px;font-weight:600;color:#D7DDF0;line-height:1.3">untuk pelayanan keprotokolan dan komunikasi pimpinan</div>`);
+  const hp = ponsel(R, 1270, 140, 340, 736, `<img src="aset/hp_walikota.jpg" class="geser" style="height:auto">`);
+  const geser = hp.querySelector(".geser");
+  const SATU = ["Satu aplikasi", "Satu pintu", "Satu data"].map((x, i) => buat(R, `<div class="pil emas" style="left:${120 + i * 300}px;top:500px;font-size:28px">${ik(["smartphone", "door-open", "database"][i], 30)}${x}</div>`));
+  const ALUR = [["calendar-check", "Penetapan jadwal"], ["repeat", "Perubahan jadwal"], ["x", "Penarikan & pembatalan"], ["user-check", "Penugasan petugas"],
+    ["users", "Audiensi & tamu"], ["door-open", "Peminjaman ruangan"], ["qr-code", "Daftar hadir digital"], ["scroll-text", "Naskah sambutan"],
+    ["camera", "Peliputan & publikasi"], ["mail", "Penerbitan undangan"], ["award", "Evaluasi kinerja"]];
+  const ubin = ALUR.map(([i, n], j) => buat(R, `<div class="ubin" style="left:${120 + (j % 4) * 268}px;top:${590 + Math.floor(j / 4) * 98}px;width:254px;height:86px">${ik(i, 32, "var(--emas)", 1.8)}<span>${n}</span></div>`));
+  const sebelas = buat(R, `<div class="ubin" style="left:${120 + 3 * 268}px;top:${590 + 2 * 98}px;width:254px;height:86px;background:var(--emas);color:var(--navy);border-color:var(--emas);font-size:30px;justify-content:center"><span class="angka" style="font-size:44px">11</span> alur kerja</div>`);
+  // HIBOT
+  const H = buat(R, `<div class="abs" style="inset:0;opacity:0"></div>`);
+  const atasH = buat(H, `<div class="abs tengah" style="top:170px;font-size:40px;font-weight:700;color:#D7DDF0"><span style="color:var(--emas);font-weight:800">Hibot</span> — bahasa Tidung: <i>hebat</i></div>`);
+  const KATA = [["H", "Handal"], ["I", "Inovatif"], ["B", "Berbudaya"], ["O", "Unggul"], ["T", "Tangguh"]];
+  const huruf = KATA.map(([h, k], i) => buat(H, `<div class="abs" style="left:${200 + i * 320}px;top:270px;width:320px;text-align:center"><div class="b" style="font-size:230px;line-height:1;background:linear-gradient(180deg,#FFE29A,#E2A93B);-webkit-background-clip:text;color:transparent">${h}</div><div class="kata b" style="font-size:38px;margin-top:20px">${k === "Unggul" ? "Unggul/<br>Oenggoel" : k}</div></div>`));
+  const bawahH = buat(H, `<div class="abs tengah" style="top:720px;font-size:34px;font-weight:700;color:var(--abu);letter-spacing:3px">SEMBOYAN PEMBANGUNAN <span style="color:var(--emas)">TARAKAN HIBOT</span></div>`);
+  const tPindah = A.k(1) - 0.05, tH = A.k(3) - 0.25;
+  return (t) => {
+    putih.style.opacity = 1 - lin(t, 0, 0.45);
+    const kL = e(t, 0.35, 0.7, pegas);
+    const pindah = e(t, tPindah, 0.7, masukKeluar);
+    const keluarSemua = lin(t, tH, 0.4);
+    gaya(logo, { opacity: lin(t, 0.3, 0.2) * (1 - keluarSemua),
+      transform: `translate(${(210 - 960) * pindah}px, ${(290 - 420) * pindah}px) scale(${(0.5 + 0.5 * kL) * (1 - 0.4 * pindah)})` });
+    gaya(cincin, { opacity: (1 - lin(t, 0.6, 1.2)) * lin(t, 0.35, 0.1), transform: `scale(${0.5 + 1.0 * e(t, 0.35, 1.4)})` });
+    muncul(pilSuper, t, tPindah + 0.35, 0.4, 10, tH); muncul(jd, t, tPindah + 0.3, 0.5, 20, tH); muncul(sb, t, tPindah + 0.7, 0.5, 16, tH);
+    muncul(hp, t, tPindah + 0.2, 0.7, 60, tH); geser.style.transform = `scale(${1 + 0.06 * lin(t, tPindah, 9)})`; geser.style.transformOrigin = "50% 0";
+    SATU.forEach((n, i) => muncul(n, t, A.w(2, ["aplikasi", "pintu", "data"][i]) - 0.15, 0.4, 14, tH, 0.8, pegas));
+    const t11 = A.w(2, "sebelas") - 0.9;
+    ubin.forEach((n, i) => muncul(n, t, t11 + i * 0.11, 0.35, 16, tH, 0.7, pegas));
+    muncul(sebelas, t, A.w(2, "sebelas") - 0.1, 0.4, 0, tH, 0.5, pegas);
+    // HIBOT
+    H.style.opacity = lin(t, tH + 0.2, 0.4);
+    muncul(atasH, t, tH + 0.3, 0.5, 14);
+    huruf.forEach((n, i) => { const k = e(t, tH + 0.45 + i * 0.16, 0.5, pegas); n.firstChild.style.transform = `scale(${0.4 + 0.6 * k})`; n.firstChild.style.opacity = lin(t, tH + 0.45 + i * 0.16, 0.15);
+      muncul(n.querySelector(".kata"), t, tH + 1.2 + i * 0.32, 0.4, 14); });
+    muncul(bawahH, t, A.w(3, "semboyan") - 0.2, 0.5, 12);
+  };
+};
+
+// =====================================================================
+// 6. ALUR — ikuti satu undangan
+// =====================================================================
+SC.alur = (R, A) => {
+  // rel perjalanan
+  const SIMPUL = [["laptop", "Admin RK"], ["clipboard-check", "Kepala Sub Bagian"], ["stamp", "Kepala Bagian"], ["landmark", "Pimpinan & ajudan"], ["users", "Petugas"]];
+  const rel = buat(R, `<div class="abs" style="left:300px;top:118px;width:1320px;height:96px"></div>`);
+  const relG = buat(rel, `<div class="abs" style="left:40px;top:29px;width:1240px;height:6px;border-radius:3px;background:rgba(255,255,255,.15)"></div>`);
+  const relI = buat(rel, `<div class="abs" style="left:40px;top:29px;width:0;height:6px;border-radius:3px;background:var(--emas)"></div>`);
+  const simpul = SIMPUL.map(([i, n], j) => buat(rel, `<div class="abs" style="left:${j * 310}px;top:0;width:80px;text-align:center"><div class="bul" style="width:64px;height:64px;margin-left:8px;border-radius:32px;background:#1b2b47;border:3px solid #33496f;display:flex;align-items:center;justify-content:center">${ik(i, 30, "#fff", 1.8)}</div><div class="nm" style="position:absolute;left:-60px;width:200px;top:70px;font-size:18px;font-weight:700;color:var(--abu)">${n}</div></div>`));
+  const amplop = buat(rel, `<div class="abs" style="top:-4px;left:0;width:36px;height:26px;border-radius:6px;background:var(--emas);display:flex;align-items:center;justify-content:center;box-shadow:0 6px 14px rgba(0,0,0,.45);border:2px solid #0A1628">${ik("mail", 18, "#0A1628", 2.2)}</div>`);
+  // k0: undangan kertas
+  const und = buat(R, `<div class="abs" style="left:700px;top:290px;width:520px;height:560px;background:#F7F4EA;border-radius:10px;color:#1b2433;padding:44px 48px;box-shadow:0 30px 70px rgba(0,0,0,.5)">
+     <div style="font-weight:800;font-size:30px;letter-spacing:6px;text-align:center">UNDANGAN</div><div style="height:3px;background:#1b2433;margin:18px 0 26px"></div>
+     <div style="font-size:22px;line-height:1.6"><b>Acara:</b> Rapat Koordinasi Percepatan Infrastruktur Kota<br><b>Hari/tanggal:</b> Selasa, 7 Oktober 2026<br><b>Pukul:</b> 09.00 WITA<br><b>Tempat:</b> Ruang Imbaya, Kantor Wali Kota</div>
+     <div style="margin-top:30px">${[90, 70, 84, 60].map((w) => `<div style="height:12px;border-radius:6px;background:#d9d3c2;width:${w}%;margin:12px 0"></div>`).join("")}</div></div>`);
+  // perangkat
+  const lp = laptop(R, 396, 240, 1128, 616);
+  const rA = rekaman(lp.querySelector(".layar"), "a06_admin", "x", "width:100%;height:100%;object-fit:cover;object-position:top");
+  const rB = rekaman(lp.querySelector(".layar"), "a08_kabag", "x", "position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top");
+  const lp2 = laptop(R, 120, 260, 1000, 547);
+  const rP = rekaman(lp2.querySelector(".layar"), "a10_penugasan", "x", "width:100%;height:100%;object-fit:cover;object-position:top");
+  const hpK = ponsel(R, 1170, 240, 310, 660); const rK = rekaman(hpK, "a07_kasubbag", "x", "");
+  const hpW = ponsel(R, 1260, 240, 310, 660); const rW = rekaman(hpW, "a09_walikota", "x", "");
+  const hpJ = ponsel(R, 1260, 240, 310, 660); const rJ = rekaman(hpJ, "a09b_ajudan", "x", "");
+  const fWK = buat(R, `<div class="bingkaiFoto" style="left:140px;top:250px;width:960px;height:540px"></div>`);
+  const r27 = rekaman(fWK, "n1727", "penuh"); const r28 = rekaman(fWK, "n1728", "penuh", "position:absolute;inset:0");
+  // label & sorotan
+  const ai = buat(R, `<div class="pil ungu" style="left:1400px;top:300px;font-size:26px;background:rgba(40,30,110,.95)">${ik("sparkles", 30)}AI Auto-Isi</div>`);
+  const aiK = buat(R, `<div class="pil putih" style="left:1290px;top:370px;font-size:21px;padding:9px 18px">nama acara · tanggal · jam · lokasi</div>`);
+  const tK = buat(R, `<div class="abs" style="left:250px;top:300px;width:820px"><div class="label">Kepala Sub Bagian</div><div class="b" style="font-size:66px;line-height:1.1;margin-top:8px">Memeriksa dari ponsel</div></div>`);
+  const cek = ["Undangan dibuka", "Daftar periksa dicentang"].map((x, i) => buat(R, `<div class="pil hijau" style="left:250px;top:${500 + i * 86}px;font-size:30px">${ik("circle-check", 34)}${x}</div>`));
+  const tombol = buat(R, `<div class="abs" style="left:250px;top:700px;display:flex;align-items:center;gap:22px"><div class="jalur" style="width:120px;height:62px;border-radius:31px;background:#3a4a63;position:relative"><div class="knop" style="position:absolute;top:6px;left:6px;width:50px;height:50px;border-radius:25px;background:#fff"></div></div><div class="b ket" style="font-size:32px">Tombol setuju: <span style="color:var(--abu)">terkunci</span></div></div>`);
+  const jalur = tombol.querySelector(".jalur"), knop = tombol.querySelector(".knop"), ketTombol = tombol.querySelector(".ket");
+  const jam = buat(R, `<div class="kartu" style="left:1430px;top:300px;width:420px;height:170px;display:flex;align-items:center;gap:22px;padding:0 30px;border-color:rgba(242,193,78,.6)">${ik("timer", 76, "var(--emas)", 1.6)}<div><div class="angka" style="font-size:66px;line-height:1"><span class="m">0</span> menit</div><div style="font-size:19px;color:var(--abu);font-weight:600">umumnya, sejak berkas sampai</div></div></div>`);
+  const jamM = jam.querySelector(".m");
+  const tWK = buat(R, `<div class="abs b" style="left:140px;top:810px;font-size:34px">Agenda langsung di ponsel <span style="color:var(--emas)">Wali Kota &amp; Wakil Wali Kota</span></div>`);
+  const disp = buat(R, `<div class="pil putih" style="left:830px;top:470px;font-size:26px">${ik("send", 28, "var(--navy)")}Disposisi ke Wakil Wali Kota</div>`);
+  const tJ = buat(R, `<div class="abs" style="left:250px;top:300px;width:820px"><div class="label">Ajudan</div><div class="b" style="font-size:66px;line-height:1.1;margin-top:8px">Konfirmasi kehadiran</div></div>`);
+  const ketuk = buat(R, `<div class="abs" style="left:420px;top:520px;width:220px;height:220px"><div class="riak" style="position:absolute;inset:0;border-radius:110px;border:4px solid var(--hijau)"></div><div style="position:absolute;inset:30px;border-radius:80px;background:var(--hijau);display:flex;align-items:center;justify-content:center;flex-direction:column;font-weight:800;font-size:30px;color:#08291d">${ik("check", 60, "#08291d", 3)}Hadir</div></div>`);
+  const riak = ketuk.querySelector(".riak");
+  const tP = buat(R, `<div class="pil emas" style="left:1180px;top:250px;font-size:26px">${ik("user-check", 28)}Petugas ditugaskan</div>`);
+  const wa = buat(R, `<div class="abs" style="left:1180px;top:330px;width:640px;border-radius:26px;background:#f4f6f8;color:#14202e;box-shadow:0 30px 70px rgba(0,0,0,.5);overflow:hidden">
+     <div style="background:#1d4d3a;color:#fff;padding:18px 24px;display:flex;align-items:center;gap:14px;font-weight:800;font-size:24px">${ik("message-circle", 34, "#fff")}WhatsApp · Prokopim Hibot<span style="margin-left:auto;font-size:18px;opacity:.8">sekarang</span></div>
+     <div style="padding:22px 26px;font-size:24px;line-height:1.45"><b>Penugasan baru</b><br>Anda ditugaskan sebagai <b>Protokol</b>:<br>Rapat Koordinasi Percepatan Infrastruktur Kota<br><span style="color:#4b5b70">Selasa, 7 Okt 2026 · 09.00 WITA · Ruang Imbaya</span></div></div>`);
+  // jadwal adegan
+  const S1 = A.k(1) - 0.2, S2 = A.k(2) - 0.25, S4 = A.k(4) - 0.25, S5 = A.k(5) - 0.25, S6 = A.k(6) - 0.15, S7 = A.k(7) - 0.25, S8 = A.k(8) - 0.25, Z = A.lama + 1;
+  const AKTIF = [[S1, 0], [S2, 1], [S4, 2], [S5, 3], [S8, 4]];
+  return (t) => {
+    // rel
+    muncul(rel, t, 0.3, 0.5, -10);
+    let akt = -1; AKTIF.forEach(([a, i]) => { if (t >= a) akt = i; });
+    const posisi = (i) => i * 310 + 48;
+    let x = 0; AKTIF.forEach(([a, i], j) => { if (j === 0) x = posisi(0); else x = campur(x, posisi(i), e(t, a, 0.6, masukKeluar)); });
+    amplop.style.left = x + "px"; amplop.style.opacity = lin(t, S1 - 0.3, 0.3);
+    relI.style.width = Math.max(0, x - 40) + "px";
+    simpul.forEach((n, i) => { const on = i <= akt; const bl = n.querySelector(".bul"); bl.style.background = on ? (i === akt ? "#F2C14E" : "#2c4a3e") : "#1b2b47"; bl.style.borderColor = on ? (i === akt ? "#FFE29A" : "#34C38F") : "#33496f"; bl.querySelector(".ik").style.color = i === akt ? "#0A1628" : "#fff"; n.querySelector(".nm").style.color = i === akt ? "#F2C14E" : "#A7B6CC"; });
+    // k0 undangan
+    const ku = e(t, 0.2, 0.5, pegas);
+    const kecil = e(t, S1 - 0.4, 0.5, masukKeluar);
+    gaya(und, { opacity: lin(t, 0.2, 0.2) * (1 - lin(t, S1 - 0.1, 0.15)), transform: `translate(${-560 * kecil}px, ${-330 * kecil}px) scale(${(0.7 + 0.3 * ku) * (1 - 0.88 * kecil)}) rotate(${(1 - ku) * -6}deg)` });
+    // k1 admin + AI
+    jendela(lp, t, S1, S2, 0.3); rA.petakan(t, S1, S2, 1.6, 12.0);
+    muncul(ai, t, A.w(1, "kecerdasan") - 0.1, 0.4, 0, S2 - 0.2, 0.6, pegas); muncul(aiK, t, A.w(1, "mengisi"), 0.4, 10, S2 - 0.2);
+    // k2-k3 kasubbag
+    jendela(hpK, t, S2, S4, 0.3); rK.petakan(t, S2, S4 - 0.2, 0, 12.9);
+    jendela(tK, t, S2 + 0.1, S4, 0.3);
+    cek.forEach((n, i) => { muncul(n, t, A.w(3, ["dibuka", "dicentang"][i]) - 0.1, 0.4, 14, S4 - 0.1, 0.8, pegas); });
+    const nyala = e(t, A.e(3) - 0.35, 0.35);
+    muncul(tombol, t, A.k(3) + 0.3, 0.4, 14, S4 - 0.1);
+    jalur.style.background = nyala > 0.5 ? "#34C38F" : "#3a4a63"; knop.style.left = (6 + 58 * nyala) + "px";
+    ketTombol.innerHTML = nyala > 0.5 ? `Tombol setuju: <span style="color:#7FE3BD">aktif</span>` : `Tombol setuju: <span style="color:var(--abu)">terkunci</span>`;
+    // k4 kabag
+    rB.img.style.opacity = t >= S4 ? 1 : 0;
+    if (t >= S4 - 0.3) { jendela(lp, t, S1, S5, 0.3); rB.petakan(t, S4, S5, 0, 8.8); }
+    const kj = muncul(jam, t, A.w(4, "umumnya") - 0.1, 0.45, 0, S5 - 0.1, 0.7, pegas);
+    jamM.textContent = Math.round(8 * e(t, A.w(4, "umumnya"), 1.0));
+    // k5-k6 wali kota
+    jendela(fWK, t, S5, S7, 0.3); r27.petakan(t, S5, S6 + 0.2, 0, 6.3);
+    r28.img.style.opacity = lin(t, S6, 0.3); r28.petakan(t, S6, S7, 0, 7.4);
+    jendela(hpW, t, S5, S7, 0.3); rW.petakan(t, S5, S7, 0, 9.0);
+    muncul(tWK, t, S5 + 0.3, 0.5, 14, S7 - 0.1);
+    muncul(disp, t, A.w(6, "mendisposisi") - 0.2, 0.4, 0, S7 - 0.1, 0.7, pegas);
+    // k7 ajudan
+    jendela(hpJ, t, S7, S8, 0.3); rJ.petakan(t, S7, S8, 0, 7.4);
+    jendela(tJ, t, S7 + 0.1, S8, 0.3);
+    const tk = A.w(7, "ketukan") - 0.2;
+    jendela(ketuk, t, A.k(7) + 0.5, S8, 0.3);
+    ketuk.style.transform = `scale(${1 - 0.12 * Math.max(0, 1 - Math.abs(t - tk) * 6)})`;
+    gaya(riak, { transform: `scale(${1 + 0.6 * lin(t, tk, 0.6)})`, opacity: t > tk ? 1 - lin(t, tk, 0.6) : 0.5 });
+    // k8 petugas
+    jendela(lp2, t, S8, Z, 0.3); rP.petakan(t, S8, A.lama, 2.0, 12.0);
+    muncul(tP, t, S8 + 0.2, 0.4, 10);
+    const tw = A.w(8, "wotsap") - 0.35;
+    const kw = e(t, tw, 0.55, pegas);
+    gaya(wa, { opacity: lin(t, tw, 0.15), transform: `translateX(${(1 - kw) * 300}px)` });
+  };
+};
+
+// =====================================================================
+// 7. LAYANAN — kalender, undangan TTE, daftar hadir, kanal publik
+// =====================================================================
+SC.layanan = (R, A) => {
+  const panel = (ikon, j1, j2, warna) => buat(R, `<div class="abs" style="left:120px;top:330px;width:420px">${ik(ikon, 84, warna, 1.6)}<div class="b" style="font-size:56px;line-height:1.08;margin-top:22px">${j1}</div><div class="label" style="margin-top:14px;line-height:1.3">${j2}</div></div>`);
+  const t0 = panel("calendar-check", "Kalender bersama", "terisi otomatis setelah disetujui", "var(--emas)");
+  const t1 = panel("signature", "Undangan siap TTE", "PDF siap ditandatangani elektronik di Srikandi", "var(--emas)");
+  const t2 = panel("qr-code", "Daftar hadir digital", "cukup pindai kode QR, tanda tangan di layar", "var(--emas)");
+  const kartu = (src) => buat(R, `<div class="bingkaiFoto" style="left:600px;top:200px;width:1200px;height:660px;background:#fff"><img src="aset/${src}" style="object-fit:cover;object-position:top"></div>`);
+  const g0 = kartu("kabag_kalender_bersama.jpg"), g1 = kartu("undangan_imbaya.jpg");
+  const hpH = ponsel(R, 1300, 200, 310, 660); const rH = rekaman(hpH, "a10b_hadir", "x", "");
+  const qr = buat(R, `<div class="abs" style="left:760px;top:300px;width:360px;height:360px;background:#fff;border-radius:24px;padding:26px;display:grid;grid-template-columns:repeat(21,1fr);gap:0"></div>`);
+  let s = ""; for (let i = 0; i < 441; i++) { const r = Math.floor(i / 21), c = i % 21; const sudut = (r < 7 && c < 7) || (r < 7 && c > 13) || (r > 13 && c < 7);
+    const isiSudut = sudut && ((r % 14 === 0 || r % 14 === 6 || c % 14 === 0 || c % 14 === 6 || (r % 14 >= 2 && r % 14 <= 4 && c % 14 >= 2 && c % 14 <= 4)));
+    s += `<div style="background:${sudut ? (isiSudut ? "#0A1628" : "#fff") : acak() < 0.47 ? "#0A1628" : "#fff"}"></div>`; }
+  qr.innerHTML = s;
+  const pindai = buat(R, `<div class="abs" style="left:760px;top:300px;width:360px;height:6px;background:var(--hijau);box-shadow:0 0 24px var(--hijau)"></div>`);
+  // kanal publik
+  const P = buat(R, `<div class="abs" style="inset:0"></div>`);
+  const jdP = buat(P, `<div class="abs b tengah" style="top:140px;font-size:50px">Untuk instansi &amp; masyarakat · <span style="color:var(--emas)">daring</span></div>`);
+  const hpR = ponsel(P, 470, 290, 300, 610); const rR = rekaman(hpR, "a11b_ruangan", "x", "");
+  const hpT = ponsel(P, 1150, 290, 300, 610); const rT = rekaman(hpT, "a11a_tamu", "x", "");
+  const lR = buat(P, `<div class="pil putih" style="left:430px;top:220px;font-size:24px">${ik("door-open", 26, "var(--navy)")}Pinjam ruang rapat</div>`);
+  const lT = buat(P, `<div class="pil putih" style="left:1110px;top:220px;font-size:24px">${ik("users", 26, "var(--navy)")}Ajukan audiensi</div>`);
+  const kode = buat(P, `<div class="abs" style="left:770px;top:520px;width:380px;padding:22px 26px;border-radius:24px;background:var(--emas);color:var(--navy);text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.5)"><div style="font-size:20px;font-weight:700;letter-spacing:2px">KODE PENELUSURAN</div><div class="angka" style="font-size:52px">A1B2C304</div><div style="font-size:20px;font-weight:700">pantau status sendiri</div></div>`);
+  const tU = A.w(0, "undangan") - 0.25, tD = A.w(0, "daftar") - 0.25, tP = A.k(1) - 0.2;
+  return (t) => {
+    jendela(t0, t, -0.2, tU, 0.3); jendela(g0, t, -0.2, tU, 0.3);
+    g0.firstChild.style.transform = `scale(${1.02 + 0.06 * lin(t, 0, 3)}) translateY(${-20 * lin(t, 0, 3)}px)`;
+    jendela(t1, t, tU, tD, 0.3); jendela(g1, t, tU, tD, 0.3);
+    g1.firstChild.style.transform = `scale(${1.02 + 0.06 * lin(t, tU, 3)}) translateY(${-40 * lin(t, tU, 3)}px)`;
+    jendela(t2, t, tD, tP, 0.3); jendela(hpH, t, tD, tP, 0.3); jendela(qr, t, tD + 0.1, tP, 0.3); rH.petakan(t, tD, tP, 0, 7.8);
+    jendela(pindai, t, tD + 0.3, tP, 0.2); pindai.style.top = (300 + 350 * (0.5 + 0.5 * Math.sin((t - tD) * 3.2))) + "px";
+    jendela(P, t, tP, A.lama + 1, 0.35);
+    muncul(jdP, t, tP + 0.1, 0.5, 14); muncul(lR, t, A.w(1, "meminjam") - 0.2, 0.4, 10); muncul(lT, t, A.w(1, "audiensi") - 0.3, 0.4, 10);
+    muncul(hpR, t, A.w(1, "meminjam") - 0.3, 0.6, 40); muncul(hpT, t, A.w(1, "audiensi") - 0.4, 0.6, 40);
+    rR.petakan(t, tP, A.lama, 0, 7.6); rT.petakan(t, tP, A.lama, 0, 8.6);
+    muncul(kode, t, A.w(2, "kode") - 0.35, 0.45, 0, null, 0.6, pegas);
+  };
+};
+
+// =====================================================================
+// 8. JEJAK — setiap langkah tercatat; Pelaksana Harian
+// =====================================================================
+SC.jejak = (R, A) => {
+  const jd = buat(R, `<div class="abs" style="left:120px;top:250px;width:640px"><div class="b" style="font-size:84px;line-height:1.05">Setiap langkah <span style="color:var(--emas)">tercatat</span></div><div class="label" style="margin-top:22px">Riwayat Alur pada setiap kegiatan</div></div>`);
+  const kartu = buat(R, `<div class="kartu" style="left:820px;top:220px;width:990px;height:600px;padding:30px 36px"></div>`);
+  const ENTRI = [["Jadwal dibuat", "Admin Rencana Kegiatan", "6 Okt · 07.51"], ["Berkas undangan diunggah", "Admin Rencana Kegiatan", "6 Okt · 07.52"],
+    ["Diajukan ke Kasubbag", "Admin Rencana Kegiatan", "6 Okt · 07.55"], ["Diverifikasi & diteruskan", "Kasubbag Protokol", "6 Okt · 08.18"],
+    ["Disetujui & tayang", "Kepala Bagian", "6 Okt · 08.26"], ["Penugasan petugas", "Kasubbag Protokol", "6 Okt · 08.40"], ["Wali Kota: Hadir", "Ajudan Wali Kota", "6 Okt · 09.02"]];
+  kartu.innerHTML = `<div style="display:grid;grid-template-columns:40px 1.25fr 1.1fr .8fr;gap:0 16px;align-items:center">`
+    + `<div></div>` + ["APA", "SIAPA", "KAPAN"].map((h, i) => `<div class="kol k${i}" style="font-size:19px;font-weight:800;letter-spacing:3px;color:var(--abu2);padding-bottom:12px;border-bottom:4px solid transparent">${h}</div>`).join("")
+    + ENTRI.map(([a, s, k], i) => `<div class="baris b${i}" style="display:contents"><div style="padding:14px 0"><div style="width:22px;height:22px;border-radius:11px;background:${i === 4 ? "var(--hijau)" : "var(--emas)"}"></div></div><div class="c0" style="font-size:25px;font-weight:800">${a}</div><div class="c1" style="font-size:23px;font-weight:600;color:#D7DDF0">${s}</div><div class="c2 angka" style="font-size:23px;font-weight:700;color:var(--abu)">${k}</div></div>`).join("") + `</div>`;
+  const baris = ENTRI.map((_, i) => [...kartu.querySelectorAll(`.b${i} > div`)]);
+  const kol = [0, 1, 2].map((i) => kartu.querySelector(`.k${i}`));
+  const kolSel = [0, 1, 2].map((i) => [...kartu.querySelectorAll(`.c${i}`)]);
+  // Plh
+  const P = buat(R, `<div class="abs" style="inset:0"></div>`);
+  const jdP = buat(P, `<div class="abs" style="left:120px;top:250px;width:640px"><div class="b" style="font-size:80px;line-height:1.05">Pejabat <span style="color:var(--merah)">berhalangan</span>?</div><div class="label" style="margin-top:22px">alur tetap berjalan</div></div>`);
+  const a1 = buat(P, `<div class="kartu" style="left:840px;top:250px;width:420px;height:330px;text-align:center;padding-top:40px">${ik("user-x", 110, "var(--abu2)", 1.5)}<div class="b" style="font-size:34px;margin-top:20px">Kepala Bagian</div><div style="font-size:24px;color:var(--abu);margin-top:6px">berhalangan</div></div>`);
+  const pnh = buat(P, `<div class="abs" style="left:1280px;top:370px">${ik("arrow-right", 80, "var(--emas)", 2.4)}</div>`);
+  const a2 = buat(P, `<div class="kartu" style="left:1380px;top:250px;width:440px;height:330px;text-align:center;padding-top:40px;border-color:rgba(52,195,143,.7)">${ik("user-check", 110, "var(--hijau)", 1.5)}<div class="b" style="font-size:34px;margin-top:20px">Pelaksana Harian</div><div style="font-size:24px;color:#7FE3BD;margin-top:6px">melanjutkan alur</div></div>`);
+  const masa = buat(P, `<div class="kartu" style="left:840px;top:620px;width:980px;height:150px;padding:26px 34px"><div style="display:flex;justify-content:space-between;font-size:22px;font-weight:700;color:var(--abu)"><span>Masa tugas · 6–10 Oktober</span><span class="akhir" style="color:var(--emas)"></span></div><div style="margin-top:18px;height:16px;border-radius:8px;background:rgba(255,255,255,.12)"><div class="isi" style="height:16px;border-radius:8px;background:var(--hijau);width:0"></div></div></div>`);
+  const isi = masa.querySelector(".isi"), akhir = masa.querySelector(".akhir");
+  const tP = A.k(2) - 0.25;
+  return (t) => {
+    jendela(jd, t, 0, tP, 0.3); jendela(kartu, t, 0, tP, 0.3);
+    jd.style.transform = `translateY(${(1 - e(t, 0, 0.5)) * 20}px)`;
+    baris.forEach((cs, i) => cs.forEach((c) => { c.style.opacity = lin(t, 0.35 + i * 0.28, 0.25); c.style.transform = `translateX(${(1 - e(t, 0.35 + i * 0.28, 0.4)) * 30}px)`; }));
+    const SOROT = [A.w(1, "siapa"), A.w(1, "kapan"), A.w(1, "keputusannya")];
+    const urut = [1, 2, 0];
+    urut.forEach((ci, j) => { const on = t >= SOROT[j] - 0.1 && t < tP; kol[ci].style.borderBottomColor = on ? "#F2C14E" : "transparent"; kol[ci].style.color = on ? "#F2C14E" : "#6B7F9E";
+      kolSel[ci].forEach((c) => { c.style.color = on ? "#FFE29A" : ""; }); });
+    jendela(P, t, tP, A.lama + 1, 0.3);
+    muncul(jdP, t, tP + 0.1, 0.5, 16); muncul(a1, t, tP + 0.3, 0.5, 30); muncul(pnh, t, A.w(2, "pelaksana") - 0.3, 0.3, 0); muncul(a2, t, A.w(2, "pelaksana") - 0.2, 0.5, 30, null, 0.8, pegas);
+    a1.style.filter = `grayscale(${lin(t, tP + 0.6, 0.5)})`;
+    muncul(masa, t, A.w(2, "melanjutkan"), 0.5, 20);
+    const j = e(t, A.w(2, "melanjutkan") + 0.3, 2.0, (x) => x); isi.style.width = (100 * j) + "%";
+    akhir.textContent = j >= 0.999 ? "berakhir otomatis ✓" : "";
+  };
+};
+
+// =====================================================================
+// 9. BANGUN — swakelola, SK Sekda, 11 SOP, 140+ pembaruan
+// =====================================================================
+SC.bangun = (R, A) => {
+  const p0 = buat(R, `<div class="abs" style="inset:0"></div>`);
+  const r0 = rekaman(p0, "n1347", "penuh"); buat(p0, `<div class="gelapKiri"></div>`);
+  const t0 = buat(p0, `<div class="abs" style="left:120px;top:300px;width:820px"><div class="b" style="font-size:96px;line-height:1.02">Dibangun<br>sendiri</div></div>`);
+  const c0 = buat(p0, `<div class="pil emas" style="left:120px;top:560px">${ik("pen-line", 28)}Swakelola</div>`);
+  const c1 = buat(p0, `<div class="pil hijau" style="left:120px;top:640px;font-size:30px">${ik("coins", 30)}Rp0 belanja pengadaan</div>`);
+  // linimasa
+  const p1 = buat(R, `<div class="abs" style="inset:0"></div>`);
+  const BLN = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt"];
+  const X0 = 170, DX = 175, Y = 640;
+  buat(p1, `<div class="abs" style="left:${X0}px;top:${Y}px;width:${DX * 9}px;height:6px;border-radius:3px;background:rgba(255,255,255,.15)"></div>`);
+  const isiG = buat(p1, `<div class="abs" style="left:${X0}px;top:${Y}px;width:0;height:6px;border-radius:3px;background:var(--emas)"></div>`);
+  const bln = BLN.map((b, i) => buat(p1, `<div class="abs" style="left:${X0 + DX * i - 40}px;top:${Y + 26}px;width:80px;text-align:center;font-size:24px;font-weight:700;color:var(--abu)">${b}</div>`));
+  const TONGGAK = [[0, "Peristiwa pemicu", "calendar", 0], [2.27, "9 Maret · mulai dipakai", "zap", 1], [4, "Jejak audit · ruangan", "history", 0],
+    [6.5, "Audiensi · notifikasi · daftar hadir", "bell", 1], [8, "Plh · daftar periksa · kalender", "shield-check", 0], [9, "Undangan siap TTE", "signature", 1]];
+  const tg = TONGGAK.map(([m, n, i, atas]) => buat(p1, `<div class="abs" style="left:${X0 + DX * m - 14}px;top:${Y - 11}px;width:28px;height:28px;border-radius:14px;background:var(--emas);border:4px solid var(--navy)"></div>`));
+  const tgL = TONGGAK.map(([m, n, i, atas]) => buat(p1, `<div class="pil putih" style="left:${Math.min(1580, Math.max(110, X0 + DX * m - 150))}px;top:${atas ? Y - 100 : Y + 74}px;font-size:21px;padding:9px 16px">${ik(i, 24, "var(--navy)")}${n}</div>`));
+  const DOK = [["scroll-text", "Surat Sekda", "12 Maret 2026"], ["file-check", "Keputusan Sekda", "Tim Koordinasi · 42 orang"], ["clipboard-check", "11 SOP", "satu untuk setiap alur"]];
+  const dok = DOK.map(([i, j, k], n) => buat(p1, `<div class="kartu" style="left:${170 + n * 540}px;top:205px;width:500px;height:150px;display:flex;align-items:center;gap:22px;padding:0 28px">${ik(i, 64, "var(--emas)", 1.6)}<div><div class="b" style="font-size:34px">${j}</div><div style="font-size:22px;color:var(--abu);margin-top:4px">${k}</div></div></div>`));
+  // 140+
+  const p2 = buat(R, `<div class="abs" style="inset:0"></div>`);
+  const n140 = buat(p2, `<div class="abs angka" style="left:120px;top:250px;font-size:280px;line-height:1;color:var(--emas)">0</div>`);
+  const l140 = buat(p2, `<div class="abs" style="left:130px;top:560px;width:800px"><div class="b" style="font-size:52px">pembaruan sejak Maret 2026</div><div class="label" style="margin-top:12px">semuanya dari masukan pengguna</div></div>`);
+  const siklus = buat(p2, `<div class="abs" style="left:1120px;top:220px;width:640px;height:640px"></div>`);
+  const putar = buat(siklus, `<div class="abs" style="left:170px;top:170px;width:300px;height:300px;display:flex;align-items:center;justify-content:center">${ik("refresh-cw", 220, "rgba(242,193,78,.5)", 1.2)}</div>`);
+  const SIK = [["users", "Pengguna", 320, 30], ["message-circle", "Masukan", 520, 400], ["sparkles", "Pembaruan", 100, 400]];
+  const sik = SIK.map(([i, n, x, y]) => buat(siklus, `<div class="kartu" style="left:${x - 110}px;top:${y}px;width:220px;height:150px;text-align:center;padding-top:22px">${ik(i, 54, "#fff", 1.6)}<div class="b" style="font-size:28px;margin-top:10px">${n}</div></div>`));
+  const tL = A.k(1) - 0.2, tS = A.k(2) - 0.25;
+  return (t) => {
+    jendela(p0, t, -1, tL, 0.3); r0.petakan(t, 0, tL, 0, 4.9);
+    muncul(t0, t, 0.4, 0.5, 20); muncul(c0, t, A.w(0, "sendiri") - 0.1, 0.4, 10); muncul(c1, t, A.w(0, "belanja") - 0.1, 0.4, 10, null, 0.8, pegas);
+    jendela(p1, t, tL, tS, 0.3);
+    const jalan = e(t, tL + 0.3, A.e(1) - tL - 0.3, (x) => x);
+    isiG.style.width = DX * 9 * jalan + "px";
+    bln.forEach((n, i) => { n.style.color = jalan * 9 >= i - 0.01 ? "#fff" : "#6B7F9E"; });
+    TONGGAK.forEach(([m], i) => { const a = tL + 0.3 + (A.e(1) - tL - 0.3) * m / 9; muncul(tg[i], t, a, 0.3, 0, null, 0.3, pegas); muncul(tgL[i], t, a + 0.05, 0.35, 8); });
+    dok.forEach((n, i) => muncul(n, t, [A.w(1, "dikuatkan") - 0.1, A.w(1, "sekretaris"), A.w(1, "sebelas") - 0.15][i], 0.45, 20, null, 0.85, pegas));
+    jendela(p2, t, tS, A.lama + 1, 0.3);
+    n140.textContent = Math.round(140 * e(t, tS + 0.3, 1.6, masukKeluar)) + (t > tS + 1.9 ? "+" : "");
+    muncul(n140, t, tS + 0.1, 0.4, 20); muncul(l140, t, tS + 0.5, 0.5, 16);
+    muncul(siklus, t, tS + 0.3, 0.5, 0); putar.style.transform = `rotate(${t * 60}deg)`;
+    sik.forEach((n, i) => muncul(n, t, A.w(2, "masukan") - 0.4 + i * 0.25, 0.4, 16, null, 0.8, pegas));
+  };
+};
+
+// =====================================================================
+// 10. DAMPAK — angka-angka
+// =====================================================================
+SC.dampak = (R, A) => {
+  R.style.background = "radial-gradient(1400px 900px at 50% 0%, #1a305a 0%, var(--navy) 62%)";
+  const kisi = buat(R, `<div class="abs" style="inset:0;background-image:linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);background-size:80px 80px"></div>`);
+  const tanya = buat(R, `<div class="abs b tengah" style="top:380px;font-size:170px">Hasilnya<span style="color:var(--emas)">?</span></div>`);
+  const L1 = buat(R, `<div class="abs" style="inset:0"></div>`);
+  const n617 = buat(L1, `<div class="abs angka" style="left:120px;top:240px;font-size:300px;line-height:1;color:var(--emas)">0</div>`);
+  const l617 = buat(L1, `<div class="abs" style="left:130px;top:570px;width:760px"><div class="b" style="font-size:54px">kegiatan Pimpinan dikelola</div><div class="label" style="margin-top:10px">9 Maret – 5 Oktober 2026</div></div>`);
+  const BUL = [["Mar", 45], ["Apr", 72], ["Mei", 71], ["Jun", 71], ["Jul", 99], ["Agu", 120], ["Sep", 114]];
+  const grafik = buat(L1, `<div class="kartu" style="left:1000px;top:220px;width:800px;height:600px;padding:40px 40px 30px"><div style="font-size:24px;font-weight:700;color:var(--abu)">Kegiatan per bulan</div><div class="bt" style="position:absolute;left:40px;right:40px;bottom:70px;top:110px;display:flex;align-items:flex-end;gap:22px"></div><div style="position:absolute;left:40px;right:40px;bottom:26px;display:flex;gap:22px">${BUL.map(([b]) => `<div style="flex:1;text-align:center;font-size:22px;font-weight:700;color:var(--abu)">${b}</div>`).join("")}</div></div>`);
+  const batang = BUL.map(([b, v]) => buat(grafik.querySelector(".bt"), `<div style="flex:1;position:relative;height:100%"><div class="isi" style="position:absolute;left:0;right:0;bottom:0;border-radius:12px 12px 4px 4px;background:linear-gradient(180deg,#F2C14E,#B98A2A)"></div><div class="nl angka" style="position:absolute;left:0;right:0;text-align:center;font-size:26px;font-weight:800"></div></div>`));
+  // 18-24 jam -> 1,94 jam
+  const L2 = buat(R, `<div class="abs" style="inset:0"></div>`);
+  const jd2 = buat(L2, `<div class="abs b" style="left:120px;top:190px;font-size:56px">Dari pengajuan sampai tayang</div>`);
+  const row = (y, lbl, warna) => buat(L2, `<div class="abs" style="left:120px;top:${y}px;width:1680px"><div style="font-size:30px;font-weight:800;color:${warna};letter-spacing:3px">${lbl}</div><div style="margin-top:16px;height:70px;border-radius:14px;background:rgba(255,255,255,.07);position:relative"><div class="isi" style="position:absolute;left:0;top:0;bottom:0;width:0;border-radius:14px;background:${warna}"></div><div class="nl angka" style="position:absolute;top:2px;font-size:58px;font-weight:800;white-space:nowrap"></div></div></div>`);
+  const rd = row(330, "DULU · PERKIRAAN", "#F05A5A"), rk = row(530, "KINI · MEDIAN", "#34C38F");
+  const kali = buat(L2, `<div class="pil emas" style="left:120px;top:730px;font-size:36px;padding:16px 30px">${ik("zap", 38)}sekitar 9–12× lebih cepat</div>`);
+  // 99,3%
+  const L3 = buat(R, `<div class="abs" style="inset:0"></div>`);
+  const cincin = buat(L3, `<svg class="abs" style="left:150px;top:200px" width="560" height="560" viewBox="0 0 560 560"><circle cx="280" cy="280" r="230" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="56"/><circle class="isi" cx="280" cy="280" r="230" fill="none" stroke="#34C38F" stroke-width="56" stroke-linecap="round" transform="rotate(-90 280 280)" stroke-dasharray="1445" stroke-dashoffset="1445"/></svg>`);
+  const isiC = cincin.querySelector(".isi");
+  const n99 = buat(L3, `<div class="abs angka" style="left:150px;top:410px;width:560px;text-align:center;font-size:120px">0%</div>`);
+  const l99 = buat(L3, `<div class="abs" style="left:820px;top:330px;width:960px"><div class="b" style="font-size:76px;line-height:1.08">tayang kurang<br>dari sehari</div><div class="pil hijau" style="position:relative;margin-top:40px;font-size:30px">${ik("timer", 32)}72,0% bahkan kurang dari 4 jam</div></div>`);
+  // 47,9%
+  const L4 = buat(R, `<div class="abs" style="inset:0"></div>`);
+  const n48 = buat(L4, `<div class="abs angka" style="left:120px;top:240px;font-size:260px;line-height:1;color:var(--emas)">47,9%</div>`);
+  const l48 = buat(L4, `<div class="abs" style="left:130px;top:540px;width:900px"><div class="b" style="font-size:54px;line-height:1.15">pemeriksaan &amp; persetujuan<br>di luar jam kerja</div></div>`);
+  const bulan = buat(L4, `<div class="abs" style="left:1260px;top:230px">${ik("moon", 300, "#C9C1FF", 1.2)}</div>`);
+  const mana = buat(L4, `<div class="pil putih" style="left:1180px;top:640px;font-size:32px;padding:16px 30px">${ik("map-pin", 34, "var(--navy)")}dari mana saja</div>`);
+  // 3.331
+  const L5 = buat(R, `<div class="abs" style="inset:0"></div>`);
+  const log = buat(L5, `<div class="abs" style="left:1080px;top:150px;width:760px;height:760px;overflow:hidden;-webkit-mask-image:linear-gradient(180deg, transparent, #000 20%, #000 80%, transparent)"></div>`);
+  const AKSI = ["Jadwal dibuat", "Diajukan ke Kasubbag", "Diteruskan ke Kabag", "Disetujui & tayang", "Penugasan petugas", "Wali Kota: Hadir", "Disposisi ke Wawali", "Ajudan: konfirmasi", "Usulan perubahan", "Evaluasi diisi"];
+  log.innerHTML = Array.from({ length: 40 }, (_, i) => `<div style="display:flex;gap:16px;align-items:center;padding:13px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:23px"><i style="width:14px;height:14px;border-radius:7px;background:${i % 3 ? "var(--emas)" : "var(--hijau)"};display:block"></i><b>${AKSI[(i * 7) % AKSI.length]}</b><span style="color:var(--abu);margin-left:auto" class="angka">${String(7 + (i % 10)).padStart(2, "0")}.${String((i * 17) % 60).padStart(2, "0")}</span></div>`).join("");
+  const n3331 = buat(L5, `<div class="abs angka" style="left:120px;top:250px;font-size:280px;line-height:1;color:var(--emas)">0</div>`);
+  const l3331 = buat(L5, `<div class="abs" style="left:130px;top:560px;width:880px"><div class="b" style="font-size:54px">jejak keputusan terekam</div><div class="label" style="margin-top:10px">siapa, kapan, dan apa keputusannya</div></div>`);
+  // 68 & 55 instansi
+  const L6 = buat(R, `<div class="abs" style="inset:0"></div>`);
+  const jd6 = buat(L6, `<div class="abs b tengah" style="top:190px;font-size:52px">Instansi yang dilayani secara daring</div>`);
+  const k68 = buat(L6, `<div class="kartu" style="left:200px;top:330px;width:700px;height:420px;padding:50px;text-align:center">${ik("door-open", 80, "var(--emas)", 1.6)}<div class="angka n" style="font-size:150px;line-height:1.1;margin-top:10px">0</div><div class="b" style="font-size:34px">instansi meminjam ruangan</div><div style="font-size:24px;color:var(--abu);margin-top:6px">129 pengajuan · 3.153 peserta</div></div>`);
+  const k55 = buat(L6, `<div class="kartu" style="left:1020px;top:330px;width:700px;height:420px;padding:50px;text-align:center">${ik("users", 80, "var(--emas)", 1.6)}<div class="angka n" style="font-size:150px;line-height:1.1;margin-top:10px">0</div><div class="b" style="font-size:34px">instansi mengajukan audiensi</div><div style="font-size:24px;color:var(--abu);margin-top:6px">59 permohonan · 31 menjadi agenda</div></div>`);
+  // Rp0
+  const L7 = buat(R, `<div class="abs" style="inset:0"></div>`);
+  const koin = buat(L7, `<div class="abs" style="left:900px;top:170px">${ik("coins", 120, "rgba(242,193,78,.7)", 1.6)}</div>`);
+  const rp0 = buat(L7, `<div class="abs angka tengah" style="top:300px;font-size:330px;line-height:1;color:var(--emas);text-shadow:0 20px 60px rgba(242,193,78,.35)">Rp0</div>`);
+  const lrp = buat(L7, `<div class="abs b tengah" style="top:660px;font-size:56px">belanja pengadaan</div>`);
+  const S = [A.k(1) - 0.3, A.k(2) - 0.25, A.k(3) - 0.25, A.k(4) - 0.25, A.k(5) - 0.25, A.k(6) - 0.25, A.k(7) - 0.25];
+  return (t) => {
+    kisi.style.backgroundPosition = `${-t * 10}px ${-t * 6}px`;
+    muncul(tanya, t, A.k(0) - 0.2, 0.4, 0, S[0] - 0.05, 0.6, pegas);
+    jendela(L1, t, S[0], S[1], 0.3);
+    n617.textContent = Math.round(617 * e(t, S[0] + 0.3, 1.6, masukKeluar)); muncul(n617, t, S[0], 0.4, 20); muncul(l617, t, S[0] + 0.4, 0.5, 16); muncul(grafik, t, S[0] + 0.2, 0.6, 30);
+    batang.forEach((n, i) => { const k = e(t, S[0] + 0.5 + i * 0.22, 0.7, pegas); const h = BUL[i][1] / 120 * 100 * k;
+      n.querySelector(".isi").style.height = h + "%"; const nl = n.querySelector(".nl"); nl.style.bottom = `calc(${h}% + 6px)`; nl.textContent = k > 0.2 ? BUL[i][1] : ""; });
+    jendela(L2, t, S[1], S[2], 0.3); muncul(jd2, t, S[1] + 0.1, 0.5, 16);
+    const td = A.w(2, "delapan") - 0.4, tk = A.w(2, "kini") - 0.1;
+    const kd = e(t, td, 1.0, masukKeluar), kk = e(t, tk, 0.9, masukKeluar);
+    muncul(rd, t, td - 0.3, 0.4, 16); muncul(rk, t, tk - 0.3, 0.4, 16);
+    rd.querySelector(".isi").style.width = 100 * kd + "%"; gaya(rd.querySelector(".nl"), { left: `calc(${100 * kd}% - 360px)`, opacity: lin(t, td + 0.6, 0.3) }); rd.querySelector(".nl").textContent = "18–24 jam";
+    rk.querySelector(".isi").style.width = (100 * 1.94 / 24) * kk + "%"; gaya(rk.querySelector(".nl"), { left: `calc(${(100 * 1.94 / 24) * kk}% + 24px)`, opacity: lin(t, tk + 0.5, 0.3), color: "#7FE3BD" }); rk.querySelector(".nl").textContent = "1,94 jam";
+    muncul(kali, t, A.e(2) - 0.6, 0.45, 0, null, 0.7, pegas);
+    jendela(L3, t, S[2], S[3], 0.3);
+    const kc = e(t, S[2] + 0.3, 1.4, masukKeluar);
+    isiC.setAttribute("stroke-dashoffset", 1445 * (1 - 0.993 * kc)); n99.textContent = angka(99.3 * kc, 1) + "%";
+    muncul(cincin, t, S[2], 0.5, 0, null, 0.8, pegas); muncul(n99, t, S[2] + 0.1, 0.4, 0); muncul(l99, t, S[2] + 0.5, 0.5, 20);
+    jendela(L4, t, S[3], S[4], 0.3); muncul(n48, t, S[3] + 0.1, 0.5, 20, null, 0.85, pegas); muncul(l48, t, S[3] + 0.5, 0.5, 16); muncul(bulan, t, S[3] + 0.3, 0.6, 30);
+    bulan.style.transform += ` rotate(${-8 + 6 * Math.sin(t * 1.5)}deg)`; muncul(mana, t, A.w(4, "mana") - 0.3, 0.4, 10, null, 0.8, pegas);
+    jendela(L5, t, S[4], S[5], 0.3);
+    n3331.textContent = angka(Math.round(3331 * e(t, S[4] + 0.3, 1.6, masukKeluar))); muncul(n3331, t, S[4] + 0.05, 0.4, 20); muncul(l3331, t, S[4] + 0.5, 0.5, 16);
+    log.firstChild && (log.style.opacity = lin(t, S[4] + 0.2, 0.5)); log.scrollTop = 0; log.firstElementChild.style.marginTop = (-((t - S[4]) * 70) % 600) + "px";
+    jendela(L6, t, S[5], S[6], 0.3); muncul(jd6, t, S[5] + 0.1, 0.5, 14);
+    muncul(k68, t, S[5] + 0.3, 0.5, 30); muncul(k55, t, S[5] + 0.6, 0.5, 30);
+    k68.querySelector(".n").textContent = Math.round(68 * e(t, S[5] + 0.4, 1.3, masukKeluar)); k55.querySelector(".n").textContent = Math.round(55 * e(t, S[5] + 0.7, 1.3, masukKeluar));
+    jendela(L7, t, S[6], A.lama + 1, 0.3); muncul(koin, t, S[6] + 0.2, 0.6, 0); muncul(rp0, t, A.w(7, "nol") - 0.15, 0.4, 0, null, 1.6, pegas); muncul(lrp, t, A.w(7, "nol") + 0.25, 0.5, 14);
+  };
+};
+
+// =====================================================================
+// 11. WALI KOTA — suara asli beliau
+// =====================================================================
+SC.walikota = (R, A) => {
+  R.style.background = "radial-gradient(1400px 900px at 50% 40%, #182c4f 0%, #070d1c 70%)";
+  const K = A.klip;
+  const bingkai = buat(R, `<div class="bingkaiFoto" style="left:300px;top:150px;width:1320px;height:736px;background:#000"></div>`);
+  const wk = [1, 2, 3, 4].map((i) => rekaman(bingkai, "wk" + i, "penuh", "position:absolute;inset:0"));
+  const penuh = buat(R, `<div class="abs" style="inset:0;opacity:0"></div>`);
+  const r29 = rekaman(penuh, "n1729", "penuh", "position:absolute;inset:0"), r30 = rekaman(penuh, "n1730", "penuh", "position:absolute;inset:0");
+  buat(penuh, `<div class="abs" style="inset:0;background:linear-gradient(0deg, rgba(5,10,20,.55), rgba(5,10,20,0) 40%)"></div>`);
+  const kutip = buat(R, `<div class="abs b" style="left:250px;top:70px;font-size:220px;line-height:1;color:var(--emas);opacity:.9">“</div>`);
+  const nama = buat(R, `<div class="abs" style="left:340px;top:770px;padding:16px 28px 16px 24px;border-radius:16px;background:rgba(10,22,40,.88);border-left:8px solid var(--emas)"><div class="b" style="font-size:34px">dr. H. Khairul, M.Kes.</div><div style="font-size:24px;color:var(--emas);font-weight:700;margin-top:2px">Wali Kota Tarakan</div></div>`);
+  return (t) => {
+    // klip 1, 2, 4: wajah dalam bingkai; klip 3: beliau membuka aplikasi di ponsel
+    K.forEach((k, i) => {
+      const r = wk[i];
+      const op = (i ? lin(t, k.awal - A.silang, A.silang) : 1) * (1 - lin(t, k.akhir - A.silang, A.silang));   // klip pertama tampil sejak awal adegan
+      r.img.style.opacity = k.jenis === "wajah" ? op : 0;
+      if (k.jenis === "wajah") r.petakan(t, k.awal, k.akhir, 0, k.sumber[1] - k.sumber[0]);
+    });
+    const k3 = K[2];
+    const op3 = lin(t, k3.awal - A.silang, A.silang) * (1 - lin(t, k3.akhir - A.silang, A.silang));
+    penuh.style.opacity = op3;
+    const tengahK3 = (k3.awal + k3.akhir) / 2;
+    r29.petakan(t, k3.awal - 0.3, tengahK3, 0, 4.0); r30.img.style.opacity = lin(t, tengahK3 - 0.2, 0.4); r30.petakan(t, tengahK3 - 0.2, k3.akhir, 0, 5.4);
+    penuh.style.transform = `scale(${1.02 + 0.05 * lin(t, k3.awal, k3.akhir - k3.awal)})`;
+    muncul(bingkai, t, 0, 0.6, 30); bingkai.style.opacity = Math.min(parseFloat(bingkai.style.opacity), 1 - op3 * 0.98);
+    muncul(kutip, t, 0.2, 0.6, 20); kutip.style.opacity = parseFloat(kutip.style.opacity) * (1 - op3);
+    muncul(nama, t, 0.8, 0.6, 16); nama.style.opacity = parseFloat(nama.style.opacity) * (1 - 0.0 * op3);
+    nama.style.left = campur(340, 120, op3) + "px"; nama.style.top = campur(770, 150, op3) + "px";
+    R.style.opacity = 1 - lin(t, A.lama - 0.4, 0.4) * 0.0;
+  };
+};
+
+// =====================================================================
+// 12. LANJUT — RPJMD, keberlanjutan, replikasi
+// =====================================================================
+SC.lanjut = (R, A) => {
+  const p0 = buat(R, `<div class="abs" style="inset:0"></div>`);
+  const kat = buat(p0, `<div class="pil emas" style="left:120px;top:170px;font-size:22px">${ik("landmark", 26)}KATEGORI A · INOVASI TATA KELOLA PEMERINTAHAN</div>`);
+  const misi = buat(p0, `<div class="abs" style="left:120px;top:260px;width:820px"><div class="label">RPJMD Kota Tarakan 2025–2029</div><div class="b" style="font-size:120px;line-height:1;margin-top:10px;color:var(--emas)">Misi 4</div><div style="font-size:34px;line-height:1.4;margin-top:24px;font-weight:600;color:#E3E8F4">“Mewujudkan tata kelola pemerintahan yang <b style="color:#fff">adaptif</b>, <b style="color:#fff">responsif</b> dan menjaga stabilitas ketertiban dan ketentraman kota”</div></div>`);
+  const POIN = [["smartphone", "Adaptif", "kerja tanpa kertas, dari ponsel"], ["zap", "Responsif", "jadwal tayang dalam hitungan jam"], ["shield-check", "Menjaga stabilitas", "Pimpinan selalu didampingi petugas yang siap"]];
+  const poin = POIN.map(([i, j, k], n) => buat(p0, `<div class="kartu" style="left:1040px;top:${250 + n * 190}px;width:760px;height:160px;display:flex;align-items:center;gap:26px;padding:0 34px">${ik(i, 64, "var(--emas)", 1.6)}<div><div class="b" style="font-size:40px">${j}</div><div style="font-size:26px;color:var(--abu);margin-top:4px">${k}</div></div></div>`));
+  // keberlanjutan
+  const p1 = buat(R, `<div class="abs" style="inset:0"></div>`);
+  const meter = buat(p1, `<div class="kartu" style="left:120px;top:220px;width:640px;height:560px;padding:40px;text-align:center"><div class="label">Biaya berjalan</div>
+     <svg width="460" height="260" viewBox="0 0 460 260" style="margin-top:20px"><path d="M40 230 A190 190 0 0 1 420 230" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="34" stroke-linecap="round"/><path d="M40 230 A190 190 0 0 1 90 100" fill="none" stroke="#34C38F" stroke-width="34" stroke-linecap="round"/><line class="jarum" x1="230" y1="230" x2="230" y2="70" stroke="#fff" stroke-width="10" stroke-linecap="round"/><circle cx="230" cy="230" r="20" fill="#fff"/></svg>
+     <div class="b" style="font-size:58px;color:#7FE3BD;margin-top:6px">mendekati nol</div><div style="font-size:24px;color:var(--abu);margin-top:6px">kuota layanan tanpa biaya</div></div>`);
+  const jarum = meter.querySelector(".jarum");
+  const jab = buat(p1, `<div class="abs" style="left:840px;top:220px;width:980px;height:560px"></div>`);
+  const kotak = buat(jab, `<div class="kartu" style="left:0;top:110px;width:400px;height:320px;padding:30px;text-align:center;border-color:rgba(242,193,78,.7)"><div style="font-size:22px;font-weight:800;letter-spacing:3px;color:var(--emas)">JABATAN</div><div class="b" style="font-size:36px;margin-top:4px">Kepala Bagian</div><div class="org" style="position:relative;height:170px;margin-top:16px;overflow:hidden"></div></div>`);
+  const org = kotak.querySelector(".org");
+  const o1 = buat(org, `<div class="abs" style="left:0;right:0;top:10px;text-align:center">${ik("user", 120, "#fff", 1.4)}<div style="font-size:22px;color:var(--abu)">pejabat lama</div></div>`);
+  const o2 = buat(org, `<div class="abs" style="left:0;right:0;top:10px;text-align:center">${ik("user", 120, "#7FE3BD", 1.4)}<div style="font-size:22px;color:#7FE3BD">pejabat baru</div></div>`);
+  const alir = buat(jab, `<div class="abs" style="left:420px;top:250px;width:540px;height:40px"></div>`);
+  const titikAlir = [0, 1, 2, 3, 4, 5].map((i) => buat(alir, `<div class="abs" style="top:12px;width:16px;height:16px;border-radius:8px;background:var(--emas)"></div>`));
+  const tujuan = buat(jab, `<div class="kartu" style="left:700px;top:170px;width:280px;height:200px;text-align:center;padding-top:34px">${ik("calendar-check", 70, "var(--hijau)", 1.6)}<div class="b" style="font-size:30px;margin-top:10px">Alur tetap jalan</div></div>`);
+  const ketJab = buat(p1, `<div class="pil emas" style="left:840px;top:700px;font-size:28px">${ik("badge-check", 30)}Kewenangan melekat pada jabatan</div>`);
+  // replikasi: peta
+  const p2 = buat(R, `<div class="abs" style="inset:0"></div>`);
+  const P = window.PETA;
+  const vb = P.viewBox.split(" ").map(Number);
+  const W = 1640, Hh = W * vb[3] / vb[2];
+  const peta = buat(p2, `<svg class="abs" style="left:140px;top:${172 + (720 - Hh) / 2}px" width="${W}" height="${Hh}" viewBox="${P.viewBox}"></svg>`);
+  const prov = P.lokasi.map((l) => { const p = document.createElementNS("http://www.w3.org/2000/svg", "path"); p.setAttribute("d", l.d); p.setAttribute("fill", "#1c3157"); p.setAttribute("stroke", "#0A1628"); p.setAttribute("stroke-width", "0.6"); peta.appendChild(p); return { p, id: l.id }; });
+  const ku = prov.find((x) => x.id === "id-ku") || prov[0];
+  R.style.display = "block"; R.style.visibility = "hidden";       // getBBox butuh elemen yang tertata
+  const bb = ku.p.getBBox();
+  const tx = bb.x + bb.width * 0.9, ty = bb.y + bb.height * 0.35;   // Tarakan: pesisir timur Kalimantan Utara
+  prov.forEach((x) => { const b = x.p.getBBox(); x.jarak = Math.hypot(b.x + b.width / 2 - tx, b.y + b.height / 2 - ty); });
+  const maksJ = Math.max(...prov.map((x) => x.jarak));
+  R.style.display = ""; R.style.visibility = "";
+  const sx = W / vb[2], px = 140 + (tx - vb[0]) * sx, py = 172 + (720 - Hh) / 2 + (ty - vb[1]) * sx;
+  const riak = [0, 1, 2].map(() => buat(p2, `<div class="abs" style="left:${px - 30}px;top:${py - 30}px;width:60px;height:60px;border-radius:30px;border:3px solid var(--emas)"></div>`));
+  const pin = buat(p2, `<div class="abs" style="left:${px - 14}px;top:${py - 14}px;width:28px;height:28px;border-radius:14px;background:var(--emas);box-shadow:0 0 30px var(--emas)"></div>`);
+  const lblT = buat(p2, `<div class="pil putih" style="left:${px + 26}px;top:${py - 70}px;font-size:24px;padding:8px 16px">${ik("map-pin", 24, "var(--navy)")}Tarakan</div>`);
+  const REP = [["Sekretariat DPRD", 140, 856], ["Perangkat daerah", 560, 856], ["Pemprov & kabupaten di Kaltara", 980, 856]];
+  const rep = REP.map(([n, x, y]) => buat(p2, `<div class="pil emas" style="left:${x}px;top:${y}px;font-size:24px">${ik("check", 26)}${n}</div>`));
+  const semua = buat(p2, `<div class="abs b tengah" style="top:150px;font-size:54px">Bisa ditiru <span style="color:var(--emas)">di seluruh Indonesia</span></div>`);
+  const t1 = A.k(1) - 0.25, t2 = A.k(3) - 0.25;
+  return (t) => {
+    jendela(p0, t, -1, t1, 0.3);
+    muncul(kat, t, 0.3, 0.4, 10); muncul(misi, t, A.w(0, "misi") - 0.1, 0.5, 20);
+    poin.forEach((n, i) => muncul(n, t, [A.w(0, "adaptif") - 0.3, A.w(0, "responsif") - 0.3, A.w(0, "responsif") + 0.4][i], 0.45, 20, null, 0.85, pegas));
+    jendela(p1, t, t1, t2, 0.3);
+    muncul(meter, t, t1 + 0.1, 0.5, 20); jarum.setAttribute("transform", `rotate(${-90 + 18 * e(t, t1 + 0.4, 1.0, pegas) - 0 * 0} 230 230)`);
+    muncul(jab, t, A.w(1, "kewenangan") - 0.4, 0.5, 20); muncul(ketJab, t, A.w(1, "kewenangan"), 0.4, 10);
+    const ganti = e(t, A.w(2, "pergantian") - 0.1, 0.8, masukKeluar);
+    o1.style.transform = `translateX(${-260 * ganti}px)`; o1.style.opacity = 1 - ganti;
+    o2.style.transform = `translateX(${260 * (1 - ganti)}px)`; o2.style.opacity = ganti;
+    titikAlir.forEach((n, i) => { const f = ((t * 0.55 + i / 6) % 1); n.style.left = (f * 260) + "px"; n.style.opacity = 0.4 + 0.6 * Math.sin(f * Math.PI); });
+    jendela(p2, t, t2, A.lama + 1, 0.35);
+    muncul(semua, t, A.w(3, "ditiru") - 0.4, 0.5, 14);
+    const gel = lin(t, A.w(3, "ditiru") - 0.4, 2.6);
+    prov.forEach((x) => { const on = x === ku ? lin(t, t2 + 0.3, 0.3) : lin(gel * maksJ * 1.05 - x.jarak, 0, maksJ * 0.08); x.p.setAttribute("fill", on > 0.01 ? `rgba(${Math.round(28 + (242 - 28) * on * 0.85)},${Math.round(49 + (193 - 49) * on * 0.85)},${Math.round(87 + (78 - 87) * on * 0.85)},1)` : "#1c3157"); });
+    muncul(pin, t, t2 + 0.3, 0.4, 0, null, 0.3, pegas); muncul(lblT, t, t2 + 0.5, 0.4, 10);
+    riak.forEach((n, i) => { const f = ((t - t2) * 0.7 + i / 3) % 1; n.style.transform = `scale(${1 + 2.4 * f})`; n.style.opacity = t > t2 + 0.3 ? 1 - f : 0; });
+    rep.forEach((n, i) => muncul(n, t, A.w(3, "keprotokolan") - 0.3 + i * 0.35, 0.4, 12, null, 0.85, pegas));
+  };
+};
+
+// =====================================================================
+// 13. TUTUP
+// =====================================================================
+SC.tutup = (R, A) => {
+  R.style.background = "radial-gradient(1200px 800px at 50% 30%, #23215a 0%, #0d1836 55%, #070d1c 100%)";
+  const logo = buat(R, `<img class="abs" src="aset/hibot.png" style="left:860px;top:110px;width:200px;border-radius:44px;box-shadow:0 30px 80px rgba(0,0,0,.5)">`);
+  const nama = buat(R, `<div class="abs b tengah" style="top:330px;font-size:100px">Prokopim Hibot</div>`);
+  const BARIS = ["Satu aplikasi.", "Satu data.", "Setiap keputusan tercatat."];
+  const baris = BARIS.map((x, i) => buat(R, `<div class="abs b tengah" style="top:${470 + i * 86}px;font-size:66px;${i === 2 ? "color:var(--emas)" : ""}">${x}</div>`));
+  const tema = buat(R, `<div class="abs tengah" style="top:470px;font-size:56px;font-weight:800;line-height:1.25">Inovasi Berdampak,<br><span style="color:var(--emas)">Tarakan Maju dan Berdaya Saing</span></div>`);
+  const kaki = buat(R, `<div class="abs" style="left:0;right:0;top:690px;display:flex;justify-content:center;align-items:center;gap:26px"><img src="aset/tarakan.png" style="height:96px"><div><div class="b" style="font-size:30px">Bagian Protokol dan Komunikasi Pimpinan</div><div style="font-size:24px;color:var(--abu);font-weight:600">Sekretariat Daerah Kota Tarakan · prokopim.tarakankota.go.id</div></div></div>`);
+  const juara = buat(R, `<div class="pil emas" style="left:0;top:822px;font-size:24px;padding:10px 22px">${ik("trophy", 28)}Juara I Lomba Inovasi Daerah Provinsi Kalimantan Utara 2026 · Kategori ASN Kab/Kota</div>`);
+  const hitam = buat(R, `<div class="abs" style="inset:0;background:#000;opacity:0"></div>`);
+  const tTema = A.k(2) - 0.2;
+  return (t) => {
+    muncul(logo, t, 0.2, 0.6, 20, null, 0.6, pegas); muncul(nama, t, A.k(0) - 0.1, 0.5, 20);
+    baris.forEach((n, i) => muncul(n, t, [A.k(1) - 0.1, A.w(1, "data") - 0.2, A.w(1, "setiap") - 0.15][i], 0.45, 20, tTema - 0.1));
+    muncul(tema, t, tTema + 0.15, 0.6, 20);
+    muncul(kaki, t, A.e(2) - 0.6, 0.6, 16);
+    muncul(juara, t, A.e(2) + 0.2, 0.6, 12); juara.style.left = (960 - juara.offsetWidth / 2) + "px";
+    hitam.style.opacity = lin(t, A.lama - 0.9, 0.9);
+  };
+};
+
+// ---------- susun semua adegan ----------
+const ADEGAN = L.adegan.map((a) => {
+  const R = buat(dunia, `<div class="adegan" data-id="${a.id}"></div>`);
+  const A = bantu(a);
+  const upd = SC[a.id](R, A);
+  return { a, R, upd, tampil: false };
+});
+const BAGIAN = ["LATAR BELAKANG", "MASALAH", "SOLUSI", "IMPLEMENTASI", "DAMPAK", "KEBERLANJUTAN"];
+const chip = document.getElementById("chip"), logoAtas = document.getElementById("logo");
+chip.querySelector(".titik").innerHTML = BAGIAN.map(() => "<i></i>").join("");
+const titikChip = [...chip.querySelectorAll(".titik i")];
+const TANPA_CHIP = { pembuka: [0, 99], judul: [0, 99], tutup: [0, 99], walikota: [0, 99] };
+const TANPA_LOGO = { judul: [0, 99], tutup: [0, 99] };
+function atas(t) {
+  let ak = ADEGAN[0]; for (const s of ADEGAN) if (t >= s.a.mulai) ak = s;
+  const lok = t - ak.a.mulai;
+  const sem = (peta) => { const r = peta[ak.a.id]; return r && lok >= r[0] && lok <= r[1]; };
+  // pudar halus di batas adegan
+  const sisi = Math.min(lin(lok, 0.1, 0.4), 1 - lin(lok, ak.a.lama - 0.3, 0.3));
+  const cOn = !sem(TANPA_CHIP), lOn = !sem(TANPA_LOGO);
+  chip.style.opacity = cOn ? Math.max(0.0, sisi) : 0;
+  logoAtas.style.opacity = lOn ? (ak.a.id === "pembuka" ? 0.85 : 1) : 0;
+  chip.querySelector(".nama").textContent = ak.a.bagian;
+  const idx = BAGIAN.indexOf(ak.a.bagian);
+  titikChip.forEach((n, i) => n.classList.toggle("on", i === idx));
+}
+window.perbarui = async (t) => {
+  MENUNGGU.length = 0;
+  for (const s of ADEGAN) {
+    const m = s.a.mulai, z = m + s.a.lama;
+    if (t < m - 0.3 || t >= z + 0.3) { if (s.tampil) { s.R.style.display = "none"; s.tampil = false; } continue; }
+    if (!s.tampil) { s.R.style.display = "block"; s.tampil = true; }
+    s.R.style.opacity = kl((t - (m - 0.3)) / 0.5);   // adegan baru menutup adegan lama
+    s.upd(t - m);
+  }
+  atas(t);
+  await Promise.all(MENUNGGU);
+};
+window.TOTAL = L.total;
+window.siap = (async () => {
+  await document.fonts.load("800 40px PJS"); await document.fonts.load("600 40px PJS"); await document.fonts.ready;
+  await Promise.all([...document.images].map((i) => (i.complete ? null : new Promise((r) => { i.onload = i.onerror = r; }))));
+  return true;
+})();
+</script>
+</body></html>
