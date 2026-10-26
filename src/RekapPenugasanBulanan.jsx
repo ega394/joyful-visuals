@@ -1,10 +1,19 @@
 import React from "react";
+import { epochMulai } from "./lib/zona.js";
 
 const BULAN_LABEL = [
   "Januari","Februari","Maret","April","Mei","Juni",
   "Juli","Agustus","September","Oktober","November","Desember"
 ];
 const MEDAL = ["🥇","🥈","🥉"];
+
+// Rekap hanya menghitung kegiatan yang sudah berlangsung: penugasan untuk acara
+// yang belum terjadi belum menjadi kinerja. Acara tanpa jam dihitung sejak
+// akhir harinya; zona acara ikut diperhitungkan (epochMulai).
+function sudahBerlangsung(ev, saat) {
+  const t = epochMulai(ev && ev.jam ? ev : { ...ev, jam: "23:59" });
+  return !Number.isNaN(t) && t <= saat;
+}
 
 // Jam selesai agenda bersifat opsional dan tidak dimiliki agenda lama, jadi
 // rentang hanya ditampilkan bila terisi dan lebih besar dari jam mulai.
@@ -91,10 +100,10 @@ export default function RekapPenugasanBulanan({ events, user, isMobile, allUsers
     return Number(t.slice(0, 4)) === tahun && Number(t.slice(5, 7)) === bulan + 1;
   }, [periodeMode, dari, sampai, bulan, tahun]);
 
-  const evBulan = React.useMemo(
-    () => events.filter(e => e.alur === "disetujui" && inPeriode(e.tanggal)),
-    [events, inPeriode]
-  );
+  const evBulan = React.useMemo(() => {
+    const saat = Date.now();
+    return events.filter(e => e.alur === "disetujui" && inPeriode(e.tanggal) && sudahBerlangsung(e, saat));
+  }, [events, inPeriode]);
 
   const fmtRingkas = (d) => {
     const t = String(d || "").slice(0, 10);
@@ -389,7 +398,7 @@ ${s.jumlahNaskah>0
           {selfMode ? (meRow.nama || meRow.username || "-") : periodeLabel}
         </div>
         <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11 }}>
-          {selfMode ? "Periode " + periodeLabel : evBulan.length + " kegiatan disetujui pada periode ini"}
+          {selfMode ? "Periode " + periodeLabel : evBulan.length + " kegiatan sudah berlangsung pada periode ini"}
         </div>
       </div>
 
@@ -513,6 +522,7 @@ ${s.jumlahNaskah>0
             <div style={{ marginTop: 12, padding: "8px 12px", background: "#F1F5F9", borderRadius: 8, fontSize: 11, color: "#64748B", lineHeight: 1.6 }}>
               ℹ️ Skor = jumlah {labelTugas.toLowerCase()}
               {!isAjudan && " + jumlah naskah sambutan yang telah disahkan Kabag"}.
+              Hanya kegiatan yang sudah berlangsung yang dihitung.
               Halaman ini hanya menampilkan data Anda sendiri.
             </div>
           </div>
@@ -565,8 +575,8 @@ ${s.jumlahNaskah>0
         )}
 
         <div style={{ marginTop: 12, padding: "8px 12px", background: "#F1F5F9", borderRadius: 8, fontSize: 11, color: "#64748B", lineHeight: 1.6 }}>
-          ℹ️ Skor = jumlah penugasan lapangan + jumlah naskah sambutan yang disahkan Kabag.
-          Setiap naskah dihitung 1 untuk penyusun, Kasubbag Komdokpim, dan Kabag (dedup jika satu orang merangkap).
+          ℹ️ Skor = jumlah penugasan lapangan + jumlah naskah sambutan yang disahkan Kabag,
+          hanya untuk kegiatan yang sudah berlangsung. Setiap naskah dihitung 1 untuk penyusun, Kasubbag Komdokpim, dan Kabag (dedup jika satu orang merangkap).
           Klik baris pegawai untuk melihat rinciannya & mencetak bukti dukung kinerja.
         </div>
       </div>}
