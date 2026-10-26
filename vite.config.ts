@@ -99,6 +99,8 @@ export default defineConfig(({ mode }) => ({
           /^\/api\/.*/,
           /^\/sw\.js$/,
           /^\/push-handler\.js$/,
+          // Buku petunjuk PDF dibuka langsung, bukan halaman aplikasi
+          /^\/panduan\//,
         ],
 
         runtimeCaching: [

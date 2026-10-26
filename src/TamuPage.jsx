@@ -27,6 +27,7 @@ import React, {
 } from "react";
 import KotakPersetujuan from "./components/KotakPersetujuan.jsx";
 import LogoHUT from "./components/LogoHUT.jsx";
+import { PANDUAN } from "./lib/panduan.js";
 
 // ── Konstanta ──────────────────────────────────────────────
 var NAVY     = "#0A1628";
@@ -1467,6 +1468,23 @@ function CharCount({ id, value, min, max }) {
 function FooterHelp() {
   return (
     <div style={{ width:"calc(100% - 32px)", maxWidth:500, marginTop:16 }}>
+      <a
+        href={PANDUAN.audiensi}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Baca panduan permohonan audiensi (PDF, membuka jendela baru)"
+        style={{
+          display:"flex", alignItems:"center", justifyContent:"center", gap:10,
+          width:"100%", minHeight:48, marginBottom:10,
+          borderRadius:13, border:"2px solid rgba(201,168,76,0.45)",
+          background:"rgba(201,168,76,0.08)",
+          color:GOLD, fontSize:13.5, fontWeight:700,
+          textDecoration:"none", padding:"10px 16px",
+        }}
+      >
+        <span aria-hidden="true" style={{ fontSize:18 }}>📘</span>
+        <span>Baca Panduan Permohonan Audiensi</span>
+      </a>
       <a
         href={WA_ADMIN}
         target="_blank"

@@ -4,6 +4,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo, memo } from "react";
 import KotakPersetujuan from "../components/KotakPersetujuan.jsx";
 import LogoHUT from "../components/LogoHUT.jsx";
+import { PANDUAN } from "../lib/panduan.js";
 
 const NAVY   = "#0A1628";
 const NAVY2  = "#1E3A5F";
@@ -1205,6 +1206,10 @@ export default function PinjamRuanganPage() {
               <div style={{color:GOLD,fontSize:9,letterSpacing:2.5,fontWeight:800,textTransform:"uppercase"}}>Pemerintah Kota Tarakan</div>
               <div style={{color:"white",fontSize:18,fontWeight:900,lineHeight:1.2,letterSpacing:-0.3}}>Peminjaman Ruang Rapat</div>
               <div style={{color:"rgba(255,255,255,0.5)",fontSize:11.5,marginTop:1}}>Bagian Protokol & Komunikasi Pimpinan</div>
+              <a href={PANDUAN.ruangan} target="_blank" rel="noopener noreferrer" title="Panduan peminjaman ruang rapat (PDF)"
+                style={{display:"inline-flex",alignItems:"center",gap:5,marginTop:6,padding:"3px 10px",borderRadius:999,border:"1px solid rgba(201,168,76,0.5)",color:GOLD,fontSize:12,fontWeight:700,textDecoration:"none"}}>
+                📘 Panduan Peminjaman
+              </a>
             </div>
             <LogoHUT tinggi={48} style={{marginLeft:"auto"}}/>
           </div>

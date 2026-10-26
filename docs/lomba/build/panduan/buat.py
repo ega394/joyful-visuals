@@ -129,7 +129,8 @@ def main(keluar):
 <h3>Membuka aplikasi</h3>
 <ol>
 <li>Buka peramban (Chrome, Safari, atau lainnya) dan kunjungi <b>prokopim.tarakankota.go.id</b>.</li>
-<li>Masukkan <b>nama pengguna</b> dan <b>kata sandi</b> yang diberikan pengelola aplikasi, lalu ketuk <b>Masuk</b>.</li>
+<li>Masukkan <b>nama pengguna</b> dan <b>kata sandi</b> yang diberikan pengelola aplikasi, lalu ketuk <b>Masuk</b>. Setelah pernah masuk, Anda juga dapat masuk dengan <b>sidik jari/Face ID</b> atau <b>akun Google</b> yang telah ditautkan.</li>
+<li>Lupa kata sandi? Ketuk <b>Lupa Password?</b>. Belum punya akun? Ketuk <b>Belum punya akun? Daftar di sini</b>; akun aktif setelah disetujui pengelola.</li>
 <li>Pada saat pertama masuk, baca dan setujui pemberitahuan pelindungan data pribadi bila diminta.</li>
 </ol>
 <h3>Memasang di layar utama ponsel</h3>
@@ -167,7 +168,7 @@ def main(keluar):
 <p>Kepala Bagian dan Kepala Sub Bagian dapat melihat laporan kegiatan, rekap penugasan, rekap evaluasi, dan rekap pesan WhatsApp. Setiap pegawai dapat melihat <b>Rekap Kinerja Saya</b> dan mencetak bukti dukung kinerja dari menu Lainnya.</p>
 <div class="galeri">{gambar("kabag_laporan.jpg", "Laporan kegiatan", False)}{gambar("kabag_rekap_wa.jpg", "Rekap pesan WhatsApp beserta status terkirim", False)}</div>
 <h2>Bantuan</h2>
-<p>Kendala penggunaan, lupa kata sandi, atau permintaan akun baru disampaikan kepada pengelola aplikasi di Bagian Protokol dan Komunikasi Pimpinan, Sekretariat Daerah Kota Tarakan.</p>
+<p>Buku petunjuk ini juga dapat dibuka dari aplikasi: menu <b>Lainnya → Buku Petunjuk</b>, atau tautan di halaman masuk. Kendala penggunaan, lupa kata sandi, atau permintaan akun baru disampaikan kepada pengelola aplikasi di Bagian Protokol dan Komunikasi Pimpinan, Sekretariat Daerah Kota Tarakan.</p>
 <p class="catatan">Gambar dalam buku ini memakai data contoh.</p>
 </section>
 </body></html>"""

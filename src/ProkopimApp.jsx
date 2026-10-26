@@ -28,6 +28,7 @@ import { clearAdminToken, adminFetch, sesiFetch, setPenggunaSesi, simpanTokenSes
 import { passkeyDidukung, dibatalkan, konfigMasuk, masukPasskey, daftarPasskey, daftarCaraMasuk, hapusPasskey, putuskanGoogle, pasangTombolGoogle } from "./lib/caraMasuk.js";
 import { JADWAL_STATUS } from "./lib/statusColors.js";
 import { peranEfektif, plhAktif, punyaPeran, jejakPlh, bolehMemutus, LABEL_PERAN } from "./lib/plh.js";
+import { PANDUAN, bukaPanduan } from "./lib/panduan.js";
 import { acaraDekat, kunciNomor, penerimaUnik, perubahanMaterial, kanalKehadiran, perluWALapangan } from "./lib/aturanWA.js";
 import { bolehSantai, barisNuansa, KUTIPAN, TEKS_MEMUAT, TEKS_KOSONG, BAITUL_ARSIP, KEJUTAN } from "./lib/nuansa.js";
 import { umurUsulan, bandingUsulan } from "./lib/usulan.js";
@@ -9205,6 +9206,7 @@ const TH={
           <button onClick={()=>setShowRegister(true)} style={{width:"100%",height:42,borderRadius:12,border:"1.5px dashed rgba(201,168,76,0.5)",background:"transparent",color:GOLD2,cursor:"pointer",fontSize:13,fontWeight:600,marginBottom:8,display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
               <span>📝</span> Belum punya akun? Daftar di sini
             </button>
+          <a href={PANDUAN.aplikasi} target="_blank" rel="noopener noreferrer" style={{display:"block",textAlign:"center",color:GOLD2,fontSize:13,fontWeight:600,textDecoration:"none",padding:"6px 0",marginBottom:4}}>📘 Buku Petunjuk Penggunaan</a>
 
 
           <div style={{marginTop:"auto",paddingTop:24,textAlign:"center",color:MUTED,fontSize:12,letterSpacing:1.5,opacity:0.5}}>v{import.meta.env.VITE_APP_VERSION || "1.0.0"} (Build {import.meta.env.VITE_BUILD_TIME}) · Prokopim Tarakan</div>
@@ -9301,6 +9303,7 @@ const TH={
           <button onClick={()=>setShowRegister(true)} style={{width:"100%",height:42,borderRadius:12,border:"1.5px dashed rgba(201,168,76,0.5)",background:"transparent",color:GOLD2,cursor:"pointer",fontSize:13,fontWeight:600,marginBottom:8,display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
               <span>📝</span> Belum punya akun? Daftar di sini
             </button>
+          <a href={PANDUAN.aplikasi} target="_blank" rel="noopener noreferrer" style={{display:"block",textAlign:"center",color:GOLD2,fontSize:13,fontWeight:600,textDecoration:"none",padding:"6px 0",marginBottom:4}}>📘 Buku Petunjuk Penggunaan</a>
 
 
 
@@ -9443,6 +9446,7 @@ const TH={
     ...(!["walikota","wakilwalikota","ajudan_walikota","ajudan_wakilwalikota","admin_undangan","mitra_kerja"].includes(role)?[{key:"ekinerja",icon:"📊",label:"E-Kinerja"}]:[]),
     ...(["kabag","kasubbag_protokol",...PERAN_PETUGAS,"admin_rk"].includes(role)?[{key:"action:undangan",icon:"📋",label:"Generator Undangan"}]:[]),
     ...(bolehTautan?[{key:"action:tautan",icon:"🔗",label:"Tautan Audiensi & Ruangan"}]:[]),
+    {key:"action:panduan",icon:"📘",label:"Buku Petunjuk"},
     ...(bolehKalenderRuangan?[{key:"kalender_ruangan",icon:"🏛️",label:"Kalender Ruangan"}]:[]),
     ...(DAFTAR_HADIR_ROLES.includes(role)?[{key:"daftar_hadir",icon:"✍️",label:"Daftar Hadir Digital"}]:[]),
     ...(bolehMonitorWA?[{key:"monitor_wa",icon:"📊",label:"Monitor WA"}]:[]),
@@ -9458,6 +9462,7 @@ const TH={
 
   const handleNavClick=key=>{
     if(key==="action:tautan"){setShowTautan(true);return;}
+    if(key==="action:panduan"){bukaPanduan("aplikasi");return;}
     if(key==="action:summary"){setShowSummary(true);return;}if(key==="action:report"){setShowReport(true);return;}if(key==="action:report_tamu"){setShowReportTamu(true);return;}if(key==="action:laporan"){setShowLaporan(true);return;}if(key==="action:admin"){setShowAdmin(true);return;}if(key==="action:broadcast"){setShowBroadcast(true);return;}if(key==="action:profile"){setShowProfile(true);return;}if(key==="action:arsip"){setShowArsip(true);return;}if(key==="action:undangan"){setShowUndanganTool(true);return;}
     setTab(key);if(key==="form"){setForm(emptyForm);setEditId(null);}
   };
@@ -9649,6 +9654,7 @@ const TH={
               ...(bolehMonitorWA?[{icon:"📊",label:"Monitor WA",action:()=>{setTab("monitor_wa");setMobMenu(false);}}]:[]),
               ...(bolehAturKalender?[{icon:"📆",label:"Kalender Bersama",action:()=>{setTab("kalender_bersama");setMobMenu(false);}}]:[]),
               ...(role==="kabag"?[{icon:"🛡️",label:"Pelaksana Harian",action:()=>{setTab("plh");setMobMenu(false);}}]:[]),
+              {icon:"📘",label:"Buku Petunjuk",action:()=>{bukaPanduan("aplikasi");setMobMenu(false);}},
               {icon:"👤",label:"Profil",action:()=>{setShowProfile(true);setMobMenu(false);}},
               ...(role==="kabag"?[{icon:"⚙️",label:"Kelola User"+(loadPendingRegs().length>0?" ("+loadPendingRegs().length+")":""),action:()=>{setShowAdmin(true);setMobMenu(false);}}]:[]),
               ...(role==="kabag"?[{icon:"📢",label:"Kirim Pengumuman",action:()=>{setShowBroadcast(true);setMobMenu(false);}}]:[]),
