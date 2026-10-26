@@ -885,6 +885,10 @@ const fmtJamWita=ev=>fmtJamZona(ev,zonaPerangkat());
 // Saat mulai acara sebagai Date, memperhitungkan zona acara (bukan jam HP).
 // `jamCadangan` dipakai bila jam kosong, mengikuti perilaku lama tiap layar.
 const tglAcara=(ev,jamCadangan)=>new Date(epochMulai(ev&&!ev.jam&&jamCadangan?{...ev,jam:jamCadangan}:ev));
+// Pemisah "akan datang" / "sudah berlalu": acara tanpa jam dihitung masih
+// berjalan sampai akhir harinya; tanpa tanggal (Date tidak sah) tetap di
+// kelompok akan datang, seperti perilaku lama.
+const sudahMulaiPada=(ev,now)=>tglAcara(ev,"23:59")<now;
 // Untuk kolom sempit (kalender, timeline, tabel): jam mulai di baris atas dan
 // jam selesai di baris kecil di bawahnya, agar rentang tidak memaksa kolom
 // melebar. Bila jam selesai kosong, tampilannya persis seperti sebelumnya.
@@ -5865,10 +5869,10 @@ function GroupedEventList({ evList, isMobile, viewMode, pimpinan }) {
   const jmlHariIni = pimpinan ? evList.filter(diSorotan).length : 0;
   if (pimpinan) evList = evList.filter(e => !diSorotan(e));
   const NAVY = "#0A1628", GOLD = "#C9A84C";
-  const nowStr = new Date().toISOString().slice(0,16).replace("T"," ");
+  const now = new Date();
 
-  const upcoming = evList.filter(e => (e.tanggal+" "+e.jam) >= nowStr);
-  const past     = evList.filter(e => (e.tanggal+" "+e.jam) <  nowStr);
+  const upcoming = evList.filter(e => !sudahMulaiPada(e, now));
+  const past     = evList.filter(e =>  sudahMulaiPada(e, now));
 
   const renderList = (list) => {
     if (list.length === 0) return null;
@@ -8695,9 +8699,9 @@ export default function App(){
       base=base.filter(e=>e.tanggal===filterDate);
     }
     // Urutkan: yang belum lewat (mulai besok s/d mendatang) duluan, lalu lampau di bawah
-    const nowStr=new Date().toISOString().slice(0,16).replace("T"," ");
-    const upcoming2=base.filter(e=>(e.tanggal+" "+e.jam)>=nowStr).sort((a,b)=>urutAcara(a,b));
-    const past2=base.filter(e=>(e.tanggal+" "+e.jam)<nowStr).sort((a,b)=>urutAcara(b,a));
+    const now=new Date();
+    const upcoming2=base.filter(e=>!sudahMulaiPada(e,now)).sort((a,b)=>urutAcara(a,b));
+    const past2=base.filter(e=>sudahMulaiPada(e,now)).sort((a,b)=>urutAcara(b,a));
     return [...upcoming2,...past2];
   };
   const pendingList=events.filter(e=>{
@@ -10789,7 +10793,6 @@ function KabagDashboard({events, user, upd, showT, askConfirm, deleteAndSync, is
   // busyId: id event yang sedang diproses (cegah dobel klik Setujui & Publikasi)
   const [busyId, setBusyId] = useState(null);
   const now=new Date();
-  const nowStr=now.toISOString().slice(0,16).replace("T"," ");
   const fmt=t=>new Date(t).toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long"});
   const fmtShort=t=>new Date(t).toLocaleDateString("id-ID",{day:"numeric",month:"short"});
   const getNamaByUsername=un=>loadUsers().find(u=>u.username===un)?.nama||un;
@@ -10804,8 +10807,8 @@ function KabagDashboard({events, user, upd, showT, askConfirm, deleteAndSync, is
   const approved=events.filter(e=>e.alur==="disetujui").sort((a,b)=>urutAcara(a,b));
 
   // Pisah: mendatang (belum berlangsung) vs riwayat (sudah berlangsung)
-  const upcoming=approved.filter(e=>(e.tanggal+" "+e.jam)>=nowStr);
-  const riwayat=approved.filter(e=>(e.tanggal+" "+e.jam)<nowStr).reverse();
+  const upcoming=approved.filter(e=>!sudahMulaiPada(e,now));
+  const riwayat=approved.filter(e=>sudahMulaiPada(e,now)).reverse();
   // Filter riwayat berdasarkan pencarian
   const riwayatFiltered=searchQ.trim()
     ?riwayat.filter(e=>String(e.namaAcara??"").toLowerCase().includes(searchQ.toLowerCase())||String(e.penyelenggara??"").toLowerCase().includes(searchQ.toLowerCase())||(e.tanggal||"").includes(searchQ))
