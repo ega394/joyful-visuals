@@ -9805,11 +9805,16 @@ function PenugasanSayaView({events, user, onOpenEvaluasi, isMobile}){
   // didelegasikan, diwakilkan, atau tidak dihadiri.
   const isAjWK=user.role==="ajudan_walikota", isAjWWK=user.role==="ajudan_wakilwalikota";
   const isAjudan=isAjWK||isAjWWK;
+  // Agenda mendatang: selama pimpinan belum menyatakan tidak hadir/diwakilkan.
+  // Agenda yang sudah lewat: hanya yang tercatat dihadiri (bawaan Rekap Kinerja).
   const mendampingi=e=>{
     const untuk=e.untukPimpinan||[];
-    if(isAjWK)return untuk.includes("walikota")&&!e.delegasiKeWWK&&!["tidak_hadir","diwakilkan"].includes(e.statusWK);
-    if(isAjWWK)return (untuk.includes("wakilwalikota")||e.delegasiKeWWK)&&!["tidak_hadir","diwakilkan"].includes(e.statusWWK);
-    return false;
+    const lewat=tglAcara(e,"23:59")<new Date();
+    const st=isAjWK?e.statusWK:e.statusWWK;
+    if(isAjWK&&!(untuk.includes("walikota")&&!e.delegasiKeWWK))return false;
+    if(isAjWWK&&!(untuk.includes("wakilwalikota")||e.delegasiKeWWK))return false;
+    if(!isAjudan)return false;
+    return lewat?st==="hadir":!["tidak_hadir","diwakilkan"].includes(st);
   };
   const bertugas=e=>(e.personil||[]).includes(user.username);
   // "Penugasan saya" hanya kegiatan yang benar-benar menugaskan pengguna ini. Dulu
@@ -9833,7 +9838,8 @@ function PenugasanSayaView({events, user, onOpenEvaluasi, isMobile}){
     const evDt=mulai(ev);
     const isPast=evDt<now;
     const hoursLeft=(evDt-now)/(1000*60*60);
-    const isUrgent=hoursLeft>0&&hoursLeft<=24;
+    // Tanpa jam tidak ada hitung mundur — jam 23:59 hanya batas "sudah lewat".
+    const isUrgent=!!ev.jam&&hoursLeft>0&&hoursLeft<=24;
     const sudahEval=!!(ev.evaluasi||{})[user.username]?.submitted;
     return(
       <div style={{background:isMyTask?(isPast?"#F8FFFE":"#FAFFFD"):"#FAFBFF",borderRadius:14,border:"1.5px solid "+(isMyTask?(isPast?"#a7f3d0":"#6ee7b7"):"#E2E8F0"),marginBottom:8,overflow:"hidden",opacity:isPast&&!isMyTask?0.6:1}}>
@@ -11292,7 +11298,9 @@ function KabagRiwayatTab({events,user}){
 function KasubbagDashboard({events, user, upd, showT, askConfirm, isMobile, onPenugasan}){
   const NAVY="#0A1628",GOLD="#C9A84C",GREEN="#0D6B4F";
   const role=peranEfektif(user);   // ikut berlaku bagi PLH
-  const isProto=role==="kasubbag_protokol";
+  // Peran asli ikut dihitung: Kasubbag Protokol yang menjadi PLH Komdokpim
+  // membuka dasbor ini lewat tab Antrian peran aslinya.
+  const isProto=role==="kasubbag_protokol"||punyaPeran(user,"kasubbag_protokol");
   const [activeTab, setActiveTab] = useState("antrian");
   const [expandedId, setExpanded] = useState(null);
   // Tahan polling realtime selama kartu dibuka agar tidak ter-refresh saat dibaca
@@ -11499,10 +11507,10 @@ function KasubbagDashboard({events, user, upd, showT, askConfirm, isMobile, onPe
         </div>
       </div>
 
-      {/* Sub-tab */}
-      <div style={{background:"white",display:"flex",borderBottom:"1px solid #E2E8F0",padding:"0 12px"}}>
+      {/* Sub-tab — bisa digeser bila tidak muat di layar HP */}
+      <div style={{background:"white",display:"flex",borderBottom:"1px solid #E2E8F0",padding:"0 12px",overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
         {tabs.map(t=>(
-          <button key={t.key} onClick={()=>setActiveTab(t.key)} style={{flex:1,padding:"12px 6px",border:"none",background:"none",borderBottom:"2.5px solid "+(activeTab===t.key?NAVY:"transparent"),color:activeTab===t.key?NAVY:"#94A3B8",cursor:"pointer",fontSize:13,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",gap:5}}>
+          <button key={t.key} onClick={()=>setActiveTab(t.key)} style={{flex:"1 0 auto",whiteSpace:"nowrap",padding:"12px 10px",border:"none",background:"none",borderBottom:"2.5px solid "+(activeTab===t.key?NAVY:"transparent"),color:activeTab===t.key?NAVY:"#94A3B8",cursor:"pointer",fontSize:13,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",gap:5}}>
             <span>{t.icon}</span>
             <span>{t.label}</span>
             {t.badge>0&&<span style={{background:"#EF4444",color:"white",borderRadius:"50%",width:17,height:17,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:900}}>{t.badge}</span>}
@@ -12558,12 +12566,12 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
           );
         })()}
         {/* Evaluasi reminder untuk staf/timkom */}
-        {myEvs.filter(e=>(e.personil||[]).includes(user.username)&&tglAcara(e)<now&&!(e.evaluasi||{})[user.username]?.submitted&&e.alur==="disetujui").length>0&&(
+        {myEvs.filter(e=>(e.personil||[]).includes(user.username)&&tglAcara(e,"23:59")<now&&!(e.evaluasi||{})[user.username]?.submitted&&e.alur==="disetujui").length>0&&(
             <div style={{background:"#FEF3C7",border:"1.5px solid #F59E0B",borderRadius:12,padding:"12px 16px",marginBottom:14,display:"flex",gap:10,alignItems:"center",cursor:"pointer"}}
               onClick={()=>showT("Buka kartu kegiatan → tombol 📝 Isi Evaluasi","info")}>
               <span style={{fontSize:20,flexShrink:0}}>📝</span>
               <div style={{flex:1}}>
-                <div style={{fontSize:13,fontWeight:700,color:"#92400E"}}>{myEvs.filter(e=>(e.personil||[]).includes(user.username)&&tglAcara(e)<now&&!(e.evaluasi||{})[user.username]?.submitted&&e.alur==="disetujui").length} kegiatan belum dievaluasi</div>
+                <div style={{fontSize:13,fontWeight:700,color:"#92400E"}}>{myEvs.filter(e=>(e.personil||[]).includes(user.username)&&tglAcara(e,"23:59")<now&&!(e.evaluasi||{})[user.username]?.submitted&&e.alur==="disetujui").length} kegiatan belum dievaluasi</div>
                 <div style={{fontSize:12,color:"#B45309",marginTop:2}}>Buka kartu kegiatan yang sudah selesai → tombol "Isi Evaluasi"</div>
               </div>
               <span style={{fontSize:18,color:"#B45309"}}>→</span>
@@ -12663,8 +12671,9 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
         ||(role==="kasubbag_protokol"&&e.alurEdit==="menunggu_kasubbag");
     if(role==="kabag")
       return e.alur==="menunggu_kabag"||e.alurEdit==="menunggu_kabag"||e.alurHapus==="menunggu_kabag";
-    // Ajudan: sama dengan angka "belum dikonfirmasi" di dasbornya — agenda yang
-    // belum dimulai, ditambah agenda hari ini yang sudah dimulai tapi belum dicatat.
+    // Ajudan: agenda yang belum dimulai (angka "belum dikonfirmasi" di dasbornya)
+    // ditambah agenda hari ini yang sudah dimulai tapi kehadirannya belum dicatat
+    // (kelompok "Sudah Dimulai" di dasbor yang sama).
     if((role==="ajudan_walikota"||role==="ajudan_wakilwalikota")&&e.alur==="disetujui"&&perluKonfirmasiAjudan(e,role))
       return tglAcara(e,"08:00")>=new Date()||e.tanggal===localDateStr(new Date());
     return false;
@@ -13096,7 +13105,9 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
       :["admin_rk"].includes(role)&&tab==="undangan"
         ?<UndanganGenerator isMobile={isMobile} showT={showT} user={user}/>
 
-      :role==="kasubbag_protokol"&&tab==="dashboard"
+      /* punyaPeran: Kasubbag Protokol yang menjadi PLH Komdokpim tetap punya tab
+         Antrian dari peran aslinya, dan antreannya muncul di lonceng. */
+      :punyaPeran(user,"kasubbag_protokol")&&tab==="dashboard"
         ?<KasubbagDashboard events={events} user={user} upd={upd} showT={showT} askConfirm={askConfirm} isMobile={isMobile} onPenugasan={ev=>setPenugasanEv(ev)}/>
 
       /* 5. Admin RK: Input & Pantau terpadu */

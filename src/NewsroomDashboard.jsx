@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { sesiFetch } from "./roomAuth";
-import { peranEfektif } from "./lib/plh.js";
+import { peranEfektif, punyaPeran } from "./lib/plh.js";
 import { urutAcara } from "./lib/zona.js";
 
 // ═══════════════════════════════════════════════════════════════
@@ -59,9 +59,11 @@ Tulis hanya caption orang pertama-nya saja.`;
 
 export default function NewsroomDashboard({ events, user, showT, isMobile, upd }) {
   const NAVY = "#0A1628", GOLD = "#C9A84C", GREEN = "#059669";
-  // Peran efektif, sama dengan App: PLH Kasubbag Komdokpim mendapat tombol
-  // Setujui/Kembalikan di sini, tempat angka antreannya mengarah.
-  const role = peranEfektif(user) || "";
+  // Peran asli dan peran PLH digabung, dengan urutan kewenangan caption:
+  // Kasubbag Komdokpim (review) > Timkom (draft) > Kabag (pemantauan). Jadi PLH
+  // Kasubbag Komdokpim mendapat tombol Setujui/Kembalikan di sini, dan Kasubbag
+  // Komdokpim yang sedang menjadi PLH Kabag tetap bisa mereview caption.
+  const role = ["kasubbag_komdokpim", "timkom", "kabag"].find(r => punyaPeran(user, r)) || peranEfektif(user) || "";
   const isTimkom   = role === "timkom";
   const isKasubbag = role === "kasubbag_komdokpim";
   const isKabag    = role === "kabag";
