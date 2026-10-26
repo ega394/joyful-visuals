@@ -216,7 +216,7 @@ SC.judul = (R, A) => {
   const kilau = buat(R, `<div class="abs" style="top:430px;height:170px;width:260px;background:linear-gradient(100deg, rgba(255,255,255,0), rgba(255,255,255,.35), rgba(255,255,255,0));mix-blend-mode:overlay"></div>`);
   const sub = buat(R, `<div class="abs tengah" style="top:620px;font-size:40px;font-weight:600;color:#D7DDF0">Superapp Pelayanan Keprotokolan dan Komunikasi Pimpinan</div>`);
   const garis = buat(R, `<div class="abs" style="left:860px;top:705px;width:200px;height:4px;border-radius:2px;background:var(--emas)"></div>`);
-  const kota = buat(R, `<div class="abs tengah" style="top:740px;font-size:28px;font-weight:700;color:var(--emas);letter-spacing:4px">PEMERINTAH KOTA TARAKAN · LOMBA INOVASI DAERAH 2026</div>`);
+  const kota = buat(R, `<div class="abs tengah" style="top:740px;font-size:28px;font-weight:700;color:var(--emas);letter-spacing:4px">${L.judulAcara || "PEMERINTAH KOTA TARAKAN · LOMBA INOVASI DAERAH 2026"}</div>`);
   return (t) => {
     const k = e(t, 0.05, 0.7, pegas);
     gaya(logo, { opacity: lin(t, 0.05, 0.25), transform: `scale(${0.4 + 0.6 * k}) rotate(${(1 - k) * -12}deg)` });
@@ -1070,8 +1070,8 @@ SC.tutup = (R, A) => {
   const BARIS = ["Satu aplikasi.", "Satu data.", "Setiap keputusan tercatat."];
   const baris = BARIS.map((x, i) => buat(R, `<div class="abs b tengah" style="top:${470 + i * 86}px;font-size:66px;${i === 2 ? "color:var(--emas)" : ""}">${x}</div>`));
   const tema = buat(R, `<div class="abs tengah" style="top:470px;font-size:56px;font-weight:800;line-height:1.25">Inovasi Berdampak,<br><span style="color:var(--emas)">Tarakan Maju dan Berdaya Saing</span></div>`);
-  const kaki = buat(R, `<div class="abs" style="left:0;right:0;top:690px;display:flex;justify-content:center;align-items:center;gap:26px"><img src="aset/tarakan.png" style="height:96px"><div><div class="b" style="font-size:30px">Bagian Protokol dan Komunikasi Pimpinan</div><div style="font-size:24px;color:var(--abu);font-weight:600">Sekretariat Daerah Kota Tarakan · prokopim.tarakankota.go.id</div></div></div>`);
-  const lomba = buat(R, `<div class="pil emas" style="left:0;top:822px;font-size:24px;padding:10px 22px">${ik("award", 28)}Lomba Inovasi Daerah Kota Tarakan 2026 · Kategori A, Inovasi Tata Kelola Pemerintahan</div>`);
+  const kaki = buat(R, `<div class="abs" style="left:0;right:0;top:690px;display:flex;justify-content:center;align-items:center;gap:26px">${L.versi === "risda" ? `<img src="aset/kemendagri.png" style="height:96px">` : ""}<img src="aset/tarakan.png" style="height:96px"><div><div class="b" style="font-size:30px">Bagian Protokol dan Komunikasi Pimpinan</div><div style="font-size:24px;color:var(--abu);font-weight:600">Sekretariat Daerah Kota Tarakan · prokopim.tarakankota.go.id</div></div></div>`);
+  const lomba = buat(R, `<div class="pil emas" style="left:0;top:822px;font-size:24px;padding:10px 22px">${ik("award", 28)}${L.lomba || "Lomba Inovasi Daerah Kota Tarakan 2026 · Kategori A, Inovasi Tata Kelola Pemerintahan"}</div>`);
   const hitam = buat(R, `<div class="abs" style="inset:0;background:#000;opacity:0"></div>`);
   const tTema = A.k(2) - 0.2;
   return (t) => {
@@ -1091,8 +1091,10 @@ const ADEGAN = L.adegan.map((a) => {
   const upd = SC[a.id](R, A);
   return { a, R, upd, tampil: false };
 });
-const BAGIAN = ["LATAR BELAKANG", "MASALAH", "SOLUSI", "IMPLEMENTASI", "DAMPAK", "KEBERLANJUTAN"];
+const BAGIAN = L.bagianDaftar || ["LATAR BELAKANG", "MASALAH", "SOLUSI", "IMPLEMENTASI", "DAMPAK", "KEBERLANJUTAN"];
 const chip = document.getElementById("chip"), logoAtas = document.getElementById("logo");
+// Versi RISDA: logo Kemendagri ikut di sudut kanan atas.
+if (L.versi === "risda") logoAtas.insertAdjacentHTML("afterbegin", `<img src="aset/kemendagri.png" style="height:66px">`);
 chip.querySelector(".titik").innerHTML = BAGIAN.map(() => "<i></i>").join("");
 const titikChip = [...chip.querySelectorAll(".titik i")];
 const TANPA_CHIP = { pembuka: [0, 99], judul: [0, 99], tutup: [0, 99], walikota: [0, 99], tim: [0, 99] };
@@ -1106,8 +1108,11 @@ function atas(t) {
   const cOn = !sem(TANPA_CHIP), lOn = !sem(TANPA_LOGO);
   chip.style.opacity = cOn ? Math.max(0.0, sisi) : 0;
   logoAtas.style.opacity = lOn ? (ak.a.id === "pembuka" ? 0.85 : 1) : 0;
-  chip.querySelector(".nama").textContent = ak.a.bagian;
-  const idx = BAGIAN.indexOf(ak.a.bagian);
+  // label boleh berganti di tengah adegan (versi RISDA: penjaringan lalu pemilihan ide)
+  const bs = ak.a.bagianSesudah, kb = bs && ak.a.kalimat && ak.a.kalimat[bs.kalimat];
+  const bagian = kb && lok >= kb.awal - 0.3 ? bs.bagian : ak.a.bagian;
+  chip.querySelector(".nama").textContent = bagian;
+  const idx = BAGIAN.indexOf(bagian);
   titikChip.forEach((n, i) => n.classList.toggle("on", i === idx));
 }
 window.perbarui = async (t) => {

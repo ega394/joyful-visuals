@@ -44,6 +44,19 @@ SUSUNAN = [
     ("tutup", {"lead": 0.3, "tail": 2.8}),
 ]
 
+# VERSI=risda — video isian RISDA (indikator Kualitas Inovasi Daerah): paling lama
+# 5 menit, memvisualisasikan 5 substansi (latar belakang, penjaringan ide, pemilihan
+# ide, manfaat, dampak), dan memuat logo Kemendagri. Narasi adegan yang dipakai
+# sama dengan versi Tarakan; adegan di luar 5 substansi tidak dipakai.
+VERSI = os.environ.get("VERSI", "tarakan")
+SUBSTANSI = ["LATAR BELAKANG", "PENJARINGAN IDE", "PEMILIHAN IDE", "MANFAAT", "DAMPAK"]
+LABEL_RISDA = {"pembuka": "LATAR BELAKANG", "judul": "LATAR BELAKANG", "dulu": "LATAR BELAKANG",
+               "akar": "LATAR BELAKANG", "ide": "PENJARINGAN IDE", "lahir": "MANFAAT",
+               "alur": "MANFAAT", "layanan": "MANFAAT", "dampak": "DAMPAK", "walikota": "DAMPAK", "tutup": "DAMPAK"}
+if VERSI == "risda":
+    _pakai = set(LABEL_RISDA)
+    SUSUNAN = [(n, o) for n, o in SUSUNAN if n in _pakai]
+
 # Pernyataan Wali Kota (video 19 Oktober 2026): potongan di jeda antarkalimat, disambung silang 0,3 dtk.
 SILANG_WK = 0.3
 PERNYATAAN = [(1.0, 5.25, "wajah"), (6.0, 8.7, "wajah"), (44.6, 51.3, "hp"), (62.1, 66.2, "wajah")]
@@ -92,7 +105,10 @@ def linimasa():
     for no, o in SUSUNAN:
         a = {"id": no, "mulai": round(t, 3), "lead": o.get("lead", 0.0)}
         bag = o.get("bagian") or bag_adegan.get(no, "latar")
-        a["bagian"] = BAGIAN[bag]
+        a["bagian"] = LABEL_RISDA[no] if VERSI == "risda" else BAGIAN[bag]
+        if VERSI == "risda" and no == "ide":
+            # kalimat 0-1 penjaringan ide, mulai kalimat 2 ("Ada empat pilihan") pemilihan ide
+            a["bagianSesudah"] = {"kalimat": 2, "bagian": "PEMILIHAN IDE"}
         if no in waktu:
             w = waktu[no]
             a["lama"] = round(o["lead"] + w["panjang"] + o["tail"], 3)
@@ -113,7 +129,12 @@ def linimasa():
             a["lama"] = o["lama"]
         out.append(a)
         t += a["lama"]
-    return {"fps": FPS, "total": round(t, 3), "adegan": out}
+    L = {"fps": FPS, "total": round(t, 3), "adegan": out, "versi": VERSI}
+    if VERSI == "risda":
+        L["bagianDaftar"] = SUBSTANSI
+        L["judulAcara"] = "PEMERINTAH KOTA TARAKAN · INOVASI DAERAH 2026"
+        L["lomba"] = "Inovasi Daerah Kota Tarakan 2026 · Inovasi Tata Kelola Pemerintahan"
+    return L
 
 
 def ikon():
@@ -152,6 +173,8 @@ def main():
     os.makedirs(os.path.join(KERJA, "aset"), exist_ok=True)
     for f in ["hibot.png", "tarakan.png", "PlusJakartaSans-Variable.woff2", "lembar-sampai.jpg", "lembar-tertinggal.jpg"]:
         shutil.copy(os.path.join(ASET, f), os.path.join(KERJA, "aset", f))
+    if VERSI == "risda":
+        shutil.copy(os.path.join(ASET, "kemendagri.png"), os.path.join(KERJA, "aset", "kemendagri.png"))
     for f in GAMBAR:
         shutil.copy(os.path.join(TANGKAPAN, f), os.path.join(KERJA, "aset", f))
     if "--tanpa-bingkai" not in sys.argv:

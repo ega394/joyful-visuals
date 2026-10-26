@@ -242,7 +242,11 @@ def musik():
     bar = 60 / 100 * 4
     AKOR = [[60, 64, 67], [55, 59, 62], [57, 60, 64], [53, 57, 60]]
     AKAR = [48, 43, 45, 41]
-    wk0, wk1 = A["walikota"]["mulai"], A["lanjut"]["mulai"]
+    # Musik kembali sesudah pernyataan Wali Kota, pada adegan berikutnya (versi RISDA
+    # tidak memakai adegan "lanjut").
+    ids = [a["id"] for a in L["adegan"]]
+    wk0 = A["walikota"]["mulai"]
+    wk1 = A[ids[ids.index("walikota") + 1]]["mulai"]
     tutup0 = A["tutup"]["mulai"]
     dampak0 = A["dampak"]["mulai"]
     t, j = d0 + 0.6, 0
@@ -346,43 +350,48 @@ def efek():
     tk2 = kata("alur", 7, "ketukan") - 0.2
     tambah(E, tk2, ketik(), 0.9); tambah(E, tk2 + 0.05, dentang((88, 95), 0.06, 0.8), 0.5)
     tambah(E, kata("alur", 8, "wotsap") - 0.35, dentang((86, 93), 0.12, 1.0), 0.7, 0.4)
-    # layanan, jejak, bangun
-    for nm, kk in (("undangan", 0), ("daftar", 0)):
-        tambah(E, kata("layanan", kk, nm) - 0.25, desir(0.5, False), 0.35)
-    tambah(E, k("layanan", 1) - 0.2, desir(0.5, False), 0.35)
-    tambah(E, k("layanan", 2) - 0.2, desir(0.6, True), 0.35)
-    tambah(E, kata("layanan", 3, "kode") - 0.35, letup(0.9, 84), 0.7)
-    for i in range(7):
-        tambah(E, A["jejak"]["mulai"] + 0.35 + i * 0.28, tik(), 0.3, 0.3)
-    tambah(E, k("jejak", 2) - 0.25, desir(0.6, False), 0.4)
-    tambah(E, kata("jejak", 3, "berakhir"), dentang((84, 88), 0.06, 0.6), 0.45)
-    tambah(E, k("jejak", 4) - 0.25, desir(0.6, False), 0.4)
-    for kk in (4, 5, 6):
-        tambah(E, k("jejak", kk) - 0.15, letup(0.6, 76 + kk), 0.5)
-    tambah(E, k("bangun", 1) - 0.2, desir(0.6, False), 0.35)
-    tambah(E, k("bangun", 2) - 0.25, desir(0.6, True), 0.35)
-    # daya
-    for i in range(5):
-        tambah(E, A["daya"]["mulai"] + 0.7 + i * 0.15, tik(), 0.3, -0.4 + 0.2 * i)
-    tambah(E, k("daya", 1) - 0.25, desir(0.6, False), 0.35)
-    for nm in ("sekretaris", "de ka", "bapeda"):
-        tambah(E, kata("daya", 1, nm) - 0.3, letup(0.6, 74), 0.5)
-    tambah(E, k("daya", 2) - 0.25, desir(0.6, False), 0.35)
-    tambah(E, kata("daya", 3, "satu gigabita") - 0.4, desir(0.8, False), 0.5)
+    # layanan, jejak, bangun, daya — tidak semuanya ada di setiap versi
+    if "layanan" in A:
+        for nm, kk in (("undangan", 0), ("daftar", 0)):
+            tambah(E, kata("layanan", kk, nm) - 0.25, desir(0.5, False), 0.35)
+        tambah(E, k("layanan", 1) - 0.2, desir(0.5, False), 0.35)
+        tambah(E, k("layanan", 2) - 0.2, desir(0.6, True), 0.35)
+        tambah(E, kata("layanan", 3, "kode") - 0.35, letup(0.9, 84), 0.7)
+    if "jejak" in A:
+        for i in range(7):
+            tambah(E, A["jejak"]["mulai"] + 0.35 + i * 0.28, tik(), 0.3, 0.3)
+        tambah(E, k("jejak", 2) - 0.25, desir(0.6, False), 0.4)
+        tambah(E, kata("jejak", 3, "berakhir"), dentang((84, 88), 0.06, 0.6), 0.45)
+        tambah(E, k("jejak", 4) - 0.25, desir(0.6, False), 0.4)
+        for kk in (4, 5, 6):
+            tambah(E, k("jejak", kk) - 0.15, letup(0.6, 76 + kk), 0.5)
+    if "bangun" in A:
+        tambah(E, k("bangun", 1) - 0.2, desir(0.6, False), 0.35)
+        tambah(E, k("bangun", 2) - 0.25, desir(0.6, True), 0.35)
+    if "daya" in A:
+        for i in range(5):
+            tambah(E, A["daya"]["mulai"] + 0.7 + i * 0.15, tik(), 0.3, -0.4 + 0.2 * i)
+        tambah(E, k("daya", 1) - 0.25, desir(0.6, False), 0.35)
+        for nm in ("sekretaris", "de ka", "bapeda"):
+            tambah(E, kata("daya", 1, nm) - 0.3, letup(0.6, 74), 0.5)
+        tambah(E, k("daya", 2) - 0.25, desir(0.6, False), 0.35)
+        tambah(E, kata("daya", 3, "satu gigabita") - 0.4, desir(0.8, False), 0.5)
     # dampak: tiap angka diberi letupan
     for i in range(1, 9):
         tambah(E, k("dampak", i) - 0.25, letup(0.8, 76 + i), 0.55)
     tambah(E, kata("dampak", 8, "nol") - 0.15, gong(0.8), 0.6)
-    # testimoni
-    for nm in ("ajudan", "staf", "pelaksana"):
-        tambah(E, kata("testimoni", 0, nm) - 0.25, letup(0.5, 79), 0.4)
-    # lanjut, tutup
-    for kk in (1, 2, 4):
-        tambah(E, k("lanjut", kk) - 0.25, desir(0.6, False), 0.35)
-    for nm in ("tata kelola, proses", "proses bisnis", "digitalisasi", "data, manajemen", "manajemen", "pengawasan", "efisiensi"):
-        tambah(E, kata("lanjut", 1, nm) - 0.25, letup(0.45, 77), 0.35)
-    tambah(E, k("lanjut", 5) - 0.25, desir(0.8, True), 0.45)
-    tambah(E, kata("tim", 0, "tim inovasi") - 0.2, dentang((79, 84), 0.08, 0.7), 0.45)
+    # testimoni, lanjut, tim — tidak ada di versi RISDA
+    if "testimoni" in A:
+        for nm in ("ajudan", "staf", "pelaksana"):
+            tambah(E, kata("testimoni", 0, nm) - 0.25, letup(0.5, 79), 0.4)
+    if "lanjut" in A:
+        for kk in (1, 2, 4):
+            tambah(E, k("lanjut", kk) - 0.25, desir(0.6, False), 0.35)
+        for nm in ("tata kelola, proses", "proses bisnis", "digitalisasi", "data, manajemen", "manajemen", "pengawasan", "efisiensi"):
+            tambah(E, kata("lanjut", 1, nm) - 0.25, letup(0.45, 77), 0.35)
+        tambah(E, k("lanjut", 5) - 0.25, desir(0.8, True), 0.45)
+    if "tim" in A:
+        tambah(E, kata("tim", 0, "tim inovasi") - 0.2, dentang((79, 84), 0.08, 0.7), 0.45)
     tambah(E, A["tutup"]["mulai"] + 0.2, dentang((84, 88, 91, 96, 100), 0.06, 0.9), 0.55)
     return gema(E, 1.2, 0.18)
 

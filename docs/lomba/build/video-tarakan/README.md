@@ -29,3 +29,17 @@ export KERJA=/path/kerja REK=/path/rek NYATA=/path/nyata ASET=/path/aset NPM=/pa
 MODEL=/path/vits-piper-id_ID-news_tts-medium ASR=/path/sherpa-onnx-whisper-turbo LAJU=0.9 python3 suara.py
 python3 siapkan.py && node render.mjs penuh 4 && python3 bunyi.py && python3 susun.py && python3 vertikal.py
 ```
+
+## Versi RISDA (isian Indeks Inovasi Daerah, indikator Kualitas Inovasi)
+
+`VERSI=risda` membuat video paling lama 5 menit (±4:43) dari narasi yang sama: hanya adegan
+yang menjawab 5 substansi RISDA (latar belakang, penjaringan ide, pemilihan ide, manfaat, dampak),
+label bagian mengikuti substansi itu, dan logo Kemendagri (`ASET/kemendagri.png`) tampil di sudut
+layar dan penutup. Sampulnya `sampul-risda.html`.
+
+```
+export KERJA=/path/kerja-risda VERSI=risda   # salin narasi/ dari folder kerja Tarakan
+python3 siapkan.py --tanpa-bingkai && node render.mjs penuh 4 && python3 bunyi.py
+NAMA=Video-RISDA-Prokopim-Hibot python3 susun.py
+node potret.mjs $KERJA/sampul-risda.html $KERJA/keluaran/Sampul-Video-RISDA-Prokopim-Hibot.jpg 1920 1080 datar
+```
