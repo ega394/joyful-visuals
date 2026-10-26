@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { sesiFetch } from "./roomAuth";
+import { peranEfektif } from "./lib/plh.js";
+import { urutAcara } from "./lib/zona.js";
 
 // ═══════════════════════════════════════════════════════════════
 //  NEWSROOM DASHBOARD — Prokopim Hibot v2.0
@@ -57,7 +59,9 @@ Tulis hanya caption orang pertama-nya saja.`;
 
 export default function NewsroomDashboard({ events, user, showT, isMobile, upd }) {
   const NAVY = "#0A1628", GOLD = "#C9A84C", GREEN = "#059669";
-  const role = user?.role || "";
+  // Peran efektif, sama dengan App: PLH Kasubbag Komdokpim mendapat tombol
+  // Setujui/Kembalikan di sini, tempat angka antreannya mengarah.
+  const role = peranEfektif(user) || "";
   const isTimkom   = role === "timkom";
   const isKasubbag = role === "kasubbag_komdokpim";
   const isKabag    = role === "kabag";
@@ -75,17 +79,24 @@ export default function NewsroomDashboard({ events, user, showT, isMobile, upd }
   const [teksBerita,    setTeksBerita]    = useState("");
   const [catatanBerita, setCatatanBerita] = useState("");
 
-  // Urutan: caption menunggu review dulu, lalu kegiatan hari ini dan yang sudah
-  // lewat (terbaru di atas), baru kegiatan mendatang (terdekat di atas). Dulu
-  // diurutkan dari tanggal terjauh, sehingga caption hari ini tertimbun di bawah.
+  // Urutan: (1) caption yang menunggu tindakan peran ini — Timkom: dikembalikan
+  // untuk revisi, lainnya: menunggu review (terlama di atas); (2) kegiatan hari
+  // ini; (3) yang sudah lewat, terbaru di atas; (4) yang akan datang, terdekat
+  // di atas. Batas jumlah per kelompok: satu batas 60 untuk seluruh daftar
+  // membuat ratusan kegiatan lampau menyingkirkan semua kegiatan mendatang,
+  // sehingga caption tidak bisa disiapkan lebih awal.
   const hariIni = new Date().toLocaleDateString("sv-SE");
-  const peringkat = e => e.captionStatus === "menunggu" ? 0 : (e.tanggal <= hariIni ? 1 : 2);
-  const jadwal = events
-    .filter(e => e.alur === "disetujui")
-    .sort((a,b) => peringkat(a) - peringkat(b)
-      || (peringkat(a) === 2 ? a.tanggal.localeCompare(b.tanggal) : b.tanggal.localeCompare(a.tanggal))
-      || String(b.jam||"").localeCompare(String(a.jam||"")))
-    .slice(0, 60);
+  const statusAntre = isTimkom ? "revisi" : "menunggu";
+  const disetujui = events.filter(e => e.alur === "disetujui");
+  const antre = disetujui.filter(e => e.captionStatus === statusAntre).sort(urutAcara);
+  const lainnya = disetujui.filter(e => e.captionStatus !== statusAntre);
+  const tgl = e => e.tanggal || "";
+  const jadwal = [
+    ...antre.slice(0, 60),
+    ...lainnya.filter(e => tgl(e) === hariIni).sort(urutAcara),
+    ...lainnya.filter(e => tgl(e) < hariIni).sort((a,b) => urutAcara(b,a)).slice(0, 40),
+    ...lainnya.filter(e => tgl(e) > hariIni).sort(urutAcara).slice(0, 20),
+  ];
 
   const fmtDate = d => {
     if (!d) return "";
