@@ -8132,13 +8132,17 @@ export default function App(){
     await new Promise(r=>setTimeout(r,500));
     setLoginLoading(false);
     if(candidate.disabled){setLE("Akun Anda dinonaktifkan oleh Administrator. Hubungi admin untuk informasi lebih lanjut.");return;}
-    setUser(candidate);setTab(["ajudan_walikota","ajudan_wakilwalikota"].includes(candidate.role)?"ajudan":["kabag","kasubbag_protokol"].includes(candidate.role)?"dashboard":candidate.role==="admin_rk"?"pantau":candidate.role==="admin_undangan"?"undangan":candidate.role==="mitra_kerja"?"mitra":candidate.role==="walpri"?"tayang":"tayang");
+    setUser(candidate);setTab(tabAwal(peranEfektif(candidate)));
     try{const seen=JSON.parse(localStorage.getItem("jp_seen_onboarding")||"{}");if(!seen[candidate.username]){setShowOnboarding(true);}}catch{}
     try{localStorage.setItem("jp_session",JSON.stringify({username:candidate.username,session_version:candidate.session_version||0}));}catch{}
     registerPush(candidate.username,candidate.role);
   };
  // Halaman awal sesudah masuk, menurut peran.
-  const tabAwal=r=>["ajudan_walikota","ajudan_wakilwalikota"].includes(r)?"ajudan":["kabag","kasubbag_protokol"].includes(r)?"dashboard":r==="admin_rk"?"pantau":r==="admin_undangan"?"undangan":r==="mitra_kerja"?"mitra":"tayang";
+  // Halaman pertama tiap peran, dipakai saat masuk DAN saat aplikasi dibuka ulang
+  // dengan sesi tersimpan (dulu jalur kedua jatuh ke tab "jadwal" yang tidak
+  // punya tombol di bilah bawah). Dipanggil dengan peran efektif: PLH Kasubbag
+  // langsung membuka Antrian jabatan yang diampunya.
+  const tabAwal=r=>["walikota","wakilwalikota"].includes(r)?"beranda":["ajudan_walikota","ajudan_wakilwalikota"].includes(r)?"ajudan":["kabag","kasubbag_protokol"].includes(r)?"dashboard":r==="admin_rk"?"pantau":r==="admin_undangan"?"undangan":r==="mitra_kerja"?"mitra":"tayang";
   // Masuk lewat passkey/Google: peladen sudah memverifikasi dan menerbitkan
   // token sesi; di sini tinggal memasang pengguna seperti masuk dengan sandi.
   const masukDariPeladen=async(d,fase)=>{
@@ -8152,7 +8156,7 @@ export default function App(){
     setLoginPhase("Memuat data jadwal...");
     await new Promise(r=>setTimeout(r,500));
     setLoginLoading(false);
-    setUser(u);setTab(tabAwal(u.role));
+    setUser(u);setTab(tabAwal(peranEfektif(u)));
     try{const seen=JSON.parse(localStorage.getItem("jp_seen_onboarding")||"{}");if(!seen[u.username]){setShowOnboarding(true);}}catch{}
     try{localStorage.setItem("jp_session",JSON.stringify({username:u.username,session_version:u.session_version||0}));}catch{}
     registerPush(u.username,u.role);
@@ -8173,7 +8177,7 @@ export default function App(){
       await nativeBiometricAuth();
       touchActivity();
       if(u.disabled){setBioErr("Akun Anda dinonaktifkan oleh Administrator.");setBioLoading(false);return;}
-      setUser(u);setTab(tabAwal(u.role));try{localStorage.setItem("jp_session",JSON.stringify({username:un,session_version:u.session_version||0}));}catch{}registerPush(un,u.role);}
+      setUser(u);setTab(tabAwal(peranEfektif(u)));try{localStorage.setItem("jp_session",JSON.stringify({username:un,session_version:u.session_version||0}));}catch{}registerPush(un,u.role);}
     catch(e){setBioErr("Verifikasi biometrik gagal. Silakan coba lagi atau gunakan password.");}
     setBioLoading(false);
   };
@@ -8199,7 +8203,7 @@ export default function App(){
               localStorage.removeItem("jp_session");
               setLE("Sesi Anda diakhiri oleh Administrator. Silakan login kembali.");
             } else {
-              setUser(u);
+              setUser(u);setTab(tabAwal(peranEfektif(u)));
             }
           }
         }
@@ -8722,7 +8726,7 @@ export default function App(){
     else if(role==="kasubbag_komdokpim")setTab("newsroom");
     else if(role==="kasubbag_protokol"||role==="kabag")setTab("jadwal");
     else if(role==="admin_rk")setTab("pantau");
-    else setTab("jadwal");
+    else setTab(tabAwal(role));
     setFDate("");
     setExp(targetId);
     setPendingExpandTarget(targetId);
@@ -9402,11 +9406,13 @@ const TH={
     ]:[]),
     // ── Wali Kota ──
     ...(r==="walikota"?[
+      {key:"beranda",icon:"🏠", label:"Beranda"},
       {key:"tayang", icon:"📅", label:"Agenda Saya"},
       {key:"tamu",   icon:"👥", label:"Manajemen Tamu"},
     ]:[]),
     // ── Wakil Wali Kota ──
     ...(r==="wakilwalikota"?[
+      {key:"beranda",icon:"🏠", label:"Beranda"},
       {key:"tayang", icon:"📅", label:"Agenda Saya"},
       {key:"tamu",   icon:"👥", label:"Manajemen Tamu"},
     ]:[]),
@@ -9561,11 +9567,13 @@ const TH={
   ]:[]),
   // ── Wali Kota ──
   ...(r==="walikota"?[
+    {key:"beranda",label:"Beranda",icon:"🏠"},
     {key:"tayang", label:"Agenda",icon:"📅"},
     {key:"tamu",   label:"Tamu",  icon:"👥"},
   ]:[]),
   // ── Wakil Wali Kota ──
   ...(r==="wakilwalikota"?[
+    {key:"beranda",label:"Beranda",icon:"🏠"},
     {key:"tayang", label:"Agenda",icon:"📅"},
     {key:"tamu",   label:"Tamu",  icon:"👥"},
   ]:[]),
@@ -12656,7 +12664,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
 
 
   // ==================== MAIN CONTENT ====================
-  const pageTitle=tab==="monitor_wa"?"Monitor WA":tab==="kalender_bersama"?"Kalender Bersama":tab==="ekinerja"?"Generator E-Kinerja":tab==="tayang"?"Agenda Kegiatan Pimpinan":tab==="pantau"?"Input & Pantau Jadwal":tab==="undangan"?"Generator Undangan Resmi":tab==="form"?"Input Jadwal Baru":tab==="semua"?"Semua Jadwal":tab==="penugasan"?"Penugasan Saya":tab==="audit"?"Riwayat Alur Jadwal":tab==="jadwal"?KASUBBAG_ROLES.includes(role)||role==="kabag"?"Antrian Approval":"Jadwal":"Jadwal";
+  const pageTitle=tab==="beranda"?"Beranda":tab==="monitor_wa"?"Monitor WA":tab==="kalender_bersama"?"Kalender Bersama":tab==="ekinerja"?"Generator E-Kinerja":tab==="tayang"?"Agenda Kegiatan Pimpinan":tab==="pantau"?"Input & Pantau Jadwal":tab==="undangan"?"Generator Undangan Resmi":tab==="form"?"Input Jadwal Baru":tab==="semua"?"Semua Jadwal":tab==="penugasan"?"Penugasan Saya":tab==="audit"?"Riwayat Alur Jadwal":tab==="dashboard"?"Dashboard":tab==="newsroom"?"Newsroom":tab==="tamu"?"Tamu":tab==="ajudan"?"Konfirmasi Kehadiran":tab==="jadwal"?KASUBBAG_ROLES.includes(role)||role==="kabag"?"Antrian Approval":"Jadwal":"Jadwal";
 
   // ═══════════════════════════════════════════════════════════════
   // FITUR 1: SAPAAN CERDAS + RINGKASAN PAGI
@@ -13176,8 +13184,8 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
           }
         </>
 
-      /* 11. Pimpinan View — ZenDashboard handles all roles */
-      :tab==="jadwal"
+      /* 11. Beranda pimpinan (dan tab lama "jadwal") — ZenDashboard */
+      :(tab==="beranda"||tab==="jadwal")
         ?<ZenDashboard
             events={events} role={role} user={user}
             upd={upd} showT={showT} isMobile={isMobile}
@@ -13214,7 +13222,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
           <div style={{fontSize:52,marginBottom:12}}>📋</div>
           <div style={{fontSize:16,fontWeight:700,color:"#334155",marginBottom:6}}>Tidak ada konten</div>
           <div style={{fontSize:13,color:"#94A3B8",marginBottom:16}}>Halaman ini belum tersedia</div>
-          <button onClick={()=>setTab("jadwal")} style={{padding:"10px 20px",borderRadius:10,border:"none",background:NAVY,color:"white",cursor:"pointer",fontSize:13,fontWeight:700}}>Kembali ke Jadwal</button>
+          <button onClick={()=>setTab(tabAwal(role))} style={{padding:"10px 20px",borderRadius:10,border:"none",background:NAVY,color:"white",cursor:"pointer",fontSize:13,fontWeight:700}}>Kembali ke Halaman Awal</button>
         </div>
       }
     </div>
