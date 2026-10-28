@@ -435,6 +435,18 @@ function ExecutiveView({ events, role, user, upd, showT, isMobile, setDelegTarge
   const hour     = now.getHours();
   const greeting = hour<11?"Selamat Pagi":hour<15?"Selamat Siang":hour<18?"Selamat Sore":"Selamat Malam";
 
+  // Agenda yang kehadirannya belum dikonfirmasi — aturan yang sama dengan angka
+  // "Konfirmasi" di kepala layar dan dasbor ajudan (acara tanpa jam: 08.00).
+  const statusKey = role === "walikota" ? "statusWK" : "statusWWK";
+  const mulai     = e => tglAcara(e.jam ? e : { ...e, jam:"08:00" });
+  const besok     = localDateStr(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1));
+  const belum     = isVIP ? sorted.filter(e => !e[statusKey] && mulai(e) >= now) : [];
+  const segera    = belum.filter(e => e.tanggal === today || e.tanggal === besok);
+  const nanti     = belum.filter(e => e.tanggal !== today && e.tanggal !== besok);
+  // Agenda terdekat sudah tampil besar di kartu utama, jadi tidak diulang di daftar.
+  const segeraList = segera.filter(e => !next || e.id !== next.id);
+  const [bukaNanti, setBukaNanti] = useState(false);
+
   return (
     <div style={{ flex:1, overflowY:"auto", background:T.bg, paddingBottom:40,
       WebkitOverflowScrolling:"touch" }}>
@@ -469,6 +481,25 @@ function ExecutiveView({ events, role, user, upd, showT, isMobile, setDelegTarge
 
       <div style={{ padding: isMobile ? "16px 16px 0" : "24px 32px 0" }}>
 
+        {/* ── Ringkasan konfirmasi kehadiran (pimpinan) ── */}
+        {isVIP && (belum.length > 0
+          ? <div style={{ background:"#FFFBEB", border:"2px solid #F59E0B", borderRadius:16,
+              padding:"14px 16px", marginBottom:16, display:"flex", gap:12, alignItems:"center" }}>
+              <span style={{ fontSize:26, flexShrink:0 }}>🔔</span>
+              <div>
+                <div style={{ fontSize:15, fontWeight:800, color:"#92400E" }}>{belum.length} jadwal belum dikonfirmasi</div>
+                <div style={{ fontSize:13, color:"#B45309", marginTop:2 }}>
+                  {segera.length > 0 ? segera.length + " di antaranya hari ini & besok" : "Belum ada yang untuk hari ini & besok"}
+                </div>
+              </div>
+            </div>
+          : <div style={{ background:T.greenBg, border:"1.5px solid #6EE7B7", borderRadius:16,
+              padding:"12px 16px", marginBottom:16, display:"flex", gap:10, alignItems:"center" }}>
+              <span style={{ fontSize:20 }}>✅</span>
+              <div style={{ fontSize:13, fontWeight:700, color:T.green }}>Semua jadwal mendatang sudah dikonfirmasi</div>
+            </div>
+        )}
+
         {/* ── HERO CARD: Agenda Berikutnya ── */}
         {next ? (
           <ExecutiveHeroCard
@@ -477,6 +508,36 @@ function ExecutiveView({ events, role, user, upd, showT, isMobile, setDelegTarge
           />
         ) : (
           <ZenEmptyState archetype="executive" isMobile={isMobile}/>
+        )}
+
+        {/* ── Perlu konfirmasi: hari ini & besok penuh, sesudahnya diringkas ── */}
+        {isVIP && (segeraList.length > 0 || nanti.length > 0) && (
+          <div style={{ marginTop:20 }}>
+            <SectionLabel label={segeraList.length > 0 ? "Perlu Konfirmasi Sekarang" : "Perlu Konfirmasi"} color="#B45309"/>
+            {segeraList.map(ev => (
+              <KonfirmasiCard key={ev.id} ev={ev} role={role} statusKey={statusKey}
+                upd={upd} showT={showT} setDelegTarget={setDelegTarget} isMobile={isMobile} today={today} besok={besok}/>
+            ))}
+            {nanti.length > 0 && (bukaNanti
+              ? <>
+                  {nanti.map(ev => (
+                    <KonfirmasiCard key={ev.id} ev={ev} role={role} statusKey={statusKey}
+                      upd={upd} showT={showT} setDelegTarget={setDelegTarget} isMobile={isMobile} today={today} besok={besok}/>
+                  ))}
+                  <button onClick={() => setBukaNanti(false)} style={{ width:"100%", padding:"10px", borderRadius:12,
+                    border:"1.5px solid #FDE68A", background:"white", color:"#B45309", cursor:"pointer",
+                    fontSize:13, fontWeight:700 }}>▲ Ringkas jadwal setelah besok</button>
+                </>
+              : <button onClick={() => setBukaNanti(true)} style={{ width:"100%", padding:"12px 16px", borderRadius:16,
+                  border:"1.5px dashed #F59E0B", background:"#FFFBEB", color:"#92400E", cursor:"pointer",
+                  fontSize:14, fontWeight:800, textAlign:"left" }}>
+                  ▼ {segeraList.length > 0 ? "+" : ""}{nanti.length} jadwal setelah besok belum dikonfirmasi
+                  <div style={{ fontSize:13, fontWeight:500, color:"#B45309", marginTop:3 }}>
+                    Terdekat: {fmtTgl(nanti[0].tanggal)} — {nanti[0].namaAcara}
+                  </div>
+                </button>
+            )}
+          </div>
         )}
 
         {/* ── Rest agenda — minimized ── */}
@@ -730,6 +791,25 @@ function KehadiranSection({ ev, role, statusKey, byKey, st, upd, showT, setDeleg
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+// Kartu ringkas agenda yang menunggu konfirmasi pimpinan, dengan tombol kehadiran.
+function KonfirmasiCard({ ev, role, statusKey, upd, showT, setDelegTarget, isMobile, today, besok }) {
+  const hari = ev.tanggal === today ? "Hari ini" : ev.tanggal === besok ? "Besok" : fmtTgl(ev.tanggal);
+  return (
+    <div style={{ background:"white", borderRadius:18, border:"1.5px solid #FDE68A",
+      boxShadow:"0 2px 12px rgba(10,22,40,0.06)", padding:"14px 16px 0", marginBottom:10 }}>
+      <div style={{ fontSize:12, fontWeight:800, color:"#B45309", marginBottom:4 }}>
+        📅 {hari} · {jamMulaiLayar(ev) || "Jam menyusul"} {ev.jam ? zonaPerangkat() : ""}
+      </div>
+      <div style={{ fontSize:15, fontWeight:800, color:T.navy, lineHeight:1.3, marginBottom:4 }}>{ev.namaAcara}</div>
+      {ev.lokasi && <div style={{ fontSize:12.5, color:T.slate, marginBottom:2 }}>📍 {ev.lokasi}</div>}
+      <KehadiranSection
+        ev={ev} role={role} statusKey={statusKey} byKey={statusKey + "_by"}
+        st={ev[statusKey]} upd={upd} showT={showT} setDelegTarget={setDelegTarget} isMobile={isMobile}
+      />
     </div>
   );
 }
