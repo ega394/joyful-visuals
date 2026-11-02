@@ -412,8 +412,8 @@ async function notifPagi(jadwal, users, tamu = []) {
       daftar +
       `\n\n_Prokopim Kota Tarakan_`;
     for (const u of unikNomor(users.filter(u => u.role === a.role && u.noWA))) {
-      await sendWA(u.noWA, msg, "rekap_pagi_ajudan", a.role, { nama: u.nama, username: u.username });
-      console.log(`[PAGI] Terkirim → ${u.nama} (${a.role})`);
+      const ok = await sendWA(u.noWA, msg, "rekap_pagi_ajudan", a.role, { nama: u.nama, username: u.username });
+      console.log(`[PAGI] ${ok ? "Terkirim" : "GAGAL"} → ${u.nama} (${a.role})`);
     }
   }
 
@@ -497,8 +497,8 @@ async function notifAjudan(jadwal, users, tamu = []) {
       `\n_Prokopim Kota Tarakan_`;
 
     for (const u of unikNomor(users.filter(u => u.role === a.role && u.noWA))) {
-      await sendWA(u.noWA, msg, "rekap_ajudan_besok", a.role, { nama: u.nama, username: u.username });
-      console.log(`[AJUDAN] Terkirim → ${u.nama}`);
+      const ok = await sendWA(u.noWA, msg, "rekap_ajudan_besok", a.role, { nama: u.nama, username: u.username });
+      console.log(`[AJUDAN] ${ok ? "Terkirim" : "GAGAL"} → ${u.nama}`);
     }
   }
 }
@@ -597,8 +597,8 @@ async function notifPimpinan(jadwal, users, tamu = []) {
     }
 
     for (const u of orang) {
-      await sendWA(u.noWA, msg, "briefing_pimpinan", p.role, { nama: u.nama, username: u.username });
-      console.log(`[PIMPINAN] Terkirim → ${u.nama} (${p.role})`);
+      const ok = await sendWA(u.noWA, msg, "briefing_pimpinan", p.role, { nama: u.nama, username: u.username });
+      console.log(`[PIMPINAN] ${ok ? "Terkirim" : "GAGAL"} → ${u.nama} (${p.role})`);
     }
   }
 }
@@ -711,8 +711,8 @@ async function notifPendingApproval(users, jadwal, tamu = []) {
       `${fmtTgl(localDateWITA(0))}\n\n` +
       isiPesan +
       `\n\nMohon ditindaklanjuti melalui aplikasi Prokopim.\n_Prokopim Kota Tarakan_`;
-    await sendWA(u.noWA, msg, "ringkasan_sore", peran.join("+"), { nama: u.nama, username: u.username });
-    console.log(`[RINGKASAN] Terkirim → ${u.nama} (${peran.join("+")}: ${bagian.map(b => b.kunci).join(",")})`);
+    const ok = await sendWA(u.noWA, msg, "ringkasan_sore", peran.join("+"), { nama: u.nama, username: u.username });
+    console.log(`[RINGKASAN] ${ok ? "Terkirim" : "GAGAL"} → ${u.nama} (${peran.join("+")}: ${bagian.map(b => b.kunci).join(",")})`);
   }
 
   // Push tetap per jabatan (gratis; ikut sampai ke PLH lewat sendPushRole).
@@ -759,8 +759,8 @@ export default async function handler(req, res) {
   }
   // Hanya proyek resmi yang boleh menjalankan jadwal (lihat _proyek.mjs);
   // diperiksa SEBELUM kunci harian supaya proyek lain tidak memakan jatahnya.
-  if (!proyekResmi()) {
-    console.log("[CRON] Dilewati: bukan proyek resmi (" + (process.env.VERCEL_PROJECT_PRODUCTION_URL || "-") + ")");
+  if (!proyekResmi(process.env, req.headers.host)) {
+    console.log("[CRON] Dilewati: bukan proyek resmi (" + (process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL || req.headers.host || "-") + ")");
     return res.status(200).json({ ok: true, skipped: true, reason: "Bukan proyek resmi; jadwal hanya berjalan di prokopim.tarakankota.go.id" });
   }
 
