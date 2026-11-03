@@ -101,6 +101,8 @@ export default defineConfig(({ mode }) => ({
           /^\/push-handler\.js$/,
           // Buku petunjuk PDF dibuka langsung, bukan halaman aplikasi
           /^\/panduan\//,
+          // Widget agenda untuk website tarakankota.go.id — halaman statis sendiri
+          /^\/widget\//,
         ],
 
         runtimeCaching: [

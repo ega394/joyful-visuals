@@ -109,7 +109,11 @@ describe("salinan CommonJS api/_zona.js", () => {
           for (const opsi of [undefined, { wita: false }]) {
             const e = { jam, jamSelesai, zona };
             expect(cjs(e, opsi)).toBe(fmtJamDuaZona(e, opsi));
+            const t = { ...e, tanggal: "2026-11-03" };
+            expect(mod.exports.epochMulai(t)).toEqual(epochMulai(t));
+            expect(mod.exports.epochSelesai(t)).toEqual(epochSelesai(t));
           }
     expect(cjs(null)).toBe("");
+    expect(mod.exports.epochMulai({ jam: "09:00" })).toBeNaN();
   });
 });
