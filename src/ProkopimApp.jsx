@@ -1384,6 +1384,77 @@ function JamWITA({color,muted}){
   </div>;
 }
 
+// ── Agenda pimpinan hari ini (publik, halaman masuk) ──
+// Data dari /api/guest?action=agenda_hari_ini: hanya jam, nama acara,
+// pimpinan, dan keterangan bila diwakilkan — tanpa lokasi. Diperbarui tiap
+// 5 menit; penanda "sedang berlangsung"/"selesai" mengikuti jam perangkat.
+// Bila gagal dimuat, panel tidak ditampilkan agar halaman masuk tetap bersih.
+const AGENDA_PUBLIK_MAKS=4;
+function AgendaPublikHariIni({fg,muted,gold,border,ringkas}){
+  const [data,setData]=React.useState(null);
+  const [gagal,setGagal]=React.useState(false);
+  const [semua,setSemua]=React.useState(false);
+  const [now,setNow]=React.useState(()=>Date.now());
+  React.useEffect(()=>{
+    let hidup=true;
+    const muat=()=>fetch("/api/guest?action=agenda_hari_ini")
+      .then(r=>r.ok?r.json():Promise.reject(new Error(r.status)))
+      .then(d=>{if(hidup){setData(d);setGagal(false);}})
+      .catch(()=>{if(hidup)setGagal(true);});
+    muat();
+    const a=setInterval(muat,5*60000), b=setInterval(()=>setNow(Date.now()),30000);
+    return ()=>{hidup=false;clearInterval(a);clearInterval(b);};
+  },[]);
+  if(gagal&&!data)return null;
+  const daftar=(data&&data.agenda)||[];
+  const tgl=data&&data.tanggal?new Date(data.tanggal+"T00:00:00Z").toLocaleDateString("id-ID",{timeZone:"UTC",weekday:"long",day:"numeric",month:"long"}):"";
+  const keadaan=a=>a.mulai==null?"":now>=a.selesai?"selesai":now>=a.mulai?"jalan":"";
+  // Yang telah selesai tidak menghabiskan tempat: bila daftar dipangkas,
+  // agenda yang masih berjalan/akan datang didahulukan.
+  const aktif=daftar.filter(a=>keadaan(a)!=="selesai"), lewat=daftar.length-aktif.length;
+  const tampil=semua||daftar.length<=AGENDA_PUBLIK_MAKS?daftar:(aktif.length?aktif:daftar).slice(0,AGENDA_PUBLIK_MAKS);
+  const sisa=daftar.length-tampil.length;
+  const warnaPim=s=>s==="Wali Kota"?gold:"hsl(200,75%,68%)";
+  return <section aria-label="Agenda Wali Kota dan Wakil Wali Kota hari ini" className="agenda-publik"
+    style={{borderRadius:14,border:"1px solid hsla(42,78%,55%,0.28)",background:"linear-gradient(160deg,hsla(42,78%,55%,0.09),hsla(215,30%,14%,0.4) 60%)",padding:ringkas?"14px 14px 10px":"16px 18px 12px",position:"relative",overflow:"hidden"}}>
+    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
+      <span style={{width:8,height:8,borderRadius:"50%",background:gold,boxShadow:"0 0 0 4px hsla(42,78%,55%,0.18)",flexShrink:0}} aria-hidden="true"/>
+      <div style={{minWidth:0}}>
+        <div style={{color:gold,fontSize:11,letterSpacing:1.6,textTransform:"uppercase",fontWeight:800,lineHeight:1.2}}>Agenda Pimpinan Hari Ini</div>
+        <div style={{color:muted,fontSize:11.5,marginTop:2}}>Wali Kota &amp; Wakil Wali Kota Tarakan{tgl&&<> &middot; {tgl}</>}</div>
+      </div>
+      {daftar.length>0&&<span style={{marginLeft:"auto",color:fg,fontSize:11,fontWeight:700,background:"hsla(215,25%,25%,0.7)",border:"1px solid "+border,borderRadius:20,padding:"2px 9px",flexShrink:0}}>{daftar.length} agenda</span>}
+    </div>
+    {!data&&<div aria-busy="true">{[0,1].map(i=><div key={i} style={{height:38,borderRadius:8,background:"hsla(215,25%,25%,0.45)",marginBottom:8,animation:"agendaKedip 1.4s ease infinite",animationDelay:i*0.2+"s"}}/>)}</div>}
+    {data&&daftar.length===0&&<div style={{color:muted,fontSize:12.5,padding:"8px 0 6px",lineHeight:1.5}}>Tidak ada agenda terjadwal hari ini.</div>}
+    {data&&daftar.length>0&&<ol style={{listStyle:"none",margin:0,padding:0}}>
+      {tampil.map((a,i)=>{
+        const k=keadaan(a);
+        return <li key={i} style={{display:"flex",gap:11,padding:"8px 0",borderTop:i?"1px solid hsla(215,20%,30%,0.45)":"none",opacity:k==="selesai"?0.5:1}}>
+          <div style={{width:ringkas?50:56,flexShrink:0,paddingTop:1}}>
+            <div style={{color:k==="jalan"?gold:fg,fontSize:13,fontWeight:800,fontVariantNumeric:"tabular-nums",lineHeight:1.25}}>{(a.jam||"").split(" ")[0]||"—"}</div>
+            <div style={{color:muted,fontSize:10,fontWeight:600,marginTop:1}}>{(a.jam||"").replace(/^\S+\s*/,"")||"WITA"}</div>
+          </div>
+          <div style={{minWidth:0,flex:1}}>
+            <div style={{color:fg,fontSize:13,fontWeight:700,lineHeight:1.35,textDecoration:k==="selesai"?"line-through":"none",textDecorationColor:"hsla(210,20%,90%,0.4)"}}>{a.acara}</div>
+            <div style={{display:"flex",flexWrap:"wrap",gap:5,marginTop:4,alignItems:"center"}}>
+              {k==="jalan"&&<span style={{display:"inline-flex",alignItems:"center",gap:5,fontSize:10.5,fontWeight:800,color:"hsl(150,65%,62%)",background:"hsla(150,60%,45%,0.14)",border:"1px solid hsla(150,60%,45%,0.35)",borderRadius:20,padding:"1px 8px"}}><span className="agenda-denyut" style={{width:6,height:6,borderRadius:"50%",background:"hsl(150,65%,55%)"}}/>Sedang berlangsung</span>}
+              {k==="selesai"&&<span style={{fontSize:10.5,fontWeight:700,color:muted}}>Selesai</span>}
+              {a.pimpinan.map(p=><span key={p.siapa} style={{fontSize:10.5,fontWeight:700,color:warnaPim(p.siapa),background:"hsla(215,25%,22%,0.8)",border:"1px solid "+border,borderRadius:20,padding:"1px 8px",lineHeight:1.5}}>
+                {p.siapa}{p.ket&&<span style={{color:muted,fontWeight:600,fontStyle:"italic"}}> &middot; {p.ket}</span>}
+              </span>)}
+            </div>
+          </div>
+        </li>;
+      })}
+    </ol>}
+    {(sisa>0||semua)&&daftar.length>AGENDA_PUBLIK_MAKS&&<button type="button" onClick={()=>setSemua(s=>!s)}
+      style={{marginTop:4,background:"none",border:"none",color:gold,fontSize:12,fontWeight:700,cursor:"pointer",padding:"4px 0"}}>
+      {semua?"Ringkas":`Lihat semua (${daftar.length})`+(lewat&&!aktif.length?"":lewat?` · ${lewat} selesai`:"")}
+    </button>}
+  </section>;
+}
+
 // ── Spinner kecil inline ──
 function SpinnerInline({size=14,color="white"}){
   return <span style={{width:size,height:size,borderRadius:"50%",border:"2px solid rgba(255,255,255,0.3)",borderTopColor:color,display:"inline-block",animation:"spin 0.7s linear infinite",flexShrink:0}} aria-hidden="true"/>;
@@ -9139,6 +9210,10 @@ const TH={
         .layanan-link:focus-visible{outline:2px solid hsl(42,78%,55%);outline-offset:2px;}
         @media (prefers-reduced-motion:reduce){.feat-item,.login-card{animation:none!important}.layanan-link:hover{transform:none!important}}
         .login-card{animation:slideRight 0.6s ease both;}
+        @keyframes agendaKedip{0%,100%{opacity:.45}50%{opacity:.85}}
+        @keyframes agendaDenyut{0%{box-shadow:0 0 0 0 hsla(150,65%,55%,0.6)}100%{box-shadow:0 0 0 7px hsla(150,65%,55%,0)}}
+        .agenda-denyut{animation:agendaDenyut 1.6s ease-out infinite;}
+        @media (prefers-reduced-motion:reduce){.agenda-denyut{animation:none}}
       `}</style>
 
       {/* Dekorasi latar — lingkaran blur */}
@@ -9160,6 +9235,7 @@ const TH={
           <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
             {features.map(([ic,t])=><span key={t} style={{background:"hsla(42,78%,55%,0.12)",border:"1px solid hsla(42,78%,55%,0.3)",borderRadius:20,padding:"4px 11px",fontSize:12,color:GOLD2,fontWeight:700,display:"inline-flex",alignItems:"center",gap:5}}><Glif d={ic} size={13}/>{t}</span>)}
           </div>
+          <div style={{marginTop:16}}><AgendaPublikHariIni fg={FG} muted={MUTED} gold={GOLD2} border={BORDER} ringkas/></div>
           {/* Layanan publik — tidak perlu akun */}
           <div style={{marginTop:14,display:"flex",flexDirection:"column",gap:7}}>
             {layananPublik.map(l=>(
@@ -9238,6 +9314,7 @@ const TH={
             <div style={{padding:"12px 16px",borderRadius:12,background:"hsla(215,25%,20%,0.45)",border:"1px solid "+BORDER,marginBottom:20}}>
               <JamWITA color={FG} muted={MUTED}/>
             </div>
+            <div style={{marginBottom:20}}><AgendaPublikHariIni fg={FG} muted={MUTED} gold={GOLD2} border={BORDER}/></div>
 
             <div style={{color:MUTED,fontSize:12.5,lineHeight:1.8,marginBottom:24}}>
               Sistem informasi jadwal kegiatan pimpinan daerah Kota Tarakan — mengelola agenda, persetujuan berjenjang, dan koordinasi tim Protokol serta Komunikasi Pimpinan dalam satu tempat.

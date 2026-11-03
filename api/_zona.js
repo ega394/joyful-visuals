@@ -45,4 +45,19 @@ function fmtJamDuaZona(ev, opsi) {
   return asli + " " + z + " (" + w.teks + " WITA" + tandaHari(w.hari) + ")";
 }
 
-module.exports = { fmtJamDuaZona };
+/** Saat mulai acara (ms epoch), atau NaN bila tanggal/jam kosong. */
+function epochMulai(ev) {
+  if (!ev || !ev.tanggal || menit(ev.jam) == null) return NaN;
+  const [h, m] = ev.jam.split(":");
+  return Date.parse(`${ev.tanggal}T${p2(+h)}:${m.slice(0, 2)}:00+${p2(SELISIH[zonaSah(ev.zona)])}:00`);
+}
+
+/** Saat selesai acara; dua jam sesudah mulai bila jam selesai tidak diketahui. */
+function epochSelesai(ev) {
+  const a = epochMulai(ev);
+  if (Number.isNaN(a)) return NaN;
+  const ma = menit(ev.jam), mb = menit(ev.jamSelesai);
+  return mb != null && mb > ma ? a + (mb - ma) * 60000 : a + 120 * 60000;
+}
+
+module.exports = { fmtJamDuaZona, epochMulai, epochSelesai };

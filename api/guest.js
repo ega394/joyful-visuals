@@ -8,6 +8,7 @@ import { wajibSesi } from "./_sesi.js";
 import { rateLimit, getIP } from "./_middleware.js";
 import { catatWA, hasilFonnte } from "./_walog.js";
 import { sudahSetuju, kolomPersetujuan, simpanDenganPersetujuan, pesanTolak } from "./_persetujuan.js";
+import { agendaPublik } from "./_agendapublik.js";
 // web-push dimuat dengan require (berkas ini ditranspilasi menjadi CommonJS),
 // sama seperti api/webpush.js.
 const webpush = require("web-push");
@@ -1040,6 +1041,14 @@ async function actionKirimUlangWA(body) {
   return { ok: true, message: "Pemberitahuan dikirim ulang ke pemohon" };
 }
 
+// ── AGENDA PIMPINAN HARI INI (publik, halaman masuk) ─────────
+// Saringan dan bidang yang dikirim ada di api/_agendapublik.js.
+async function actionAgendaHariIni() {
+  var tgl = hariIniWita();
+  var rows = await sbGet("jadwal?select=data&data->>alur=eq.disetujui&data->>tanggal=eq." + tgl);
+  return { tanggal: tgl, agenda: agendaPublik((rows || []).map(function (r) { return r && r.data; })) };
+}
+
 // ── HANDLER ──────────────────────────────────────────────────
 // Hanya `checkin` (formulir permohonan audiensi publik di /tamu) yang terbuka.
 // Aksi lain memajukan alur, mengubah jadwal, atau menampilkan data pemohon
@@ -1053,6 +1062,18 @@ const AKSI_PERAN = {
 
 export default async function handler(req, res) {
   var action = req.query.action;
+  // Agenda pimpinan hari ini untuk halaman masuk — publik, tanpa sesi.
+  if (req.method === "GET" && action === "agenda_hari_ini") {
+    var batasAgenda = rateLimit("agenda:" + getIP(req), 60, 60 * 1000);
+    if (!batasAgenda.allowed) return res.status(429).json({ error: "Terlalu banyak permintaan." });
+    try {
+      res.setHeader("Cache-Control", "public, s-maxage=60, stale-while-revalidate=300");
+      return res.status(200).json(await actionAgendaHariIni());
+    } catch (e) {
+      console.error("[guest] agenda_hari_ini:", e && e.message);
+      return res.status(500).json({ error: "Agenda belum dapat dimuat." });
+    }
+  }
   // Daftar permohonan diambil BERSAMAAN dengan pemeriksaan sesi (dulu
   // berurutan: sesi → pengguna → daftar). Hasilnya baru dikirim setelah sesi
   // terbukti sah, jadi tidak ada data yang keluar tanpa sesi.
