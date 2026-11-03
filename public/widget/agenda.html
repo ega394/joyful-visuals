@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Agenda Pimpinan Hari Ini</title>
+<!--
+  Widget Agenda Wali Kota / Wakil Wali Kota Tarakan hari ini, untuk ditempel
+  di www.tarakankota.go.id lewat <iframe>. Hanya website tarakankota.go.id
+  yang boleh membingkainya (frame-ancestors di vercel.json); bila dibuka
+  langsung, widget hanya menampilkan rujukan ke website tersebut.
+
+  Data: /api/guest?action=agenda_hari_ini — jam, nama acara, pimpinan, dan
+  keterangan bila diwakilkan. Tempat tidak pernah dikirim (api/_agendapublik.js).
+
+  Pilihan alamat:  ?tema=gelap   tampilan gelap (bawaan: terang)
+-->
+<style>
+  @font-face{font-family:"Plus Jakarta Sans";src:url(/fonts/PlusJakartaSans-Variable.woff2) format("woff2");font-weight:200 800;font-display:swap}
+  :root{
+    --bg:#ffffff;--kartu:#f7f8fb;--garis:#e4e7ee;--teks:#122033;--redup:#5d6b7e;
+    --emas:#a77a12;--emas-latar:#fbf3df;--biru:#1d5fa8;--biru-latar:#e6f0fb;
+    --hijau:#137a4b;--hijau-latar:#e3f5ec;--aksen:#c9a227;
+  }
+  :root[data-tema="gelap"]{
+    --bg:#121a26;--kartu:#182233;--garis:#26334a;--teks:#e3e9f1;--redup:#8d9bb0;
+    --emas:#e8b941;--emas-latar:rgba(232,185,65,.12);--biru:#7cc4ef;--biru-latar:rgba(124,196,239,.12);
+    --hijau:#5fd59a;--hijau-latar:rgba(95,213,154,.13);--aksen:#e8b941;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--teks);font-family:"Plus Jakarta Sans",system-ui,sans-serif;font-size:14px;line-height:1.4;display:flex;flex-direction:column}
+  header{padding:14px 16px 10px;border-bottom:1px solid var(--garis);display:flex;gap:10px;align-items:center}
+  header img{height:34px;width:auto;flex-shrink:0}
+  .judul{font-size:11px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:var(--emas)}
+  .sub{font-size:12px;color:var(--redup);margin-top:2px}
+  .jumlah{margin-left:auto;flex-shrink:0;font-size:11px;font-weight:700;border:1px solid var(--garis);border-radius:20px;padding:2px 9px;background:var(--kartu)}
+  main{flex:1;overflow-y:auto;padding:4px 16px}
+  ol{list-style:none;margin:0;padding:0}
+  li{display:flex;gap:12px;padding:10px 0;border-top:1px solid var(--garis)}
+  li:first-child{border-top:0}
+  li.selesai{opacity:.5}
+  li.selesai .acara{text-decoration:line-through;text-decoration-color:var(--redup)}
+  .waktu{width:54px;flex-shrink:0}
+  .mulai{font-size:14px;font-weight:800;font-variant-numeric:tabular-nums}
+  li.jalan .mulai{color:var(--emas)}
+  .rentang{font-size:10.5px;color:var(--redup);font-weight:600;margin-top:1px}
+  .acara{font-weight:700;font-size:13.5px}
+  .tanda{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px}
+  .chip{font-size:11px;font-weight:700;border-radius:20px;padding:1px 9px;line-height:1.6}
+  .wk{color:var(--emas);background:var(--emas-latar)}
+  .wwk{color:var(--biru);background:var(--biru-latar)}
+  .ket{font-weight:600;font-style:italic;opacity:.85}
+  .live{color:var(--hijau);background:var(--hijau-latar);display:inline-flex;align-items:center;gap:5px}
+  .live i{width:6px;height:6px;border-radius:50%;background:var(--hijau);animation:denyut 1.6s ease-out infinite}
+  .kecil{font-size:11px;color:var(--redup);font-weight:700;align-self:center}
+  @keyframes denyut{0%{box-shadow:0 0 0 0 var(--hijau)}100%{box-shadow:0 0 0 6px transparent}}
+  @media (prefers-reduced-motion:reduce){.live i{animation:none}}
+  .kosong{color:var(--redup);padding:22px 0;text-align:center;font-size:13px}
+  .rangka{height:40px;border-radius:8px;background:var(--kartu);margin:10px 0;animation:kedip 1.4s ease infinite}
+  @keyframes kedip{50%{opacity:.5}}
+  footer{padding:9px 16px 11px;border-top:1px solid var(--garis);font-size:11px;color:var(--redup);display:flex;align-items:center;gap:6px}
+  footer b{color:var(--teks);font-weight:700}
+  footer::before{content:"";width:3px;height:14px;border-radius:2px;background:var(--aksen);flex-shrink:0}
+</style>
+</head>
+<body>
+<header>
+  <img src="/logo_tarakan.png" alt="" onerror="this.remove()">
+  <div>
+    <div class="judul">Agenda Pimpinan Hari Ini</div>
+    <div class="sub" id="sub">Wali Kota &amp; Wakil Wali Kota Tarakan</div>
+  </div>
+  <span class="jumlah" id="jumlah" hidden></span>
+</header>
+<main id="isi" aria-live="polite"><div class="rangka"></div><div class="rangka"></div></main>
+<footer><span>Disajikan oleh <b>Bagian Protokol dan Komunikasi Pimpinan</b> Setda Kota Tarakan</span></footer>
+<script>
+(function () {
+  var q = new URLSearchParams(location.search);
+  if (q.get("tema") === "gelap") document.documentElement.setAttribute("data-tema", "gelap");
+  var isi = document.getElementById("isi");
+
+  // Dibuka langsung (bukan tertempel di website): arahkan ke website Pemkot.
+  var tertempel = false;
+  try { tertempel = window.self !== window.top; } catch (e) { tertempel = true; }
+  if (!tertempel && q.get("pratinjau") !== "1") {
+    isi.innerHTML = "";
+    var p = document.createElement("p"); p.className = "kosong";
+    p.append("Agenda pimpinan hari ini dapat dilihat di ");
+    var a = document.createElement("a"); a.href = "https://www.tarakankota.go.id"; a.textContent = "www.tarakankota.go.id";
+    a.style.color = "var(--emas)"; p.append(a, ".");
+    isi.append(p);
+    return;
+  }
+
+  var data = null;
+  function el(tag, kelas, teks) { var e = document.createElement(tag); if (kelas) e.className = kelas; if (teks != null) e.textContent = teks; return e; }
+  function keadaan(a, now) { return a.mulai == null ? "" : now >= a.selesai ? "selesai" : now >= a.mulai ? "jalan" : ""; }
+
+  function gambar() {
+    if (!data) return;
+    var now = Date.now(), daftar = data.agenda || [];
+    if (data.tanggal) {
+      var tgl = new Date(data.tanggal + "T00:00:00Z").toLocaleDateString("id-ID", { timeZone: "UTC", weekday: "long", day: "numeric", month: "long", year: "numeric" });
+      document.getElementById("sub").textContent = "Wali Kota & Wakil Wali Kota Tarakan · " + tgl;
+    }
+    var j = document.getElementById("jumlah");
+    j.hidden = !daftar.length; j.textContent = daftar.length + " agenda";
+    isi.innerHTML = "";
+    if (!daftar.length) { isi.append(el("p", "kosong", "Tidak ada agenda terjadwal hari ini.")); return; }
+    var ol = el("ol");
+    daftar.forEach(function (a) {
+      var k = keadaan(a, now), li = el("li", k);
+      var jam = String(a.jam || ""), w = el("div", "waktu");
+      w.append(el("div", "mulai", jam.split(" ")[0] || "—"), el("div", "rentang", jam.replace(/^\S+\s*/, "") || "WITA"));
+      var badan = el("div"); badan.style.minWidth = "0";
+      badan.append(el("div", "acara", a.acara));
+      var t = el("div", "tanda");
+      if (k === "jalan") { var l = el("span", "chip live"); l.append(el("i"), "Sedang berlangsung"); t.append(l); }
+      if (k === "selesai") t.append(el("span", "kecil", "Selesai"));
+      (a.pimpinan || []).forEach(function (p) {
+        var c = el("span", "chip " + (p.siapa === "Wali Kota" ? "wk" : "wwk"), p.siapa);
+        if (p.ket) c.append(el("span", "ket", " · " + p.ket));
+        t.append(c);
+      });
+      badan.append(t); li.append(w, badan); ol.append(li);
+    });
+    isi.append(ol);
+  }
+
+  function muat() {
+    fetch("/api/guest?action=agenda_hari_ini")
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); })
+      .then(function (d) { data = d; gambar(); })
+      .catch(function () { if (!data) { isi.innerHTML = ""; isi.append(el("p", "kosong", "Agenda belum dapat dimuat. Silakan muat ulang beberapa saat lagi.")); } });
+  }
+  muat();
+  setInterval(muat, 5 * 60000);
+  setInterval(gambar, 30000);
+})();
+</script>
+</body>
+</html>
