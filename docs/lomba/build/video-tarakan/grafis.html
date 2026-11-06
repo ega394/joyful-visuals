@@ -814,11 +814,11 @@ SC.dampak = (R, A) => {
   const tanya = buat(R, `<div class="abs b tengah" style="top:380px;font-size:170px">Hasilnya<span style="color:var(--emas)">?</span></div>`);
   const L1 = buat(R, `<div class="abs" style="inset:0"></div>`);
   const n617 = buat(L1, `<div class="abs angka" style="left:120px;top:240px;font-size:300px;line-height:1;color:var(--emas)">0</div>`);
-  const l617 = buat(L1, `<div class="abs" style="left:130px;top:570px;width:760px"><div class="b" style="font-size:54px">kegiatan Pimpinan dikelola</div><div class="label" style="margin-top:10px">9 Maret – 5 Oktober 2026</div></div>`);
+  const l617 = buat(L1, `<div class="abs" style="left:130px;top:570px;width:760px"><div class="b" style="font-size:54px">kegiatan Pimpinan tercatat &amp; difasilitasi</div><div class="label" style="margin-top:10px">9 Maret – 5 Oktober 2026</div></div>`);
   const BUL = [["Mar", 45], ["Apr", 72], ["Mei", 71], ["Jun", 71], ["Jul", 99], ["Agu", 120], ["Sep", 114]];
-  const grafik = buat(L1, `<div class="kartu" style="left:1000px;top:220px;width:800px;height:600px;padding:40px 40px 30px"><div style="font-size:24px;font-weight:700;color:var(--abu)">Kegiatan per bulan</div><div class="bt" style="position:absolute;left:40px;right:40px;bottom:70px;top:110px;display:flex;align-items:flex-end;gap:22px"></div><div style="position:absolute;left:40px;right:40px;bottom:26px;display:flex;gap:22px">${BUL.map(([b]) => `<div style="flex:1;text-align:center;font-size:22px;font-weight:700;color:var(--abu)">${b}</div>`).join("")}</div></div>`);
+  const grafik = buat(L1, `<div class="kartu" style="left:1000px;top:220px;width:800px;height:600px;padding:40px 40px 30px"><div style="font-size:24px;font-weight:700;color:var(--abu)">Volume kegiatan Pimpinan yang difasilitasi</div><div class="bt" style="position:absolute;left:40px;right:40px;bottom:70px;top:110px;display:flex;align-items:flex-end;gap:22px"></div><div style="position:absolute;left:40px;right:40px;bottom:26px;display:flex;gap:22px">${BUL.map(([b]) => `<div style="flex:1;text-align:center;font-size:22px;font-weight:700;color:var(--abu)">${b}</div>`).join("")}</div></div>`);
   const batang = BUL.map(([b, v]) => buat(grafik.querySelector(".bt"), `<div style="flex:1;position:relative;height:100%"><div class="isi" style="position:absolute;left:0;right:0;bottom:0;border-radius:12px 12px 4px 4px;background:linear-gradient(180deg,#F2C14E,#B98A2A)"></div><div class="nl angka" style="position:absolute;left:0;right:0;text-align:center;font-size:26px;font-weight:800"></div></div>`));
-  const naik = buat(L1, `<div class="pil hijau" style="left:130px;top:720px;font-size:32px;padding:14px 26px">${ik("trending-up", 34)}April 72 → September 114 · naik 58%</div>`);
+  const naik = buat(L1, `<div class="pil emas" style="left:130px;top:720px;font-size:32px;padding:14px 26px">${ik("calendar-check", 34)}Rata-rata 91 kegiatan per bulan</div>`);
   // 18-24 jam -> 1,94 jam
   const L2 = buat(R, `<div class="abs" style="inset:0"></div>`);
   const jd2 = buat(L2, `<div class="abs b" style="left:120px;top:190px;font-size:56px">Dari pengajuan sampai tayang</div>`);
@@ -869,8 +869,8 @@ SC.dampak = (R, A) => {
     n617.textContent = Math.round(617 * e(t, S[0] + 0.3, 1.6, masukKeluar)); muncul(n617, t, S[0], 0.4, 20); muncul(l617, t, S[0] + 0.4, 0.5, 16); muncul(grafik, t, S[0] + 0.2, 0.6, 30);
     batang.forEach((n, i) => { const k = e(t, S[0] + 0.5 + i * 0.22, 0.7, pegas); const h = BUL[i][1] / 120 * 100 * k;
       n.querySelector(".isi").style.height = h + "%"; const nl = n.querySelector(".nl"); nl.style.bottom = `calc(${h}% + 6px)`; nl.textContent = k > 0.2 ? BUL[i][1] : "";
-      const sorot = (i === 1 || i === 6) && t > A.w(1, "naik") - 0.2; n.querySelector(".isi").style.background = sorot ? "linear-gradient(180deg,#7FE3BD,#2FB57F)" : "linear-gradient(180deg,#F2C14E,#B98A2A)"; });
-    muncul(naik, t, A.w(1, "naik") - 0.1, 0.45, 12, null, 0.85, pegas);
+      const sorot = false; n.querySelector(".isi").style.background = sorot ? "linear-gradient(180deg,#7FE3BD,#2FB57F)" : "linear-gradient(180deg,#F2C14E,#B98A2A)"; });
+    muncul(naik, t, A.w(1, "rata-rata") - 0.1, 0.45, 12, null, 0.85, pegas);
     jendela(L2, t, S[1], S[2], 0.3); muncul(jd2, t, S[1] + 0.1, 0.5, 16);
     const td = A.w(2, "delapan") - 0.4, tk = A.w(2, "kini") - 0.1;
     const kd = e(t, td, 1.0, masukKeluar), kk = e(t, tk, 0.9, masukKeluar);

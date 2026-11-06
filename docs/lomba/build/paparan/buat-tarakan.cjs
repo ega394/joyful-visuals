@@ -136,8 +136,8 @@ bagian("Pembuka");
 // ══ 2. Latar belakang ══════════════════════════════════════════════
 bagian("Latar belakang");
 {
-  const s = isi("LATAR BELAKANG", "617 kegiatan Pimpinan, dan semuanya dulu manual");
-  const angka = [["617", "kegiatan sejak Maret–5 Oktober 2026"], ["91", "kegiatan per bulan rata-rata; puncak 120 (Agustus)"], ["498 · 180", "kegiatan Wali Kota · Wakil Wali Kota"], ["294", "kegiatan sambutan yang memerlukan naskah"]];
+  const s = isi("LATAR BELAKANG", "Agenda Pimpinan yang padat, dan semuanya dulu manual");
+  const angka = [["617", "kegiatan tercatat, Maret–5 Oktober 2026"], ["91", "kegiatan per bulan rata-rata; puncak 120 (Agustus)"], ["498 · 180", "kegiatan Wali Kota · Wakil Wali Kota"], ["294", "kegiatan sambutan yang memerlukan naskah"]];
   angka.forEach(([a, k], i) => {
     const y = 1.8 + i * 1.12;
     kartu(s, M, y, 3.7, 0.95, { isi: i === 0 ? C.text2 : C.background2, nama: "angka" + (i + 1) });
@@ -392,13 +392,13 @@ bagian("Hasil dan dampak");
     teks(s, a, X, y, 1.15, 0.36, { fontSize: 15, bold: true, color: C.text2, valign: "middle" });
     teks(s, k, X + 1.2, y, Wr - 1.2, 0.36, { fontSize: 12, kecil: true, color: C.accent5, valign: "middle" });
   });
-  teks(s, "Pertumbuhan penggunaan: kegiatan per bulan, 2026", M, 4.8, 7, 0.35, { fontSize: 15, bold: true, color: C.text2 });
+  teks(s, "Volume kegiatan Pimpinan yang tercatat dan difasilitasi, per bulan 2026", M, 4.8, 8.2, 0.35, { fontSize: 15, bold: true, color: C.text2 });
   s.addChart(pres.charts.BAR, [{ name: "Kegiatan", labels: ["Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep"], values: [45, 72, 71, 71, 99, 120, 114] }], {
     x: M, y: 5.12, w: 8.2, h: 1.45, barDir: "col", chartColors: [HEX.accent2], showValue: true, dataLabelFontSize: 11, dataLabelColor: HEX.dk1,
     catAxisLabelFontSize: 11, valAxisHidden: true, valGridLine: { style: "none" }, catAxisLineShow: false, barGapWidthPct: 40,
   });
-  kartu(s, M + 8.5, 5.12, W - 2 * M - 8.5, 1.45, { isi: "ECFDF5", garis: C.accent3, tebal: 1.25, nama: "naik" });
-  teks(s, [{ text: "+58%", options: { bold: true, fontSize: 24, color: C.accent3, breakLine: true } }, { text: "April (72) ke September (114)", options: { fontSize: 13, color: C.text1 } }], M + 8.75, 5.2, W - 2 * M - 9.0, 1.3, { valign: "middle" });
+  kartu(s, M + 8.5, 5.12, W - 2 * M - 8.5, 1.45, { isi: "FBF6E7", garis: C.accent1, tebal: 1.25, nama: "volume" });
+  teks(s, [{ text: "617 kegiatan", options: { bold: true, fontSize: 22, color: C.text2, breakLine: true } }, { text: "rata-rata 91 per bulan; volume mengikuti agenda Pimpinan, aplikasi mencatat dan memfasilitasinya", options: { fontSize: 12, color: C.text1 } }], M + 8.7, 5.17, W - 2 * M - 8.9, 1.35, { valign: "middle", kecil: true });
   teks(s, SUMBER + " Angka \"sebelum\" adalah estimasi dari alur lama.", M, 6.65, W - 2 * M, 0.3, { kecil: true, fontSize: 11, color: C.accent5 });
   catat(s, 9);
 }

@@ -124,8 +124,10 @@ ADEGAN = [
     ]),
     ("dampak", "dampak", [
         ("Hasilnya?", None, 0.45, 1.06),
-        ("617 kegiatan Pimpinan sudah dikelola, naik dari 72 kegiatan pada April menjadi 114 pada September.",
-         "Enam ratus tujuh belas kegiatan Pimpinan sudah dikelola. Naik dari tujuh puluh dua kegiatan pada April, menjadi seratus empat belas pada September.", 0.35, 1.0),
+        # Volume kegiatan mengikuti agenda Pimpinan, bukan karena aplikasi (keputusan Kabag,
+        # 6 November 2026): yang ditegaskan, aplikasi mencatat dan memfasilitasi seluruhnya.
+        ("617 kegiatan Wali Kota dan Wakil Wali Kota, rata-rata 91 setiap bulan, kini tercatat dan difasilitasi melalui satu aplikasi.",
+         "Enam ratus tujuh belas kegiatan Wali Kota dan Wakil Wali Kota, rata-rata sembilan puluh satu setiap bulan, kini tercatat dan difasilitasi melalui satu aplikasi.", 0.35, 1.0),
         ("Dari pengajuan sampai tayang, yang dulu 18 sampai 24 jam, kini median 1,94 jam: 9 sampai 12 kali lebih cepat.",
          "Dari pengajuan sampai tayang, yang dulu delapan belas sampai dua puluh empat jam, kini median satu koma sembilan puluh empat jam. Sembilan sampai dua belas kali lebih cepat.", 0.3, 1.0),
         ("99,3% tayang kurang dari sehari.", "Sembilan puluh sembilan koma tiga persen, tayang kurang dari sehari.", 0.35, 1.0),
