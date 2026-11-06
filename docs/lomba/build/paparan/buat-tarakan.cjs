@@ -111,7 +111,8 @@ const jembatan = (s, t, gelap = false) => {
   teks(s, t, W - M - 4.25, 6.5, 4.25, 0.3, { fontSize: 13, kecil: true, italic: true, bold: true, color: gelap ? EMAS : EMAS_TUA, valign: "middle" });
 };
 const slide = (gelap = false) => pres.addSlide({ masterName: gelap ? "GELAP" : "TERANG" });
-const catat = (s, n) => s.addNotes(NASKAH[String(n)]);
+let NO = 0;
+const catat = (s) => s.addNotes(NASKAH[String(++NO)] || "");
 const logo = (s, x, y) => {
   kotak(s, x, y, 1.6, 0.74, PUTIH, { r: 0.12 });
   s.addImage({ path: A + "tarakan.png", x: x + 0.14, y: y + 0.07, w: 0.6, h: 0.6 });
@@ -134,21 +135,33 @@ const logo = (s, x, y) => {
     { text: "Anugrah Yega Pranatha, M.Si. (Ketua) · Saifullah, S.H. · Juliyanti, S.AP. · Pebriadi Banne, S.IP. · Nuraini Wiliadewi, S.IP.", options: { color: "D9DEE7", fontSize: 11 } },
   ], M, 6.1, 5.9, 0.7, { kecil: true, fontSize: 11 });
   teks(s, "Presentasi dan Wawancara Finalis  ·  Bappeda Litbang  ·  9 November 2026", 7.3, 6.85, W - 7.3 - M, 0.3, { fontSize: 10, kecil: true, color: PUTIH, align: "right" });
-  catat(s, 1);
+  catat(s);
 }
 
 // ══ BAB 1 · MASALAH ════════════════════════════════════════════════
-// 2. Pembuka cerita: lembar yang tidak sampai
+// 2. Pembuka cerita: lembar yang tidak sampai (foto lembar asli, bagian pribadi disamarkan)
 {
   const s = slide(true);
-  foto(s, "foto-berkas.jpg", 0, 0, W, H, 22);
   kepala(s, 1, "LATAR BELAKANG  ·  PERISTIWA PEMICU", true);
-  teks(s, "Januari 2026.", M, 2.0, 8, 0.6, { fontSize: 20, bold: true, color: EMAS });
-  teks(s, "Satu lembar disposisi agenda tidak ikut terfoto.", M, 2.6, 8.6, 1.9, { fontFace: FX, fontSize: 40, color: PUTIH });
-  teks(s, "Berkas diteruskan sebagai foto di grup percakapan. Lembar itu tidak sampai ke meja kami — dan tidak ada yang dapat mengetahuinya.", M, 4.55, 7.2, 1.0, { fontSize: 17, color: "E5E9F0" });
-  teks(s, "Tidak ada yang lalai. Rantainya yang rapuh.", M, 5.65, 7, 0.45, { fontSize: 17, bold: true, italic: true, color: EMAS });
-  jembatan(s, "Bagaimana hal itu bisa terjadi?", true);
-  catat(s, 2);
+  teks(s, "Januari 2026.", M, 1.35, 5.4, 0.5, { fontSize: 20, bold: true, color: EMAS });
+  teks(s, "Satu lembar disposisi agenda tidak ikut terfoto.", M, 1.9, 5.3, 2.0, { fontFace: FX, fontSize: 34, color: PUTIH });
+  teks(s, "Berkas diteruskan sebagai foto di grup percakapan. Lembar rencana audiensi itu tidak sampai ke meja kami — dan tidak ada yang dapat mengetahuinya.", M, 4.05, 5.2, 1.3, { fontSize: 16, color: "E5E9F0" });
+  teks(s, "Tidak ada yang lalai. Rantainya yang rapuh.", M, 5.5, 5.3, 0.45, { fontSize: 17, bold: true, italic: true, color: EMAS });
+  const X = 6.35, Wl = W - M - X;
+  const lembar = (f, px, py, y, label, warna, hilang) => {
+    const h = Wl * py / px;
+    s.addImage({ path: A + f, x: X, y, w: Wl, h, transparency: hilang ? 0 : 0 });
+    s.addShape(pres.shapes.RECTANGLE, { x: X, y, w: Wl, h, fill: { type: "none" }, line: { color: warna, width: hilang ? 3 : 1 } });
+    kotak(s, X + 0.12, y + h - 0.5, label.length * 0.095 + 0.4, 0.38, warna, { r: 0.05 });
+    teks(s, label, X + 0.12, y + h - 0.5, label.length * 0.095 + 0.4, 0.38, { fontSize: 12, kecil: true, bold: true, color: PUTIH, align: "center", valign: "middle" });
+    return h;
+  };
+  if (ada("lembar-sampai.jpg") && ada("lembar-tertinggal.jpg")) {
+    const h1 = lembar("lembar-sampai.jpg", 1210, 610, 1.0, "✓  Terfoto · sampai", HIJAU, false);
+    lembar("lembar-tertinggal.jpg", 1560, 520, 1.0 + h1 + 0.25, "✗  Tidak ikut terfoto · tidak sampai", MERAH, true);
+    teks(s, "Lembar asli, 2 Januari 2026. Nomor telepon, tanda tangan, dan NIP disamarkan.", X, 6.62, Wl, 0.3, { fontSize: 10, kecil: true, italic: true, color: "A7B1C2" });
+  }
+  catat(s);
 }
 // 3. Agenda padat, cara kerja manual
 {
@@ -182,12 +195,12 @@ const logo = (s, x, y) => {
   });
   teks(s, SUMBER, M, 6.5, 6.5, 0.3, { kecil: true, fontSize: 9, color: ABU });
   jembatan(s, "Masalahnya bukan pada orang, tetapi rantainya.");
-  catat(s, 3);
+  catat(s);
 }
 // 4. Akar masalah
 {
   const s = slide();
-  kepala(s, 1, "MASALAH  ·  ANALISIS AKAR MASALAH");
+  kepala(s, 1, "LATAR BELAKANG  ·  AKAR MASALAH");
   judul(s, "Akarnya satu: tidak ada satu sumber data yang sahih");
   kotak(s, M, 2.55, 3.55, 2.4, NAVY);
   teks(s, "AKAR MASALAH", M + 0.35, 2.8, 3, 0.3, { fontSize: 10, bold: true, charSpacing: 2, color: EMAS });
@@ -205,14 +218,14 @@ const logo = (s, x, y) => {
   teks(s, "Persoalannya tersebar di kertas, spreadsheet, grup percakapan, papan tulis, dan telepon.", XP, 2.25, WP, 1.3, { fontSize: 15, color: ABU });
   teks(s, "Memperbaiki satu saluran tidak menyelesaikan yang lain. Jawabannya harus satu wadah dengan satu data: superapp.", XP, 3.6, WP, 2.0, { fontSize: 17, bold: true, color: NAVY });
   jembatan(s, "Lalu, pilihan apa yang kami punya?");
-  catat(s, 4);
+  catat(s);
 }
 
 // ══ BAB 2 · JALAN KELUAR ═══════════════════════════════════════════
 // 5. Pemilihan ide
 {
   const s = slide();
-  kepala(s, 2, "SOLUSI  ·  PENJARINGAN DAN PEMILIHAN IDE");
+  kepala(s, 2, "TEROBOSAN INOVASI  ·  PEMILIHAN IDE");
   judul(s, "Dari empat pilihan, kami memilih membangun sendiri");
   teks(s, "Ide dijaring dari pekerjaan sehari-hari, bukan survei: banyaknya pintu masuk agenda, peristiwa Januari, dan telaah bersama seluruh Bagian.", M, 1.72, 11.5, 0.6, { fontSize: 14, color: ABU });
   const pilihan = [
@@ -231,12 +244,12 @@ const logo = (s, x, y) => {
     teks(s, k, x + 0.3, y + 2.2, lw - 0.6, 1.25, { fontSize: 13, kecil: true, color: pilih ? "D9DEE7" : ABU });
   });
   jembatan(s, "Mari ikuti satu undangan.");
-  catat(s, 5);
+  catat(s);
 }
 // 6. Perjalanan satu undangan
 {
   const s = slide();
-  kepala(s, 2, "SOLUSI  ·  CARA KERJA");
+  kepala(s, 2, "TEROBOSAN INOVASI  ·  CARA KERJA");
   judul(s, "Mari ikuti satu undangan, dari meja admin sampai HP Wali Kota", false, 8.6);
   const langkah = [
     ["Admin Rencana Kegiatan", "Memindai undangan; formulir terisi, benturan jadwal diperiksa", ""],
@@ -259,12 +272,12 @@ const logo = (s, x, y) => {
   teks(s, [{ text: "Median pengajuan sampai tayang   ", options: { color: "D9DEE7" } }, { text: "1,94 jam", options: { bold: true, color: EMAS } }], M + 0.3, 5.65, Wl - 0.6, 0.5, { fontSize: 15, valign: "middle" });
   s.addImage({ path: A + "hp_walikota.jpg", x: 9.9, y: 1.0, w: 2.4, h: 5.2 });
   jembatan(s, "Satu undangan menyentuh banyak urusan.");
-  catat(s, 6);
+  catat(s);
 }
 // 7. Sebelas alur, satu data
 {
   const s = slide();
-  kepala(s, 2, "SOLUSI  ·  CAKUPAN SUPERAPP");
+  kepala(s, 2, "TEROBOSAN INOVASI  ·  CAKUPAN SUPERAPP");
   judul(s, "Satu undangan, sebelas urusan, satu data");
   const alur = ["Penetapan jadwal", "Perubahan jadwal", "Penarikan dan pembatalan", "Penugasan petugas", "Audiensi dan tamu", "Peminjaman ruangan",
     "Daftar hadir digital", "Naskah sambutan", "Peliputan dan publikasi", "Penerbitan undangan", "Evaluasi kinerja"];
@@ -287,13 +300,65 @@ const logo = (s, x, y) => {
   });
   kotak(s, M, 5.5, W - 2 * M, 0.75, NAVY, { r: 0.06 });
   teks(s, [{ text: "Tersambung   ", options: { bold: true, color: EMAS } }, { text: "Google Calendar bersama · notifikasi aplikasi dan WhatsApp · undangan siap TTE Srikandi · daftar hadir di spreadsheet instansi", options: { color: PUTIH } }], M + 0.3, 5.5, W - 2 * M - 0.6, 0.75, { fontSize: 14, valign: "middle" });
-  jembatan(s, "Yang membuatnya berbeda: jejaknya.");
-  catat(s, 7);
+  jembatan(s, "Di balik satu undangan, banyak modul bekerja.");
+  catat(s);
+}
+// 8. Modul layanan: undangan, ruangan, daftar hadir, tamu
+{
+  const s = slide();
+  kepala(s, 2, "TEROBOSAN INOVASI  ·  MODUL LAYANAN");
+  judul(s, "Satu undangan rapat, satu ruangan, satu daftar hadir");
+  const kol = [
+    ["m-undangan.jpg", 990, 760, "Generator Undangan", "PDF siap TTE Srikandi; ruang rapat Imbaya dan Kenawai diperiksa dan dipesan dari formulir yang sama"],
+    ["m-ruangan.jpg", 990, 760, "Peminjaman Ruangan", "Kalender ketersediaan untuk umum; 129 pengajuan dari 68 instansi, dilacak dengan kode"],
+    ["m-hadir.jpg", 990, 620, "Daftar Hadir Digital", "Pindai kode QR, tanda tangan di layar, buka-tutup mengikuti jam acara; tersimpan di spreadsheet instansi"],
+  ];
+  const kw = (W - 2 * M - 2 * 0.3) / 3;
+  kol.forEach(([f, px, py, j, k], i) => {
+    const x = M + i * (kw + 0.3);
+    const h = Math.min(2.65, kw * py / px);
+    s.addImage({ path: A + f, x, y: 1.95, w: kw, h, sizing: { type: "cover", w: kw, h } });
+    s.addShape(pres.shapes.RECTANGLE, { x, y: 1.95, w: kw, h, fill: { type: "none" }, line: { color: GARIS, width: 0.75 } });
+    teks(s, j, x, 4.75, kw, 0.4, { fontSize: 17, bold: true, color: NAVY });
+    teks(s, k, x, 5.18, kw, 0.95, { fontSize: 13, kecil: true, color: ABU });
+  });
+  teks(s, "Juga: Manajemen Tamu dan permohonan audiensi daring yang otomatis menjadi agenda bila disetujui. Tangkapan layar berdata contoh.", M, 6.2, 7.2, 0.3, { fontSize: 10, kecil: true, italic: true, color: ABU });
+  jembatan(s, "Lalu naskah, berita, dan laporannya.");
+  catat(s);
+}
+// 9. Modul komunikasi dan laporan
+{
+  const s = slide();
+  kepala(s, 2, "TEROBOSAN INOVASI  ·  MODUL KOMUNIKASI DAN LAPORAN");
+  judul(s, "Naskah, berita, dan laporan dalam alur yang sama");
+  const Wk = 6.1;
+  const butir = [
+    ["Naskah sambutan", "Penyusun, penyelia, dan pengesah dalam satu alur; tetap tersedia tercetak sesuai kebiasaan Pimpinan"],
+    ["AI Newsroom", "Rancangan keterangan foto dan berita berbantuan kecerdasan buatan, wajib disunting petugas"],
+    ["Laporan mingguan dan bulanan", "Rekap agenda per Pimpinan dan jenis kegiatan; cetak A4 atau F4"],
+    ["Rekap WA dan Cetak Rekap PDF", "Agenda hari ini siap dibagikan; rencana kegiatan tercetak bila diperlukan"],
+    ["Generator e-Kinerja", "Uraian kegiatan harian petugas disusun otomatis dari penugasannya"],
+  ];
+  butir.forEach(([j, k], i) => {
+    const y = 1.95 + i * 0.86;
+    teks(s, j, M, y, Wk, 0.36, { fontSize: 16, bold: true, color: NAVY });
+    teks(s, k, M, y + 0.37, Wk, 0.45, { fontSize: 12, kecil: true, color: ABU });
+    garis(s, M, y + 0.8, Wk);
+  });
+  const X = M + Wk + 0.4, Wg = W - M - X;
+  const g1 = Wg * 0.58, g2 = Wg - g1 - 0.2;
+  s.addImage({ path: A + "m-newsroom.jpg", x: X, y: 1.95, w: g1, h: 3.9, sizing: { type: "cover", w: g1, h: 3.9 } });
+  s.addShape(pres.shapes.RECTANGLE, { x: X, y: 1.95, w: g1, h: 3.9, fill: { type: "none" }, line: { color: GARIS, width: 0.75 } });
+  s.addImage({ path: A + "m-laporan.jpg", x: X + g1 + 0.2, y: 1.95, w: g2, h: 3.9, sizing: { type: "cover", w: g2, h: 3.9 } });
+  s.addShape(pres.shapes.RECTANGLE, { x: X + g1 + 0.2, y: 1.95, w: g2, h: 3.9, fill: { type: "none" }, line: { color: GARIS, width: 0.75 } });
+  teks(s, "AI Newsroom dan Laporan Mingguan/Bulanan (data contoh)", X, 5.9, Wg, 0.26, { fontSize: 9, kecil: true, italic: true, color: ABU });
+  jembatan(s, "Yang membuatnya dipercaya: jejaknya.");
+  catat(s);
 }
 // 8. Kebaruan: setiap langkah meninggalkan jejak
 {
   const s = slide();
-  kepala(s, 2, "SOLUSI  ·  UNSUR KEBARUAN");
+  kepala(s, 2, "TEROBOSAN INOVASI  ·  KEBARUAN");
   judul(s, "Setiap langkah meninggalkan jejak");
   const utama = [["a", "Jejak audit di setiap kegiatan", "Siapa, kapan, apa keputusannya: 3.331 peristiwa"], ["b", "Daftar periksa wajib", "Tombol setuju aktif sesudah butir dicentang"],
     ["c", "Pelaksana Harian bermasa berlaku", "Kewenangan padam sendiri pada tanggal akhirnya"], ["d", "Pengawasan menurut kegentingan", "Usulan ditandai menurut umur dan dekatnya hari H"]];
@@ -308,7 +373,7 @@ const logo = (s, x, y) => {
   const X = 7.4, Wg = W - M - X;
   const h = gambar(s, "kabag_riwayat.jpg", X, 1.95, Wg, 1280, 1060);
   teks(s, "Riwayat Alur satu kegiatan (data contoh)", X, 1.98 + h, Wg, 0.26, { fontSize: 9, kecil: true, italic: true, color: ABU });
-  catat(s, 8);
+  catat(s);
 }
 function butirLain() {
   return ["e  kanal publik terlacak dengan kode", "f  kalender bersama terisi otomatis", "g  undangan siap TTE Srikandi", "h  data pribadi dilindungi sejak formulir", "i  setiap pesan WhatsApp dapat diperiksa"].join("   ·   ");
@@ -316,7 +381,7 @@ function butirLain() {
 // 9. Pelaksanaan
 {
   const s = slide();
-  kepala(s, 2, "IMPLEMENTASI  ·  TAHAPAN DAN PELEMBAGAAN");
+  kepala(s, 2, "BUKTI IMPLEMENTASI  ·  TAHAPAN");
   judul(s, "Berjalan sejak Maret 2026, dikuatkan Sekretaris Daerah");
   const tahap = [["Jan 2026", "Peristiwa pemicu; telaah alur kerja seluruh Bagian"], ["Feb–Mar", "Dibangun dan diuji; kegiatan pertama 9 Maret"], ["Mei", "Jejak audit mulai merekam; kanal ruangan dibuka"],
     ["Jul–Agu", "Audiensi terhubung ke agenda; daftar hadir digital"], ["Sep", "Pelaksana Harian; daftar periksa wajib; kalender bersama"], ["Okt", "Undangan TTE; masuk tanpa kata sandi; zona waktu"]];
@@ -339,13 +404,13 @@ function butirLain() {
     garis(s, X, y + 0.64, Wb);
   });
   jembatan(s, "Semuanya tanpa belanja pengadaan.");
-  catat(s, 9);
+  catat(s);
 }
 // 10. Sumber daya dan kolaborasi
 {
   const s = slide();
   foto(s, "foto-meja.jpg", 7.95, 1.95, W - M - 7.95, 2.05, null);
-  kepala(s, 2, "IMPLEMENTASI  ·  SUMBER DAYA", false);
+  kepala(s, 2, "PEMANFAATAN SUMBER DAYA", false);
   judul(s, "Dibangun tim sendiri, tanpa belanja pengadaan", false, 7.0);
   const baris = [["Pengembangan", "Swakelola Ketua Tim; tidak membebani APBD", "Rp0"], ["Peladen", "12 fungsi tanpa server, kuota tanpa biaya", "Rp0"], ["Basis data", "Layanan terkelola, paket tanpa biaya", "Rp0"],
     ["Kalender bersama", "Akun layanan atas nama instansi", "Rp0"], ["Perangkat", "Telepon pintar pengguna", "Rp0"], ["Pesan WhatsApp", "Layanan gerbang pesan", "Langganan"]];
@@ -366,14 +431,14 @@ function butirLain() {
     teks(s, k, X + 1.95, y, Wb - 1.95, 0.58, { fontSize: 12, kecil: true, color: ABU, valign: "middle" });
   });
   jembatan(s, "Lalu, apa hasilnya?");
-  catat(s, 10);
+  catat(s);
 }
 
 // ══ BAB 3 · HASIL ══════════════════════════════════════════════════
 // 11. Dampak terukur
 {
   const s = slide();
-  kepala(s, 3, "DAMPAK  ·  BUKTI TERUKUR DARI BASIS DATA");
+  kepala(s, 3, "MANFAAT DAN DAMPAK  ·  BUKTI TERUKUR");
   judul(s, "Dari hitungan hari menjadi hitungan jam");
   teks(s, "SEBELUM", M, 2.0, 3, 0.3, { fontSize: 10, bold: true, charSpacing: 2, color: ABU });
   teks(s, "±18–24 jam", M, 2.3, 3.6, 0.85, { fontFace: FX, fontSize: 38, color: "9AA3B2" });
@@ -399,14 +464,14 @@ function butirLain() {
   teks(s, [{ text: "617 kegiatan", options: { bold: true, fontSize: 20, color: NAVY, breakLine: true } }, { text: "rata-rata 91 per bulan. Volume mengikuti agenda Pimpinan; aplikasi mencatat dan memfasilitasinya.", options: { fontSize: 12, color: ABU } }], 9.3, 4.75, W - M - 9.3, 1.5, { kecil: true, valign: "middle" });
   teks(s, SUMBER + " Angka \"sebelum\" adalah estimasi dari alur lama.", M, 6.5, 7.1, 0.3, { kecil: true, fontSize: 9, color: ABU });
   jembatan(s, "Bagi Pimpinan, artinya kepastian.");
-  catat(s, 11);
+  catat(s);
 }
 // 12. Kepastian bagi Pimpinan, kanal bagi publik
 {
   const s = slide();
   foto(s, "foto-walikota.jpg", 0, 0, 5.2, H, null);
   const X = 5.75, Wq = W - M - X;
-  kepala(s, 3, "MANFAAT  ·  PIMPINAN DAN PUBLIK", false, X);
+  kepala(s, 3, "MANFAAT DAN DAMPAK  ·  PENERIMA MANFAAT", false, X);
   teks(s, "“Yang terpenting bagi saya adalah kepastian: ke mana saya harus hadir, kapan, dan siapa yang menyiapkannya.”", X, 1.0, Wq, 1.9, { fontSize: 22, bold: true, italic: true, color: NAVY });
   teks(s, "dr. H. Khairul, M.Kes. — Wali Kota Tarakan", X, 2.95, Wq, 0.35, { fontSize: 13, kecil: true, bold: true, color: EMAS_TUA });
   garis(s, X, 3.5, Wq);
@@ -420,7 +485,7 @@ function butirLain() {
   teks(s, "LAYANAN PUBLIK", X + 0.3, 5.32, 3, 0.28, { fontSize: 10, bold: true, charSpacing: 2, color: ABU });
   teks(s, [{ text: "129 ", options: { bold: true, color: NAVY } }, { text: "pengajuan ruangan dari 68 instansi   ·   ", options: { color: TINTA } }, { text: "59 ", options: { bold: true, color: NAVY } }, { text: "permohonan audiensi dari 55 instansi; 31 menjadi agenda Pimpinan", options: { color: TINTA } }], X + 0.3, 5.62, Wq - 0.6, 0.6, { fontSize: 13, kecil: true });
   jembatan(s, "Dari data yang sama, ada bonusnya.");
-  catat(s, 12);
+  catat(s);
 }
 // 13. Bonus 1: monitoring internal
 {
@@ -441,39 +506,65 @@ function butirLain() {
   });
   teks(s, "Isi pesan dihapus otomatis sesudah 90 hari; nomor penerima disamarkan.", X, 6.2, Wb, 0.26, { fontSize: 10, kecil: true, italic: true, color: ABU });
   jembatan(s, "Bonus kedua: kinerja yang terbaca.");
-  catat(s, 13);
+  catat(s);
 }
-// 14. Bonus 2: kinerja dan evaluasi
+// Bonus 2: beban kerja, kinerja, dan evaluasi
 {
   const s = slide();
-  kepala(s, 3, "BONUS DARI SATU DATA  ·  KINERJA DAN EVALUASI");
-  judul(s, "Bonus kedua: kinerja yang terbaca setiap hari");
-  const Wk = 5.9;
-  const kiri = [["Evaluasi pasca kegiatan", "Lima butir, berbeda untuk protokol dan dokumentasi", false, "341 kegiatan (55,3%) sudah dievaluasi petugas"], ["Rekap Evaluasi Kinerja tim", "Nilai terkini 60% · konsistensi 25% · tren 15%; peringkat A–E", false, ""],
-    ["Rekap Penugasan Bulanan", "Bukti dukung kinerja pegawai untuk e-Kinerja", false, ""], ["Indikator Kinerja Bagian", "Ketepatan waktu layanan komunikasi dihitung otomatis; kepuasan Pimpinan dan standar keprotokolan tahap berikutnya", true, ""]];
+  kepala(s, 3, "MANFAAT DAN DAMPAK  ·  BONUS KINERJA DAN EVALUASI");
+  judul(s, "Bonus kedua: beban kerja dan kinerja terbaca setiap hari");
+  const Wk = 6.0;
+  const kiri = [
+    ["Sebaran beban kerja petugas", "Jumlah penugasan tiap personil terlihat, sehingga tugas dapat dibagi merata", false, ""],
+    ["Rekap Penugasan Bulanan", "Peringkat penugasan dan bukti dukung kinerja pegawai untuk e-Kinerja", false, ""],
+    ["Evaluasi pasca kegiatan", "Lima butir, berbeda untuk protokol dan dokumentasi", false, "341 kegiatan (55,3%) sudah dievaluasi petugas"],
+    ["Rekap Evaluasi Kinerja tim", "Nilai terkini 60% · konsistensi 25% · tren 15%; peringkat A–E", false, ""],
+    ["Indikator Kinerja Bagian", "Ketepatan waktu layanan komunikasi dihitung otomatis; kepuasan Pimpinan dan standar keprotokolan tahap berikutnya", true, ""],
+  ];
   kiri.forEach(([j, k, siap, angka], i) => {
-    const y = 1.95 + i * 1.04;
-    if (siap) kotak(s, M - 0.15, y - 0.12, Wk + 0.3, 1.06, EMAS_MUDA, { r: 0.06 });
-    teks(s, j, M, y, Wk - 1.8, 0.36, { fontSize: 16, bold: true, color: NAVY });
-    status(s, M + Wk - (siap ? 1.6 : 0.78), y + 0.05, siap);
-    teks(s, k, M, y + 0.38, Wk, 0.5, { fontSize: 12, kecil: true, color: ABU });
-    if (angka) teks(s, angka, M, y + 0.62, Wk, 0.28, { fontSize: 12, kecil: true, bold: true, color: HIJAU });
-    if (!siap) garis(s, M, y + 0.94, Wk);
+    const y = 1.92 + i * 0.88;
+    if (siap) kotak(s, M - 0.15, y - 0.08, Wk + 0.3, 0.92, EMAS_MUDA, { r: 0.06 });
+    teks(s, j, M, y, Wk - 1.8, 0.34, { fontSize: 15, bold: true, color: NAVY });
+    status(s, M + Wk - (siap ? 1.6 : 0.78), y + 0.04, siap);
+    teks(s, [{ text: k + (angka ? " · " : ""), options: { color: ABU } }, ...(angka ? [{ text: angka, options: { bold: true, color: HIJAU } }] : [])], M, y + 0.35, Wk, 0.45, { fontSize: 11, kecil: true });
+    if (!siap) garis(s, M, y + 0.82, Wk);
   });
-  teks(s, "IKU ketepatan waktu: naskah sambutan ≤ 24 jam sebelum acara; berita ≤ 24 jam sesudah acara, dicocokkan dengan unggahan Instagram @humas_tarakan.", M, 6.1, Wk, 0.4, { fontSize: 10, kecil: true, italic: true, color: ABU });
-  const X = M + Wk + 0.45, Wg = W - M - X;
-  const h1 = gambar(s, "iku.jpg", X, 1.95, Wg - 0.7, 1980, 1280);
-  teks(s, "Indikator Kinerja (data contoh)", X, 1.98 + h1, Wg, 0.26, { fontSize: 9, kecil: true, italic: true, color: ABU });
-  teks(s, "Keduanya lahir dari data yang sama: tanpa aplikasi tambahan, tanpa biaya.", X, 2.35 + h1, Wg, 0.7, { fontSize: 15, bold: true, color: NAVY });
-  jembatan(s, "Ke mana semua ini bermuara?");
-  catat(s, 14);
+  const X = M + Wk + 0.4, Wg = W - M - X, hg = 2.05;
+  s.addImage({ path: A + "m-personil.jpg", x: X, y: 1.92, w: Wg, h: hg, sizing: { type: "cover", w: Wg, h: hg } });
+  s.addShape(pres.shapes.RECTANGLE, { x: X, y: 1.92, w: Wg, h: hg, fill: { type: "none" }, line: { color: GARIS, width: 0.75 } });
+  s.addImage({ path: A + "iku.jpg", x: X, y: 1.92 + hg + 0.15, w: Wg, h: hg, sizing: { type: "cover", w: Wg, h: hg } });
+  s.addShape(pres.shapes.RECTANGLE, { x: X, y: 1.92 + hg + 0.15, w: Wg, h: hg, fill: { type: "none" }, line: { color: GARIS, width: 0.75 } });
+  teks(s, "Atas: sebaran beban personil · Bawah: Indikator Kinerja (data contoh)", X, 6.2, Wg, 0.26, { fontSize: 9, kecil: true, italic: true, color: ABU });
+  jembatan(s, "Mari kita lihat langsung.");
+  catat(s);
+}
+// Demonstrasi langsung
+{
+  const s = slide(true);
+  kepala(s, 3, "DEMONSTRASI  ·  AKSES SISTEM", true);
+  teks(s, "Mari kita lihat langsung", M, 0.85, 8, 0.9, { fontFace: FX, fontSize: 34, color: PUTIH });
+  teks(s, "Sekitar 3 menit, di aplikasi yang sedang dipakai, dengan akun peraga.", M, 1.75, 8, 0.4, { fontSize: 15, color: "C9D1DD" });
+  const langkah = [["Undangan dipindai", "formulir terisi, benturan jadwal diperiksa"], ["Ditelaah dan disetujui", "daftar periksa wajib, dari ponsel"], ["Tiba di HP Pimpinan", "hadir atau disposisi kepada Wakil"],
+    ["Riwayat Alur", "siapa, kapan, apa keputusannya"], ["Monitor WA dan rekap", "pesan penugasan terkirim; beban kerja terbaca"]];
+  langkah.forEach(([j, k], i) => {
+    const y = 2.55 + i * 0.78;
+    nomor(s, M, y, 0.5, i === 2 ? EMAS : "1E2F4D", String(i + 1), i === 2 ? NAVY : PUTIH);
+    teks(s, j, M + 0.75, y - 0.03, 3.6, 0.55, { fontSize: 17, bold: true, color: PUTIH, valign: "middle" });
+    teks(s, k, M + 4.3, y - 0.03, 4.2, 0.55, { fontSize: 14, color: "A7B1C2", valign: "middle" });
+  });
+  kotak(s, 9.55, 1.6, 3.13, 3.75, PUTIH, { r: 0.1 });
+  s.addImage({ path: A + "qr.png", x: 9.82, y: 1.82, w: 2.6, h: 2.6 });
+  teks(s, "prokopim.tarakankota.go.id", 9.65, 4.55, 2.93, 0.35, { fontSize: 13, kecil: true, bold: true, color: NAVY, align: "center" });
+  teks(s, "Bila jaringan terganggu, rekaman peragaan diputar sebagai cadangan.", 9.55, 5.55, 3.13, 0.7, { fontSize: 11, kecil: true, italic: true, color: "A7B1C2", align: "center" });
+  jembatan(s, "Lalu, ke mana semua ini bermuara?", true);
+  catat(s);
 }
 
 // ══ BAB 4 · KE DEPAN ═══════════════════════════════════════════════
 // 15. Keselarasan
 {
   const s = slide();
-  kepala(s, 4, "KESELARASAN DENGAN RPJMD DAN KATEGORI A");
+  kepala(s, 4, "KOMPATIBILITAS  ·  RPJMD DAN KATEGORI A");
   judul(s, "Untuk Tarakan yang adaptif, responsif, dan HIBOT");
   teks(s, [{ text: "Misi 4 RPJMD Kota Tarakan 2025–2029   ", options: { bold: true, color: EMAS_TUA } }, { text: "Mewujudkan tata kelola pemerintahan yang adaptif, responsif dan menjaga stabilitas ketertiban dan ketentraman kota", options: { color: TINTA } }], M, 1.8, W - 2 * M, 0.65, { fontSize: 15 });
   const unsur = [["Tata kelola", "Kewenangan melekat pada jabatan; Plh bermasa berlaku"], ["Proses bisnis", "Tanpa jendela waktu; tanpa cetak ulang"], ["Digitalisasi", "Sebelas alur dalam satu superapp"], ["Data", "Satu data; 617 kegiatan tercatat"],
@@ -496,38 +587,62 @@ function butirLain() {
     teks(s, k, x + 0.6, 5.62, hw - 0.6, 0.4, { fontSize: 11, kecil: true, color: ABU });
   });
   jembatan(s, "Agar tidak berhenti di kami.");
-  catat(s, 15);
+  catat(s);
 }
-// 16. Keberlanjutan dan replikasi
+// Keberlanjutan dan mitigasi risiko
 {
   const s = slide();
-  kepala(s, 4, "KEBERLANJUTAN DAN REPLIKASI");
+  kepala(s, 4, "KELAYAKAN DAN KEBERLANJUTAN  ·  RISIKO");
   judul(s, "Tidak bergantung pada anggaran maupun satu orang");
   const aspek = [["Pembiayaan", "Biaya berjalan mendekati nol"], ["Kelembagaan", "Kewenangan melekat pada jabatan; mutasi tidak memutus alur"], ["Prosedur", "Sebelas SOP disusun untuk disahkan Sekda"], ["Pemeliharaan", "140+ pembaruan dari masukan pengguna"]];
   aspek.forEach(([j, k], i) => {
-    const y = 1.95 + i * 0.85;
-    teks(s, j, M, y, 1.9, 0.75, { fontSize: 15, bold: true, color: NAVY, valign: "middle" });
-    teks(s, k, M + 1.95, y, 2.5, 0.75, { fontSize: 12, kecil: true, color: ABU, valign: "middle" });
-    garis(s, M, y + 0.8, 4.45);
+    const y = 1.95 + i * 0.8;
+    teks(s, j, M, y, 1.8, 0.7, { fontSize: 15, bold: true, color: NAVY, valign: "middle" });
+    teks(s, k, M + 1.85, y, 2.3, 0.7, { fontSize: 12, kecil: true, color: ABU, valign: "middle" });
+    garis(s, M, y + 0.75, 4.15);
   });
-  const X = M + 4.95, Wj = 3.4;
-  teks(s, "RENCANA", X, 1.95, Wj, 0.28, { fontSize: 10, bold: true, charSpacing: 2, color: ABU });
-  const jalan = [["Okt–Des 2026", "Pengesahan SOP oleh Sekretaris Daerah"], ["Jan–Jun 2027", "Pendampingan pengelola kedua; dokumentasi teknis"], ["Jul–Des 2027", "Paket replikasi, dimulai dari Kalimantan Utara"]];
-  s.addShape(pres.shapes.LINE, { x: X + 0.1, y: 2.45, w: 0, h: 2.75, line: { color: GARIS, width: 2 } });
-  jalan.forEach(([t, k], i) => {
-    const y = 2.3 + i * 1.15;
-    s.addShape(pres.shapes.OVAL, { x: X, y: y + 0.1, w: 0.2, h: 0.2, fill: { color: EMAS }, line: { color: KERTAS, width: 2 } });
-    teks(s, t, X + 0.45, y, Wj - 0.45, 0.38, { fontSize: 15, bold: true, color: NAVY });
-    teks(s, k, X + 0.45, y + 0.4, Wj - 0.45, 0.6, { fontSize: 13, kecil: true, color: TINTA });
+  teks(s, "RENCANA", M, 5.25, 3, 0.28, { fontSize: 10, bold: true, charSpacing: 2, color: ABU });
+  teks(s, [{ text: "Okt–Des 2026 ", options: { bold: true, color: NAVY } }, { text: "pengesahan SOP   ", options: { color: TINTA } }, { text: "Jan–Jun 2027 ", options: { bold: true, color: NAVY } }, { text: "pengelola kedua   ", options: { color: TINTA } }, { text: "Jul–Des 2027 ", options: { bold: true, color: NAVY } }, { text: "paket replikasi", options: { color: TINTA } }], M, 5.55, 4.3, 0.8, { fontSize: 12, kecil: true });
+  const X = M + 4.65, Wr = W - M - X;
+  kotak(s, X, 1.95, Wr, 4.45, PUTIH, { garis: GARIS });
+  teks(s, "RISIKO DAN MITIGASINYA", X + 0.35, 2.15, Wr - 0.7, 0.28, { fontSize: 10, bold: true, charSpacing: 2, color: ABU });
+  const risiko = [
+    ["Ketergantungan pada satu pengembang", "Sebelas SOP; kode dan riwayat lengkap di repositori; akun layanan atas nama instansi; pengelola kedua 2027"],
+    ["Batas kuota layanan tanpa biaya", "Pemakaian dipantau; fungsi digabungkan; hanya data yang berubah yang diambil"],
+    ["Kehilangan data", "Pencadangan berkala; peringatan pada setiap jalur penghapusan"],
+    ["Pelindungan data pribadi", "Persetujuan eksplisit pemohon (UU 27/2022); kanal publik tanpa identitas pemohon"],
+    ["Pejabat berhalangan", "Pelaksana Harian bermasa berlaku yang padam sendiri"],
+  ];
+  risiko.forEach(([r, m], i) => {
+    const y = 2.55 + i * 0.75;
+    if (i) garis(s, X + 0.35, y - 0.06, Wr - 0.7);
+    teks(s, r, X + 0.35, y, 2.75, 0.68, { fontSize: 13, kecil: true, bold: true, color: MERAH, valign: "middle" });
+    teks(s, m, X + 3.2, y, Wr - 3.55, 0.68, { fontSize: 12, kecil: true, color: TINTA, valign: "middle" });
   });
-  const XR = X + Wj + 0.4, WR = W - M - XR;
-  kotak(s, XR, 1.95, WR, 4.3, NAVY);
+  jembatan(s, "Dan ia sudah mulai menyebar.");
+  catat(s);
+}
+// Diseminasi dan replikasi
+{
+  const s = slide();
+  kepala(s, 4, "DISEMINASI INOVASI  ·  REPLIKASI");
+  judul(s, "Sudah dipakai di luar Bagian, siap ditiru utuh atau per modul");
+  const sebar = [["21 akun", "di luar Bagian: Pimpinan, ajudan, pengawal pribadi, mitra DKISP dan unit lain"], ["68 + 55", "instansi memakai kanal peminjaman ruangan dan audiensi"], ["42 orang", "Tim Koordinasi lintas perangkat daerah, termasuk para Sekretaris Dinas"], ["Kalender bersama", "agenda tersetujui dapat dilanggani pihak terkait tanpa akun aplikasi"]];
+  sebar.forEach(([a, k], i) => {
+    const x = M + (i % 2) * 3.05, y = 1.95 + Math.floor(i / 2) * 1.75;
+    kotak(s, x, y, 2.85, 1.55, i === 0 ? NAVY : PUTIH, { garis: i === 0 ? NAVY : GARIS });
+    teks(s, a, x + 0.25, y + 0.18, 2.45, 0.55, { fontFace: FX, fontSize: 19, color: i === 0 ? EMAS : NAVY });
+    teks(s, k, x + 0.25, y + 0.75, 2.4, 0.75, { fontSize: 11, kecil: true, color: i === 0 ? "D9DEE7" : ABU });
+  });
+  teks(s, "Diperkenalkan langsung kepada Wali Kota, Wakil Wali Kota, ajudan, mitra kerja, dan seluruh pengguna internal; berjalan di alamat resmi pemerintah.", M, 5.55, 5.95, 0.75, { fontSize: 12, kecil: true, italic: true, color: ABU });
+  const XR = M + 6.45, WR = W - M - XR;
+  kotak(s, XR, 1.95, WR, 4.4, NAVY);
   teks(s, "SIAP DITIRU", XR + 0.35, 2.2, WR - 0.7, 0.3, { fontSize: 10, bold: true, charSpacing: 2, color: EMAS });
-  teks(s, "Utuh atau per modul", XR + 0.35, 2.55, WR - 0.7, 0.45, { fontSize: 18, bold: true, color: PUTIH });
-  teks(s, ["Sekretariat DPRD: agenda pimpinan dewan", "Perangkat daerah: ruangan, audiensi, daftar hadir", "Pemprov Kaltara dan kabupaten di Kaltara", "Seluruh pemerintah daerah di Indonesia"].map((b, n, a) => ({ text: b, options: { bullet: true, breakLine: n < a.length - 1 } })),
-    XR + 0.35, 3.1, WR - 0.7, 2.3, { fontSize: 12, kecil: true, color: "D9DEE7", paraSpaceAfter: 5 });
-  teks(s, "Syarat: peramban, kuota tanpa biaya, 11 SOP siap diadaptasi, satu pengelola.", XR + 0.35, 5.5, WR - 0.7, 0.7, { fontSize: 12, kecil: true, bold: true, color: EMAS });
-  catat(s, 16);
+  teks(s, "Setiap pemerintah daerah memiliki tugas keprotokolan", XR + 0.35, 2.55, WR - 0.7, 0.8, { fontSize: 18, bold: true, color: PUTIH });
+  teks(s, ["Sekretariat DPRD: alur agenda pimpinan dewan", "Perangkat daerah: ruangan, audiensi, daftar hadir", "Pemprov Kaltara serta Bulungan, Malinau, Nunukan, Tana Tidung", "Seluruh pemerintah daerah di Indonesia"].map((b, n, a) => ({ text: b, options: { bullet: true, breakLine: n < a.length - 1 } })),
+    XR + 0.35, 3.45, WR - 0.7, 1.9, { fontSize: 13, kecil: true, color: "D9DEE7", paraSpaceAfter: 5 });
+  teks(s, "Syarat: peramban, kuota tanpa biaya, 11 SOP siap diadaptasi, satu pengelola. Yang disesuaikan hanya nama jabatan, pengguna, dan tata naskah setempat.", XR + 0.35, 5.4, WR - 0.7, 0.85, { fontSize: 12, kecil: true, bold: true, color: EMAS });
+  catat(s);
 }
 
 // ══ 17. Penutup: kembali ke lembar Januari ═════════════════════════
@@ -544,7 +659,7 @@ function butirLain() {
   s.addImage({ path: A + "qr.png", x: 9.82, y: 2.12, w: 2.6, h: 2.6 });
   teks(s, "prokopim.tarakankota.go.id", 9.65, 4.85, 2.93, 0.35, { fontSize: 13, kecil: true, bold: true, color: NAVY, align: "center" });
   teks(s, "alamat resmi aplikasi", 9.65, 5.18, 2.93, 0.3, { fontSize: 11, kecil: true, color: ABU, align: "center" });
-  catat(s, 17);
+  catat(s);
 }
 
 // ══ 18. Cadangan ═══════════════════════════════════════════════════
@@ -566,7 +681,7 @@ function butirLain() {
   });
   kotak(s, M, 6.0, W - 2 * M, 0.72, NAVY, { r: 0.06 });
   teks(s, [{ text: "Modul yang belum optimal (proposal 9.7)   ", options: { bold: true, color: EMAS } }, { text: "Baru 3 naskah sambutan disahkan lewat aplikasi, karena Pimpinan lebih nyaman naskah tercetak. Aplikasi menyesuaikan cara kerja Pimpinan.", options: { color: PUTIH } }], M + 0.3, 6.0, W - 2 * M - 0.6, 0.72, { fontSize: 12, kecil: true, valign: "middle" });
-  catat(s, 18);
+  catat(s);
 }
 
 (async () => {
