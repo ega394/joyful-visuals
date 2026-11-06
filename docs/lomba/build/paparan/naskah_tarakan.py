@@ -79,7 +79,7 @@ SLIDE = [
         "(3) HP Pimpinan · 1:15–1:55 — \"Agenda tiba di HP Wali Kota; cukup tekan hadir, atau disposisi kepada Wakil Wali Kota.\"",
         "(4) Riwayat Alur · 1:55–2:25 — \"Setiap langkah tadi tercatat: siapa, kapan, apa keputusannya.\"",
         "(5) Monitor WA dan rekap · 2:25–3:00 — \"Pesan penugasan terkirim dan terbaca; sebaran beban personil terlihat. Kini setiap pesan dan langkah dapat diketahui.\""],
-  isyarat="Pakai akun peraga berdata contoh, bukan agenda asli Pimpinan. Kabag memandu; anggota tim mengoperasikan. Bila jaringan atau aplikasi bermasalah lebih dari 10 detik, putar rekaman peragaan cadangan. Bila waktu mepet, ringkas menjadi langkah 1, 3, dan 4."),
+  isyarat="Pakai akun asli (keputusan Kabag). Agar tidak mengirim kabar sungguhan: pindai undangan sampai formulir terisi lalu batalkan, jangan diajukan; persetujuan, HP Pimpinan, Riwayat Alur, Monitor WA, dan rekap ditunjukkan pada kegiatan yang sudah ada tanpa menekan setuju, hadir, disposisi, atau tugaskan. Kabag memandu; anggota tim mengoperasikan. Bila jaringan atau aplikasi bermasalah lebih dari 10 detik, putar rekaman peragaan cadangan. Bila waktu mepet, ringkas menjadi langkah 1, 3, dan 4."),
  # ── BAB 4 · KE DEPAN ──
  dict(no=18, judul="Bab 4 — Untuk Tarakan yang HIBOT", mulai="12:55", selesai="13:20",
   ucap=["Semua ini bermuara pada Misi 4 RPJMD: tata kelola yang adaptif, responsif, dan menjaga stabilitas. Ketujuh unsur Kategori A terjawab, dan namanya mengusung semboyan Tarakan HIBOT. Kami ingin inovasi ini tidak berhenti di kami."]),

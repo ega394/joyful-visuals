@@ -81,10 +81,31 @@ const nomor = (s, x, y, d, isi, label, warna, garisTepi) => {
   s.addShape(pres.shapes.OVAL, { x, y, w: d, h: d, fill: { color: isi }, line: { color: garisTepi || isi, width: 1 } });
   s.addText(label, { x, y, w: d, h: d, isTextBox: true, margin: 0, align: "center", valign: "middle", fontFace: F, fontSize: Math.round(d * 28), bold: true, color: warna });
 };
+// Ukuran asli gambar (piksel) dari kepala berkas PNG/JPEG, agar potongan tidak melar.
+function ukuran(f) {
+  const b = fs.readFileSync(A + f);
+  if (b[0] === 0x89) return [b.readUInt32BE(16), b.readUInt32BE(20)];
+  let i = 2;
+  while (i < b.length) {
+    const m = b[i + 1], len = b.readUInt16BE(i + 2);
+    if (m >= 0xc0 && m <= 0xcf && m !== 0xc4 && m !== 0xc8 && m !== 0xcc) return [b.readUInt16BE(i + 7), b.readUInt16BE(i + 5)];
+    i += 2 + len;
+  }
+  throw new Error("ukuran tidak terbaca: " + f);
+}
+// Gambar memenuhi bingkai tanpa melar: diskalakan lalu dipotong. atas=true
+// mempertahankan bagian atas (tangkapan layar); selain itu dipotong di tengah.
+function isiBingkai(s, f, x, y, w, h, atas = false, fx = 0.5) {
+  const [px, py] = ukuran(f), r = px / py;
+  let iw, ih, cx, cy;
+  if (w / h > r) { iw = w; ih = w / r; cx = 0; cy = atas ? 0 : (ih - h) / 2; }
+  else { ih = h; iw = h * r; cy = 0; cx = atas ? 0 : (iw - w) * fx; }
+  s.addImage({ path: A + f, x, y, w: iw, h: ih, sizing: { type: "crop", x: cx, y: cy, w, h } });
+}
 // Foto dipotong memenuhi bingkai; pelapis navy (persen tembus) agar teks terbaca.
-const foto = (s, f, x, y, w, h, tembus) => {
+const foto = (s, f, x, y, w, h, tembus, fx = 0.5) => {
   if (!ada(f)) { s.addShape(pres.shapes.RECTANGLE, { x, y, w, h, fill: { color: NAVY2 }, line: { color: NAVY2 } }); return; }
-  s.addImage({ path: A + f, x, y, w, h, sizing: { type: "cover", w, h } });
+  isiBingkai(s, f, x, y, w, h, false, fx);
   if (tembus != null) s.addShape(pres.shapes.RECTANGLE, { x, y, w, h, fill: { color: NAVY, transparency: tembus }, line: { color: NAVY, transparency: 100 } });
 };
 const gambar = (s, f, x, y, w, px, py) => {
@@ -317,7 +338,7 @@ const logo = (s, x, y) => {
   kol.forEach(([f, px, py, j, k], i) => {
     const x = M + i * (kw + 0.3);
     const h = Math.min(2.65, kw * py / px);
-    s.addImage({ path: A + f, x, y: 1.95, w: kw, h, sizing: { type: "cover", w: kw, h } });
+    isiBingkai(s, f, x, 1.95, kw, h, true);
     s.addShape(pres.shapes.RECTANGLE, { x, y: 1.95, w: kw, h, fill: { type: "none" }, line: { color: GARIS, width: 0.75 } });
     teks(s, j, x, 4.75, kw, 0.4, { fontSize: 17, bold: true, color: NAVY });
     teks(s, k, x, 5.18, kw, 0.95, { fontSize: 13, kecil: true, color: ABU });
@@ -347,9 +368,9 @@ const logo = (s, x, y) => {
   });
   const X = M + Wk + 0.4, Wg = W - M - X;
   const g1 = Wg * 0.58, g2 = Wg - g1 - 0.2;
-  s.addImage({ path: A + "m-newsroom.jpg", x: X, y: 1.95, w: g1, h: 3.9, sizing: { type: "cover", w: g1, h: 3.9 } });
+  isiBingkai(s, "m-newsroom.jpg", X, 1.95, g1, 3.9, true);
   s.addShape(pres.shapes.RECTANGLE, { x: X, y: 1.95, w: g1, h: 3.9, fill: { type: "none" }, line: { color: GARIS, width: 0.75 } });
-  s.addImage({ path: A + "m-laporan.jpg", x: X + g1 + 0.2, y: 1.95, w: g2, h: 3.9, sizing: { type: "cover", w: g2, h: 3.9 } });
+  isiBingkai(s, "m-laporan.jpg", X + g1 + 0.2, 1.95, g2, 3.9, true);
   s.addShape(pres.shapes.RECTANGLE, { x: X + g1 + 0.2, y: 1.95, w: g2, h: 3.9, fill: { type: "none" }, line: { color: GARIS, width: 0.75 } });
   teks(s, "AI Newsroom dan Laporan Mingguan/Bulanan (data contoh)", X, 5.9, Wg, 0.26, { fontSize: 9, kecil: true, italic: true, color: ABU });
   jembatan(s, "Yang membuatnya dipercaya: jejaknya.");
@@ -469,7 +490,9 @@ function butirLain() {
 // 12. Kepastian bagi Pimpinan, kanal bagi publik
 {
   const s = slide();
-  foto(s, "foto-walikota.jpg", 0, 0, 5.2, H, null);
+  s.addShape(pres.shapes.RECTANGLE, { x: 0, y: 0, w: 5.2, h: H, fill: { color: NAVY }, line: { type: "none" } });
+  foto(s, "foto-walikota.jpg", 0.35, 2.1, 4.5, 4.5 * 9 / 16, null);
+  teks(s, "Wali Kota Tarakan memakai Prokopim Hibot", 0.35, 2.2 + 4.5 * 9 / 16, 4.5, 0.3, { fontSize: 11, kecil: true, italic: true, color: "A7B1C2" });
   const X = 5.75, Wq = W - M - X;
   kepala(s, 3, "MANFAAT DAN DAMPAK  ·  PENERIMA MANFAAT", false, X);
   teks(s, "“Yang terpenting bagi saya adalah kepastian: ke mana saya harus hadir, kapan, dan siapa yang menyiapkannya.”", X, 1.0, Wq, 1.9, { fontSize: 22, bold: true, italic: true, color: NAVY });
@@ -530,9 +553,9 @@ function butirLain() {
     if (!siap) garis(s, M, y + 0.82, Wk);
   });
   const X = M + Wk + 0.4, Wg = W - M - X, hg = 2.05;
-  s.addImage({ path: A + "m-personil.jpg", x: X, y: 1.92, w: Wg, h: hg, sizing: { type: "cover", w: Wg, h: hg } });
+  isiBingkai(s, "m-personil.jpg", X, 1.92, Wg, hg, true);
   s.addShape(pres.shapes.RECTANGLE, { x: X, y: 1.92, w: Wg, h: hg, fill: { type: "none" }, line: { color: GARIS, width: 0.75 } });
-  s.addImage({ path: A + "iku.jpg", x: X, y: 1.92 + hg + 0.15, w: Wg, h: hg, sizing: { type: "cover", w: Wg, h: hg } });
+  isiBingkai(s, "iku.jpg", X, 1.92 + hg + 0.15, Wg, hg, true);
   s.addShape(pres.shapes.RECTANGLE, { x: X, y: 1.92 + hg + 0.15, w: Wg, h: hg, fill: { type: "none" }, line: { color: GARIS, width: 0.75 } });
   teks(s, "Atas: sebaran beban personil · Bawah: Indikator Kinerja (data contoh)", X, 6.2, Wg, 0.26, { fontSize: 9, kecil: true, italic: true, color: ABU });
   jembatan(s, "Mari kita lihat langsung.");
@@ -543,7 +566,7 @@ function butirLain() {
   const s = slide(true);
   kepala(s, 3, "DEMONSTRASI  ·  AKSES SISTEM", true);
   teks(s, "Mari kita lihat langsung", M, 0.85, 8, 0.9, { fontFace: FX, fontSize: 34, color: PUTIH });
-  teks(s, "Sekitar 3 menit, di aplikasi yang sedang dipakai, dengan akun peraga.", M, 1.75, 8, 0.4, { fontSize: 15, color: "C9D1DD" });
+  teks(s, "Sekitar 3 menit, langsung di aplikasi yang sedang dipakai, dengan akun asli.", M, 1.75, 8, 0.4, { fontSize: 15, color: "C9D1DD" });
   const langkah = [["Undangan dipindai", "formulir terisi, benturan jadwal diperiksa"], ["Ditelaah dan disetujui", "daftar periksa wajib, dari ponsel"], ["Tiba di HP Pimpinan", "hadir atau disposisi kepada Wakil"],
     ["Riwayat Alur", "siapa, kapan, apa keputusannya"], ["Monitor WA dan rekap", "pesan penugasan terkirim; beban kerja terbaca"]];
   langkah.forEach(([j, k], i) => {
