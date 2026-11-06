@@ -60,10 +60,10 @@ if VERSI == "risda":
 # VERSI=lima — pemutaran video pada wawancara finalis (Bappeda Litbang, 9 November 2026):
 # jatah 5 menit. Identitas tetap Kota Tarakan dan narasinya sama; yang dipakai hanya
 # adegan untuk lima unsur Juknis Bab 4.4 (latar belakang, masalah, solusi, implementasi,
-# dampak). Penjaringan ide, layanan tambahan, sumber daya, keberlanjutan, dan profil tim
-# disampaikan lewat paparan dan tanya jawab.
-LIMA = ["pembuka", "judul", "dulu", "akar", "lahir", "alur", "jejak", "bangun", "dampak", "walikota",
-        "testimoni", "tutup"]
+# dampak), termasuk layanan tambahan (keputusan Kabag). Penjaringan ide, testimoni tertulis,
+# sumber daya, keberlanjutan, dan profil tim disampaikan lewat paparan dan tanya jawab.
+LIMA = ["pembuka", "judul", "dulu", "akar", "lahir", "alur", "layanan", "jejak", "bangun", "dampak",
+        "walikota", "tutup"]
 if VERSI == "lima":
     SUSUNAN = [(n, o) for n, o in SUSUNAN if n in LIMA]
 
