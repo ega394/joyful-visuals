@@ -16,6 +16,8 @@
 //   python3 naskah_tarakan.py
 //   ASET_PPT=<folder aset> NODE_PATH=<node_modules> APPLY_THEME=<apply_theme.js> \
 //     node docs/lomba/build/paparan/buat-tarakan.cjs <keluaran.pptx>
+// Paparan tidak memuat foto atau potongan video Wali Kota (keputusan Kabag);
+// foto nyata hanya tangan, berkas, jam, dan meja kerja.
 // Folder aset (berdata contoh) dirakit dari aset/ (hibot, tarakan, qr, hp_walikota,
 // kabag_riwayat), aset-tarakan/ (monitorwa.jpg, iku.jpg). Foto nyata (foto-*.jpg,
 // dari rekaman video) tidak masuk repo; tanpa foto, slide memakai bidang navy.
@@ -491,8 +493,8 @@ function butirLain() {
 {
   const s = slide();
   s.addShape(pres.shapes.RECTANGLE, { x: 0, y: 0, w: 5.2, h: H, fill: { color: NAVY }, line: { type: "none" } });
-  foto(s, "foto-walikota.jpg", 0.35, 2.1, 4.5, 4.5 * 9 / 16, null);
-  teks(s, "Wali Kota Tarakan memakai Prokopim Hibot", 0.35, 2.2 + 4.5 * 9 / 16, 4.5, 0.3, { fontSize: 11, kecil: true, italic: true, color: "A7B1C2" });
+  foto(s, "foto-tangan.jpg", 0.35, 2.1, 4.5, 4.5 * 9 / 16, null);
+  teks(s, "Agenda Pimpinan di telepon pintar", 0.35, 2.2 + 4.5 * 9 / 16, 4.5, 0.3, { fontSize: 11, kecil: true, italic: true, color: "A7B1C2" });
   const X = 5.75, Wq = W - M - X;
   kepala(s, 3, "MANFAAT DAN DAMPAK  ·  PENERIMA MANFAAT", false, X);
   teks(s, "“Yang terpenting bagi saya adalah kepastian: ke mana saya harus hadir, kapan, dan siapa yang menyiapkannya.”", X, 1.0, Wq, 1.9, { fontSize: 22, bold: true, italic: true, color: NAVY });
