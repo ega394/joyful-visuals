@@ -43,7 +43,7 @@ ADEGAN = [
         ("Disposisi dikirim sebagai foto.", None, 0.2, 1.0),
         ("Petugas? Tergantung ingatan.", None, 0.3, 1.02),
         ("Ruang rapat hanya tercatat di papan tulis.", None, 0.25, 1.0),
-        ("Mau bertemu Wali Kota? Harus datang, atau menelepon.", None, 0.4, 1.0),
+        ("Mau bertemu Wali Kota? Harus bersurat, datang langsung, atau menelepon.", None, 0.4, 1.0),
         ("Dari undangan masuk sampai tercantum di agenda, diperkirakan butuh 18 sampai 24 jam.",
          "Dari undangan masuk sampai tercantum di agenda, diperkirakan butuh delapan belas sampai dua puluh empat jam.", 0.8, 1.02),
     ]),

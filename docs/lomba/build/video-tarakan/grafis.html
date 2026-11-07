@@ -294,8 +294,9 @@ SC.dulu = (R, A) => {
   // P7: mau bertemu wali kota (k8)
   const p6 = buat(R, `<div class="abs" style="inset:0"></div>`);
   const t6 = buat(p6, `<div class="abs b tengah" style="top:200px;font-size:72px">Mau bertemu Wali Kota?</div>`);
-  const k6a = buat(p6, `<div class="kartu" style="left:330px;top:350px;width:560px;height:360px;padding:44px;text-align:center">${ik("footprints", 130, "var(--emas)", 1.6)}<div class="b" style="font-size:46px;margin-top:26px">Datang langsung</div></div>`);
-  const k6b = buat(p6, `<div class="kartu" style="left:1030px;top:350px;width:560px;height:360px;padding:44px;text-align:center"><div class="dering" style="display:inline-block">${ik("phone-call", 130, "var(--emas)", 1.6)}</div><div class="b" style="font-size:46px;margin-top:26px">Menelepon</div></div>`);
+  const k6c = buat(p6, `<div class="kartu" style="left:250px;top:350px;width:440px;height:360px;padding:44px 30px;text-align:center">${ik("mail", 120, "var(--emas)", 1.6)}<div class="b" style="font-size:42px;margin-top:26px">Bersurat</div></div>`);
+  const k6a = buat(p6, `<div class="kartu" style="left:740px;top:350px;width:440px;height:360px;padding:44px 30px;text-align:center">${ik("footprints", 120, "var(--emas)", 1.6)}<div class="b" style="font-size:42px;margin-top:26px">Datang langsung</div></div>`);
+  const k6b = buat(p6, `<div class="kartu" style="left:1230px;top:350px;width:440px;height:360px;padding:44px 30px;text-align:center"><div class="dering" style="display:inline-block">${ik("phone-call", 120, "var(--emas)", 1.6)}</div><div class="b" style="font-size:42px;margin-top:26px">Menelepon</div></div>`);
   const dering = k6b.querySelector(".dering");
   // P8: 18-24 jam (k9)
   const p7 = buat(R, `<div class="abs" style="inset:0"></div>`);
@@ -352,7 +353,7 @@ SC.dulu = (R, A) => {
     hapus.style.opacity = 0.9 * lin(t, A.e(7) - 0.6, 0.4);
     // P7
     jendela(p6, t, A.k(8) - 0.15, A.k(9) - 0.15, 0.3);
-    muncul(t6, t, A.k(8), 0.5, 16); muncul(k6a, t, A.w(8, "datang") - 0.15, 0.5, 30); muncul(k6b, t, A.w(8, "menelepon") - 0.25, 0.5, 30);
+    muncul(t6, t, A.k(8), 0.5, 16); muncul(k6c, t, A.w(8, "bersurat") - 0.15, 0.5, 30); muncul(k6a, t, A.w(8, "datang") - 0.15, 0.5, 30); muncul(k6b, t, A.w(8, "menelepon") - 0.25, 0.5, 30);
     dering.style.transform = `rotate(${t > A.w(8, "menelepon") ? 9 * Math.sin(t * 38) * (Math.floor(t * 2) % 2) : 0}deg)`;
     // P8
     jendela(p7, t, A.k(9) - 0.15, A.lama + 1, 0.3);

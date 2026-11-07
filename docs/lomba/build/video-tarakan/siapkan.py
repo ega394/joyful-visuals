@@ -65,7 +65,8 @@ if VERSI == "risda":
 LIMA = ["pembuka", "judul", "dulu", "akar", "lahir", "alur", "layanan", "jejak", "bangun", "dampak",
         "walikota", "tutup"]
 if VERSI == "lima":
-    SUSUNAN = [(n, o) for n, o in SUSUNAN if n in LIMA]
+    # jeda akhir penutup dipersingkat agar total tetap di bawah 5 menit
+    SUSUNAN = [(n, {**o, "tail": 2.0} if n == "tutup" else o) for n, o in SUSUNAN if n in LIMA]
 
 # Pernyataan Wali Kota (video 19 Oktober 2026): potongan di jeda antarkalimat, disambung silang 0,3 dtk.
 SILANG_WK = 0.3
