@@ -57,6 +57,17 @@ if VERSI == "risda":
     _pakai = set(LABEL_RISDA)
     SUSUNAN = [(n, o) for n, o in SUSUNAN if n in _pakai]
 
+# VERSI=lima — pemutaran video pada wawancara finalis (Bappeda Litbang, 9 November 2026):
+# jatah 5 menit. Identitas tetap Kota Tarakan dan narasinya sama; yang dipakai hanya
+# adegan untuk lima unsur Juknis Bab 4.4 (latar belakang, masalah, solusi, implementasi,
+# dampak), termasuk layanan tambahan (keputusan Kabag). Penjaringan ide, testimoni tertulis,
+# sumber daya, keberlanjutan, dan profil tim disampaikan lewat paparan dan tanya jawab.
+LIMA = ["pembuka", "judul", "dulu", "akar", "lahir", "alur", "layanan", "jejak", "bangun", "dampak",
+        "walikota", "tutup"]
+if VERSI == "lima":
+    # jeda akhir penutup dipersingkat agar total tetap di bawah 5 menit
+    SUSUNAN = [(n, {**o, "tail": 2.0} if n == "tutup" else o) for n, o in SUSUNAN if n in LIMA]
+
 # Pernyataan Wali Kota (video 19 Oktober 2026): potongan di jeda antarkalimat, disambung silang 0,3 dtk.
 SILANG_WK = 0.3
 PERNYATAAN = [(1.0, 5.25, "wajah"), (6.0, 8.7, "wajah"), (44.6, 51.3, "hp"), (62.1, 66.2, "wajah")]
@@ -130,6 +141,8 @@ def linimasa():
         out.append(a)
         t += a["lama"]
     L = {"fps": FPS, "total": round(t, 3), "adegan": out, "versi": VERSI}
+    if VERSI == "lima":
+        L["bagianDaftar"] = [BAGIAN[b] for b in ("latar", "masalah", "solusi", "implementasi", "dampak")]
     if VERSI == "risda":
         L["bagianDaftar"] = SUBSTANSI
         L["judulAcara"] = "PEMERINTAH KOTA TARAKAN · INOVASI DAERAH 2026"

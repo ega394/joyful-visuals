@@ -323,13 +323,14 @@ def efek():
     tk = kata("akar", 3, "jawabannya") - 0.2
     tambah(E, tk, desir(0.9, True), 0.8)
     tambah(E, tk + 0.75, dentang((76, 83, 88), 0.08, 1.0), 0.7)
-    # ide: kartu penjaringan, tiga pilihan dicoret, satu dipilih
-    for i, (kk, nm) in enumerate(((0, "pekerjaan"), (1, "sesudah"), (1, "menelaah"))):
-        tambah(E, kata("ide", kk, nm) - 0.3, letup(0.6, 72 + 2 * i), 0.5)
-    tambah(E, k("ide", 2) - 0.2, desir(0.6, False), 0.4)
-    for kk in (3, 4, 5):
-        tambah(E, k("ide", kk) + 0.15, hentak(), 0.35)
-    tambah(E, k("ide", 6) - 0.1, dentang((79, 84, 88), 0.08, 0.9), 0.6)
+    # ide: kartu penjaringan, tiga pilihan dicoret, satu dipilih (tidak ada di versi lima menit)
+    if "ide" in A:
+        for i, (kk, nm) in enumerate(((0, "pekerjaan"), (1, "sesudah"), (1, "menelaah"))):
+            tambah(E, kata("ide", kk, nm) - 0.3, letup(0.6, 72 + 2 * i), 0.5)
+        tambah(E, k("ide", 2) - 0.2, desir(0.6, False), 0.4)
+        for kk in (3, 4, 5):
+            tambah(E, k("ide", kk) + 0.15, hentak(), 0.35)
+        tambah(E, k("ide", 6) - 0.1, dentang((79, 84, 88), 0.08, 0.9), 0.6)
     # lahir
     l0 = A["lahir"]["mulai"]
     tambah(E, l0 + 0.35, dentang((84, 88, 91, 96), 0.07, 1.0), 0.6)

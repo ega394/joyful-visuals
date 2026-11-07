@@ -40,6 +40,8 @@ import { plhAktif, hariIniWita } from "../src/lib/plh.js";
 import { fmtJamDuaZona, urutAcara } from "../src/lib/zona.js";
 import { kalenderAktif, rekonsiliasi } from "./_kalender.mjs";
 import { proyekResmi } from "./_proyek.mjs";
+import { instagramDisiapkan, perpanjangToken, sinkronPostingan } from "./_instagram.mjs";
+import { BERITA_TERBIT_SEJAK } from "../src/lib/indikatorKinerja.js";
 // CommonJS (lihat kepala _walog.js) — impor bawaan, lalu ambil fungsinya.
 import walog from "./_walog.js";
 const { catatWA, hasilFonnte } = walog;
@@ -778,6 +780,16 @@ export default async function handler(req, res) {
   if (kalenderAktif()) {
     try { console.log("[CRON] Kalender:", JSON.stringify(await rekonsiliasi())); }
     catch (e) { console.error("[CRON] Kalender gagal:", e?.message || e); }
+  }
+
+  // Instagram resmi (IKU 3): perpanjang token sebelum habis (60 hari) dan
+  // ambil postingan baru. Sama seperti kalender — terbungkus sendiri dan
+  // sebelum pemeriksaan duplikat, supaya tidak pernah menggagalkan notifikasi.
+  if (instagramDisiapkan()) {
+    try {
+      console.log("[CRON] Instagram token:", JSON.stringify(await perpanjangToken()));
+      console.log("[CRON] Instagram sinkron:", JSON.stringify(await sinkronPostingan({ sejak: BERITA_TERBIT_SEJAK, paksa: true })));
+    } catch (e) { console.error("[CRON] Instagram gagal:", e?.message || e); }
   }
 
   // ── DEDUPLICATION CHECK ──────────────────────────────────────
