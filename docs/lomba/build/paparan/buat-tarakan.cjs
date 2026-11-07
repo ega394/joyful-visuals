@@ -208,7 +208,7 @@ const logo = (s, x, y) => {
     ["Kegiatan mendesak", "Rencana kegiatan dicetak ulang"],
     ["Disposisi", "Diteruskan sebagai foto di grup percakapan"],
     ["Penugasan petugas", "Bergantung pada ingatan perorangan"],
-    ["Ruangan dan audiensi", "Papan tulis; pemohon datang atau menelepon"],
+    ["Ruangan dan audiensi", "Papan tulis; calon tamu bersurat, datang langsung, atau menelepon"],
   ];
   baris.forEach(([a, b], i) => {
     const y = 2.55 + i * 0.6;

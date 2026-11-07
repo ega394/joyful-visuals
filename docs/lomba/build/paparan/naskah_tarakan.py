@@ -30,7 +30,7 @@ SLIDE = [
   isyarat="Tunjuk lembar atas saat 'sampai', lembar bawah (bingkai merah) saat 'tidak ikut terfoto'. Bila ditanya jumlah lembarnya: cukup katakan satu lembar tidak ikut terfoto dan baru diketahui belakangan; jangan menyebut angka total."),
  dict(no=3, judul="Agenda padat, cara kerja manual", mulai="1:00", selesai="1:40",
   ucap=["Agenda dua Pimpinan Daerah memang padat. Sejak Maret sampai 5 Oktober tercatat 617 kegiatan, rata-rata 91 setiap bulan, dan hampir separuhnya kegiatan sambutan. Volume itu beban kerja yang nyata, memang demikian adanya.",
-        "Dulu semuanya manual: rencana kegiatan dicetak dari spreadsheet, penelaahan hanya sekitar 30 menit menjelang jam pulang, disposisi beredar sebagai foto, dan penugasan bergantung pada ingatan. Masalahnya bukan pada orang, tetapi pada rantainya."]),
+        "Dulu semuanya manual: rencana kegiatan dicetak dari spreadsheet, penelaahan hanya sekitar 30 menit menjelang jam pulang, disposisi beredar sebagai foto, penugasan bergantung pada ingatan, dan calon tamu harus bersurat, datang langsung, atau menelepon. Masalahnya bukan pada orang, tetapi pada rantainya."]),
  dict(no=4, judul="Akar masalah", mulai="1:40", selesai="2:15",
   ucap=["Akarnya satu: tidak ada satu sumber data yang sahih dan dapat dirujuk semua pihak. Dari sana tumbuh lima persoalan, dari penelaahan yang terikat jendela waktu sampai layanan publik yang tidak dapat ditelusuri.",
         "Karena persoalannya tersebar di kertas, spreadsheet, grup percakapan, papan tulis, dan telepon, jawabannya harus satu wadah dengan satu data: superapp. Lalu, pilihan apa yang kami punya?"]),
