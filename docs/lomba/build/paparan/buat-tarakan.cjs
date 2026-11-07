@@ -168,8 +168,8 @@ const logo = (s, x, y) => {
   kepala(s, 1, "LATAR BELAKANG  ·  PERISTIWA PEMICU", true);
   teks(s, "Januari 2026.", M, 1.35, 5.4, 0.5, { fontSize: 20, bold: true, color: EMAS });
   teks(s, "Satu lembar disposisi agenda tidak ikut terfoto.", M, 1.9, 5.3, 2.0, { fontFace: FX, fontSize: 34, color: PUTIH });
-  teks(s, "Berkas diteruskan sebagai foto di grup percakapan. Lembar rencana audiensi itu tidak sampai ke meja kami — dan tidak ada yang dapat mengetahuinya.", M, 4.05, 5.2, 1.3, { fontSize: 16, color: "E5E9F0" });
-  teks(s, "Tidak ada yang lalai. Rantainya yang rapuh.", M, 5.5, 5.3, 0.45, { fontSize: 17, bold: true, italic: true, color: EMAS });
+  teks(s, "Disposisi Pimpinan diteruskan kepada kami dalam bentuk foto melalui grup WhatsApp. Lembar rencana kegiatan (atas) ikut terfoto. Lembar rencana audiensi (bawah) tidak ikut terfoto, sehingga jadwal audiensi Senin, 5 Januari 2026 tidak pernah kami terima, dan tidak ada yang tahu ada lembar yang tertinggal.", M, 3.95, 5.3, 1.5, { fontSize: 14, color: "E5E9F0" });
+  teks(s, "Tidak ada yang lalai. Rantainya yang rapuh.", M, 5.7, 5.3, 0.45, { fontSize: 17, bold: true, italic: true, color: EMAS });
   const X = 6.35, Wl = W - M - X;
   const lembar = (f, px, py, y, label, warna, hilang) => {
     const h = Wl * py / px;
