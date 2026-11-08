@@ -21,7 +21,7 @@ import json, os
 SLIDE = [
  dict(no=1, judul="Sampul", mulai="0:00", selesai="0:20",
   ucap=["Assalamualaikum warahmatullahi wabarakatuh. Selamat sore, Bapak dan Ibu Dewan Juri yang kami hormati.",
-        "Izin kami memaparkan Prokopim Hibot, Superapp Pelayanan Keprotokolan dan Komunikasi Pimpinan, pada Kategori A, Inovasi Tata Kelola Pemerintahan. Izinkan kami memulainya dengan sebuah cerita."]),
+        "Izin kami memaparkan Prokopim Hibot, Superapp Pelayanan Keprotokolan dan Komunikasi Pimpinan, pada Kategori A, Inovasi Tata Kelola Pemerintahan. Yang kami paparkan bukan rencana: aplikasi ini sudah berjalan sejak Maret 2026, dan semua angkanya ditarik langsung dari basis data. Izinkan kami memulainya dengan sebuah cerita."]),
  # ── BAB 1 · MASALAH ──
  dict(no=2, judul="Bab 1 — Lembar yang tidak sampai", mulai="0:20", selesai="1:00",
   ucap=["Januari 2026. Berkas disposisi agenda Pimpinan diteruskan sebagai foto di grup percakapan. Lembar rencana kegiatan ini terfoto dan sampai kepada kami.",
@@ -61,7 +61,7 @@ SLIDE = [
         "Kami didukung Tim Koordinasi 42 orang, DKISP, dan Bappeda Litbang. Lalu, apa hasilnya?"]),
  # ── BAB 3 · HASIL ──
  dict(no=13, judul="Bab 3 — Dari hari menjadi jam", mulai="7:05", selesai="7:55",
-  ucap=["Dari undangan masuk sampai tercantum di agenda, yang dulu diperkirakan 18 sampai 24 jam, kini median 1,94 jam, 9 sampai 12 kali lebih cepat; 99,3 persen tayang kurang dari sehari. 47,9 persen penelaahan terjadi di luar jam kerja, dan 92,5 persen kegiatan memiliki petugas tercatat.",
+  ucap=["Angka berikut bukan target, melainkan hasil yang terukur. Dari undangan masuk sampai tercantum di agenda, yang dulu diperkirakan 18 sampai 24 jam, kini median 1,94 jam, 9 sampai 12 kali lebih cepat; 99,3 persen tayang kurang dari sehari. 47,9 persen penelaahan terjadi di luar jam kerja, dan 92,5 persen kegiatan memiliki petugas tercatat.",
         "Grafik ini volume kegiatan Pimpinan setiap bulan. Jumlahnya mengikuti agenda Wali Kota dan Wakil Wali Kota; yang kami tegaskan, aplikasi ini telah mencatat dan menjadi sarana utama memfasilitasi 617 kegiatan tersebut. Bagi Pimpinan, artinya kepastian."]),
  dict(no=14, judul="Kepastian bagi Pimpinan", mulai="7:55", selesai="8:35",
   ucap=["Bapak Wali Kota menyampaikan: yang terpenting bagi beliau adalah kepastian, ke mana harus hadir, kapan, dan siapa yang menyiapkannya. 67 kegiatan telah beliau disposisikan kepada Wakil Wali Kota dari aplikasi, dan ajudan mengonfirmasi kehadiran 386 kali.",
