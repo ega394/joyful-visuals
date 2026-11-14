@@ -85,6 +85,7 @@ export default function PrivasiPage() {
             "menyusun, memeriksa, dan menetapkan jadwal kegiatan Pimpinan Daerah;",
             "memproses permohonan audiensi, peminjaman ruang rapat, dan daftar hadir;",
             "mengirim pemberitahuan terkait layanan tersebut melalui WhatsApp atau notifikasi aplikasi;",
+            "mengirim survei kepuasan layanan melalui WhatsApp sesudah peminjaman ruang rapat selesai; pengisiannya sukarela dan hasilnya dipakai untuk perbaikan layanan;",
             "menjaga keamanan akun dan mencatat jejak keputusan sebagai bahan pertanggungjawaban kedinasan.",
           ]} />
           <P>Data tidak dipakai untuk iklan, tidak dijual, dan tidak diserahkan kepada pihak lain di luar keperluan kedinasan, kecuali diwajibkan peraturan perundang-undangan.</P>

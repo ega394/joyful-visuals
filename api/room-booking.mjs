@@ -39,6 +39,8 @@
  *   POST (no admin)             → submit pengajuan publik
  *   PUT  + header X-Username    → admin update status
  *   DELETE ?id=X&code=X         → cancel oleh peminjam
+ *   GET/POST ?op=survei&t=TOKEN → survei kepuasan peminjam (publik, _survei.mjs)
+ *   GET  ?op=survei_hasil       → hasil survei (Kabag, Kasubbag Protokol, pengelola)
  */
 
 // Aturan PLH sengaja tidak disalin ulang di sini: peramban dan peladen harus
@@ -47,6 +49,7 @@
 import { periksaPenetapan, plhAktif } from "../src/lib/plh.js";
 import { sinkronSatu } from "./_kalender.mjs";
 import { tanganiMasuk } from "./_masuk.mjs";
+import { tanganiSurvei } from "./_survei.mjs";
 // CommonJS (lihat kepala _walog.js) — impor bawaan, lalu ambil fungsinya.
 import walog from "./_walog.js";
 import persetujuan from "./_persetujuan.js";
@@ -393,6 +396,11 @@ export default async function handler(req, res) {
     return tanganiMasuk(req, res, {
       sbGet, sbPost, sbPatch, sbDelete, verifySession, terbitkanSesi, tabelBelumAda, SUPA_URL, H,
     });
+  }
+
+  // ?op=survei (publik, tautan pribadi) dan ?op=survei_hasil → _survei.mjs.
+  if (query.op === "survei" || query.op === "survei_hasil") {
+    return tanganiSurvei(req, res, { verifySession });
   }
 
   try {

@@ -4,7 +4,8 @@
  */
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import KontakActions from "./KontakActions.jsx";
-import { adminFetch, clearAdminToken } from "../roomAuth";
+import { adminFetch, clearAdminToken, sesiFetch } from "../roomAuth";
+import SurveiKepuasan from "./SurveiKepuasan.jsx";
 
 const NAVY   = "#0A1628";
 const GOLD   = "#C9A84C";
@@ -1017,7 +1018,7 @@ export default function BookingDashboard({ user, isMobile }) {
   const [filterStatus, setFilterStatus] = useState("Pending");
   const [filterRoom, setFilterRoom]     = useState("");
 
-  // View mode: 'list' | 'calendar'
+  // View mode: 'list' | 'calendar' | 'kepuasan'
   const [viewMode, setViewMode] = useState("list");
   const now = new Date();
   const [calYear, setCalYear]   = useState(now.getFullYear());
@@ -1184,6 +1185,7 @@ export default function BookingDashboard({ user, isMobile }) {
           {[
             { k:"list",     icon:"📋", label:"Daftar" },
             { k:"calendar", icon:"📅", label:"Kalender" },
+            { k:"kepuasan", icon:"⭐", label:"Kepuasan" },
           ].map(({k,icon,label})=>(
             <button key={k} onClick={()=>setViewMode(k)}
               style={{
@@ -1199,8 +1201,8 @@ export default function BookingDashboard({ user, isMobile }) {
           ))}
         </div>
 
-        {/* Filter bar */}
-        <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+        {/* Filter bar (tidak dipakai di tab Kepuasan, yang punya saringan sendiri) */}
+        {viewMode !== "kepuasan" && <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
           {viewMode === "list" && (
             <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
               style={{
@@ -1278,10 +1280,12 @@ export default function BookingDashboard({ user, isMobile }) {
             }}>
             ↗ Halaman Publik
           </a>
-        </div>
+        </div>}
 
-        {/* Konten — list atau calendar */}
-        {loading ? (
+        {/* Konten — list, calendar, atau hasil survei kepuasan */}
+        {viewMode === "kepuasan" ? (
+          <SurveiKepuasan ambil={sesiFetch} isMobile={isMobile} />
+        ) : loading ? (
           <div style={{ textAlign: "center", padding: 40, color: GRAY }}>Memuat data...</div>
         ) : viewMode === "calendar" ? (
           <div style={{

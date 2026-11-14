@@ -17,6 +17,7 @@ const TamuPage          = lazy(() => imporSegar(() => import("./TamuPage.jsx")))
 const PinjamRuanganPage = lazy(() => imporSegar(() => import("./pages/PinjamRuanganPage.jsx")));
 const DaftarHadirPage   = lazy(() => imporSegar(() => import("./pages/DaftarHadirPage.jsx")));
 const PrivasiPage       = lazy(() => imporSegar(() => import("./pages/PrivasiPage.jsx")));
+const SurveiPage        = lazy(() => imporSegar(() => import("./pages/SurveiPage.jsx")));
 
 const queryClient = new QueryClient();
 
@@ -41,6 +42,7 @@ const App = () => {
               <Route path="/tamu" element={<TamuPage />} />
               <Route path="/pinjamruangan" element={<PinjamRuanganPage />} />
               <Route path="/daftarhadir" element={<DaftarHadirPage />} />
+              <Route path="/survei/:token" element={<SurveiPage />} />
               <Route path="/privasi" element={<PrivasiPage />} />
               <Route path="/ketentuan" element={<PrivasiPage />} />
               <Route path="*" element={<NotFound />} />

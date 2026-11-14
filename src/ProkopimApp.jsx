@@ -8,6 +8,7 @@ const GuestDashboard = React.lazy(() => imporSegar(() => import("./GuestDashboar
 const RoomCalendarView = React.lazy(() => imporSegar(() => import("./components/RoomCalendarView.jsx")));
 const DaftarHadirAdmin = React.lazy(() => imporSegar(() => import("./components/DaftarHadirAdmin.jsx")));
 const MonitorWA = React.lazy(() => imporSegar(() => import("./components/MonitorWA.jsx")));
+const SurveiKepuasan = React.lazy(() => imporSegar(() => import("./components/SurveiKepuasan.jsx")));
 const _LazyFallback  = () => (
   <div style={{ padding: 24, textAlign: "center", color: "#64748b" }}>Memuat…</div>
 );
@@ -8120,6 +8121,9 @@ export default function App(){
   // Monitor WA (meteran + arsip WA keluar): Admin RK, Kasubbag Protokol, Kabag,
   // termasuk PLH-nya. Lingkup isi ditentukan peladen (api/_monitorwa.js).
   const bolehMonitorWA=["kabag","kasubbag_protokol","admin_rk"].some(r=>punyaPeran(user,r));
+  // Hasil survei kepuasan peminjam ruang rapat: Kabag, Kasubbag Protokol, dan
+  // pengelola ruangan (termasuk PLH). Peladen memeriksa ulang (_survei.mjs).
+  const bolehSurveiRuangan=punyaPeran(user,"kabag")||punyaPeran(user,"kasubbag_protokol")||!!user?.can_manage_rooms;
   // Notifikasi peringatan Monitor WA membuka /?tab=monitor_wa.
   useEffect(()=>{try{const q=new URLSearchParams(window.location.search);if(q.get("tab")==="monitor_wa"&&bolehMonitorWA){setTab("monitor_wa");window.history.replaceState(null,"",window.location.pathname);}}catch{}},[bolehMonitorWA]);
 
@@ -9487,6 +9491,7 @@ const TH={
     ...(role!=="mitra_kerja"?[{key:"action:report_tamu", icon:"📇",label:"Cetak Rekap Tamu"}]:[]),
     ...(canReport?[{key:"action:laporan",icon:"📊",label:"Laporan Mingguan/Bulanan"}]:[]),
     ...(bolehRekapTim?[{key:"indikator_kinerja",icon:"🎯",label:"Indikator Kinerja"}]:[]),
+    ...(bolehSurveiRuangan?[{key:"survei_ruangan",icon:"⭐",label:"Survei Kepuasan Ruangan"}]:[]),
     ...(bolehRekapTim?[{key:"penugasan",icon:"📈",label:"Rekap Evaluasi Kinerja"}]:[]),
     ...(bolehRekapTim?[{key:"rekap_penugasan",icon:"🏆",label:"Rekap Penugasan Bulanan"}]:[]),
     ...(REKAP_SAYA_ROLES.includes(role)?[{key:"rekap_saya",icon:"🏅",label:"Rekap Kinerja Saya"}]:[]),
@@ -9699,6 +9704,7 @@ const TH={
               {icon:"📇",label:"Cetak Tamu",action:()=>{setShowReportTamu(true);setMobMenu(false);}},
               ...(canReport?[{icon:"📊",label:"Laporan",action:()=>{setShowLaporan(true);setMobMenu(false);}}]:[]),
               ...(bolehRekapTim?[{icon:"🎯",label:"Indikator Kinerja",action:()=>{setTab("indikator_kinerja");setMobMenu(false);}}]:[]),
+              ...(bolehSurveiRuangan?[{icon:"⭐",label:"Survei Kepuasan",action:()=>{setTab("survei_ruangan");setMobMenu(false);}}]:[]),
               ...(bolehRekapTim?[{icon:"📈",label:"Rekap Evaluasi",action:()=>{setTab("penugasan");setMobMenu(false);}}]:[]),
               ...(bolehRekapTim?[{icon:"🏆",label:"Rekap Penugasan",action:()=>{setTab("rekap_penugasan");setMobMenu(false);}}]:[]),
               ...(REKAP_SAYA_ROLES.includes(role)?[{icon:"🏅",label:"Rekap Kinerja Saya",action:()=>{setTab("rekap_saya");setMobMenu(false);}}]:[]),
@@ -12709,7 +12715,7 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
 
 
   // ==================== MAIN CONTENT ====================
-  const pageTitle=tab==="indikator_kinerja"?"Indikator Kinerja":tab==="beranda"?"Beranda":tab==="monitor_wa"?"Monitor WA":tab==="kalender_bersama"?"Kalender Bersama":tab==="ekinerja"?"Generator E-Kinerja":tab==="tayang"?"Agenda Kegiatan Pimpinan":tab==="pantau"?"Input & Pantau Jadwal":tab==="undangan"?"Generator Undangan Resmi":tab==="form"?"Input Jadwal Baru":tab==="semua"?"Semua Jadwal":tab==="penugasan"?"Penugasan Saya":tab==="audit"?"Riwayat Alur Jadwal":tab==="dashboard"?"Dashboard":tab==="newsroom"?"Newsroom":tab==="tamu"?"Tamu":tab==="ajudan"?"Konfirmasi Kehadiran":tab==="jadwal"?KASUBBAG_ROLES.includes(role)||role==="kabag"?"Antrian Approval":"Jadwal":"Jadwal";
+  const pageTitle=tab==="survei_ruangan"?"Survei Kepuasan Ruangan":tab==="indikator_kinerja"?"Indikator Kinerja":tab==="beranda"?"Beranda":tab==="monitor_wa"?"Monitor WA":tab==="kalender_bersama"?"Kalender Bersama":tab==="ekinerja"?"Generator E-Kinerja":tab==="tayang"?"Agenda Kegiatan Pimpinan":tab==="pantau"?"Input & Pantau Jadwal":tab==="undangan"?"Generator Undangan Resmi":tab==="form"?"Input Jadwal Baru":tab==="semua"?"Semua Jadwal":tab==="penugasan"?"Penugasan Saya":tab==="audit"?"Riwayat Alur Jadwal":tab==="dashboard"?"Dashboard":tab==="newsroom"?"Newsroom":tab==="tamu"?"Tamu":tab==="ajudan"?"Konfirmasi Kehadiran":tab==="jadwal"?KASUBBAG_ROLES.includes(role)||role==="kabag"?"Antrian Approval":"Jadwal":"Jadwal";
 
   // ═══════════════════════════════════════════════════════════════
   // FITUR 1: SAPAAN CERDAS + RINGKASAN PAGI
@@ -13120,6 +13126,8 @@ function PimpinanView({events, role, user, onDisposisi, onCatatanSave, setDelegT
         ?<React.Suspense fallback={<_LazyFallback />}><RoomCalendarView isMobile={isMobile} user={user}/></React.Suspense>
       :tab==="rekap_saya"&&REKAP_SAYA_ROLES.includes(role)
         ?<RekapPenugasanBulanan mode="saya" events={events} user={user} isMobile={isMobile} allUsers={loadUsers()}/>
+      :tab==="survei_ruangan"&&bolehSurveiRuangan
+        ?<React.Suspense fallback={<_LazyFallback />}><SurveiKepuasan ambil={sesiFetch} isMobile={isMobile}/></React.Suspense>
       :tab==="indikator_kinerja"&&bolehRekapTim
         ?<IndikatorKinerja events={events} user={user} isMobile={isMobile} allUsers={loadUsers()} ambil={sesiFetch} upd={upd}/>
       :tab==="rekap_penugasan"&&bolehRekapTim
