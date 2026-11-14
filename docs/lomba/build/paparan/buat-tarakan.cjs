@@ -480,10 +480,16 @@ function butirLain() {
   });
   garis(s, M, 4.3, W - 2 * M);
   teks(s, "VOLUME KEGIATAN PIMPINAN YANG TERCATAT DAN DIFASILITASI, PER BULAN 2026", M, 4.45, 8.5, 0.3, { fontSize: 10, bold: true, charSpacing: 1.5, color: ABU });
-  s.addChart(pres.charts.BAR, [{ name: "Kegiatan", labels: ["Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep"], values: [45, 72, 71, 71, 99, 120, 114] }], {
-    x: M - 0.1, y: 4.7, w: 8.4, h: 1.7, barDir: "col", chartColors: [NAVY], showValue: true, dataLabelFontSize: 11, dataLabelFontFace: F, dataLabelColor: TINTA,
-    catAxisLabelFontSize: 11, catAxisLabelFontFace: F, catAxisLabelColor: ABU, valAxisHidden: true, valGridLine: { style: "none" }, catAxisLineShow: false, barGapWidthPct: 45,
+  // Grafik digambar dari bentuk biasa (bukan objek bagan) agar tampil sama di PowerPoint dan Keynote.
+  const BUL = [["Mar", 45], ["Apr", 72], ["Mei", 71], ["Jun", 71], ["Jul", 99], ["Agu", 120], ["Sep", 114]];
+  const gx = M, gw = 8.2, gyBawah = 6.15, gTinggi = 1.15, lb = gw / BUL.length;
+  BUL.forEach(([bl, v], i) => {
+    const h = gTinggi * v / 120, x = gx + i * lb + lb * 0.22, w = lb * 0.56;
+    s.addShape(pres.shapes.RECTANGLE, { x, y: gyBawah - h, w, h, fill: { color: NAVY }, line: { type: "none" } });
+    teks(s, String(v), x - 0.2, gyBawah - h - 0.27, w + 0.4, 0.25, { fontSize: 11, kecil: true, bold: true, color: TINTA, align: "center" });
+    teks(s, bl, x - 0.2, gyBawah + 0.04, w + 0.4, 0.22, { fontSize: 10, kecil: true, color: ABU, align: "center" });
   });
+  garis(s, gx, gyBawah, gw, GARIS);
   teks(s, [{ text: "617 kegiatan", options: { bold: true, fontSize: 20, color: NAVY, breakLine: true } }, { text: "rata-rata 91 per bulan. Volume mengikuti agenda Pimpinan; aplikasi mencatat dan memfasilitasinya.", options: { fontSize: 12, color: ABU } }], 9.3, 4.75, W - M - 9.3, 1.5, { kecil: true, valign: "middle" });
   teks(s, SUMBER + " Angka \"sebelum\" adalah estimasi dari alur lama.", M, 6.5, 7.1, 0.3, { kecil: true, fontSize: 9, color: ABU });
   jembatan(s, "Bagi Pimpinan, artinya kepastian.");
@@ -709,8 +715,23 @@ function butirLain() {
   catat(s);
 }
 
+// Transisi pudar (fade) di setiap pergantian slide; ikut terbawa saat dibuka di Keynote.
+async function transisiFade(berkas) {
+  const JSZip = require("jszip");
+  const zip = await JSZip.loadAsync(fs.readFileSync(berkas));
+  for (const nama of Object.keys(zip.files).filter((n) => /^ppt\/slides\/slide\d+\.xml$/.test(n))) {
+    let x = await zip.file(nama).async("string");
+    if (!x.includes("<p:transition")) {
+      x = x.replace(/(<\/p:clrMapOvr>|<\/p:cSld>)(?![\s\S]*<\/p:clrMapOvr>)/, '$1<p:transition spd="med"><p:fade/></p:transition>');
+      zip.file(nama, x);
+    }
+  }
+  fs.writeFileSync(berkas, await zip.generateAsync({ type: "nodebuffer", compression: "DEFLATE" }));
+}
+
 (async () => {
   await pres.writeFile({ fileName: KELUAR });
   await applyTheme(KELUAR, THEME);
+  await transisiFade(KELUAR);
   console.log("tersimpan", KELUAR);
 })();

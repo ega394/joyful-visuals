@@ -24,6 +24,8 @@
  *                                                antrean permohonan tamu per tahap (push)
  *   type=ajudan    → "0 8 * * *"    = 16:00 WITA  agenda besok untuk ajudan (WA)
  *   type=pending   → "0 8 * * *"    = 16:00 WITA  ringkasan sore: SATU WA per pejabat
+ *   type=survei_ruangan → "0 9 * * *" = 17:00 WITA  survei kepuasan bagi peminjam ruang rapat
+ *                                                yang peminjamannya selesai hari ini (WA, _survei.mjs)
  *   type=reminder  → tidak terjadwal lagi; isinya kini bagian ringkasan sore
  *
  * HEMAT KUOTA FONNTE (audit Oktober 2026):
@@ -40,6 +42,7 @@ import { plhAktif, hariIniWita } from "../src/lib/plh.js";
 import { fmtJamDuaZona, urutAcara } from "../src/lib/zona.js";
 import { kalenderAktif, rekonsiliasi } from "./_kalender.mjs";
 import { proyekResmi } from "./_proyek.mjs";
+import { kirimSurveiRuangan } from "./_survei.mjs";
 import { instagramDisiapkan, perpanjangToken, sinkronPostingan } from "./_instagram.mjs";
 import { BERITA_TERBIT_SEJAK } from "../src/lib/indikatorKinerja.js";
 // CommonJS (lihat kepala _walog.js) — impor bawaan, lalu ambil fungsinya.
@@ -801,6 +804,18 @@ export default async function handler(req, res) {
         skipped: true,
         reason: `Notifikasi '${type}' sudah terkirim hari ini (pakai &force=1 untuk uji)`,
       });
+    }
+  }
+
+  // Survei kepuasan peminjam ruang rapat: tidak memerlukan data jadwal.
+  if (type === "survei_ruangan") {
+    try {
+      const hasil = await kirimSurveiRuangan(hariIniWita());
+      console.log("[CRON] Survei ruangan:", JSON.stringify(hasil));
+      return res.status(200).json({ ok: true, type, ...hasil });
+    } catch (err) {
+      console.error("[CRON] Survei ruangan gagal:", err?.message || err);
+      return res.status(500).json({ error: err?.message || "Internal error" });
     }
   }
 

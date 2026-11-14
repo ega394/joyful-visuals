@@ -28,6 +28,7 @@ const JENIS = {
   ruangan_batal_ditolak: "Pembatalan ruangan ditolak",
   ruangan_pengajuan_baru: "Pengajuan ruangan baru (internal)",
   ruangan_minta_batal: "Permintaan batal ruangan (internal)",
+  ruangan_survei: "Survei kepuasan ruangan",
   rekap_pagi_ajudan: "Rekap pagi ajudan",
   rekap_ajudan_besok: "Rekap ajudan untuk besok",
   briefing_pimpinan: "Briefing pimpinan",
